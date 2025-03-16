@@ -1,4 +1,5 @@
 #include "task_uart.h"
+#include "cmsis_os.h"
 #include "app_variable.hpp"
 
 [[noreturn]] void task_uart_entry(void const * argument) {

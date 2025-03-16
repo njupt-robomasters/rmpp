@@ -1,6 +1,6 @@
 #pragma once
 
-#include "controller.h"
+#include "pid.hpp"
 
 class IMU {
 public:
@@ -55,7 +55,7 @@ private:
 
     float accel_lpf = 0.0085f;
     param_t imu_param{};
-    PID_t temperature_pid{};
+    PID temperature_pid{};
 
     void IMU_Temperature_Ctrl();
 

@@ -224,9 +224,7 @@ void Calibrate_MPU_Offset(IMU_Data_t *bmi088) {
 
 
 void BMI088_Init(SPI_HandleTypeDef *bmi088_SPI, uint8_t calibrate) {
-    while (BMI088_init(bmi088_SPI, calibrate)) {
-        ;
-    }
+    while (BMI088_init(bmi088_SPI, calibrate));
 }
 
 uint8_t BMI088_init(SPI_HandleTypeDef *bmi088_SPI, uint8_t calibrate) {

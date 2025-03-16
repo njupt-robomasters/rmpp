@@ -5,12 +5,11 @@
 
 #include "bmi088.h"
 #include "QuaternionEKF.h"
-#include "controller.h"
 
 void IMU::Init() {
     imu_param.yaw = 0;
     imu_param.pitch = 0;
-    imu_param.roll = 0;
+    imu_param.roll = 180;
     imu_param.scale[X] = 1;
     imu_param.scale[Y] = 1;
     imu_param.scale[Z] = 1;
@@ -19,7 +18,7 @@ void IMU::Init() {
     IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0);
 
     // IMU加热PID
-    PID_Init(&temperature_pid, 100, 15, 0, 50, 1, 0, 0, 0, 0, 0, 0, 0);
+    temperature_pid.Init(50, 1, 0, 100, 40);
 
     while (BMI088_init(&hspi1, 1) != BMI088_NO_ERROR);
 }
@@ -159,8 +158,8 @@ void IMU::IMU_Param_Correction(param_t *param, float gyro[3], float accel[3]) {
  *
  */
 void IMU::IMU_Temperature_Ctrl() {
-    PID_Calculate(&temperature_pid, BMI088.Temperature, temperature_set);
-    BSP_IMUHeat_SetPower(temperature_pid.Output);
+    temperature_pid.Calculate( BMI088.Temperature, temperature_set);
+    BSP_IMUHeat_SetPower(temperature_pid.output);
 }
 
 /**
