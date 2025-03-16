@@ -9,7 +9,7 @@ public:
 
     void ParseCAN(uint32_t id, uint8_t data[8]);
 
-    void Update(float vx_, float vy_, float vr_);
+    void Update(float vx_set, float vy_set, float vr_set);
 
     void Release();
 

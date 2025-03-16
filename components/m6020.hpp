@@ -17,15 +17,15 @@ public:
     float angle_set = 0; // 目标角度【单位：度】
     float current_set = 0; // PID计算得出的电流【单位：A】
 
-    void Init(float Kp, float Ki, float Kd, float max_Iout);
+    void Init(float Kp, float Ki, float Kd, float I_limit);
 
     void ParseCAN(const uint8_t data[8]);
 
-    void Update(float angle_);
+    void Update(float angle_set);
 
     void Release();
 
-    int16_t GetCurrentCmd();
+    int16_t GetCANCmd();
 
 private:
     PID pid{};

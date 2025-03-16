@@ -9,7 +9,7 @@ public:
 
     void ParseCAN(uint32_t id, uint8_t data[8]);
 
-    void Update(float pitch_angle_, float yaw_angle_, float shoot_rpm_);
+    void Update(float pitch_angle_set, float yaw_angle_set, float shoot_rpm_set);
 
     void Release();
 

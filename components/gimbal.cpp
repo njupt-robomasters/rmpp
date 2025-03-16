@@ -19,10 +19,10 @@ void Gimbal::ParseCAN(const uint32_t id, uint8_t data[8]) {
     shoot_rpm = m_shoot.speed_rpm;
 }
 
-void Gimbal::Update(float pitch_angle_, float yaw_angle_, float shoot_rpm_) {
-    pitch_angle = pitch_angle_;
-    yaw_angle = yaw_angle_;
-    shoot_rpm = shoot_rpm_;
+void Gimbal::Update(float pitch_angle_set, float yaw_angle_set, float shoot_rpm_set) {
+    this->pitch_angle = pitch_angle_set;
+    this->yaw_angle = yaw_angle_set;
+    this->shoot_rpm = shoot_rpm_set;
 
     // 电机PID计算
     m_pitch.Update(pitch_angle);
@@ -42,9 +42,9 @@ void Gimbal::Release() {
 }
 
 void Gimbal::sendCANCmd() {
-    const int16_t pitch_cmd = m_pitch.GetCurrentCmd();
-    const int16_t yaw_cmd = m_yaw.GetCurrentCmd();
-    const int16_t shoot_cmd = m_shoot.GetCurrentCmd();
+    const int16_t pitch_cmd = m_pitch.GetCANCmd();
+    const int16_t yaw_cmd = m_yaw.GetCANCmd();
+    const int16_t shoot_cmd = m_shoot.GetCANCmd();
 
     uint8_t data[8];
     data[0] = yaw_cmd >> 8; // yaw，6020电机，ID：5，电流环模式

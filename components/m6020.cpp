@@ -1,8 +1,8 @@
 #include "m6020.hpp"
 #include <cmath>
 
-void M6020::Init(const float Kp, const float Ki, const float Kd, const float max_Iout) {
-    pid.Init(PID::PID_POSITION, Kp, Ki, Kd, MAX_CURRENT, max_Iout);;
+void M6020::Init(const float Kp, const float Ki, const float Kd, const float I_limit) {
+    pid.Init(Kp, Ki, Kd, MAX_CURRENT, I_limit);;
 }
 
 void M6020::ParseCAN(const uint8_t data[8]) {
@@ -14,10 +14,10 @@ void M6020::ParseCAN(const uint8_t data[8]) {
     angle = static_cast<float>(ecd) / 8192.0f * 360.0f;
 }
 
-void M6020::Update(const float angle_) {
-    angle_set = angle_;
+void M6020::Update(const float angle_set) {
+    this->angle_set = angle_set;
     const float angle_err = calcAngleErr(speed_rpm, angle_set);
-    current_set = pid.Update(angle_err, 0);
+    current_set = pid.Calculate(angle_err, 0);
 }
 
 // 释放电机，关闭动力输出
@@ -26,7 +26,7 @@ void M6020::Release() {
     pid.Clear();
 }
 
-int16_t M6020::GetCurrentCmd() {
+int16_t M6020::GetCANCmd() {
     // 3508电机（C620电调）：-3~0~3A => -16384~0~16384
     const auto cmd = static_cast<int16_t>(current_set / MAX_CURRENT * 16384.0f);
     return cmd;

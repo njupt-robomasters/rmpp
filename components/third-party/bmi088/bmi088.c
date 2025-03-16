@@ -119,9 +119,9 @@ void Calibrate_MPU_Offset(IMU_Data_t *bmi088) {
     float gyroMax[3], gyroMin[3];
     float gNormTemp, gNormMax, gNormMin;
 
-    startTime = BSP_DWT_GetTimeline_s();
+    startTime = BSP_DWT_GetTime_second();
     do {
-        if (BSP_DWT_GetTimeline_s() - startTime > 10) {
+        if (BSP_DWT_GetTime_second() - startTime > 10) {
             // 校准超时
             bmi088->GyroOffset[0] = GxOFFSET;
             bmi088->GyroOffset[1] = GyOFFSET;

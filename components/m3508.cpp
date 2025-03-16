@@ -1,7 +1,7 @@
 #include "m3508.hpp"
 
-void M3508::Init(const float Kp, const float Ki, const float Kd, const float max_Iout) {
-    pid.Init(PID::PID_POSITION, Kp, Ki, Kd, MAX_CURRENT, max_Iout);;
+void M3508::Init(const float Kp, const float Ki, const float Kd, const float I_limit) {
+    speed_pid.Init(Kp, Ki, Kd, MAX_CURRENT, I_limit);
 }
 
 void M3508::ParseCAN(const uint8_t data[8]) {
@@ -11,18 +11,18 @@ void M3508::ParseCAN(const uint8_t data[8]) {
     temperate = data[6];
 }
 
-void M3508::Update(const float speed_rpm_) {
-    speed_rpm_set = speed_rpm_;
-    current_set = pid.Update(speed_rpm, speed_rpm_set);
+void M3508::Update(const float speed_rpm_set) {
+    this->speed_rpm_set = speed_rpm_set;
+    current_set = speed_pid.Calculate(speed_rpm, speed_rpm_set);
 }
 
 // 释放电机，关闭动力输出
 void M3508::Release() {
     speed_rpm_set = current_set = 0;
-    pid.Clear();
+    speed_pid.Clear();
 }
 
-int16_t M3508::GetCurrentCmd() {
+int16_t M3508::GetCANCmd() {
     // 3508电机（C620电调）：-20~0~20A => -16384~0~16384
     const auto cmd = static_cast<int16_t>(current_set / MAX_CURRENT * 16384.0f);
     return cmd;

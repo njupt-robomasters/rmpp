@@ -21,10 +21,10 @@ void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
     inverseCalc();
 }
 
-void Chassis::Update(const float vx_, const float vy_, const float vr_) {
-    vx_set = vx_;
-    vy_set = vy_;
-    vr_set = vr_;
+void Chassis::Update(const float vx_set, const float vy_set, const float vr_set) {
+    this->vx_set = vx_set;
+    this->vy_set = vy_set;
+    this->vr_set = vr_set;
     vz_set = vr_set / 60.0f * CHASSIS_PERIMETER; // 底盘旋转角速度rpm -> 底盘旋转线速度m/s
 
     forwardCalc();
@@ -54,7 +54,7 @@ void Chassis::Release() {
 
 void Chassis::forwardCalc() {
     // 根据速度分量，计算电机目标转速（全向轮运动学解算）
-    constexpr auto sqrt2div2 = sqrtf(2) / 2.0f;
+    constexpr float sqrt2div2 = sqrtf(2) / 2.0f;
     v1_set = -sqrt2div2 * vx_set + sqrt2div2 * vy_set + vz_set; // 轮子线速度【单位：m/s】
     v2_set = -sqrt2div2 * vx_set - sqrt2div2 * vy_set + vz_set; // 轮子线速度【单位：m/s】
     v3_set = sqrt2div2 * vx_set - sqrt2div2 * vy_set + vz_set; // 轮子线速度【单位：m/s】
@@ -68,7 +68,7 @@ void Chassis::inverseCalc() {
     v3 = m3.speed_rpm / 60.0f * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
     v4 = m4.speed_rpm / 60.0f * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
 
-    constexpr auto sqrt2div2 = sqrtf(2) / 2.0f;
+    constexpr float sqrt2div2 = sqrtf(2) / 2.0f;
     vx = -sqrt2div2 * v1 - sqrt2div2 * v2 + sqrt2div2 * v3 + sqrt2div2 * v4;
     vy = sqrt2div2 * v1 - sqrt2div2 * v2 - sqrt2div2 * v3 + sqrt2div2 * v4;
     vz = (v1 + v2 + v3 + v4) / 4.0f;
@@ -76,10 +76,10 @@ void Chassis::inverseCalc() {
 }
 
 void Chassis::sendCANCmd() {
-    const int16_t m3508_1_cmd = m1.GetCurrentCmd();
-    const int16_t m3508_2_cmd = m2.GetCurrentCmd();
-    const int16_t m3508_3_cmd = m3.GetCurrentCmd();
-    const int16_t m3508_4_cmd = m4.GetCurrentCmd();
+    const int16_t m3508_1_cmd = m1.GetCANCmd();
+    const int16_t m3508_2_cmd = m2.GetCANCmd();
+    const int16_t m3508_3_cmd = m3.GetCANCmd();
+    const int16_t m3508_4_cmd = m4.GetCANCmd();
 
     uint8_t data[8];
     data[0] = m3508_1_cmd >> 8; // 3508电机，ID：1

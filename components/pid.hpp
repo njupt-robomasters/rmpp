@@ -4,37 +4,70 @@
 
 class PID {
 public:
-    enum PID_MODE {
-        PID_POSITION = 0,
-        PID_DELTA
-    };
-
-    float now = 0.0f;
-    float set = 0.0f;
-
     // PID输出
-    float out = 0.0f;
-    float Pout = 0.0f;
-    float Iout = 0.0f;
-    float Dout = 0.0f;
+    float output = 0;
 
-    void Init(PID_MODE mode_, float Kp_, float Ki_, float Kd_, float max_out_, float max_Iout_);
+    void Init(float Kp, float Ki, float Kd, float max_out, float intergral_limit);
 
-    float Update(float now, float set);
+    void EnableTrapezoidIntergral();
+
+    void EnableChangingIntegrationRate(float CofA, float CofB);
+
+    void EnableDerivativeOnMeasurement();
+
+    void EnableDerivativeFilter(float derivative_lpf_rc);
+
+    void EnableOutputFilter(float output_lpf_rc);
+
+    float Calculate(float measure, float ref);
 
     void Clear();
 
 private:
-    uint8_t mode{};
+    enum improve_e {
+        NONE = 0x00,
+        Trapezoid_Intergral = 1 << 0, // 梯形积分
+        Changing_Integration_Rate = 1 << 1, // 变速积分
+        Derivative_On_Measurement = 1 << 2, // 微分先行
+        Derivative_Filter = 1 << 3, // 微分滤波
+        Output_Filter = 1 << 4 // 输出滤波
+    };
 
-    // PID 三参数
-    float Kp = 0.0f;
-    float Ki = 0.0f;
-    float Kd = 0.0f;
+    // PID参数
+    float Kp = 0, Ki = 0, Kd = 0; // P、I、D三参数
+    float max_out = 0; // 输出限幅
+    float integral_limit = 0; // 积分限幅
+    float deadband = 0; // 误差小于此值输出0
+    float coefA = 0, coefB = 0; // 变速积分参数，iterm = Err*((A-abs(err)+B)/A)  when B<|err|<A+B
+    float output_lpf_rc = 0, derivative_lpf_rc = 0; // 输出滤波、积分滤波，RC = 1/omegac
 
-    float max_out = 0.0f; // 最大输出
-    float max_Iout = 0.0f; // 最大积分输出
+    // 测量值、参考值、误差值
+    float measure = 0, ref = 0, err = 0;
 
-    float error[3]{}; // 误差项 0最新 1上一次 2上上次
-    float Dbuf[3]{}; // 微分项 0最新 1上一次 2上上次
+    float Pout = 0, Iout = 0, Dout = 0;
+
+    float iterm = 0;
+
+    float last_err = 0; // 用于梯形积分
+    float last_measure = 0; // 用于微分先行
+    float last_output = 0; // 用于输出滤波
+    float last_Dout = 0; // 用于微分滤波
+
+    uint32_t dwt_cnt = 0;
+    float dt = 0;
+
+    uint8_t improve = NONE;
+
+    void f_Integral_Limit();
+
+    // PID优化函数
+    void f_Trapezoid_Intergral(); // 梯形积分
+
+    void f_Changing_Integration_Rate(); // 变速积分
+
+    void f_Derivative_On_Measurement(); // 微分先行
+
+    void f_Derivative_Filter(); // 微分滤波
+
+    void f_Output_Filter(); // 输出滤波
 };
