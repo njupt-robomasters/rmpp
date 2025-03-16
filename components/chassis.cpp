@@ -3,10 +3,10 @@
 #include "bsp_can.h"
 
 void Chassis::Init() {
-    m1.Init(M3508_KP, M3508_KI, M3508_KD, M3508_MAX_IOUT);
-    m2.Init(M3508_KP, M3508_KI, M3508_KD, M3508_MAX_IOUT);
-    m3.Init(M3508_KP, M3508_KI, M3508_KD, M3508_MAX_IOUT);
-    m4.Init(M3508_KP, M3508_KI, M3508_KD, M3508_MAX_IOUT);
+    m1.Init(KP, KI, KD, MAX_IOUT);
+    m2.Init(KP, KI, KD, MAX_IOUT);
+    m3.Init(KP, KI, KD, MAX_IOUT);
+    m4.Init(KP, KI, KD, MAX_IOUT);
 }
 
 void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
@@ -18,6 +18,7 @@ void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
         m3.ParseCAN(data);
     if (id == 0x204)
         m4.ParseCAN(data);
+    inverseCalc();
 }
 
 void Chassis::Update(const float vx_, const float vy_, const float vr_) {
@@ -27,7 +28,13 @@ void Chassis::Update(const float vx_, const float vy_, const float vr_) {
     vz_set = vr_set / 60.0f * CHASSIS_PERIMETER; // 底盘旋转角速度rpm -> 底盘旋转线速度m/s
 
     forwardCalc();
-    inverseCalc();
+
+    // 电机PID计算
+    m1.Update(v1_set / WHEEL_PERIMETER * 60.0f);
+    m2.Update(v2_set / WHEEL_PERIMETER * 60.0f);
+    m3.Update(v3_set / WHEEL_PERIMETER * 60.0f);
+    m4.Update(v4_set / WHEEL_PERIMETER * 60.0f);
+
     sendCANCmd();
 }
 
@@ -39,9 +46,6 @@ void Chassis::Release() {
     m4.Release();
 
     sendCANCmd();
-
-    // 仍然维持底盘逆解算
-    inverseCalc();
 
     // 清空所有设定值
     vx_set = vy_set = vr_set = vz_set = 0;
@@ -55,19 +59,14 @@ void Chassis::forwardCalc() {
     v2_set = -sqrt2div2 * vx_set - sqrt2div2 * vy_set + vz_set; // 轮子线速度【单位：m/s】
     v3_set = sqrt2div2 * vx_set - sqrt2div2 * vy_set + vz_set; // 轮子线速度【单位：m/s】
     v4_set = sqrt2div2 * vx_set + sqrt2div2 * vy_set + vz_set; // 轮子线速度【单位：m/s】
-
-    m1.Update(v1_set / WHEEL_PERIMETER * 60.0f);
-    m2.Update(v2_set / WHEEL_PERIMETER * 60.0f);
-    m3.Update(v3_set / WHEEL_PERIMETER * 60.0f);
-    m4.Update(v4_set / WHEEL_PERIMETER * 60.0f);
 }
 
 void Chassis::inverseCalc() {
     // 逆运动学解算当前底盘实际速度
-    const float v1 = m1.speed_rpm / 60.0f * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
-    const float v2 = m2.speed_rpm / 60.0f * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
-    const float v3 = m3.speed_rpm / 60.0f * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
-    const float v4 = m4.speed_rpm / 60.0f * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
+    v1 = m1.speed_rpm / 60.0f * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
+    v2 = m2.speed_rpm / 60.0f * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
+    v3 = m3.speed_rpm / 60.0f * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
+    v4 = m4.speed_rpm / 60.0f * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
 
     constexpr auto sqrt2div2 = sqrtf(2) / 2.0f;
     vx = -sqrt2div2 * v1 - sqrt2div2 * v2 + sqrt2div2 * v3 + sqrt2div2 * v4;

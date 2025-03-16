@@ -1,6 +1,7 @@
 #include "bsp_can.h"
 #include "can.h"
 #include "task_chassis.h"
+#include "task_gimbal.h"
 
 void BSP_CAN_Init() {
     CAN_FilterTypeDef can_filter_st;
@@ -41,6 +42,7 @@ void BSP_CAN_Transmit(const uint32_t id, uint8_t data[8], const uint8_t dlc) {
 
 void BSP_CAN_Rx_Callback(uint32_t id, uint8_t data[8]) {
     task_chassis_callback(id, data);
+    task_gimbal_callback(id, data);
 }
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {

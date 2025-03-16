@@ -3,10 +3,10 @@
 #include <cstdint>
 #include "pid.hpp"
 
-class M3508 {
+class M2006 {
 public:
-    static constexpr auto MAX_CURRENT = 20.0f; // 最大电流【单位；A】（CAN通信最大支持20A）
-    static constexpr auto REDUCTION_RATIO = 3591.0f / 187.0f; // 减速比
+    static constexpr auto MAX_CURRENT = 10.0f; // 最大电流【单位；A】（CAN通信最大支持10A）
+    static constexpr auto REDUCTION_RATIO = 36.0f; // 减速比
 
     // 从CAN获得的参数
     uint16_t ecd = 0; // 转子机械角度（减速前）【单位：0~8191 -> 0~360°】

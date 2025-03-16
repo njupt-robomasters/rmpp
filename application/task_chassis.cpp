@@ -11,27 +11,29 @@ constexpr auto vr_max = 10.0f; // 旋转角速度【单位：rpm】
     chassis.Init();
     while (true) {
         // 检查遥控器连接
-        if (dj6.is_connected) {
-            // 根据运动模式，计算底盘速度分量
-            float vx, vy, vr;
-            if (dj6.right_switch == DJ6::UP) {
-                // 前后移动、左右旋转
-                vx = 0;
-                vy = dj6.y * vy_max;
-                vr = dj6.x * vr_max;
-            } else {
-                // 前后左右平移
-                vx = dj6.x * vx_max;
-                vy = dj6.y * vy_max;
-                vr = 0;
-            }
-            chassis.Update(vx, vy, vr);
-        } else {
-            chassis.Release();
-        }
+        // if (dj6.is_connected) {
+        //     // 根据运动模式，计算底盘速度分量
+        //     float vx, vy, vr;
+        //     if (dj6.right_switch == DJ6::UP) {
+        //         // 前后移动、左右旋转
+        //         vx = 0;
+        //         vy = dj6.y * vy_max;
+        //         vr = dj6.x * vr_max;
+        //     } else {
+        //         // 前后左右平移
+        //         vx = dj6.x * vx_max;
+        //         vy = dj6.y * vy_max;
+        //         vr = 0;
+        //     }
+        //     chassis.Update(vx, vy, vr);
+        // } else {
+        //     chassis.Release();
+        // }
+        chassis.Release();
         osDelay(1);
     }
 }
 
 void task_chassis_callback(uint32_t id, uint8_t data[8]) {
+    chassis.ParseCAN(id, data);
 }
