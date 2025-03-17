@@ -9,7 +9,6 @@ void PID::Init(const float Kp, const float Ki, const float Kd, const float max_o
 
     this->max_out = max_out;
     this->integral_limit = intergral_limit;
-    this->deadband = deadband;
 
     Clear();
 }

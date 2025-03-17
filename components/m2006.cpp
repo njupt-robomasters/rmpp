@@ -23,7 +23,7 @@ void M2006::Release() {
 }
 
 int16_t M2006::GetCANCmd() {
-    // 3508电机（C620电调）：-20~0~20A => -16384~0~16384
+    // 2006电机（C610电调）：-10~0~10A => -10000~0~10000
     const auto cmd = static_cast<int16_t>(current_set / MAX_CURRENT * 10000.0f);
     return cmd;
 }

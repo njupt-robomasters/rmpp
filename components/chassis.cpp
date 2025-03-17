@@ -3,10 +3,11 @@
 #include "bsp_can.h"
 
 void Chassis::Init() {
-    m1.Init(KP, KI, KD, MAX_IOUT);
-    m2.Init(KP, KI, KD, MAX_IOUT);
-    m3.Init(KP, KI, KD, MAX_IOUT);
-    m4.Init(KP, KI, KD, MAX_IOUT);
+    m1.Init(KP, KI, KD, ILimit);
+    m2.Init(KP, KI, KD, ILimit);
+    m3.Init(KP, KI, KD, ILimit);
+    m4.Init(KP, KI, KD, ILimit);
+    Release();
 }
 
 void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
@@ -46,19 +47,15 @@ void Chassis::Release() {
     m4.Release();
 
     sendCANCmd();
-
-    // 清空所有设定值
-    vx_set = vy_set = vr_set = vz_set = 0;
-    v1_set = v2_set = v3_set = v4_set = 0;
 }
 
 void Chassis::forwardCalc() {
     // 根据速度分量，计算电机目标转速（全向轮运动学解算）
     constexpr float sqrt2div2 = sqrtf(2) / 2.0f;
-    v1_set = -sqrt2div2 * vx_set + sqrt2div2 * vy_set + vz_set; // 轮子线速度【单位：m/s】
-    v2_set = -sqrt2div2 * vx_set - sqrt2div2 * vy_set + vz_set; // 轮子线速度【单位：m/s】
-    v3_set = sqrt2div2 * vx_set - sqrt2div2 * vy_set + vz_set; // 轮子线速度【单位：m/s】
-    v4_set = sqrt2div2 * vx_set + sqrt2div2 * vy_set + vz_set; // 轮子线速度【单位：m/s】
+    v1_set = sqrt2div2 * vx_set - sqrt2div2 * vy_set - vz_set; // 轮子线速度【单位：m/s】
+    v2_set = sqrt2div2 * vx_set + sqrt2div2 * vy_set - vz_set; // 轮子线速度【单位：m/s】
+    v3_set = -sqrt2div2 * vx_set + sqrt2div2 * vy_set - vz_set; // 轮子线速度【单位：m/s】
+    v4_set = -sqrt2div2 * vx_set - sqrt2div2 * vy_set - vz_set; // 轮子线速度【单位：m/s】
 }
 
 void Chassis::inverseCalc() {
@@ -69,9 +66,9 @@ void Chassis::inverseCalc() {
     v4 = m4.speed_rpm / 60.0f * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
 
     constexpr float sqrt2div2 = sqrtf(2) / 2.0f;
-    vx = -sqrt2div2 * v1 - sqrt2div2 * v2 + sqrt2div2 * v3 + sqrt2div2 * v4;
-    vy = sqrt2div2 * v1 - sqrt2div2 * v2 - sqrt2div2 * v3 + sqrt2div2 * v4;
-    vz = (v1 + v2 + v3 + v4) / 4.0f;
+    vx = sqrt2div2 * v1 + sqrt2div2 * v2 - sqrt2div2 * v3 - sqrt2div2 * v4;
+    vy = -sqrt2div2 * v1 + sqrt2div2 * v2 + sqrt2div2 * v3 - sqrt2div2 * v4;
+    vz = - (v1 + v2 + v3 + v4) / 4.0f;
     vr = vz / CHASSIS_PERIMETER * 60.0f; // 底盘旋转线速度m/s -> 底盘旋转角速度rpm
 }
 

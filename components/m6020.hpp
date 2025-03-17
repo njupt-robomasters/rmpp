@@ -17,7 +17,7 @@ public:
     float angle_set = 0; // 目标角度【单位：度】
     float current_set = 0; // PID计算得出的电流【单位：A】
 
-    void Init(float Kp, float Ki, float Kd, float I_limit);
+    void Init(float Kp, float Ki, float Kd, float I_limit, float feedforward);
 
     void ParseCAN(const uint8_t data[8]);
 
@@ -28,6 +28,8 @@ public:
     int16_t GetCANCmd();
 
 private:
+    float feedforward = 0;
+
     PID pid{};
 
     float normAngle(float angle);

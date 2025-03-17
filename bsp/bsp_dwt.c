@@ -23,6 +23,10 @@ void BSP_DWT_Init() {
 
 float BSP_DWT_GetDeltaT(uint32_t *last_tick) {
     DWT_TICK64_Update();
+    if (*last_tick == 0) {
+        *last_tick = DWT->CYCCNT;
+        return 0;
+    }
     const uint32_t cnt_now = DWT->CYCCNT;
     const float dt = (float) (cnt_now - *last_tick) / (float) SystemCoreClock;
     *last_tick = cnt_now;
@@ -31,6 +35,10 @@ float BSP_DWT_GetDeltaT(uint32_t *last_tick) {
 
 double BSP_DWT_GetDeltaT64(uint32_t *last_tick) {
     DWT_TICK64_Update();
+    if (*last_tick == 0) {
+        *last_tick = DWT->CYCCNT;
+        return 0;
+    }
     const uint32_t cnt_now = DWT->CYCCNT;
     const double dt = (cnt_now - *last_tick) / (double) SystemCoreClock;
     *last_tick = cnt_now;

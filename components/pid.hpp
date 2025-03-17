@@ -37,7 +37,6 @@ private:
     float Kp = 0, Ki = 0, Kd = 0; // P、I、D三参数
     float max_out = 0; // 输出限幅
     float integral_limit = 0; // 积分限幅
-    float deadband = 0; // 误差小于此值输出0
     float coefA = 0, coefB = 0; // 变速积分参数，iterm = Err*((A-abs(err)+B)/A)  when B<|err|<A+B
     float output_lpf_rc = 0, derivative_lpf_rc = 0; // 输出滤波、积分滤波，RC = 1/omegac
 
