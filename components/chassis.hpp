@@ -16,7 +16,7 @@ public:
     // 底盘实际速度（逆运动学求得）
     float vx = 0, vy = 0, vr = 0, vz = 0;
 
-    void Init();
+    Chassis();
 
     void ParseCAN(uint32_t id, uint8_t data[8]);
 
@@ -37,8 +37,7 @@ private:
     static constexpr float P_MAX_M_S = 1.0f; // 误差达到此值后，P输出拉满【单位：轮子线速度m/s】
     static constexpr float KP = M3508::MAX_CURRENT / (P_MAX_M_S / WHEEL_PERIMETER * 60.0f);
     static constexpr float KI = 0.0f;
-    static constexpr float KD = 0.0f;
-    static constexpr float ILimit = 0.0f;
+    static constexpr float IMAX = 0.0f;
 
     // 轮子设定速度【单位：m/s】
     float v1_set = 0, v2_set = 0, v3_set = 0, v4_set = 0;
@@ -52,5 +51,5 @@ private:
 
     void inverseCalc();
 
-    void sendCANCmd();
+    void sendCANCmd() const;
 };

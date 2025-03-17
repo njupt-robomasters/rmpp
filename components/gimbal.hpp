@@ -11,7 +11,7 @@ public:
     // 云台实际值
     float pitch_angle = 0, yaw_angle = 0, shoot_freq = 0;
 
-    void Init();
+    Gimbal();
 
     void ParseCAN(uint32_t id, uint8_t data[8]);
 
@@ -25,30 +25,18 @@ private:
 
     // PID参数
     // pitch
-    static constexpr float PITCH_P_MAX_ANGLE = 5.0f; // 误差达到此值后，P输出拉满【单位：角度】
+    static constexpr float PITCH_KP = 0.0f;
+    static constexpr float PITCH_KD = 0.0f;
     static constexpr float PITCH_FEEDFORAWD = 0.8f; // 前馈
-    static constexpr float PITCH_KP = M6020::MAX_CURRENT / PITCH_P_MAX_ANGLE;
-    static constexpr float PITCH_KI = 0.0f;
-    static constexpr float PITCH_D_MAX_ANGLE_PER_MS = 5.0f; // 变化率达到 度/ms 后，D拉满输出
-    static constexpr float PITCH_KD = M6020::MAX_CURRENT / PITCH_D_MAX_ANGLE_PER_MS * 1e-3f;
-    static constexpr float PITCH_ILimit = 0.0f;
-
     // yaw
-    static constexpr float YAW_P_MAX_ANGLE = 10.0f; // 误差达到此值后，P输出拉满【单位：角度】
-    static constexpr float YAW_KP = M6020::MAX_CURRENT / YAW_P_MAX_ANGLE;
-    static constexpr float YAW_KI = 0.0f;
-    static constexpr float YAW_D_MAX_ANGLE_PER_MS = 5.0f; // 变化率达到 度/ms 后，D拉满输出
-    static constexpr float YAW_KD = M6020::MAX_CURRENT / YAW_D_MAX_ANGLE_PER_MS * 1e-3f;
-    static constexpr float YAW_MAX_ILimit = 0.0f;
+    static constexpr float YAW_KP = 0.7f;
+    static constexpr float YAW_KD = 0.012f;
     // shoot
-    static constexpr float SHOOT_P_MAX_FREQ = 2.0f; // 射频误差达到此值后，P输出拉满【单位：Hz】
-    static constexpr float SHOOT_KP = M2006::MAX_CURRENT / (SHOOT_P_MAX_FREQ / SHOOT_NUM_PER_ROUND * 60.0f);
-    static constexpr float SHOOT_KI = 0.0f;
-    static constexpr float SHOOT_KD = 0.0f;
-    static constexpr float SHOOT_ILimit = 0.0f;
+    static constexpr float SHOOT_MAXP_FREQ = 2.0f; // 射频误差达到此值后，P输出拉满【单位：Hz】
+    static constexpr float SHOOT_KP = M2006::MAX_CURRENT / (SHOOT_MAXP_FREQ / SHOOT_NUM_PER_ROUND * 60.0f);
 
     M6020 m_pitch, m_yaw;
     M2006 m_shoot;
 
-    void sendCANCmd();
+    void sendCANCmd() const;
 };

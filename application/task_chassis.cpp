@@ -3,7 +3,6 @@
 #include "app_variable.hpp"
 
 [[noreturn]] void task_chassis_entry(void *argument) {
-    chassis.Init();
     while (true) {
         // 检查遥控器连接
         if (dj6.is_connected == false) {
@@ -31,6 +30,6 @@
     }
 }
 
-void task_chassis_callback(uint32_t id, uint8_t data[8]) {
+void task_chassis_callback(const uint32_t id, uint8_t data[8]) {
     chassis.ParseCAN(id, data);
 }

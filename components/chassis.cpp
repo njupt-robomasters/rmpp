@@ -2,13 +2,12 @@
 #include <cmath>
 #include "bsp_can.h"
 
-void Chassis::Init() {
-    m1.Init(KP, KI, KD, ILimit);
-    m2.Init(KP, KI, KD, ILimit);
-    m3.Init(KP, KI, KD, ILimit);
-    m4.Init(KP, KI, KD, ILimit);
-    Release();
+Chassis::Chassis() : m1(KP, KI, IMAX),
+                     m2(KP, KI, IMAX),
+                     m3(KP, KI, IMAX),
+                     m4(KP, KI, IMAX) {
 }
+
 
 void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
     if (id == 0x201)
@@ -19,6 +18,7 @@ void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
         m3.ParseCAN(data);
     if (id == 0x204)
         m4.ParseCAN(data);
+
     inverseCalc();
 }
 
@@ -68,11 +68,11 @@ void Chassis::inverseCalc() {
     constexpr float sqrt2div2 = sqrtf(2) / 2.0f;
     vx = sqrt2div2 * v1 + sqrt2div2 * v2 - sqrt2div2 * v3 - sqrt2div2 * v4;
     vy = -sqrt2div2 * v1 + sqrt2div2 * v2 + sqrt2div2 * v3 - sqrt2div2 * v4;
-    vz = - (v1 + v2 + v3 + v4) / 4.0f;
+    vz = -(v1 + v2 + v3 + v4) / 4.0f;
     vr = vz / CHASSIS_PERIMETER * 60.0f; // 底盘旋转线速度m/s -> 底盘旋转角速度rpm
 }
 
-void Chassis::sendCANCmd() {
+void Chassis::sendCANCmd() const {
     const int16_t m3508_1_cmd = m1.GetCANCmd();
     const int16_t m3508_2_cmd = m2.GetCANCmd();
     const int16_t m3508_3_cmd = m3.GetCANCmd();

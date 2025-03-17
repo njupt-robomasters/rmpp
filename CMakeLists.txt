@@ -53,14 +53,15 @@ include_directories(Core/Inc Drivers/STM32F4xx_HAL_Driver/Inc Drivers/STM32F4xx_
     bsp
     application
     components
-    components/third-party/mavlink/mavlink_msg
+    components/motor
     components/third-party/bmi088
     components/third-party/ekf
+    components/third-party/mavlink/mavlink_msg
 )
 
 add_definitions(-DDEBUG -DUSE_HAL_DRIVER -DSTM32F407xx)
 
-file(GLOB_RECURSE SOURCES "Core/*.*" "Middlewares/*.*" "Drivers/*.*" "USB_DEVICE/*.*" "bsp/*.*" "components/*.*" "application/*.*")
+file(GLOB_RECURSE SOURCES "Core/*.*" "Middlewares/*.*" "Drivers/*.*" "USB_DEVICE/*.*" "bsp/*.*" "application/*.*" "components/*.*")
 
 set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32F407IGHX_FLASH.ld)
 

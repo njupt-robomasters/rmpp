@@ -1,20 +1,18 @@
 #include "task_gimbal.h"
 #include "cmsis_os.h"
 #include "app_variable.hpp"
-#include "bsp_can.h"
 #include "bsp_dwt.h"
 #include "bsp_pwm.h"
+#include "utils.hpp"
 
 // PITCH最大范围
 constexpr float PITCH_MAX_RANGE = 50.0f;
 
 float pitch_min_angle;
 float pitch_angle, yaw_angle, shoot_freq;
-uint32_t dwt_tick;
+uint32_t dwt_cnt;
 
 [[noreturn]] void task_gimbal_entry(void const *argument) {
-    gimbal.Init();
-
     // 等待收到电机CAN反馈的PITCH初始位置
     while (gimbal.pitch_angle == 0) {
         osDelay(1);
@@ -31,33 +29,32 @@ uint32_t dwt_tick;
     shoot_freq = 0;
 
     while (true) {
-        const float dt = BSP_DWT_GetDeltaT(&dwt_tick);
+        const float dt = BSP_DWT_GetDeltaT(&dwt_cnt);
 
         // 检查遥控器连接
         if (dj6.is_connected == false) {
+            // 不断更新当前位置到设定位置，防止遥控器恢复后剧烈运动
             pitch_angle = gimbal.pitch_angle;
             yaw_angle = gimbal.yaw_angle;
             shoot_freq = 0;
+
+            // 释放云台
             gimbal.Release();
+
+            // 关闭摩擦轮电机
             BSP_PWM_SetDuty(0);
-            // gimbal.Update(pitch_angle, yaw_angle, shoot_freq);
+
             osDelay(1);
             continue;
         }
 
         // pitch电机
         pitch_angle += dj6.pitch * settings.pitch_max_speed * dt;
-        if (pitch_angle > pitch_min_angle + PITCH_MAX_RANGE)
-            pitch_angle = pitch_min_angle + PITCH_MAX_RANGE;
-        if (pitch_angle < pitch_min_angle)
-            pitch_angle = pitch_min_angle;
+        clamp(pitch_angle, pitch_min_angle, pitch_min_angle + PITCH_MAX_RANGE);
 
         // yaw电机
         yaw_angle += -dj6.yaw * settings.yaw_max_speed * dt;
-        if (yaw_angle > 360)
-            yaw_angle -= 360;
-        if (yaw_angle < 0)
-            yaw_angle += 360;
+        norm_angle(yaw_angle);
 
         // shoot射弹电机
         if (dj6.left_switch == DJ6::UP) {
