@@ -19,6 +19,10 @@ void M6020::Update(const float angle_set) {
     this->angle_set = angle_set;
     const float angle_err = calcAngleErr(angle, angle_set);
     current_set = pid.Calculate(0, angle_err) + feedforward;
+    if (current_set > MAX_CURRENT)
+        current_set = MAX_CURRENT;
+    if (current_set < -MAX_CURRENT)
+        current_set = -MAX_CURRENT;
 }
 
 // 释放电机，关闭动力输出

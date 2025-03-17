@@ -6,6 +6,7 @@
 #include "bsp_cdc.h"
 #include "bsp_imuheat.h"
 #include "bsp_uart.h"
+#include "bsp_pwm.h"
 
 void app_init() {
     // bsp init
@@ -15,4 +16,5 @@ void app_init() {
     BSP_CDC_Init();
     BSP_IMUHeat_Init();
     BSP_UART_RC_Init();
+    BSP_PWM_Init();
 }

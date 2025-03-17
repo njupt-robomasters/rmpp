@@ -2,11 +2,6 @@
 #include "cmsis_os.h"
 #include "app_variable.hpp"
 
-// 满杆量速度
-constexpr float vx_max = 1.0f; // 左右平移速度【单位：m/s】
-constexpr float vy_max = 1.0f; // 前进后退速度【单位：m/s】
-constexpr float vr_max = 10.0f; // 旋转角速度【单位：rpm】
-
 [[noreturn]] void task_chassis_entry(void *argument) {
     chassis.Init();
     while (true) {
@@ -22,12 +17,12 @@ constexpr float vr_max = 10.0f; // 旋转角速度【单位：rpm】
         if (dj6.right_switch == DJ6::UP) {
             // 前后移动、左右旋转
             vx = 0;
-            vy = dj6.y * vy_max;
-            vr = -dj6.x * vr_max;
+            vy = dj6.y * settings.chassis_vy_max;
+            vr = -dj6.x * settings.chassis_vr_max;
         } else {
             // 前后左右平移
-            vx = dj6.x * vx_max;
-            vy = dj6.y * vy_max;
+            vx = dj6.x * settings.chassis_vx_max;
+            vy = dj6.y * settings.chassis_vy_max;
             vr = 0;
         }
         chassis.Update(vx, vy, vr);
