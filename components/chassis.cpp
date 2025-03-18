@@ -64,9 +64,9 @@ void Chassis::inverseCalc() {
     v3 = m3.v_tps_lpf * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
     v4 = m4.v_tps_lpf * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
 
-    constexpr float sqrt2div2 = sqrtf(2) / 2.0f;
-    vx = sqrt2div2 * v1 + sqrt2div2 * v2 - sqrt2div2 * v3 - sqrt2div2 * v4;
-    vy = -sqrt2div2 * v1 + sqrt2div2 * v2 + sqrt2div2 * v3 - sqrt2div2 * v4;
+    constexpr float sqrt2 = sqrtf(2);
+    vx = (sqrt2 * v1 + sqrt2 * v2 - sqrt2 * v3 - sqrt2 * v4) / 4.0f;
+    vy = (-sqrt2 * v1 + sqrt2 * v2 + sqrt2 * v3 - sqrt2 * v4) / 4.0f;
     vz = -(v1 + v2 + v3 + v4) / 4.0f;
     vr = vz / CHASSIS_PERIMETER * 60.0f; // 底盘旋转线速度m/s -> 底盘旋转角速度rpm
 }

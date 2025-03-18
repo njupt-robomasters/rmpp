@@ -34,7 +34,7 @@ private:
     // pitch
     static constexpr float PITCH_KP = 1.0f;
     static constexpr float PITCH_KD = 0.014f;
-    static constexpr float PITCH_FEEDFORAWD = 0.8f; // 前馈
+    static constexpr float PITCH_FEEDFORAWD = 0.4f; // 前馈
     // yaw
     static constexpr float YAW_KP = 0.7f;
     static constexpr float YAW_KD = 0.012f;
