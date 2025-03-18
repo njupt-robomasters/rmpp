@@ -14,25 +14,31 @@ void MDJI::ParseCAN(const uint8_t data[8]) {
 
     // 解析CAN报文
     ecd = static_cast<uint16_t>(data[0] << 8 | data[1]);
-    speed_rpm_raw = static_cast<int16_t>(data[2] << 8 | data[3]);
+    v_rpm_raw = static_cast<int16_t>(data[2] << 8 | data[3]);
     current_raw = static_cast<int16_t>(data[4] << 8 | data[5]);
     temperate = data[6];
 
-    // 计算人类友好参数
-    // 转子角度（减速前）【单位：角度】
-    angle = static_cast<float>(ecd) / 8192.0f * 360.0f;
-    // 转速（减速后）
-    speed_rpm = static_cast<float>(speed_rpm_raw) / reduction_ratio; // 【单位：rpm】
-    speed_tps = speed_rpm / 60.0f; // 【单位：圈/s】
-    speed_aps = speed_tps * 360.0f; // 【单位：角度/s】
+    // 转换为人类友好参数
     // 电流
     current = static_cast<float>(current_raw) / static_cast<float>(can_max_cmd) * max_current;
 
-    // 速度低通滤波
+    // 转子角度（减速前）【单位：角度】
+    angle = static_cast<float>(ecd) / 8192.0f * 360.0f;
+
+    // 转速（减速后）
+    v_rpm = static_cast<float>(v_rpm_raw) / reduction_ratio; // 【单位：rpm】
+    v_tps = v_rpm / 60.0f; // 【单位：圈/s】
+    v_aps = v_tps * 360.0f; // 【单位：角度/s】
+
+    // 转速低通滤波
     const float alpha = solve_alpha(SPEED_LPF_FREQ, 1 / dt);
-    lowpass_filter(speed_rpm_lpf, speed_rpm, alpha);
-    lowpass_filter(speed_tps_lpf, speed_tps, alpha);
-    lowpass_filter(speed_aps_lpf, speed_aps, alpha);
+    lowpass_filter(v_rpm_lpf, v_rpm, alpha);
+    lowpass_filter(v_tps_lpf, v_tps, alpha);
+    lowpass_filter(v_aps_lpf, v_aps, alpha);
+
+    // 加速度（减速后）
+    a_tpss = (v_tps_lpf - last_v_tps) / dt;
+    last_v_tps = v_tps_lpf;
 }
 
 // 释放电机，关闭动力输出

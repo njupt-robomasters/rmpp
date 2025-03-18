@@ -1,17 +1,20 @@
 #include "m3508.hpp"
 #include "utils.hpp"
+#include "bsp_dwt.h"
 
-M3508::M3508(const float Kp, const float Ki, const float Imax) : MDJI(MAX_CURRENT, 16384, 3591.0f / 187.0f) {
-    this->Kp = Kp;
-    this->Ki = Ki;
-    this->Imax = Imax;
+M3508::M3508(const float &Kp, const float &Kd) : MDJI(MAX_CURRENT, 16384, 3591.0f / 187.0f),
+                                                                    Kp(Kp), Kd(Kd) {
 }
 
-void M3508::Update(const float speed_rpm_ref) {
-    this->speed_rpm_ref = speed_rpm_ref;
+void M3508::Update(const float v_tps_ref) {
+    this->v_tps_ref = v_tps_ref;
 
-    const float err = speed_rpm_ref - speed_rpm_lpf;
-    current_ref = Kp * err;
+    dt = BSP_DWT_GetDeltaT(&dwt_cnt);
+
+    // 增量式PID
+    Pout = Kp * (v_tps_ref - v_tps_lpf);
+    Dout = -Kd * a_tpss;
+    current_ref += (Pout + Dout) * dt;
 
     clamp(current_ref, MAX_CURRENT);
 }

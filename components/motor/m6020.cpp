@@ -14,7 +14,7 @@ void M6020::Update(const float angle_ref) {
 
     // MIT控制模式
     Pout = Kp * signed_sqrt(angle_err);
-    Dout = -Kd * speed_aps_lpf;
+    Dout = -Kd * v_aps_lpf;
     current_ref = Pout + Dout + feedforward;
 
     // 输出钳位

@@ -2,12 +2,11 @@
 #include <cmath>
 #include "bsp_can.h"
 
-Chassis::Chassis() : m1(KP, KI, IMAX),
-                     m2(KP, KI, IMAX),
-                     m3(KP, KI, IMAX),
-                     m4(KP, KI, IMAX) {
+Chassis::Chassis() : m1(KP, KD),
+                     m2(KP, KD),
+                     m3(KP, KD),
+                     m4(KP, KD) {
 }
-
 
 void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
     if (id == 0x201)
@@ -31,10 +30,10 @@ void Chassis::Update(const float vx_set, const float vy_set, const float vr_set)
     forwardCalc();
 
     // 电机PID计算
-    m1.Update(v1_set / WHEEL_PERIMETER * 60.0f);
-    m2.Update(v2_set / WHEEL_PERIMETER * 60.0f);
-    m3.Update(v3_set / WHEEL_PERIMETER * 60.0f);
-    m4.Update(v4_set / WHEEL_PERIMETER * 60.0f);
+    m1.Update(v1_set / WHEEL_PERIMETER);
+    m2.Update(v2_set / WHEEL_PERIMETER);
+    m3.Update(v3_set / WHEEL_PERIMETER);
+    m4.Update(v4_set / WHEEL_PERIMETER);
 
     sendCANCmd();
 }
@@ -60,10 +59,10 @@ void Chassis::forwardCalc() {
 
 void Chassis::inverseCalc() {
     // 逆运动学解算当前底盘实际速度
-    v1 = m1.speed_rpm / 60.0f * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
-    v2 = m2.speed_rpm / 60.0f * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
-    v3 = m3.speed_rpm / 60.0f * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
-    v4 = m4.speed_rpm / 60.0f * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
+    v1 = m1.v_tps_lpf * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
+    v2 = m2.v_tps_lpf * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
+    v3 = m3.v_tps_lpf * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
+    v4 = m4.v_tps_lpf * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
 
     constexpr float sqrt2div2 = sqrtf(2) / 2.0f;
     vx = sqrt2div2 * v1 + sqrt2div2 * v2 - sqrt2div2 * v3 - sqrt2div2 * v4;

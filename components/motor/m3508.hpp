@@ -6,12 +6,18 @@ class M3508 : public MDJI {
 public:
     static constexpr float MAX_CURRENT = 20.0f; // 最大电流【单位；A】
 
-    float speed_rpm_ref = 0; // 目标速度（减速后）【单位：rpm】
+    float v_tps_ref = 0; // 目标速度（减速后）【单位：rpm】
 
-    M3508(float Kp, float Ki, float Imax);
+    M3508(const float &Kp, const float &Kd);
 
-    void Update(float speed_rpm_ref);
+    void Update(float v_tps_ref);
 
 private:
-    float Kp, Ki, Imax;
+    const float &Kp, &Kd;
+
+    float Pout = 0, Dout = 0;
+
+    // 用于增量式PID
+    uint32_t dwt_cnt = 0;
+    float dt = 0;
 };

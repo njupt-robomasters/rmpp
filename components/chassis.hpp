@@ -27,17 +27,15 @@ public:
 private:
     // 底盘结构参数
     static constexpr float WHEEL_RADIUS = 0.063f; // 轮子半径【单位：m】
-    static constexpr float CHASSIS_RADIUS = 0.465f; // 底盘半径【单位：m】
+    static constexpr float CHASSIS_RADIUS = 0.225f; // 底盘半径【单位：m】
 
     // 底盘结构参数（自动计算）
     static constexpr float WHEEL_PERIMETER = 2 * static_cast<float>(M_PI) * WHEEL_RADIUS; // 轮子周长【单位：m】
     static constexpr float CHASSIS_PERIMETER = 2 * static_cast<float>(M_PI) * CHASSIS_RADIUS; // 底盘周长【单位：m】
 
     // PID参数
-    static constexpr float P_MAX_M_S = 1.0f; // 误差达到此值后，P输出拉满【单位：轮子线速度m/s】
-    static constexpr float KP = M3508::MAX_CURRENT / (P_MAX_M_S / WHEEL_PERIMETER * 60.0f);
-    static constexpr float KI = 0.0f;
-    static constexpr float IMAX = 0.0f;
+    float KP = 50.0f;
+    float KD = 10.0f;
 
     // 轮子设定速度【单位：m/s】
     float v1_set = 0, v2_set = 0, v3_set = 0, v4_set = 0;

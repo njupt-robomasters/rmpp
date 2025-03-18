@@ -26,7 +26,7 @@ DJ6::switch_t DJ6::get_switch(const uint16_t val) {
     }
 }
 
-void DJ6::parseDBUS(const uint8_t *data) {
+void DJ6::parseSBUS(const uint8_t *data) {
     if (data[23] == 0) {
         channel.is_connected = true;
         channel.CH1 = ((uint16_t) data[1] >> 0 | (uint16_t) data[2] << 8) & 0x07FF;
@@ -51,10 +51,10 @@ void DJ6::parseDBUS(const uint8_t *data) {
 }
 
 void DJ6::ParseData(const uint8_t *data, uint16_t size) {
-    if (size != DBUS_FRAME_SIZE)
+    if (size != SBUS_FRAME_SIZE)
         return;
 
-    parseDBUS(data);
+    parseSBUS(data);
 
     is_connected = channel.is_connected;
     if (channel.is_connected) {

@@ -12,9 +12,10 @@ float pitch_angle, yaw_angle, shoot_freq;
 uint32_t dwt_cnt;
 
 [[noreturn]] void task_gimbal_entry(void const *argument) {
-    gimbal.WaitPitchYawStartup();
-    gimbal.PitchZero();
+    gimbal.WaitPitchYawStartup(); // 等待pitch yaw电机启动
+    gimbal.PitchZero(); // pitch回零
 
+    // 初始值
     pitch_angle = 0;
     yaw_angle = gimbal.yaw_angle;
     shoot_freq = 0;
@@ -47,7 +48,7 @@ uint32_t dwt_cnt;
         yaw_angle += -dj6.yaw * settings.yaw_max_speed * dt;
         yaw_angle = norm_angle(yaw_angle);
 
-        // shoot射弹电机
+        // shoot拨弹电机
         if (dj6.left_switch == DJ6::UP) {
             shoot_freq = 0;
             BSP_PWM_SetDuty(0);

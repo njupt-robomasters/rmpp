@@ -6,10 +6,10 @@ M2006::M2006(const float Kp, const float feedforward) : MDJI(MAX_CURRENT, 10000,
     this->feedforward = feedforward;
 }
 
-void M2006::Update(const float speed_tps_ref) {
-    this->speed_tps_ref = speed_tps_ref;
+void M2006::Update(const float v_tps_ref) {
+    this->v_tps_ref = v_tps_ref;
 
-    const float err = speed_tps_ref - speed_tps_lpf;
+    const float err = v_tps_ref - v_tps_lpf;
     current_ref = Kp * err + feedforward;
 
     clamp(current_ref, MAX_CURRENT);

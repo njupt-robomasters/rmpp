@@ -22,7 +22,7 @@ void Gimbal::ParseCAN(const uint32_t id, uint8_t data[8]) {
     yaw_angle_absolute = m_yaw.angle;
     yaw_angle = norm_angle(yaw_angle_absolute - YAW_OFFSET);
 
-    shoot_speed_tps = m_shoot.speed_tps_lpf;
+    shoot_speed_tps = m_shoot.v_tps_lpf;
     shoot_freq = shoot_speed_tps * SHOOT_NUM_PER_ROUND;
 }
 

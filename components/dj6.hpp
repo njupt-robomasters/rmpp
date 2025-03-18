@@ -23,7 +23,7 @@ private:
     static constexpr int RC_XY_MIN = 10; // 遥控器摇杆最小值，低于此值输出0
     static constexpr int RC_XY_MAX = 660; // 遥控器摇杆最大值，超过此值钳位
 
-    static constexpr int DBUS_FRAME_SIZE = 25; // DBUS帧长度
+    static constexpr int SBUS_FRAME_SIZE = 25; // DBUS帧长度
 
     typedef struct {
         bool is_connected; // 是否连接上遥控器
@@ -47,7 +47,7 @@ private:
 
     channel_t channel{};
 
-    void parseDBUS(const uint8_t *data);
+    void parseSBUS(const uint8_t *data);
 
     static float norm_xy(uint16_t val);
 
