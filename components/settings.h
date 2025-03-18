@@ -10,5 +10,5 @@ public:
     // 云台运动参数
     float pitch_max_speed = 30.0f; // 【单位：度/s】
     float yaw_max_speed = 120.0f; // 【单位：度/s】
-    float shoot_freq = 5.0f; // 【单位：Hz】
+    float shoot_freq = 10.0f; // 【单位：Hz】
 };

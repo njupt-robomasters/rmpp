@@ -24,8 +24,8 @@ float norm_angle(const float angle) {
 }
 
 float calc_angle_err(float ref, float measure) {
-    measure = norm_angle(measure);
     ref = norm_angle(ref);
+    measure = norm_angle(measure);
 
     const float err = fmodf(ref - measure + 540.0f, 360.0f) - 180.0f; // 最短路径误差
 

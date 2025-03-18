@@ -5,27 +5,18 @@
 #include "bsp_pwm.h"
 #include "utils.hpp"
 
-// PITCH最大范围
-constexpr float PITCH_MAX_RANGE = 50.0f;
+// PITCH最大角度
+constexpr float PITCH_MAX_ANGLE = 50.0f;
 
-float pitch_min_angle;
 float pitch_angle, yaw_angle, shoot_freq;
 uint32_t dwt_cnt;
 
 [[noreturn]] void task_gimbal_entry(void const *argument) {
-    // 等待收到电机CAN反馈的PITCH初始位置
-    while (gimbal.pitch_angle == 0) {
-        osDelay(1);
-    }
-    pitch_min_angle = gimbal.pitch_angle;
-    pitch_angle = pitch_min_angle;
+    gimbal.WaitPitchYawStartup();
+    gimbal.PitchZero();
 
-    // 等待收到电机CAN反馈的YAW初始位置
-    while (gimbal.yaw_angle == 0) {
-        osDelay(1);
-    }
+    pitch_angle = 0;
     yaw_angle = gimbal.yaw_angle;
-
     shoot_freq = 0;
 
     while (true) {
@@ -50,11 +41,11 @@ uint32_t dwt_cnt;
 
         // pitch电机
         pitch_angle += dj6.pitch * settings.pitch_max_speed * dt;
-        clamp(pitch_angle, pitch_min_angle, pitch_min_angle + PITCH_MAX_RANGE);
+        clamp(pitch_angle, 0, PITCH_MAX_ANGLE);
 
         // yaw电机
         yaw_angle += -dj6.yaw * settings.yaw_max_speed * dt;
-        norm_angle(yaw_angle);
+        yaw_angle = norm_angle(yaw_angle);
 
         // shoot射弹电机
         if (dj6.left_switch == DJ6::UP) {

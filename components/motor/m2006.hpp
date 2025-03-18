@@ -8,10 +8,10 @@ public:
 
     float speed_tps_ref = 0; // 目标速度（减速后）【单位：圈/s】
 
-    M2006(float Kp, float Ki, float Imax);
+    M2006(float Kp, float feedforward);
 
     void Update(float speed_tps_ref);
 
 private:
-    float Kp, Ki, Imax;
+    float Kp, feedforward;
 };

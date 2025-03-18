@@ -15,7 +15,7 @@ public:
 
 private:
     // MIT控制参数
-    float Kp = 0, Kd = 0, feedforward = 0;
+    float Kp, Kd, feedforward ;
 
     float Pout = 0, Dout = 0;
 };
