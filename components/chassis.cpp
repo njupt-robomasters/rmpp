@@ -1,11 +1,12 @@
 #include "chassis.hpp"
 #include <cmath>
 #include "bsp_can.h"
+#include "utils.hpp"
 
-Chassis::Chassis() : m1(KP, KD),
-                     m2(KP, KD),
-                     m3(KP, KD),
-                     m4(KP, KD) {
+Chassis::Chassis(const mit_t &mit) : m1(mit),
+                                     m2(mit),
+                                     m3(mit),
+                                     m4(mit) {
 }
 
 void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
@@ -18,57 +19,85 @@ void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
     if (id == 0x204)
         m4.ParseCAN(data);
 
+    // 运动学逆解
     inverseCalc();
 }
 
-void Chassis::Update(const float vx_set, const float vy_set, const float vr_set) {
-    this->vx_set = vx_set;
-    this->vy_set = vy_set;
-    this->vr_set = vr_set;
-    vz_set = vr_set / 60.0f * CHASSIS_PERIMETER; // 底盘旋转角速度rpm -> 底盘旋转线速度m/s
-
-    forwardCalc();
-
-    // 电机PID计算
-    m1.Update(v1_set / WHEEL_PERIMETER);
-    m2.Update(v2_set / WHEEL_PERIMETER);
-    m3.Update(v3_set / WHEEL_PERIMETER);
-    m4.Update(v4_set / WHEEL_PERIMETER);
-
-    sendCANCmd();
+void Chassis::SetEnable(const bool is_enable) {
+    this->is_enable = is_enable;
+    m1.SetEnable(is_enable);
+    m2.SetEnable(is_enable);
+    m3.SetEnable(is_enable);
+    m4.SetEnable(is_enable);
 }
 
-// 释放底盘，关闭所有底盘电机动力输出
-void Chassis::Release() {
-    m1.Release();
-    m2.Release();
-    m3.Release();
-    m4.Release();
+void Chassis::SetSpeed(const float vx_mps_set, const float vy_mps_set, const float vr_tps_set) {
+    this->vx_mps_set = vx_mps_set;
+    this->vy_mps_set = vy_mps_set;
+    this->vr_tps_set = vr_tps_set;
+    vz_mps_set = vr_tps_set * CHASSIS_PERIMETER; // 底盘旋转角速度【圈/s】 -> 底盘旋转线速度【m/s】
+}
 
+void Chassis::SetForwardAngle(const float forward_angle) {
+    this->forward_angle = forward_angle;
+}
+
+void Chassis::Update() {
+    if (is_enable) {
+        // 运动学正解
+        forwardCalc();
+
+        // 设置电机转速目标值
+        m1.SetV_TPS(v1_mps_set / WHEEL_PERIMETER);
+        m2.SetV_TPS(v2_mps_set / WHEEL_PERIMETER);
+        m3.SetV_TPS(v3_mps_set / WHEEL_PERIMETER);
+        m4.SetV_TPS(v4_mps_set / WHEEL_PERIMETER);
+    }
+
+    // 电机闭环控制计算（即使使能也要调用，防止dt计算出现问题）
+    m1.Update();
+    m2.Update();
+    m3.Update();
+    m4.Update();
+
+    // 发送CAN报文
     sendCANCmd();
 }
 
 void Chassis::forwardCalc() {
-    // 根据速度分量，计算电机目标转速（全向轮运动学解算）
+    // 根据设置的正方向，旋转x y速度分量
+    vx_mps_rotate_set = vx_mps_set;
+    vy_mps_rotate_set = vy_mps_set;
+    rotate(vx_mps_rotate_set, vy_mps_rotate_set, forward_angle);
+
+    // 根据速度分量，计算电机目标转速（全向轮运动学）
+    // 前进方向为y轴正方向，右平移方向为x轴正方向，一 二 三 四 象限分别为 1 2 3 4 电机
+    // 所有电机正转，底盘顺时针旋转（但规定逆时针为底盘旋转正方向）
     constexpr float sqrt2div2 = sqrtf(2) / 2.0f;
-    v1_set = sqrt2div2 * vx_set - sqrt2div2 * vy_set - vz_set; // 轮子线速度【单位：m/s】
-    v2_set = sqrt2div2 * vx_set + sqrt2div2 * vy_set - vz_set; // 轮子线速度【单位：m/s】
-    v3_set = -sqrt2div2 * vx_set + sqrt2div2 * vy_set - vz_set; // 轮子线速度【单位：m/s】
-    v4_set = -sqrt2div2 * vx_set - sqrt2div2 * vy_set - vz_set; // 轮子线速度【单位：m/s】
+    v1_mps_set = sqrt2div2 * vx_mps_rotate_set - sqrt2div2 * vy_mps_rotate_set - vz_mps_set; // 轮子线速度【单位：m/s】
+    v2_mps_set = sqrt2div2 * vx_mps_rotate_set + sqrt2div2 * vy_mps_rotate_set - vz_mps_set; // 轮子线速度【单位：m/s】
+    v3_mps_set = -sqrt2div2 * vx_mps_rotate_set + sqrt2div2 * vy_mps_rotate_set - vz_mps_set; // 轮子线速度【单位：m/s】
+    v4_mps_set = -sqrt2div2 * vx_mps_rotate_set - sqrt2div2 * vy_mps_rotate_set - vz_mps_set; // 轮子线速度【单位：m/s】
 }
 
 void Chassis::inverseCalc() {
-    // 逆运动学解算当前底盘实际速度
-    v1 = m1.v_tps_lpf * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
-    v2 = m2.v_tps_lpf * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
-    v3 = m3.v_tps_lpf * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
-    v4 = m4.v_tps_lpf * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
+    // 轮子角速度 -> 线速度
+    v1_mps = m1.v_tps_lpf * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
+    v2_mps = m2.v_tps_lpf * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
+    v3_mps = m3.v_tps_lpf * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
+    v4_mps = m4.v_tps_lpf * WHEEL_PERIMETER; // 轮子线速度【单位：m/s】
 
+    // 逆运动学解算当前底盘实际速度
     constexpr float sqrt2 = sqrtf(2);
-    vx = (sqrt2 * v1 + sqrt2 * v2 - sqrt2 * v3 - sqrt2 * v4) / 4.0f;
-    vy = (-sqrt2 * v1 + sqrt2 * v2 + sqrt2 * v3 - sqrt2 * v4) / 4.0f;
-    vz = -(v1 + v2 + v3 + v4) / 4.0f;
-    vr = vz / CHASSIS_PERIMETER * 60.0f; // 底盘旋转线速度m/s -> 底盘旋转角速度rpm
+    vx_mps_rotate = (sqrt2 * v1_mps + sqrt2 * v2_mps - sqrt2 * v3_mps - sqrt2 * v4_mps) / 4.0f;
+    vy_mps_rotate = (-sqrt2 * v1_mps + sqrt2 * v2_mps + sqrt2 * v3_mps - sqrt2 * v4_mps) / 4.0f;
+    vz_mps = -(v1_mps + v2_mps + v3_mps + v4_mps) / 4.0f;
+    vr_tps = vz_mps / CHASSIS_PERIMETER; // 底盘旋转线速度【m/s】 -> 底盘旋转角速度【圈/s】
+
+    // 根据设置的正方向，旋转x y速度分量
+    vx_mps = vx_mps_rotate;
+    vy_mps = vy_mps_rotate;
+    rotate(vx_mps, vy_mps, -forward_angle);
 }
 
 void Chassis::sendCANCmd() const {

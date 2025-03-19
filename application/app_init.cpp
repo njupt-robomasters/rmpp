@@ -8,6 +8,8 @@
 #include "bsp_uart.h"
 #include "bsp_pwm.h"
 
+#include "app_variable.hpp"
+
 void app_init() {
     // bsp init
     BSP_LED_Init();

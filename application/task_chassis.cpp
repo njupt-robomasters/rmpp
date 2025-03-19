@@ -3,28 +3,35 @@
 #include "app_variable.hpp"
 
 [[noreturn]] void task_chassis_entry(void *argument) {
+    imu.WaitReady();
+
     while (true) {
         // 检查遥控器连接
         if (dj6.is_connected == false) {
-            chassis.Release();
-            osDelay(1);
-            continue;
+            chassis.SetEnable(false); // 底盘失能，关闭电机输出
+        } else {
+            chassis.SetEnable(true);
+
+            // 根据运动模式，计算底盘速度分量
+            float vx_mps, vy_mps, vr_tps;
+            if (dj6.right_switch == DJ6::UP or dj6.right_switch == DJ6::MID) {
+                // 前后左右平移
+                vx_mps = dj6.x * settings.chassis_vx_mps_max;
+                vy_mps = dj6.y * settings.chassis_vy_mps_max;
+                vr_tps = 0;
+            } else { // DOWN
+                // 前后移动、左右旋转
+                vx_mps = 0;
+                vy_mps = dj6.y * settings.chassis_vy_mps_max;
+                vr_tps = -dj6.x * settings.chassis_vr_tps_max;
+            }
+
+            chassis.SetSpeed(vx_mps, vy_mps, vr_tps);
+
+            chassis.SetForwardAngle(gimbal.yaw_angle_absolute);
         }
 
-        // 根据运动模式，计算底盘速度分量
-        float vx, vy, vr;
-        if (dj6.right_switch == DJ6::UP) {
-            // 前后移动、左右旋转
-            vx = 0;
-            vy = dj6.y * settings.chassis_vy_max;
-            vr = -dj6.x * settings.chassis_vr_max;
-        } else {
-            // 前后左右平移
-            vx = dj6.x * settings.chassis_vx_max;
-            vy = dj6.y * settings.chassis_vy_max;
-            vr = 0;
-        }
-        chassis.Update(vx, vy, vr);
+        chassis.Update();
 
         osDelay(1);
     }

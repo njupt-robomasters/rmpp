@@ -1,6 +1,6 @@
 #pragma once
 
-#include "settings.h"
+#include "settings.hpp"
 #include "chassis.hpp"
 #include "gimbal.hpp"
 #include "dj6.hpp"

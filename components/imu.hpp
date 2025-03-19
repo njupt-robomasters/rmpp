@@ -4,6 +4,8 @@
 
 class IMU {
 public:
+    bool is_ready = false;
+
     // 位姿
     float roll = 0;
     float pitch = 0;
@@ -11,6 +13,8 @@ public:
     float yaw_total_angle = 0;
 
     void Init();
+
+    void WaitReady() const;
 
     void Update();
 

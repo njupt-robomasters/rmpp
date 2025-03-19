@@ -1,5 +1,6 @@
 #include "utils.hpp"
 #include <cmath>
+#include "arm_math.h"
 
 float signed_sqrt(const float x) {
     return x < 0 ? -sqrtf(-x) : sqrtf(x);
@@ -48,4 +49,15 @@ void clamp(float &x, const float min, const float max) {
     if (x < min) {
         x = min;
     }
+}
+
+void rotate(float &x, float &y, const float angle) {
+    const float rad = angle / 180.0f * static_cast<float>(M_PI);
+    const float cos = arm_cos_f32(rad);
+    const float sin = arm_sin_f32(rad);
+    const float rotate_x = cos * x - sin * y;
+    const float rotate_y = sin * x + cos * y;
+
+    x = rotate_x;
+    y = rotate_y;
 }

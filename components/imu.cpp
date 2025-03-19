@@ -1,8 +1,7 @@
 #include "imu.hpp"
-
+#include "cmsis_os.h"
 #include "bsp_dwt.h"
 #include "bsp_imuheat.h"
-
 #include "bmi088.h"
 #include "QuaternionEKF.h"
 
@@ -21,6 +20,12 @@ void IMU::Init() {
     temperature_pid.Init(50, 1, 0, 100, 40);
 
     while (BMI088_init(&hspi1, 1) != BMI088_NO_ERROR);
+}
+
+void IMU::WaitReady() const {
+    while (is_ready == false) {
+        osDelay(1);
+    }
 }
 
 void IMU::Update() {
@@ -83,6 +88,8 @@ void IMU::Update() {
     }
 
     cnt++;
+
+    is_ready = true;
 }
 
 /**

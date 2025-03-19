@@ -22,7 +22,10 @@ public:
     // CAN报文接收频率【单位：Hz】
     float can_recv_freq = 0;
 
-    MDJI(float max_current, uint16_t can_max_cmd, float reduction_ratio);
+    // 电机就绪标志，收到CAN反馈报文后置为true
+    bool is_ready = false;
+
+    MDJI(float current_max, uint16_t can_cmd_max, float reduction_ratio);
 
     void ParseCAN(const uint8_t data[8]);
 
@@ -34,8 +37,8 @@ private:
     static constexpr float SPEED_LPF_FREQ = 20.0f; // 转速低通滤波参数【单位：Hz】
 
     // 电机参数
-    float max_current; // 最大电流【单位；A】
-    uint16_t can_max_cmd; // CAN控制报文最大值
+    float current_max; // 最大电流【单位；A】
+    uint16_t can_cmd_max; // CAN控制报文最大值
     float reduction_ratio; // 电机减速比
 
     // 从CAN获得的参数

@@ -1,5 +1,9 @@
 #pragma once
 
+struct mit_t {
+    float kp, kd, ff; // ff为前馈
+};
+
 float signed_sqrt(float x);
 
 float solve_alpha(float fc, float fs);
@@ -13,3 +17,5 @@ float calc_angle_err(float ref, float measure);
 void clamp(float &x, float max);
 
 void clamp(float &x, float min, float max);
+
+void rotate(float &x, float &y, float angle);
