@@ -14,12 +14,12 @@ public:
     // vz 旋转线速度，逆时针为正【单位：m/s】
 
     // 底盘设定速度
-    float vx_mps_set = 0, vy_mps_set = 0, vr_tps_set = 0, vz_mps_set = 0;
-    float vx_mps_rotate_set = 0, vy_mps_rotate_set = 0;
+    float vx_set_mps = 0, vy_set_mps = 0, vr_set_tps = 0, vz_set_mps = 0;
+    float vx_rotate_set_mps = 0, vy_rotate_set_mps = 0;
 
     // 底盘实际速度（逆运动学求得）
-    float vx_mps = 0, vy_mps = 0, vr_tps = 0, vz_mps = 0;
-    float vx_mps_rotate = 0, vy_mps_rotate = 0;
+    float vx_measure_mps = 0, vy_measure_mps = 0, vr_measure_tps = 0, vz_measure_mps = 0;
+    float vx_rotate_measure_mps = 0, vy_rotate_measure_mps = 0;
 
     // 原定底盘前进方向->云台方向 的角度（逆时针为正）
     float forward_angle = 0;
@@ -30,7 +30,7 @@ public:
 
     void SetEnable(bool is_enable);
 
-    void SetSpeed(float vx_mps_set, float vy_mps_set, float vr_tps_set);
+    void SetSpeed(float vx_set_mps, float vy_set_mps, float vr_set_tps);
 
     void SetForwardAngle(float forward_angle);
 
@@ -47,9 +47,13 @@ private:
 
     // 轮子设定速度【单位：m/s】
     float v1_mps_set = 0, v2_mps_set = 0, v3_mps_set = 0, v4_mps_set = 0;
+    // 小陀螺模式前馈加速度【单位：rad/s^2】
+    float v1_a_ff = 0, v2_a_ff = 0, v3_a_ff = 0, v4_a_ff = 0;
 
     // 轮子实际速度【单位：m/s】
     float v1_mps = 0, v2_mps = 0, v3_mps = 0, v4_mps = 0;
+
+    float d_vx_rotate = 0, d_vy_rotate;
 
     M3508 m1, m2, m3, m4;
 
@@ -57,5 +61,5 @@ private:
 
     void inverseCalc();
 
-    void sendCANCmd() const;
+    void sendCurrentCMD() const;
 };

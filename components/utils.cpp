@@ -7,8 +7,8 @@ float signed_sqrt(const float x) {
 }
 
 float solve_alpha(const float fc, const float fs) {
-    constexpr auto m_2_pi = static_cast<float>(M_2_PI);
-    const float alpha = m_2_pi * fc / (fs + m_2_pi * fc);
+    constexpr float PIX2 = 2 * static_cast<float>(M_PI);
+    const float alpha = PIX2 * fc / (fs + PIX2 * fc);
     return alpha;
 }
 

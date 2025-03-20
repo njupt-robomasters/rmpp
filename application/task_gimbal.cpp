@@ -23,10 +23,10 @@ float dt;
 
             if (dj6.right_switch == DJ6::UP) {
                 gimbal.SetYawMode(Gimbal::ECD_MODE);
-                gimbal.SetYAW_V_APS_FF(0);
+                gimbal.SetYAW_V_FF_APS(0);
             } else { // MID、DOWN
                 gimbal.SetYawMode(Gimbal::IMU_MODE);
-                gimbal.SetYAW_V_APS_FF(-chassis.vr_tps * 360.0f);
+                gimbal.SetYAW_V_FF_APS(-chassis.vr_measure_tps * 360.0f);
             }
 
             const float pitch_angle_add = dj6.pitch * settings.pitch_aps_max * dt; // pitch电机
