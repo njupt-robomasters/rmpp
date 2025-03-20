@@ -1,11 +1,18 @@
 #include "rv2.hpp"
-
 #include "bsp_cdc.h"
 #include "mavlink.h"
 
 void RV2::SendIMUData(const float roll, const float pitch, const float yaw) {
     mavlink_message_t msg;
     const int len = mavlink_msg_imu_data_pack(0, 0, &msg, roll, pitch, yaw);
+    uint8_t buf[len];
+    mavlink_msg_to_send_buffer(buf, &msg);
+    BSP_CDC_Transmit(buf, len);
+}
+
+void RV2::SendRefereeData(const bool team_is_red, const float bullet_speed) {
+    mavlink_message_t msg;
+    const int len = mavlink_msg_referee_data_pack(0, 0, &msg, team_is_red, bullet_speed);
     uint8_t buf[len];
     mavlink_msg_to_send_buffer(buf, &msg);
     BSP_CDC_Transmit(buf, len);
@@ -26,6 +33,7 @@ void RV2::ParseStreamingData(const uint8_t *data, const int len) {
                     // 处理解析到的数据
                     pitch = gimbal_cmd.pitch;
                     yaw = gimbal_cmd.yaw;
+                    is_locked = gimbal_cmd.is_locked;
                     fire_advise = gimbal_cmd.fire_advise;
                 }
                 break;

@@ -2,7 +2,7 @@
 #include "cmsis_os.h"
 #include "app_variable.hpp"
 
-[[noreturn]] void task_uart_entry(void const * argument) {
+[[noreturn]] void task_uart_entry(void const *argument) {
     while (true) {
         osDelay(1000);
     }
@@ -10,4 +10,8 @@
 
 void task_uart_rc_callback(const uint8_t *data, const uint16_t size) {
     dj6.ParseData(data, size);
+}
+
+void task_uart_referee_callback(const uint8_t *data, const uint16_t size) {
+    referee.PhaseData(data, size);
 }

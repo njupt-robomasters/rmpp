@@ -17,6 +17,6 @@ void app_init() {
     BSP_CAN_Init();
     BSP_CDC_Init();
     BSP_IMUHeat_Init();
-    BSP_UART_RC_Init();
+    BSP_UART_Init();
     BSP_PWM_Init();
 }

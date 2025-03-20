@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-void BSP_UART_RC_Init();
+void BSP_UART_Init();
 
 void BSP_UART_RC_Rx_Callback(const uint8_t *data, uint16_t size);
 

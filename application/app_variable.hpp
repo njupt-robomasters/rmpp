@@ -6,6 +6,7 @@
 #include "dj6.hpp"
 #include "imu.hpp"
 #include "rv2.hpp"
+#include "../components/protocol/referee.hpp"
 
 extern Settings settings;
 extern Chassis chassis;
@@ -13,3 +14,4 @@ extern Gimbal gimbal;
 extern DJ6 dj6;
 extern IMU imu;
 extern RV2 rv2;
+extern REFEREE referee;

@@ -8,15 +8,16 @@ typedef struct __mavlink_gimbal_cmd_t {
  float pitch; /*< [deg] pitch*/
  float yaw; /*< [deg] yaw*/
  uint8_t fire_advise; /*<  to control fire*/
+ uint8_t is_locked; /*<  is_locked*/
 } mavlink_gimbal_cmd_t;
 
-#define MAVLINK_MSG_ID_GIMBAL_CMD_LEN 9
-#define MAVLINK_MSG_ID_GIMBAL_CMD_MIN_LEN 9
-#define MAVLINK_MSG_ID_1_LEN 9
-#define MAVLINK_MSG_ID_1_MIN_LEN 9
+#define MAVLINK_MSG_ID_GIMBAL_CMD_LEN 10
+#define MAVLINK_MSG_ID_GIMBAL_CMD_MIN_LEN 10
+#define MAVLINK_MSG_ID_1_LEN 10
+#define MAVLINK_MSG_ID_1_MIN_LEN 10
 
-#define MAVLINK_MSG_ID_GIMBAL_CMD_CRC 88
-#define MAVLINK_MSG_ID_1_CRC 88
+#define MAVLINK_MSG_ID_GIMBAL_CMD_CRC 234
+#define MAVLINK_MSG_ID_1_CRC 234
 
 
 
@@ -24,19 +25,21 @@ typedef struct __mavlink_gimbal_cmd_t {
 #define MAVLINK_MESSAGE_INFO_GIMBAL_CMD { \
     1, \
     "GIMBAL_CMD", \
-    3, \
+    4, \
     {  { "fire_advise", NULL, MAVLINK_TYPE_UINT8_T, 0, 8, offsetof(mavlink_gimbal_cmd_t, fire_advise) }, \
          { "pitch", NULL, MAVLINK_TYPE_FLOAT, 0, 0, offsetof(mavlink_gimbal_cmd_t, pitch) }, \
          { "yaw", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_gimbal_cmd_t, yaw) }, \
+         { "is_locked", NULL, MAVLINK_TYPE_UINT8_T, 0, 9, offsetof(mavlink_gimbal_cmd_t, is_locked) }, \
          } \
 }
 #else
 #define MAVLINK_MESSAGE_INFO_GIMBAL_CMD { \
     "GIMBAL_CMD", \
-    3, \
+    4, \
     {  { "fire_advise", NULL, MAVLINK_TYPE_UINT8_T, 0, 8, offsetof(mavlink_gimbal_cmd_t, fire_advise) }, \
          { "pitch", NULL, MAVLINK_TYPE_FLOAT, 0, 0, offsetof(mavlink_gimbal_cmd_t, pitch) }, \
          { "yaw", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_gimbal_cmd_t, yaw) }, \
+         { "is_locked", NULL, MAVLINK_TYPE_UINT8_T, 0, 9, offsetof(mavlink_gimbal_cmd_t, is_locked) }, \
          } \
 }
 #endif
@@ -50,16 +53,18 @@ typedef struct __mavlink_gimbal_cmd_t {
  * @param fire_advise  to control fire
  * @param pitch [deg] pitch
  * @param yaw [deg] yaw
+ * @param is_locked  is_locked
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_gimbal_cmd_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
-                               uint8_t fire_advise, float pitch, float yaw)
+                               uint8_t fire_advise, float pitch, float yaw, uint8_t is_locked)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_GIMBAL_CMD_LEN];
     _mav_put_float(buf, 0, pitch);
     _mav_put_float(buf, 4, yaw);
     _mav_put_uint8_t(buf, 8, fire_advise);
+    _mav_put_uint8_t(buf, 9, is_locked);
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_GIMBAL_CMD_LEN);
 #else
@@ -67,6 +72,7 @@ static inline uint16_t mavlink_msg_gimbal_cmd_pack(uint8_t system_id, uint8_t co
     packet.pitch = pitch;
     packet.yaw = yaw;
     packet.fire_advise = fire_advise;
+    packet.is_locked = is_locked;
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_GIMBAL_CMD_LEN);
 #endif
@@ -85,16 +91,18 @@ static inline uint16_t mavlink_msg_gimbal_cmd_pack(uint8_t system_id, uint8_t co
  * @param fire_advise  to control fire
  * @param pitch [deg] pitch
  * @param yaw [deg] yaw
+ * @param is_locked  is_locked
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_gimbal_cmd_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
-                               uint8_t fire_advise, float pitch, float yaw)
+                               uint8_t fire_advise, float pitch, float yaw, uint8_t is_locked)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_GIMBAL_CMD_LEN];
     _mav_put_float(buf, 0, pitch);
     _mav_put_float(buf, 4, yaw);
     _mav_put_uint8_t(buf, 8, fire_advise);
+    _mav_put_uint8_t(buf, 9, is_locked);
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_GIMBAL_CMD_LEN);
 #else
@@ -102,6 +110,7 @@ static inline uint16_t mavlink_msg_gimbal_cmd_pack_status(uint8_t system_id, uin
     packet.pitch = pitch;
     packet.yaw = yaw;
     packet.fire_advise = fire_advise;
+    packet.is_locked = is_locked;
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_GIMBAL_CMD_LEN);
 #endif
@@ -123,17 +132,19 @@ static inline uint16_t mavlink_msg_gimbal_cmd_pack_status(uint8_t system_id, uin
  * @param fire_advise  to control fire
  * @param pitch [deg] pitch
  * @param yaw [deg] yaw
+ * @param is_locked  is_locked
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_gimbal_cmd_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
                                mavlink_message_t* msg,
-                                   uint8_t fire_advise,float pitch,float yaw)
+                                   uint8_t fire_advise,float pitch,float yaw,uint8_t is_locked)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_GIMBAL_CMD_LEN];
     _mav_put_float(buf, 0, pitch);
     _mav_put_float(buf, 4, yaw);
     _mav_put_uint8_t(buf, 8, fire_advise);
+    _mav_put_uint8_t(buf, 9, is_locked);
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_GIMBAL_CMD_LEN);
 #else
@@ -141,6 +152,7 @@ static inline uint16_t mavlink_msg_gimbal_cmd_pack_chan(uint8_t system_id, uint8
     packet.pitch = pitch;
     packet.yaw = yaw;
     packet.fire_advise = fire_advise;
+    packet.is_locked = is_locked;
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_GIMBAL_CMD_LEN);
 #endif
@@ -159,7 +171,7 @@ static inline uint16_t mavlink_msg_gimbal_cmd_pack_chan(uint8_t system_id, uint8
  */
 static inline uint16_t mavlink_msg_gimbal_cmd_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_gimbal_cmd_t* gimbal_cmd)
 {
-    return mavlink_msg_gimbal_cmd_pack(system_id, component_id, msg, gimbal_cmd->fire_advise, gimbal_cmd->pitch, gimbal_cmd->yaw);
+    return mavlink_msg_gimbal_cmd_pack(system_id, component_id, msg, gimbal_cmd->fire_advise, gimbal_cmd->pitch, gimbal_cmd->yaw, gimbal_cmd->is_locked);
 }
 
 /**
@@ -173,7 +185,7 @@ static inline uint16_t mavlink_msg_gimbal_cmd_encode(uint8_t system_id, uint8_t 
  */
 static inline uint16_t mavlink_msg_gimbal_cmd_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_gimbal_cmd_t* gimbal_cmd)
 {
-    return mavlink_msg_gimbal_cmd_pack_chan(system_id, component_id, chan, msg, gimbal_cmd->fire_advise, gimbal_cmd->pitch, gimbal_cmd->yaw);
+    return mavlink_msg_gimbal_cmd_pack_chan(system_id, component_id, chan, msg, gimbal_cmd->fire_advise, gimbal_cmd->pitch, gimbal_cmd->yaw, gimbal_cmd->is_locked);
 }
 
 /**
@@ -187,7 +199,7 @@ static inline uint16_t mavlink_msg_gimbal_cmd_encode_chan(uint8_t system_id, uin
  */
 static inline uint16_t mavlink_msg_gimbal_cmd_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_gimbal_cmd_t* gimbal_cmd)
 {
-    return mavlink_msg_gimbal_cmd_pack_status(system_id, component_id, _status, msg,  gimbal_cmd->fire_advise, gimbal_cmd->pitch, gimbal_cmd->yaw);
+    return mavlink_msg_gimbal_cmd_pack_status(system_id, component_id, _status, msg,  gimbal_cmd->fire_advise, gimbal_cmd->pitch, gimbal_cmd->yaw, gimbal_cmd->is_locked);
 }
 
 /**
@@ -197,16 +209,18 @@ static inline uint16_t mavlink_msg_gimbal_cmd_encode_status(uint8_t system_id, u
  * @param fire_advise  to control fire
  * @param pitch [deg] pitch
  * @param yaw [deg] yaw
+ * @param is_locked  is_locked
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
-static inline void mavlink_msg_gimbal_cmd_send(mavlink_channel_t chan, uint8_t fire_advise, float pitch, float yaw)
+static inline void mavlink_msg_gimbal_cmd_send(mavlink_channel_t chan, uint8_t fire_advise, float pitch, float yaw, uint8_t is_locked)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_GIMBAL_CMD_LEN];
     _mav_put_float(buf, 0, pitch);
     _mav_put_float(buf, 4, yaw);
     _mav_put_uint8_t(buf, 8, fire_advise);
+    _mav_put_uint8_t(buf, 9, is_locked);
 
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_GIMBAL_CMD, buf, MAVLINK_MSG_ID_GIMBAL_CMD_MIN_LEN, MAVLINK_MSG_ID_GIMBAL_CMD_LEN, MAVLINK_MSG_ID_GIMBAL_CMD_CRC);
 #else
@@ -214,6 +228,7 @@ static inline void mavlink_msg_gimbal_cmd_send(mavlink_channel_t chan, uint8_t f
     packet.pitch = pitch;
     packet.yaw = yaw;
     packet.fire_advise = fire_advise;
+    packet.is_locked = is_locked;
 
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_GIMBAL_CMD, (const char *)&packet, MAVLINK_MSG_ID_GIMBAL_CMD_MIN_LEN, MAVLINK_MSG_ID_GIMBAL_CMD_LEN, MAVLINK_MSG_ID_GIMBAL_CMD_CRC);
 #endif
@@ -227,7 +242,7 @@ static inline void mavlink_msg_gimbal_cmd_send(mavlink_channel_t chan, uint8_t f
 static inline void mavlink_msg_gimbal_cmd_send_struct(mavlink_channel_t chan, const mavlink_gimbal_cmd_t* gimbal_cmd)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-    mavlink_msg_gimbal_cmd_send(chan, gimbal_cmd->fire_advise, gimbal_cmd->pitch, gimbal_cmd->yaw);
+    mavlink_msg_gimbal_cmd_send(chan, gimbal_cmd->fire_advise, gimbal_cmd->pitch, gimbal_cmd->yaw, gimbal_cmd->is_locked);
 #else
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_GIMBAL_CMD, (const char *)gimbal_cmd, MAVLINK_MSG_ID_GIMBAL_CMD_MIN_LEN, MAVLINK_MSG_ID_GIMBAL_CMD_LEN, MAVLINK_MSG_ID_GIMBAL_CMD_CRC);
 #endif
@@ -241,13 +256,14 @@ static inline void mavlink_msg_gimbal_cmd_send_struct(mavlink_channel_t chan, co
   is usually the receive buffer for the channel, and allows a reply to an
   incoming message with minimum stack space usage.
  */
-static inline void mavlink_msg_gimbal_cmd_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint8_t fire_advise, float pitch, float yaw)
+static inline void mavlink_msg_gimbal_cmd_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint8_t fire_advise, float pitch, float yaw, uint8_t is_locked)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char *buf = (char *)msgbuf;
     _mav_put_float(buf, 0, pitch);
     _mav_put_float(buf, 4, yaw);
     _mav_put_uint8_t(buf, 8, fire_advise);
+    _mav_put_uint8_t(buf, 9, is_locked);
 
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_GIMBAL_CMD, buf, MAVLINK_MSG_ID_GIMBAL_CMD_MIN_LEN, MAVLINK_MSG_ID_GIMBAL_CMD_LEN, MAVLINK_MSG_ID_GIMBAL_CMD_CRC);
 #else
@@ -255,6 +271,7 @@ static inline void mavlink_msg_gimbal_cmd_send_buf(mavlink_message_t *msgbuf, ma
     packet->pitch = pitch;
     packet->yaw = yaw;
     packet->fire_advise = fire_advise;
+    packet->is_locked = is_locked;
 
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_GIMBAL_CMD, (const char *)packet, MAVLINK_MSG_ID_GIMBAL_CMD_MIN_LEN, MAVLINK_MSG_ID_GIMBAL_CMD_LEN, MAVLINK_MSG_ID_GIMBAL_CMD_CRC);
 #endif
@@ -297,6 +314,16 @@ static inline float mavlink_msg_gimbal_cmd_get_yaw(const mavlink_message_t* msg)
 }
 
 /**
+ * @brief Get field is_locked from gimbal_cmd message
+ *
+ * @return  is_locked
+ */
+static inline uint8_t mavlink_msg_gimbal_cmd_get_is_locked(const mavlink_message_t* msg)
+{
+    return _MAV_RETURN_uint8_t(msg,  9);
+}
+
+/**
  * @brief Decode a gimbal_cmd message into a struct
  *
  * @param msg The message to decode
@@ -308,6 +335,7 @@ static inline void mavlink_msg_gimbal_cmd_decode(const mavlink_message_t* msg, m
     gimbal_cmd->pitch = mavlink_msg_gimbal_cmd_get_pitch(msg);
     gimbal_cmd->yaw = mavlink_msg_gimbal_cmd_get_yaw(msg);
     gimbal_cmd->fire_advise = mavlink_msg_gimbal_cmd_get_fire_advise(msg);
+    gimbal_cmd->is_locked = mavlink_msg_gimbal_cmd_get_is_locked(msg);
 #else
         uint8_t len = msg->len < MAVLINK_MSG_ID_GIMBAL_CMD_LEN? msg->len : MAVLINK_MSG_ID_GIMBAL_CMD_LEN;
         memset(gimbal_cmd, 0, MAVLINK_MSG_ID_GIMBAL_CMD_LEN);
