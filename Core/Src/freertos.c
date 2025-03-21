@@ -52,8 +52,7 @@ osThreadId task_ledHandle;
 osThreadId task_chassisHandle;
 osThreadId task_gimbalHandle;
 osThreadId task_imuHandle;
-osThreadId task_cdcHandle;
-osThreadId task_uartHandle;
+osThreadId task_protocolHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -65,8 +64,7 @@ extern void task_led_entry(void const * argument);
 extern void task_chassis_entry(void const * argument);
 extern void task_gimbal_entry(void const * argument);
 extern void task_imu_entry(void const * argument);
-extern void task_cdc_entry(void const * argument);
-extern void task_uart_entry(void const * argument);
+extern void task_protocol_entry(void const * argument);
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -139,24 +137,20 @@ void MX_FREERTOS_Init(void) {
   task_ledHandle = osThreadCreate(osThread(task_led), NULL);
 
   /* definition and creation of task_chassis */
-  osThreadDef(task_chassis, task_chassis_entry, osPriorityHigh, 0, 128);
+  osThreadDef(task_chassis, task_chassis_entry, osPriorityHigh, 0, 1024);
   task_chassisHandle = osThreadCreate(osThread(task_chassis), NULL);
 
   /* definition and creation of task_gimbal */
-  osThreadDef(task_gimbal, task_gimbal_entry, osPriorityHigh, 0, 128);
+  osThreadDef(task_gimbal, task_gimbal_entry, osPriorityHigh, 0, 1024);
   task_gimbalHandle = osThreadCreate(osThread(task_gimbal), NULL);
 
   /* definition and creation of task_imu */
-  osThreadDef(task_imu, task_imu_entry, osPriorityNormal, 0, 128);
+  osThreadDef(task_imu, task_imu_entry, osPriorityNormal, 0, 1024);
   task_imuHandle = osThreadCreate(osThread(task_imu), NULL);
 
-  /* definition and creation of task_cdc */
-  osThreadDef(task_cdc, task_cdc_entry, osPriorityNormal, 0, 128);
-  task_cdcHandle = osThreadCreate(osThread(task_cdc), NULL);
-
-  /* definition and creation of task_uart */
-  osThreadDef(task_uart, task_uart_entry, osPriorityNormal, 0, 128);
-  task_uartHandle = osThreadCreate(osThread(task_uart), NULL);
+  /* definition and creation of task_protocol */
+  osThreadDef(task_protocol, task_protocol_entry, osPriorityNormal, 0, 1024);
+  task_protocolHandle = osThreadCreate(osThread(task_protocol), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */

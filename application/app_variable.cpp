@@ -1,9 +1,12 @@
 #include "app_variable.hpp"
 
 Settings settings;
-DJ6 dj6;
-Chassis chassis(settings.chassis_mit);
+
 IMU imu;
-Gimbal gimbal(imu, settings.pitch_mit, settings.yaw_mit, settings.shoot_mit);
-RV2 rv2;
+
+DJ6 dj6;
 REFEREE referee;
+RV2 rv2;
+
+Chassis chassis(settings.wheel_pid, settings.chassis_pid);
+Gimbal gimbal(imu, settings.pitch_pid, settings.yaw_pid, settings.shoot_pid);

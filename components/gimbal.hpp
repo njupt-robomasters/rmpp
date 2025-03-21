@@ -2,64 +2,74 @@
 
 #include "m6020.hpp"
 #include "m2006.hpp"
+#include "pid.hpp"
 #include "imu.hpp"
+#include "unit.hpp"
 
 class Gimbal {
 public:
-    enum yaw_mode_t {
+    enum mode_e {
         ECD_MODE,
         IMU_MODE
     };
 
     // 向上运动 为 pitch角度增大方向
     // 逆时针旋转 为 yaw角度增大方向
+    struct ref_measure_t {
+        struct {
+            Angle absolute{}, relative{}, imu_mode{};
+        } pitch{}, yaw{};
+        struct {
+            Speed speed{};
+            float freq = 0;
+        } shoot{};
+    } ref{}, measure{};
 
-    // 云台设定值
-    float pitch_angle_set = 0, yaw_angle_set = 0, shoot_freq_set = 0; // 人类友好值
-    float pitch_angle_set_absolute = 0, yaw_angle_set_absolute = 0, shoot_v_set_tps = 0; // 对接电机控制值
-
-    // 云台实际值
-    float pitch_angle_measure = 0, yaw_angle_measure = 0, shoot_freq_measure = 0; // 人类友好值
-    float pitch_angle_measure_absolute = 0, yaw_angle_measure_absolute = 0, shoot_v_measure_tps = 0; // 对接电机控制值
-
-    Gimbal(const IMU &imu, const mit_t &pitch_mit, const mit_t &yaw_mit, const mit_t &shoot_mit);
+    Gimbal(const IMU &imu, const PID::pid_param_t &pitch_pid, const PID::pid_param_t &yaw_pid, const PID::pid_param_t &shoot_pid);
 
     void Init();
 
     void ParseCAN(uint32_t id, uint8_t data[8]);
 
+    void ResetReady();
+
+    [[nodiscard]] bool CheckReady() const;
+
     void SetEnable(bool is_enable);
 
-    void SetYawMode(yaw_mode_t yaw_mode);
+    void SetYawMode(mode_e yaw_mode);
 
     void SetCurrentAsTarget();
 
-    void SetAngle(float pitch_angle_set, float yaw_angle_set);
+    void SetAngle(float pitch_degree, float yaw_degree);
 
-    void AddAngle(float pitch_angle_add, float yaw_angle_add);
+    void AddAngle(float pitch_degree, float yaw_degree);
 
-    void SetShootFreq(float shoot_freq_set);
+    void SetYawSpeedFF(const Speed &yaw_speed_ff);
 
-    void SetYAW_V_FF_APS(float yaw_v_ff_aps);
+    void SetShootFreq(float shoot_freq);
+
+    void SetPrepareShoot(bool is_on);
 
     void Update();
 
 private:
-    static constexpr int PITCH_RESET_MS = 1500; // pitch回零时间【单位：毫秒】
-    static constexpr float PITCH_RANGE = 50.0f; // PITCH运动范围【单位：角度】
-    static constexpr int YAW_OFFSET = 0.0f; // yaw相对于前进方向的偏移【单位：角度】
+    static constexpr float PITCH_MID = 150.0f; // pitch水平时的绝对角度【单位：角度】
+    static constexpr float PITCH_MIN = 124.0f; // pitch最小绝对角度【单位：角度】
+    static constexpr float PITCH_MAX = 170.0f; // pitch最大绝对角度【单位：角度】
+    static constexpr float YAW_OFFSET = 0.0f; // yaw重合于底盘正方向时的绝对角度【单位：角度】
     static constexpr float SHOOT_NUM_PER_ROUND = 8.0f; // 拨弹电机每转一圈发射的弹数
 
-    const IMU &imu; // 对陀螺仪的引用，用于云台yaw的IMU闭环模式
-
-    yaw_mode_t yaw_mode = ECD_MODE;
+    const IMU &imu; // 对陀螺仪的引用，用于云台IMU闭环模式
 
     bool is_enable = false;
 
-    float pitch_offset = 0; // pitch行程最低端，有回零函数，此处无需设置【单位：角度】
+    mode_e mode = IMU_MODE;
 
-    float yaw_v_ff_aps = 0;
+    // yaw速度前馈（小陀螺模式需要）
+    Speed yaw_speed_ff{};
 
+    // 电机对象
     M6020 m_pitch, m_yaw;
     M2006 m_shoot;
 

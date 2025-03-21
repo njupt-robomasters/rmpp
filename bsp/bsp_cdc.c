@@ -3,7 +3,7 @@
 #include "usb_device.h"
 #include "usbd_cdc_if.h"
 
-#include "task_cdc.h"
+#include "task_protocol.h"
 
 static const int CDC_PRINTF_BUF_SIZE = 128;
 
@@ -27,5 +27,5 @@ void BSP_CDC_printf(const char *format, ...) {
 }
 
 void BSP_CDC_Rx_Callback(const uint8_t *data, const int size) {
-    task_cdc_callback(data, size);
+    task_protocol_cdc_callback(data, size);
 }

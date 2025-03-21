@@ -1,21 +1,22 @@
 #pragma once
 
-struct mit_t {
-    float kp, kd, ff; // ff为前馈
-};
+#include <cmath>
+#include <tuple>
+
+static constexpr float PI = M_PI;
 
 float signed_sqrt(float x);
 
 float solve_alpha(float fc, float fs);
 
-void lowpass_filter(float &x, float next, float alpha);
+float lowpass_filter(float x, float next, float alpha);
 
-float norm_angle(float angle);
+float norm_angle(float degree);
 
-float calc_angle_err(float ref, float measure);
+float calc_angle_err(float ref_degree, float measure_degree);
 
-void clamp(float &x, float max);
+float clamp(float x, float max);
 
-void clamp(float &x, float min, float max);
+float clamp(float x, float min, float max);
 
-void rotate(float &x, float &y, float angle);
+std::tuple<float, float> rotate(float x, float y, float angle);

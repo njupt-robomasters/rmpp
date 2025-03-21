@@ -13,26 +13,26 @@
             chassis.SetEnable(true);
 
             // 根据运动模式，计算底盘速度分量
-            float vx_mps, vy_mps, vr_tps;
+            float vx, vy, vr_rpm;
             if (dj6.right_switch == DJ6::UP or dj6.right_switch == DJ6::MID) {
                 // 前后左右平移
-                vx_mps = dj6.x * settings.chassis_vx_mps_max;
-                vy_mps = dj6.y * settings.chassis_vy_mps_max;
-                vr_tps = 0;
+                vx = dj6.x * settings.chassis_vx_max;
+                vy = dj6.y * settings.chassis_vy_max;
+                vr_rpm = 0;
             } else { // DOWN
                 // 前后移动、左右旋转
-                vx_mps = 0;
-                vy_mps = dj6.y * settings.chassis_vy_mps_max;
-                vr_tps = -dj6.x * settings.chassis_vr_tps_max;
+                vx = 0;
+                vy = dj6.y * settings.chassis_vy_max;
+                vr_rpm = -dj6.x * settings.chassis_vr_rpm_max;
             }
 
-            chassis.SetSpeed(vx_mps, vy_mps, vr_tps);
+            chassis.SetSpeed(vx, vy, vr_rpm);
+            chassis.SetGimbalRefByChassisAngle(gimbal.measure.yaw.relative);
 
-            chassis.SetGimbalRefByChassisAngle(gimbal.yaw_angle_measure_absolute);
+            // chassis.SetEnable(false);
         }
 
         chassis.Update();
-
         osDelay(1);
     }
 }

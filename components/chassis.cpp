@@ -3,10 +3,13 @@
 #include "bsp_can.h"
 #include "utils.hpp"
 
-Chassis::Chassis(const mit_t &mit) : m1(mit),
-                                     m2(mit),
-                                     m3(mit),
-                                     m4(mit) {
+Chassis::Chassis(const PID::pid_param_t &wheel_pid_param,
+                 const PID::pid_param_t &chassis_pid_param) : vx_comp_pid(chassis_pid_param, SPEED_COMP_MAX),
+                                                              vy_comp_pid(chassis_pid_param, SPEED_COMP_MAX),
+                                                              m1(wheel_pid_param),
+                                                              m2(wheel_pid_param),
+                                                              m3(wheel_pid_param),
+                                                              m4(wheel_pid_param) {
 }
 
 void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
@@ -23,6 +26,25 @@ void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
     inverseCalc();
 }
 
+void Chassis::ResetReady() {
+    m1.ResetReady();
+    m2.ResetReady();
+    m3.ResetReady();
+    m4.ResetReady();
+}
+
+bool Chassis::CheckReady() const {
+    if (not m1.IsReady())
+        return false;
+    if (not m2.IsReady())
+        return false;
+    if (not m3.IsReady())
+        return false;
+    if (not m4.IsReady())
+        return false;
+    return true;
+}
+
 void Chassis::SetEnable(const bool is_enable) {
     this->is_enable = is_enable;
     m1.SetEnable(is_enable);
@@ -31,14 +53,14 @@ void Chassis::SetEnable(const bool is_enable) {
     m4.SetEnable(is_enable);
 }
 
-void Chassis::SetSpeed(const float vx_ref, const float vy_ref, const float vr_tps_ref) {
-    vx_gimbal.ref = vx_ref;
-    vy_gimbal.ref = vy_ref;
-    vr_tps.ref = vr_tps_ref;
-    vz.ref = vr_tps.ref * CHASSIS_PERIMETER; // 底盘旋转角速度【圈/s】 -> 底盘旋转线速度【m/s】
+void Chassis::SetSpeed(const float vx, const float vy, const float vr_rpm) {
+    ref.vx.gimbal = vx;
+    ref.vy.gimbal = vy;
+    ref.vr.rpm = vr_rpm;
+    ref.vz = ref.vr.tps * CHASSIS_PERIMETER; // 底盘旋转角速度【圈/s】 -> 底盘旋转线速度【m/s】
 }
 
-void Chassis::SetGimbalRefByChassisAngle(const float gimbal_ref_by_chassis) {
+void Chassis::SetGimbalRefByChassisAngle(const Angle &gimbal_ref_by_chassis) {
     this->gimbal_ref_by_chassis = gimbal_ref_by_chassis;
 }
 
@@ -48,10 +70,15 @@ void Chassis::Update() {
         forwardCalc();
 
         // 设置电机转速目标值
-        m1.SetV(v1.ref / WHEEL_PERIMETER);
-        m2.SetV(v2.ref / WHEEL_PERIMETER);
-        m3.SetV(v3.ref / WHEEL_PERIMETER);
-        m4.SetV(v4.ref / WHEEL_PERIMETER);
+        Speed speed1, speed2, speed3, speed4;
+        speed1.tps = ref.v1 / WHEEL_PERIMETER;
+        speed2.tps = ref.v2 / WHEEL_PERIMETER;
+        speed3.tps = ref.v3 / WHEEL_PERIMETER;
+        speed4.tps = ref.v4 / WHEEL_PERIMETER;
+        m1.SetSpeed(speed1);
+        m2.SetSpeed(speed2);
+        m3.SetSpeed(speed3);
+        m4.SetSpeed(speed4);
     }
 
     // 电机闭环控制计算（即使未使能也要调用，防止dt计算出现问题）
@@ -65,51 +92,49 @@ void Chassis::Update() {
 }
 
 void Chassis::calcSpeedComp() {
-    const float vx_err = vx_gimbal.ref - vx_gimbal.measure;
-    vx_comp = kp * vx_err;
+    const float vx_err = ref.vx.gimbal - measure.vx.gimbal;
+    vx_comp_pid.CalcIncrement(vx_err);
 
-    const float vy_err = vy_gimbal.ref - vy_gimbal.measure;
-    vy_comp = kp * vy_err;
+    const float vy_err = ref.vy.gimbal - measure.vy.gimbal;
+    vy_comp_pid.CalcIncrement(vy_err);
 }
 
 void Chassis::forwardCalc() {
-    // 补偿速度计算
+    // 计算速度补偿
     calcSpeedComp();
 
-    // 根据底盘与云台的夹角，旋转x y速度分量
-    vx_chassis.ref = vx_gimbal.ref + vx_comp;
-    vy_chassis.ref = vy_gimbal.ref + vy_comp;
-    // 注意这里是换参考系，而非旋转速度矢量，速度矢量相对于绝对参考系是不会发生变化的
-    rotate(vx_chassis.ref, vy_chassis.ref, gimbal_ref_by_chassis);
+    // vx vy 换算到底盘坐标系
+    // 注意这里是换参考系，而非旋转速度矢量，速度矢量相对于绝对参考系是不会发生变化的，所以旋转角度为：云台相对于底盘的角度
+    std::tie(ref.vx.chassis, ref.vy.chassis) = rotate(ref.vx.gimbal + vx_comp, ref.vy.gimbal + vy_comp,
+                                                      gimbal_ref_by_chassis.degree);
 
-    // 根据速度分量，计算电机目标转速（全向轮运动学）
+    // 根据速度分量，计算轮子线速度【单位：m/s】
     // 前进方向为y轴正方向，右平移方向为x轴正方向，一 二 三 四 象限分别为 1 2 3 4 电机
     // 所有电机正转，底盘顺时针旋转（但规定逆时针为底盘旋转正方向）
     constexpr float sqrt2div2 = sqrtf(2) / 2.0f;
-    v1.ref = +sqrt2div2 * vx_chassis.ref - sqrt2div2 * vy_chassis.ref - vz.ref; // 轮子线速度【单位：m/s】
-    v2.ref = +sqrt2div2 * vx_chassis.ref + sqrt2div2 * vy_chassis.ref - vz.ref; // 轮子线速度【单位：m/s】
-    v3.ref = -sqrt2div2 * vx_chassis.ref + sqrt2div2 * vy_chassis.ref - vz.ref; // 轮子线速度【单位：m/s】
-    v4.ref = -sqrt2div2 * vx_chassis.ref - sqrt2div2 * vy_chassis.ref - vz.ref; // 轮子线速度【单位：m/s】
+    ref.v1 = +sqrt2div2 * ref.vx.chassis - sqrt2div2 * ref.vy.chassis - ref.vz;
+    ref.v2 = +sqrt2div2 * ref.vx.chassis + sqrt2div2 * ref.vy.chassis - ref.vz;
+    ref.v3 = -sqrt2div2 * ref.vx.chassis + sqrt2div2 * ref.vy.chassis - ref.vz;
+    ref.v4 = -sqrt2div2 * ref.vx.chassis - sqrt2div2 * ref.vy.chassis - ref.vz;
 }
 
 void Chassis::inverseCalc() {
     // 轮子角速度【圈/s】 -> 线速度【单位：m/s】
-    v1.measure = m1.v_measure_lpf_tps * WHEEL_PERIMETER;
-    v2.measure = m2.v_measure_lpf_tps * WHEEL_PERIMETER;
-    v3.measure = m3.v_measure_lpf_tps * WHEEL_PERIMETER;
-    v4.measure = m4.v_measure_lpf_tps * WHEEL_PERIMETER;
+    measure.v1 = m1.measure.speed.tps * WHEEL_PERIMETER;
+    measure.v2 = m2.measure.speed.tps * WHEEL_PERIMETER;
+    measure.v3 = m3.measure.speed.tps * WHEEL_PERIMETER;
+    measure.v4 = m4.measure.speed.tps * WHEEL_PERIMETER;
 
-    // 逆运动学解算当前底盘实际速度
+    // 逆运动学解算当前底盘实际速度分量
     constexpr float sqrt2 = sqrtf(2);
-    vx_chassis.measure = (+sqrt2 * v1.measure + sqrt2 * v2.measure - sqrt2 * v3.measure - sqrt2 * v4.measure) / 4.0f;
-    vy_chassis.measure = (-sqrt2 * v1.measure + sqrt2 * v2.measure + sqrt2 * v3.measure - sqrt2 * v4.measure) / 4.0f;
-    vz.measure = -(v1.measure + v2.measure + v3.measure + v4.measure) / 4.0f;
-    vr_tps.measure = vz.measure / CHASSIS_PERIMETER; // 底盘旋转线速度【m/s】 -> 底盘旋转角速度【圈/s】
+    measure.vx.chassis = (+sqrt2 * measure.v1 + sqrt2 * measure.v2 - sqrt2 * measure.v3 - sqrt2 * measure.v4) / 4.0f;
+    measure.vy.chassis = (-sqrt2 * measure.v1 + sqrt2 * measure.v2 + sqrt2 * measure.v3 - sqrt2 * measure.v4) / 4.0f;
+    measure.vz = -(measure.v1 + measure.v2 + measure.v3 + measure.v4) / 4.0f;
+    measure.vr.tps = measure.vz / CHASSIS_PERIMETER; // 底盘旋转线速度【m/s】 -> 底盘旋转角速度【圈/s】
 
-    // 根据设置的正方向，旋转x y速度分量
-    vx_gimbal.measure = vx_chassis.measure;
-    vy_gimbal.measure = vy_chassis.measure;
-    rotate(vx_gimbal.measure, vy_gimbal.measure, -gimbal_ref_by_chassis);
+    // vx vy 换算到云台坐标系
+    std::tie(ref.vx.gimbal, ref.vy.gimbal) = rotate(measure.vx.chassis, measure.vy.chassis,
+                                                    -gimbal_ref_by_chassis.degree);
 }
 
 void Chassis::sendCurrentCMD() const {

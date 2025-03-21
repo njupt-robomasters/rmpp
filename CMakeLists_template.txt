@@ -52,6 +52,7 @@ include_directories(${includes}
     bsp
     application
     components
+    components/unit
     components/motor
     components/controller
     components/protocol

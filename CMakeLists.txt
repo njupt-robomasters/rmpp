@@ -53,6 +53,7 @@ include_directories(Core/Inc Drivers/STM32F4xx_HAL_Driver/Inc Drivers/STM32F4xx_
     bsp
     application
     components
+    components/unit
     components/motor
     components/controller
     components/protocol

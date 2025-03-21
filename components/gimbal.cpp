@@ -1,35 +1,27 @@
 #include "gimbal.hpp"
 #include "cmsis_os.h"
 #include "bsp_can.h"
+#include "bsp_pwm.h"
+#include "app_variable.hpp"
 #include "utils.hpp"
 
-Gimbal::Gimbal(const IMU &imu, const mit_t &pitch_mit, const mit_t &yaw_mit, const mit_t &shoot_mit) : imu(imu),
-    yaw_mode(yaw_mode),
-    m_pitch(pitch_mit),
-    m_yaw(yaw_mit),
-    m_shoot(shoot_mit) {
+Gimbal::Gimbal(const IMU &imu, const PID::pid_param_t &pitch_pid, const PID::pid_param_t &yaw_pid,
+               const PID::pid_param_t &shoot_pid) : imu(imu),
+                                                    m_pitch(pitch_pid),
+                                                    m_yaw(yaw_pid),
+                                                    m_shoot(shoot_pid) {
 }
 
 void Gimbal::Init() {
     // 等待pitch yaw电机启动
-    m_pitch.is_ready = false;
-    m_yaw.is_ready = false;
-    while (m_pitch.is_ready == false) {
+    m_pitch.ResetReady();
+    m_yaw.ResetReady();
+    while (not m_pitch.IsReady()) {
         osDelay(1);
     }
-    while (m_yaw.is_ready == false) {
+    while (not m_yaw.IsReady()) {
         osDelay(1);
     }
-
-    // pitch复位
-    m_pitch.current_ref = -1.0f;
-    m_yaw.current_ref = 0.0f;
-    m_shoot.current_ref = 0.0f;
-    for (int i = 0; i < PITCH_RESET_MS; i++) {
-        sendCANCmd();
-        osDelay(1);
-    }
-    pitch_offset = m_pitch.angle_measure;
 
     // 设置当前位置为目标位置
     SetCurrentAsTarget();
@@ -43,18 +35,30 @@ void Gimbal::ParseCAN(const uint32_t id, uint8_t data[8]) {
     if (id == 0x207) // shoot
         m_shoot.ParseCAN(data);
 
-    pitch_angle_measure_absolute = m_pitch.angle_measure;
-    pitch_angle_measure = norm_angle(pitch_angle_measure_absolute - pitch_offset);
+    measure.pitch.absolute = m_pitch.measure.angle; // pitch绝对角度
+    measure.pitch.relative.degree = norm_angle(measure.pitch.absolute.degree - PITCH_MID); // pitch相对角度
 
-    yaw_angle_measure_absolute = m_yaw.angle_measure;
-    if (yaw_mode == ECD_MODE) {
-        yaw_angle_measure = norm_angle(yaw_angle_measure_absolute - YAW_OFFSET);
-    } else if (yaw_mode == IMU_MODE) {
-        yaw_angle_measure = imu.yaw;
-    }
+    measure.yaw.absolute = m_yaw.measure.angle; // yaw绝对角度
+    measure.yaw.relative.degree = norm_angle(measure.yaw.absolute.degree - YAW_OFFSET); // yaw相对角度
 
-    shoot_v_measure_tps = m_shoot.v_measure_lpf_tps;
-    shoot_freq_measure = shoot_v_measure_tps * SHOOT_NUM_PER_ROUND;
+    measure.shoot.speed = m_shoot.measure.speed; // shoot电机转速
+    measure.shoot.freq = measure.shoot.speed.tps * SHOOT_NUM_PER_ROUND; // shoot射频
+}
+
+void Gimbal::ResetReady() {
+    m_pitch.ResetReady();
+    m_yaw.ResetReady();
+    m_shoot.ResetReady();
+}
+
+bool Gimbal::CheckReady() const {
+    if (not m_pitch.IsReady())
+        return false;
+    if (not m_yaw.IsReady())
+        return false;
+    if (not m_shoot.IsReady())
+        return false;
+    return true;
 }
 
 void Gimbal::SetEnable(const bool is_enable) {
@@ -67,72 +71,88 @@ void Gimbal::SetEnable(const bool is_enable) {
     m_shoot.SetEnable(is_enable);
 
     if (is_enable)
-        SetCurrentAsTarget();
+        SetCurrentAsTarget(); // 使能后，把当前位置设为目标位置
 }
 
-void Gimbal::SetYawMode(const yaw_mode_t yaw_mode) {
-    if (this->yaw_mode == yaw_mode)
+void Gimbal::SetYawMode(const mode_e yaw_mode) {
+    if (this->mode == yaw_mode)
         return;
 
-    this->yaw_mode = yaw_mode;
-    // 切换模式后，把yaw当前位置设置为目标位置
-    if (this->yaw_mode == ECD_MODE) {
-        yaw_angle_set = yaw_angle_measure_absolute - YAW_OFFSET;
-    } else if (this->yaw_mode == IMU_MODE) {
-        yaw_angle_set = imu.yaw;
-    }
+    this->mode = yaw_mode;
+    SetCurrentAsTarget(); // 切换模式后，把当前位置设为目标位置
 }
 
 // 设置当前位置为目标位置
 void Gimbal::SetCurrentAsTarget() {
-    pitch_angle_set = pitch_angle_measure_absolute - pitch_offset;
-    if (this->yaw_mode == ECD_MODE) {
-        yaw_angle_set = yaw_angle_measure_absolute - YAW_OFFSET;
-    } else if (this->yaw_mode == IMU_MODE) {
-        yaw_angle_set = imu.yaw;
+    if (mode == ECD_MODE) {
+        ref.pitch.relative = measure.pitch.relative; // pitch
+        ref.yaw.relative = measure.yaw.relative; // yaw
+    } else if (mode == IMU_MODE) {
+        ref.pitch.imu_mode.degree = imu.pitch; // pitch
+        ref.yaw.imu_mode.degree = imu.yaw; // yaw
     }
 }
 
-void Gimbal::SetAngle(const float pitch_angle_set, const float yaw_angle_set) {
-    this->pitch_angle_set = pitch_angle_set;
-    this->yaw_angle_set = yaw_angle_set;
+void Gimbal::SetAngle(const float pitch_degree, const float yaw_degree) {
+    if (mode == ECD_MODE) {
+        ref.pitch.relative.degree = pitch_degree;
+        ref.yaw.relative.degree = yaw_degree;
+    } else if (mode == IMU_MODE) {
+        ref.pitch.imu_mode.degree = pitch_degree;
+        ref.yaw.imu_mode.degree = yaw_degree;
+    }
 }
 
-void Gimbal::AddAngle(const float pitch_angle_add, const float yaw_angle_add) {
-    pitch_angle_set += pitch_angle_add;
-    clamp(pitch_angle_measure, 0, PITCH_RANGE);
-    yaw_angle_set = norm_angle(yaw_angle_set + yaw_angle_add);
+void Gimbal::AddAngle(const float pitch_degree, const float yaw_degree) {
+    if (mode == ECD_MODE) {
+        ref.pitch.relative.degree = norm_angle(ref.pitch.relative.degree + pitch_degree);
+        ref.yaw.relative.degree = norm_angle(ref.yaw.relative.degree + yaw_degree);
+    } else if (mode == IMU_MODE) {
+        ref.pitch.imu_mode.degree = norm_angle(ref.pitch.imu_mode.degree + pitch_degree);
+        ref.yaw.imu_mode.degree = norm_angle(ref.yaw.imu_mode.degree + yaw_degree);
+    }
 }
 
-void Gimbal::SetShootFreq(const float shoot_freq_set) {
-    this->shoot_freq_set = shoot_freq_set;
+void Gimbal::SetYawSpeedFF(const Speed &yaw_speed_ff) {
+    this->yaw_speed_ff = yaw_speed_ff;
 }
 
-void Gimbal::SetYAW_V_FF_APS(const float yaw_v_ff_aps) {
-    this->yaw_v_ff_aps = yaw_v_ff_aps;
+void Gimbal::SetShootFreq(const float shoot_freq) {
+    ref.shoot.freq = shoot_freq;
+}
+
+void Gimbal::SetPrepareShoot(const bool is_on) {
+    if (is_on) {
+        BSP_PWM_SetDuty(100);
+    } else {
+        BSP_PWM_SetDuty(0);
+    }
 }
 
 void Gimbal::Update() {
     if (is_enable) {
-        // pitch
-        pitch_angle_set_absolute = norm_angle(pitch_angle_set + pitch_offset);
-        m_pitch.SetAngle(pitch_angle_set_absolute);
-
-        // yaw
-        if (yaw_mode == ECD_MODE) {
-            yaw_angle_set_absolute = norm_angle(yaw_angle_set + YAW_OFFSET);
-        } else if (yaw_mode == IMU_MODE) {
-            // 抵消掉电机闭环中原来的 -angle 项，最终误差计算公式变成 yaw_angle_set - imu.yaw
-            yaw_angle_set_absolute = norm_angle(yaw_angle_set - imu.yaw + yaw_angle_measure_absolute);
+        // pitch、yaw
+        if (mode == ECD_MODE) {
+            ref.pitch.absolute.degree = norm_angle(ref.pitch.relative.degree + PITCH_MID);
+            ref.pitch.absolute.degree = clamp(ref.pitch.absolute.degree, PITCH_MIN, PITCH_MAX);
+            ref.yaw.absolute.degree = norm_angle(ref.yaw.relative.degree + YAW_OFFSET);
+            m_pitch.SetAngle(ref.pitch.absolute);
+            m_yaw.SetAngle(ref.yaw.absolute, yaw_speed_ff);
+        } else if (mode == IMU_MODE) {
+            // 此处加上 measure，抵消掉电机PID计算中的 -measure，最终误差变成 ref - imu.yaw
+            Angle pitch, yaw;
+            pitch.degree = norm_angle(ref.pitch.imu_mode.degree - imu.pitch + measure.pitch.absolute.degree);
+            yaw.degree = norm_angle(ref.yaw.imu_mode.degree - imu.yaw + measure.yaw.absolute.degree);
+            m_pitch.SetAngle(pitch);
+            m_yaw.SetAngle(yaw, yaw_speed_ff);
         }
-        m_yaw.SetAngle(yaw_angle_set_absolute, yaw_v_ff_aps);
 
         // shoot
-        shoot_v_set_tps = shoot_freq_set / SHOOT_NUM_PER_ROUND;
-        m_shoot.SetV(shoot_v_set_tps);
+        ref.shoot.speed.tps = ref.shoot.freq / SHOOT_NUM_PER_ROUND;
+        m_shoot.SetSpeed(ref.shoot.speed);
     }
 
-    // 电机闭环控制计算（即使使能也要调用，防止dt计算出现问题）
+    // 电机闭环控制计算（即未使能也要调用，防止dt计算出现问题）
     m_pitch.Update();
     m_yaw.Update();
     m_shoot.Update();

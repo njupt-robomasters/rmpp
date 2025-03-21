@@ -1,28 +1,19 @@
 #include "m6020.hpp"
 #include "utils.hpp"
 
-M6020::M6020(const mit_t &mit) : MDJI(CURRENT_MAX, CURRENT_CMD_MAX, REDUCTION_RATIO),
-                                 mit(mit) {
-}
-
-void M6020::SetEnable(const bool is_enable) {
-    this->is_enable = is_enable;
-}
-
-void M6020::SetAngle(const float angle_ref, const float v_aps_ff) {
-    this->angle_ref = angle_ref;
-    this->v_ff_aps = v_aps_ff;
+M6020::M6020(const PID::pid_param_t &pid_param) : MDJI(CURRENT_MAX, CURRENT_CMD_MAX, REDUCTION_RATIO),
+                                                  pid(pid_param, CURRENT_MAX) {
 }
 
 void M6020::Update() {
     if (is_enable) {
-        // MIT控制模式（ZCY优化版）
-        const float angle_err = calc_angle_err(angle_ref, angle_measure);
-        Pout = mit.kp * signed_sqrt(angle_err);
-        Dout = mit.kd * (v_ff_aps - v_measure_lpf_aps);
-        current_ref = Pout + Dout + mit.ff;
-        clamp(current_ref, CURRENT_MAX); // 输出钳位
+        // pid控制模式（ZCY优化版）
+        const float angle_err = calc_angle_err(ref.angle.degree, measure.angle.degree);
+        const float angle_err_sqrt = signed_sqrt(angle_err);
+        const float speed_err = ref.speed.aps - measure.speed.aps;
+        ref.current = pid.CalcPosition(angle_err_sqrt, speed_err);
     } else {
-        current_ref = 0;
+        ref.current = 0;
+        pid.Clear();
     }
 }

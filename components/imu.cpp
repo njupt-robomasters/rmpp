@@ -1,11 +1,11 @@
 #include "imu.hpp"
 #include "cmsis_os.h"
 #include "bsp_dwt.h"
-#include "bsp_imuheat.h"
+#include "bsp_pwm.h"
 #include "bmi088.h"
 #include "QuaternionEKF.h"
 
-void IMU::Init() {
+IMU::IMU() : temperature_pid(50, 1, 0, 0, 40, 100) {
     imu_param.yaw = 0;
     imu_param.pitch = 0;
     imu_param.roll = 180;
@@ -13,13 +13,14 @@ void IMU::Init() {
     imu_param.scale[Y] = 1;
     imu_param.scale[Z] = 1;
     imu_param.flag = 1;
+}
 
+void IMU::Init() {
     IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0);
 
-    // IMU加热PID
-    temperature_pid.Init(50, 1, 0, 100, 40);
-
-    while (BMI088_init(&hspi1, 1) != BMI088_NO_ERROR);
+    while (BMI088_init(&hspi1, 0) != BMI088_NO_ERROR) {
+        osDelay(1);
+    }
 }
 
 void IMU::WaitReady() const {
@@ -165,8 +166,9 @@ void IMU::IMU_Param_Correction(param_t *param, float gyro[3], float accel[3]) {
  *
  */
 void IMU::IMU_Temperature_Ctrl() {
-    temperature_pid.Calculate( BMI088.Temperature, temperature_set);
-    BSP_IMUHeat_SetPower(temperature_pid.output);
+    const float temperature_err = temperature_ref - BMI088.Temperature;
+    temperature_pid.CalcIncrement(temperature_err);
+    BSP_PWM_IMUHeat_SetPower(temperature_pid.out);
 }
 
 /**

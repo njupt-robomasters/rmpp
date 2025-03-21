@@ -6,11 +6,12 @@ class IMU {
 public:
     bool is_ready = false;
 
-    // 位姿
     float roll = 0;
     float pitch = 0;
     float yaw = 0;
     float yaw_total_angle = 0;
+
+    IMU();
 
     void Init();
 
@@ -20,8 +21,9 @@ public:
 
 private:
     // 可配置参数
-    static constexpr float temperature_set = 40; // 陀螺仪加热温度
+    static constexpr float temperature_ref = 40; // 陀螺仪加热温度
     static constexpr float gravity[3] = {0, 0, 9.81f}; // 当地重力加速度
+    static constexpr float accel_lpf = 0.0085f;
 
     static constexpr auto X = 0;
     static constexpr auto Y = 1;
@@ -32,13 +34,13 @@ private:
     static constexpr float zb[3] = {0, 0, 1};
 
     // 用于修正安装误差的参数
-    typedef struct {
+    struct param_t {
         float yaw;
         float pitch;
         float roll;
         float scale[3];
         uint8_t flag;
-    } param_t;
+    };
 
     // IMU原始数据
     float gyro[3]{}; // 角速度
@@ -57,9 +59,8 @@ private:
     float atanxz = 0;
     float atanyz = 0;
 
-    float accel_lpf = 0.0085f;
     param_t imu_param{};
-    PID temperature_pid{};
+    PID temperature_pid;
 
     void IMU_Temperature_Ctrl();
 
