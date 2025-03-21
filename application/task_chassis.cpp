@@ -28,7 +28,7 @@
 
             chassis.SetSpeed(vx_mps, vy_mps, vr_tps);
 
-            chassis.SetForwardAngle(gimbal.yaw_angle_measure_absolute);
+            chassis.SetGimbalRefByChassisAngle(gimbal.yaw_angle_measure_absolute);
         }
 
         chassis.Update();

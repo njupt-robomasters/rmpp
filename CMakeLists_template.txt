@@ -53,6 +53,7 @@ include_directories(${includes}
     application
     components
     components/motor
+    components/controller
     components/protocol
     components/third-party/bmi088
     components/third-party/ekf

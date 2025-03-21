@@ -22,12 +22,12 @@ void OnProjectLoad (void) {
   //
   // Dialog-generated settings
   //
-  Project.AddPathSubstitute ("E:/workspace/rm/code/Infantry", "$(ProjectDir)");
-  Project.AddPathSubstitute ("e:/workspace/rm/code/infantry", "$(ProjectDir)");
   Project.SetDevice ("Cortex-M4");
-  Project.SetHostIF ("USB", "1049875183");
+  Project.SetHostIF ("USB", "1045514797");
   Project.SetTargetIF ("SWD");
   Project.SetTIFSpeed ("1 MHz");
+  Project.AddPathSubstitute ("E:/workspace/rm/code/Infantry", "$(ProjectDir)");
+  Project.AddPathSubstitute ("e:/workspace/rm/code/infantry", "$(ProjectDir)");
   Project.AddSvdFile ("$(InstallDir)/Config/CPU/Cortex-M4F.svd");
   Project.AddSvdFile ("$(InstallDir)/Config/Peripherals/STM32F407IG.svd");
   //

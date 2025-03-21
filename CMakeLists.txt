@@ -54,6 +54,7 @@ include_directories(Core/Inc Drivers/STM32F4xx_HAL_Driver/Inc Drivers/STM32F4xx_
     application
     components
     components/motor
+    components/controller
     components/protocol
     components/third-party/bmi088
     components/third-party/ekf
