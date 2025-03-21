@@ -14,3 +14,9 @@ void M3508::Update() {
         pid.Clear();
     }
 }
+
+void M3508::EstimatePower() {
+    const float mechanical_power = M_PER_I * measure.current * measure.speed.rps * REDUCTION_RATIO;
+    const float joule_heat = measure.current * measure.current * R;
+    estimate_power = mechanical_power + joule_heat;
+}

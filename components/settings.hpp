@@ -10,7 +10,7 @@ public:
     float chassis_vr_rpm_max = 60.0f; // 旋转角速度【单位：rpm】
     // PID参数
     PID::pid_param_t wheel_pid = {10000.0f, 50.0f, 0.0f};
-    PID::pid_param_t chassis_pid = {0.0f, 0.0f, 0.0f};
+    PID::pid_param_t chassis_pid = {0.0f, 0.0f, 0.0f}; // 底盘速度补偿（暂时未用到，轮子PID给的激进后，小陀螺模式前进已经很稳）
 
     // 云台参数
     float pitch_aps_max = 30.0f; // 【单位：度/s】

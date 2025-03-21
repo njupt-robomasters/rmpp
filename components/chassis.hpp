@@ -15,11 +15,14 @@ public:
         float v1 = 0, v2 = 0, v3 = 0, v4 = 0; // 轮子速度【单位：m/s】
     } ref{}, measure{};
 
-    // 速度补偿，PID给出
+    // 速度补偿，PID给出（暂时未用到，轮子PID给的激进后，小陀螺模式前进已经很稳）
     float vx_comp = 0, vy_comp = 0;
 
     // 原定底盘前进方向->云台方向 的角度（逆时针为正）
     Angle gimbal_ref_by_chassis{};
+
+    // 底盘功率估计
+    float estimate_power = 0;
 
     explicit Chassis(const PID::pid_param_t &wheel_pid_param, const PID::pid_param_t &chassis_pid_param);
 
@@ -47,7 +50,7 @@ private:
     static constexpr float WHEEL_PERIMETER = 2 * static_cast<float>(M_PI) * WHEEL_RADIUS; // 轮子周长【单位：m】
     static constexpr float CHASSIS_PERIMETER = 2 * static_cast<float>(M_PI) * CHASSIS_RADIUS; // 底盘周长【单位：m】
 
-    static constexpr float SPEED_COMP_MAX = 5.0f; // 最大补偿速度【单位：m/s】
+    static constexpr float SPEED_COMP_MAX = 1.0f; // 最大补偿速度【单位：m/s】
 
     bool is_enable = false;
 
@@ -64,4 +67,6 @@ private:
     void inverseCalc();
 
     void sendCurrentCMD() const;
+
+    void estimatePower();
 };

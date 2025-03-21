@@ -24,6 +24,9 @@ void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
 
     // 运动学逆解
     inverseCalc();
+
+    // 底盘功率估算
+    estimatePower();
 }
 
 void Chassis::ResetReady() {
@@ -154,4 +157,12 @@ void Chassis::sendCurrentCMD() const {
     data[7] = m3508_4_cmd;
 
     BSP_CAN_Transmit(0x200, data, 8);
+}
+
+void Chassis::estimatePower() {
+    m1.EstimatePower();
+    m2.EstimatePower();
+    m3.EstimatePower();
+    m4.EstimatePower();
+    estimate_power = m1.estimate_power + m2.estimate_power + m3.estimate_power + m4.estimate_power;
 }
