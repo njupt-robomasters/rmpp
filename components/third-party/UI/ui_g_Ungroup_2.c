@@ -10,6 +10,7 @@
 #define START_ID 2
 
 ui_string_frame_t ui_g_Ungroup_2;
+
 ui_interface_string_t* ui_g_Ungroup_chassis_mode = &ui_g_Ungroup_2.option;
 
 void _ui_init_g_Ungroup_2() {
@@ -20,8 +21,8 @@ void _ui_init_g_Ungroup_2() {
     ui_g_Ungroup_2.option.figure_tpye = 7;
     ui_g_Ungroup_2.option.layer = 0;
     ui_g_Ungroup_2.option.font_size = 25;
-    ui_g_Ungroup_2.option.start_x = 14;
-    ui_g_Ungroup_2.option.start_y = 813;
+    ui_g_Ungroup_2.option.start_x = 61;
+    ui_g_Ungroup_2.option.start_y = 820;
     ui_g_Ungroup_2.option.color = 2;
     ui_g_Ungroup_2.option.str_length = 8;
     ui_g_Ungroup_2.option.width = 2;

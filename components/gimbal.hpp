@@ -58,6 +58,7 @@ private:
     static constexpr float PITCH_MIN = 124.0f; // pitch最小绝对角度【单位：角度】
     static constexpr float PITCH_MAX = 170.0f; // pitch最大绝对角度【单位：角度】
     static constexpr float YAW_OFFSET = 0.0f; // yaw重合于底盘正方向时的绝对角度【单位：角度】
+
     static constexpr float SHOOT_NUM_PER_ROUND = 8.0f; // 拨弹电机每转一圈发射的弹数
 
     const IMU &imu; // 对陀螺仪的引用，用于云台IMU闭环模式

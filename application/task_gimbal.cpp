@@ -27,20 +27,22 @@ float dt;
                 gimbal.SetYawSpeedFF(-chassis.measure.vr);
             }
 
+            // pitch、yaw电机
             const float pitch_angle_add = dj6.pitch * settings.pitch_aps_max * dt; // pitch电机
             const float yaw_angle_add = -dj6.yaw * settings.yaw_aps_max * dt; // yaw电机
             gimbal.AddAngle(pitch_angle_add, yaw_angle_add);
 
             // shoot拨弹电机
+            // 左摇杆控制
             if (dj6.left_switch == DJ6::UP) {
-                gimbal.SetShootFreq(0);
                 gimbal.SetPrepareShoot(false);
-            } else if (dj6.left_switch == DJ6::MID) {
                 gimbal.SetShootFreq(0);
+            } else if (dj6.left_switch == DJ6::MID) {
                 gimbal.SetPrepareShoot(true);
+                gimbal.SetShootFreq(0);
             } else if (dj6.left_switch == DJ6::DOWN) {
-                gimbal.SetShootFreq(settings.shoot_freq);
                 gimbal.SetPrepareShoot(true);
+                gimbal.SetShootFreq(settings.shoot_freq);
             }
 
             // gimbal.SetEnable(true);

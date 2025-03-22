@@ -4,6 +4,11 @@ M3508::M3508(const PID::pid_param_t &pid_param) : MDJI(CURRENT_MAX, CURRENT_CMD_
                                                   pid(pid_param, CURRENT_MAX) {
 }
 
+void M3508::ParseCAN(const uint8_t data[8]) {
+    MDJI::ParseCAN(data);
+    powerEstimate();
+}
+
 void M3508::Update() {
     if (is_enable) {
         // 增量PD模式
@@ -15,8 +20,8 @@ void M3508::Update() {
     }
 }
 
-void M3508::EstimatePower() {
-    const float mechanical_power = M_PER_I * measure.current * measure.speed.rps * REDUCTION_RATIO;
+void M3508::powerEstimate() {
+    const float mechanical_power = M_PER_I * measure.current * measure.speed.rps;
     const float joule_heat = measure.current * measure.current * R;
-    estimate_power = mechanical_power + joule_heat;
+    power_estimate = mechanical_power + joule_heat;
 }

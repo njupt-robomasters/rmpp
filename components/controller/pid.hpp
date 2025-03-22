@@ -5,8 +5,9 @@
 class PID {
 public:
     struct pid_param_t {
-        const float kp = 0, ki = 0, kd = 0, ff = 0; // ff为前馈
+        const float kp = 0, ki = 0, kd = 0;
         const float i_limit = 0;
+        const float ff = 0; // ff为前馈
     };
 
     float out = 0;

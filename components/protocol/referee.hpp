@@ -19,6 +19,9 @@ public:
     uint16_t shooter_projectile_allowance_42mm = 0; // 42mm允许发弹量
     uint16_t shooter_launching_frequency = 0; // 弹丸射速
     float shooter_bullet_speed = 0; // 弹丸初速度
+    uint8_t power_shooter = 0;//发射机构是否上电
+    uint8_t power_chassis = 0;// 底盘是否上电
+    uint8_t power_gimbal = 0;// 云台是否上电
 
     // 以下为键鼠信息
     int16_t mouse_x = 0, mouse_y = 0, mouse_z = 0; //滚轮

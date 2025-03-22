@@ -14,6 +14,10 @@ void BSP_UART_Referee_Rx_Callback(const uint8_t *data, uint16_t size);
 
 void BSP_UART_Referee_Video_Rx_Callback(const uint8_t *data, uint16_t size);
 
+void BSP_UART_Referee_Video_Transmit(const uint8_t *data,  uint16_t size);
+
+uint8_t BSP_UART_Referee_Video_CheckIdle();
+
 #ifdef __cplusplus
 }
 #endif

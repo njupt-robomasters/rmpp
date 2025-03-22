@@ -8,6 +8,7 @@
 #define FRAME_ID 0
 #define GROUP_ID 0
 #define START_ID 3
+
 ui_string_frame_t ui_g_Ungroup_3;
 
 ui_interface_string_t* ui_g_Ungroup_chassis_around_status = &ui_g_Ungroup_3.option;
@@ -20,8 +21,8 @@ void _ui_init_g_Ungroup_3() {
     ui_g_Ungroup_3.option.figure_tpye = 7;
     ui_g_Ungroup_3.option.layer = 0;
     ui_g_Ungroup_3.option.font_size = 30;
-    ui_g_Ungroup_3.option.start_x = 329;
-    ui_g_Ungroup_3.option.start_y = 558;
+    ui_g_Ungroup_3.option.start_x = 301;
+    ui_g_Ungroup_3.option.start_y = 565;
     ui_g_Ungroup_3.option.color = 2;
     ui_g_Ungroup_3.option.str_length = 7;
     ui_g_Ungroup_3.option.width = 3;

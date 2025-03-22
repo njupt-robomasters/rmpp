@@ -1,20 +1,22 @@
 #pragma once
 
-#include "settings.hpp"
+#include "app_settings.hpp"
 #include "imu.hpp"
 #include "dj6.hpp"
 #include "referee.hpp"
+#include "ui.hpp"
 #include "rv2.hpp"
 #include "chassis.hpp"
 #include "gimbal.hpp"
-#include "ui.hpp"
+
 extern Settings settings;
 
 extern IMU imu;
 
 extern DJ6 dj6;
 extern REFEREE referee;
-extern RV2 rv2;
 extern UI ui;
+extern RV2 rv2;
+
 extern Chassis chassis;
 extern Gimbal gimbal;

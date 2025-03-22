@@ -21,12 +21,13 @@ void _ui_init_g_Ungroup_1() {
     ui_g_Ungroup_1.option.figure_tpye = 7;
     ui_g_Ungroup_1.option.layer = 0;
     ui_g_Ungroup_1.option.font_size = 25;
-    ui_g_Ungroup_1.option.start_x = 865;
-    ui_g_Ungroup_1.option.start_y = 422;
+    ui_g_Ungroup_1.option.start_x = 885;
+    ui_g_Ungroup_1.option.start_y = 432;
     ui_g_Ungroup_1.option.color = 2;
-    ui_g_Ungroup_1.option.str_length = 8;
+    ui_g_Ungroup_1.option.str_length = 6;
     ui_g_Ungroup_1.option.width = 2;
-    strcpy(ui_g_Ungroup_auto_aim_status->string, "Detected");
+    strcpy(ui_g_Ungroup_auto_aim_status->string, "Locked");
+
     ui_proc_string_frame(&ui_g_Ungroup_1);
     SEND_MESSAGE((uint8_t *) &ui_g_Ungroup_1, sizeof(ui_g_Ungroup_1));
 }

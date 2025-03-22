@@ -70,6 +70,8 @@ void Gimbal::SetEnable(const bool is_enable) {
     m_yaw.SetEnable(is_enable);
     m_shoot.SetEnable(is_enable);
 
+    SetPrepareShoot(is_enable);
+
     if (is_enable)
         SetCurrentAsTarget(); // 使能后，把当前位置设为目标位置
 }

@@ -48,7 +48,10 @@ void REFEREE::ParsePacket(const uint8_t *packet, uint16_t packetSize) {
             this->shooter_cooling = (dataField[7] << 8) | dataField[8];
             this->shooter_heat_limit = (dataField[9] << 8) | dataField[8];
             this->chassis_power_limit = (dataField[11] << 8) | dataField[10];
-
+            uint8_t powerManagement = dataField[12];
+            this->power_gimbal = (powerManagement & 0x01);
+            this->power_chassis = (powerManagement & 0x02);
+            this->power_shooter = (powerManagement & 0x04);
             break;
         }
         case 0x0001: //比赛状态信息
@@ -141,7 +144,7 @@ void REFEREE::ParsePacket(const uint8_t *packet, uint16_t packetSize) {
             this->keyboard_value = keyboard_value;
             break;
         }
-        case 0x0101:
+        case 0x0101://中心增益点占领情况
         {
             const uint8_t *dataField = &packet[7];
             if(data_length != 4) { // 结构体大小为4字节
@@ -152,6 +155,7 @@ void REFEREE::ParsePacket(const uint8_t *packet, uint16_t packetSize) {
             this->center_gain_status = center_gain_status;
             break;
         }
+
 
 
         default:

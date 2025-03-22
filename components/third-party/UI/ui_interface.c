@@ -4,14 +4,18 @@
 
 #include "ui_interface.h"
 #include <string.h>
-#include "usart.h"
 #include "cmsis_os.h"
+#include "bsp_uart.h"
+
 uint8_t seq = 0;
 int ui_self_id = 1;
 
 void print_message(const uint8_t *message, const int length) {
-    HAL_UART_Transmit(&huart6, message,length,100);
-    osDelay(20);
+    BSP_UART_Referee_Video_Transmit(message, length);
+    while (BSP_UART_Referee_Video_CheckIdle() == 0) {
+        osDelay(1);
+    }
+    osDelay(5);
 }
 
 const unsigned char CRC8_TAB[256] = {

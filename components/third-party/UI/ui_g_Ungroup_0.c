@@ -21,8 +21,8 @@ void _ui_init_g_Ungroup_0() {
     ui_g_Ungroup_0.option.figure_tpye = 7;
     ui_g_Ungroup_0.option.layer = 0;
     ui_g_Ungroup_0.option.font_size = 25;
-    ui_g_Ungroup_0.option.start_x = 1359;
-    ui_g_Ungroup_0.option.start_y = 454;
+    ui_g_Ungroup_0.option.start_x = 1361;
+    ui_g_Ungroup_0.option.start_y = 458;
     ui_g_Ungroup_0.option.color = 2;
     ui_g_Ungroup_0.option.str_length = 4;
     ui_g_Ungroup_0.option.width = 2;
@@ -30,7 +30,6 @@ void _ui_init_g_Ungroup_0() {
 
     ui_proc_string_frame(&ui_g_Ungroup_0);
     SEND_MESSAGE((uint8_t *) &ui_g_Ungroup_0, sizeof(ui_g_Ungroup_0));
-
 }
 
 void _ui_update_g_Ungroup_0() {

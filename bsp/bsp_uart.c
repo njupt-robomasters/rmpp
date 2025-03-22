@@ -10,6 +10,7 @@
 static uint8_t rc_rxbuf[rc_rxbuf_size];
 static uint8_t referee_rxbuf[referee_rxbuf_size];
 static uint8_t referee_video_rxbuf[referee_video_rxbuf_size];
+static volatile uint8_t is_referee_video_tx_idle = 1;
 
 void BSP_UART_Init() {
     HAL_UARTEx_ReceiveToIdle_DMA(&huart3, rc_rxbuf, rc_rxbuf_size);
@@ -21,12 +22,21 @@ void BSP_UART_RC_Rx_Callback(const uint8_t *data, const uint16_t size) {
     task_protocol_rc_callback(data, size);
 }
 
-void BSP_UART_Referee_Rx_Callback(const uint8_t *data, uint16_t size) {
+void BSP_UART_Referee_Rx_Callback(const uint8_t *data, const uint16_t size) {
     task_protocol_referee_callback(data, size);
 }
 
-void BSP_UART_Referee_Video_Rx_Callback(const uint8_t *data, uint16_t size) {
+void BSP_UART_Referee_Video_Rx_Callback(const uint8_t *data, const uint16_t size) {
     task_protocol_referee_callback(data, size);
+}
+
+void BSP_UART_Referee_Video_Transmit(const uint8_t *data, const uint16_t size) {
+    is_referee_video_tx_idle = 0;
+    HAL_UART_Transmit_DMA(&huart6, data, size);
+}
+
+uint8_t BSP_UART_Referee_Video_CheckIdle() {
+    return is_referee_video_tx_idle;
 }
 
 
@@ -73,5 +83,11 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
             // 串口DMA完成中断
             HAL_UARTEx_ReceiveToIdle_DMA(&huart1, referee_video_rxbuf, referee_video_rxbuf_size);
         }
+    }
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == USART6) {
+        is_referee_video_tx_idle = 1;
     }
 }

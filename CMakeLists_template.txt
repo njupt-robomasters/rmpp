@@ -59,6 +59,7 @@ include_directories(${includes}
     components/third-party/bmi088
     components/third-party/ekf
     components/third-party/mavlink/mavlink_msg
+    components/third-party/ui
 )
 
 add_definitions(${defines})

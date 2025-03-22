@@ -18,23 +18,22 @@ extern "C" {
 #include "ui_g_Ungroup_5.h"
 #include "ui_g_Ungroup_6.h"
 #include "ui_g_Ungroup_7.h"
-#include "cmsis_os.h"
+#include "ui_g_Ungroup_8.h"
+#include "ui_g_Ungroup_9.h"
+#include "ui_g_Ungroup_10.h"
+
 #define ui_init_g_Ungroup() \
 _ui_init_g_Ungroup_0(); \
-osDelay(30);\
 _ui_init_g_Ungroup_1(); \
-osDelay(30);\
 _ui_init_g_Ungroup_2(); \
-osDelay(30);\
 _ui_init_g_Ungroup_3(); \
-osDelay(30);\
 _ui_init_g_Ungroup_4(); \
-osDelay(30);\
 _ui_init_g_Ungroup_5(); \
-osDelay(30);\
 _ui_init_g_Ungroup_6(); \
-osDelay(30);\
-_ui_init_g_Ungroup_7()
+_ui_init_g_Ungroup_7(); \
+_ui_init_g_Ungroup_8(); \
+_ui_init_g_Ungroup_9(); \
+_ui_init_g_Ungroup_10()
 
 #define ui_update_g_Ungroup() \
 _ui_update_g_Ungroup_0(); \
@@ -44,7 +43,10 @@ _ui_update_g_Ungroup_3(); \
 _ui_update_g_Ungroup_4(); \
 _ui_update_g_Ungroup_5(); \
 _ui_update_g_Ungroup_6(); \
-_ui_update_g_Ungroup_7()
+_ui_update_g_Ungroup_7(); \
+_ui_update_g_Ungroup_8(); \
+_ui_update_g_Ungroup_9(); \
+_ui_update_g_Ungroup_10()
 
 #define ui_remove_g_Ungroup() \
 _ui_remove_g_Ungroup_0(); \
@@ -54,7 +56,10 @@ _ui_remove_g_Ungroup_3(); \
 _ui_remove_g_Ungroup_4(); \
 _ui_remove_g_Ungroup_5(); \
 _ui_remove_g_Ungroup_6(); \
-_ui_remove_g_Ungroup_7()
+_ui_remove_g_Ungroup_7(); \
+_ui_remove_g_Ungroup_8(); \
+_ui_remove_g_Ungroup_9(); \
+_ui_remove_g_Ungroup_10()
     
 
 

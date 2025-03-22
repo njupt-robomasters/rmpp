@@ -87,9 +87,18 @@ float PID::CalcIncrement(const float err) {
     Iout = ki * err;
     Dout = kd * (err - 2 * last_err + last2_err);
 
+    // 积分限幅：总输出饱和，且I输出呈累计趋势 -> 阻止I继续累积
+    if (fabsf(out + (Pout + Iout + Dout) * dt) >= max_out) {
+        if (err * Iout > 0) {
+            // 积分呈累积趋势
+            Iout = 0;
+        }
+    }
+
     out_without_ff += (Pout + Iout + Dout) * dt;
     out = out_without_ff + ff;
 
+    // 输出限幅
     out = clamp(out, max_out);
 
     last2_err = last_err;

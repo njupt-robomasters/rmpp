@@ -1,15 +1,18 @@
 #include "chassis.hpp"
 #include <cmath>
 #include "bsp_can.h"
+#include "bsp_dwt.h"
 #include "utils.hpp"
 
 Chassis::Chassis(const PID::pid_param_t &wheel_pid_param,
-                 const PID::pid_param_t &chassis_pid_param) : vx_comp_pid(chassis_pid_param, SPEED_COMP_MAX),
-                                                              vy_comp_pid(chassis_pid_param, SPEED_COMP_MAX),
-                                                              m1(wheel_pid_param),
-                                                              m2(wheel_pid_param),
-                                                              m3(wheel_pid_param),
-                                                              m4(wheel_pid_param) {
+                 const PID::pid_param_t &speed_comp_pid_param,
+                 const PID::pid_param_t &power_limit_pid_param) : m1(wheel_pid_param),
+                                                                  m2(wheel_pid_param),
+                                                                  m3(wheel_pid_param),
+                                                                  m4(wheel_pid_param),
+                                                                  vx_comp_pid(speed_comp_pid_param, SPEED_COMP_MAX),
+                                                                  vy_comp_pid(speed_comp_pid_param, SPEED_COMP_MAX),
+                                                                  power_limit_pid(power_limit_pid_param, 200) {
 }
 
 void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
@@ -26,7 +29,7 @@ void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
     inverseCalc();
 
     // 底盘功率估算
-    estimatePower();
+    powerEstimate();
 }
 
 void Chassis::ResetReady() {
@@ -63,25 +66,24 @@ void Chassis::SetSpeed(const float vx, const float vy, const float vr_rpm) {
     ref.vz = ref.vr.tps * CHASSIS_PERIMETER; // 底盘旋转角速度【圈/s】 -> 底盘旋转线速度【m/s】
 }
 
-void Chassis::SetGimbalRefByChassisAngle(const Angle &gimbal_ref_by_chassis) {
-    this->gimbal_ref_by_chassis = gimbal_ref_by_chassis;
+void Chassis::SetGimbalAngle_RefByChassis(const Angle &gimbal_angle_refBy_chassis) {
+    this->gimbal_angle_refBy_chassis = gimbal_angle_refBy_chassis;
+}
+
+void Chassis::SetPowerLimit(const float power) {
+    power_limit = power;
 }
 
 void Chassis::Update() {
     if (is_enable) {
+        // 计算速度补偿
+        calcSpeedComp();
+
+        // 计算功率限制系数
+        calcPowerLimit();
+
         // 运动学正解
         forwardCalc();
-
-        // 设置电机转速目标值
-        Speed speed1, speed2, speed3, speed4;
-        speed1.tps = ref.v1 / WHEEL_PERIMETER;
-        speed2.tps = ref.v2 / WHEEL_PERIMETER;
-        speed3.tps = ref.v3 / WHEEL_PERIMETER;
-        speed4.tps = ref.v4 / WHEEL_PERIMETER;
-        m1.SetSpeed(speed1);
-        m2.SetSpeed(speed2);
-        m3.SetSpeed(speed3);
-        m4.SetSpeed(speed4);
     }
 
     // 电机闭环控制计算（即使未使能也要调用，防止dt计算出现问题）
@@ -102,16 +104,23 @@ void Chassis::calcSpeedComp() {
     vy_comp_pid.CalcIncrement(vy_err);
 }
 
+
+void Chassis::calcPowerLimit() {
+    const float power_err = power_limit - power_estimate.lpf; // ref - measure
+    power_comp = power_limit_pid.CalcPosition(power_err);
+    speed_ratio = (power_estimate.lpf + power_comp) / power_estimate.lpf;
+    speed_ratio = clamp(speed_ratio, 0, 1);
+}
+
+// 运动学正解
 void Chassis::forwardCalc() {
-    // 计算速度补偿
-    calcSpeedComp();
-
-    // vx vy 换算到底盘坐标系
+    // 1. vx vy 换算到底盘坐标系
     // 注意这里是换参考系，而非旋转速度矢量，速度矢量相对于绝对参考系是不会发生变化的，所以旋转角度为：云台相对于底盘的角度
+    // PS：这是同时应用了速度补偿
     std::tie(ref.vx.chassis, ref.vy.chassis) = rotate(ref.vx.gimbal + vx_comp, ref.vy.gimbal + vy_comp,
-                                                      gimbal_ref_by_chassis.degree);
+                                                      gimbal_angle_refBy_chassis.degree);
 
-    // 根据速度分量，计算轮子线速度【单位：m/s】
+    // 2. 根据速度分量，计算轮子线速度【单位：m/s】
     // 前进方向为y轴正方向，右平移方向为x轴正方向，一 二 三 四 象限分别为 1 2 3 4 电机
     // 所有电机正转，底盘顺时针旋转（但规定逆时针为底盘旋转正方向）
     constexpr float sqrt2div2 = sqrtf(2) / 2.0f;
@@ -119,25 +128,38 @@ void Chassis::forwardCalc() {
     ref.v2 = +sqrt2div2 * ref.vx.chassis + sqrt2div2 * ref.vy.chassis - ref.vz;
     ref.v3 = -sqrt2div2 * ref.vx.chassis + sqrt2div2 * ref.vy.chassis - ref.vz;
     ref.v4 = -sqrt2div2 * ref.vx.chassis - sqrt2div2 * ref.vy.chassis - ref.vz;
+
+    // 3. 设置电机转速
+    // PS：这是同时应用了功率控制
+    Speed speed1, speed2, speed3, speed4;
+    speed1.tps = ref.v1 / WHEEL_PERIMETER * speed_ratio;
+    speed2.tps = ref.v2 / WHEEL_PERIMETER * speed_ratio;
+    speed3.tps = ref.v3 / WHEEL_PERIMETER * speed_ratio;
+    speed4.tps = ref.v4 / WHEEL_PERIMETER * speed_ratio;
+    m1.SetSpeed(speed1);
+    m2.SetSpeed(speed2);
+    m3.SetSpeed(speed3);
+    m4.SetSpeed(speed4);
 }
 
+// 运动学逆解
 void Chassis::inverseCalc() {
-    // 轮子角速度【圈/s】 -> 线速度【单位：m/s】
+    // 1. 轮子角速度【圈/s】 -> 线速度【单位：m/s】
     measure.v1 = m1.measure.speed.tps * WHEEL_PERIMETER;
     measure.v2 = m2.measure.speed.tps * WHEEL_PERIMETER;
     measure.v3 = m3.measure.speed.tps * WHEEL_PERIMETER;
     measure.v4 = m4.measure.speed.tps * WHEEL_PERIMETER;
 
-    // 逆运动学解算当前底盘实际速度分量
+    // 2. 逆运动学解算当前底盘实际速度分量
     constexpr float sqrt2 = sqrtf(2);
     measure.vx.chassis = (+sqrt2 * measure.v1 + sqrt2 * measure.v2 - sqrt2 * measure.v3 - sqrt2 * measure.v4) / 4.0f;
     measure.vy.chassis = (-sqrt2 * measure.v1 + sqrt2 * measure.v2 + sqrt2 * measure.v3 - sqrt2 * measure.v4) / 4.0f;
     measure.vz = -(measure.v1 + measure.v2 + measure.v3 + measure.v4) / 4.0f;
     measure.vr.tps = measure.vz / CHASSIS_PERIMETER; // 底盘旋转线速度【m/s】 -> 底盘旋转角速度【圈/s】
 
-    // vx vy 换算到云台坐标系
+    // 3. vx vy 换算到云台坐标系
     std::tie(ref.vx.gimbal, ref.vy.gimbal) = rotate(measure.vx.chassis, measure.vy.chassis,
-                                                    -gimbal_ref_by_chassis.degree);
+                                                    -gimbal_angle_refBy_chassis.degree);
 }
 
 void Chassis::sendCurrentCMD() const {
@@ -159,10 +181,15 @@ void Chassis::sendCurrentCMD() const {
     BSP_CAN_Transmit(0x200, data, 8);
 }
 
-void Chassis::estimatePower() {
-    m1.EstimatePower();
-    m2.EstimatePower();
-    m3.EstimatePower();
-    m4.EstimatePower();
-    estimate_power = m1.estimate_power + m2.estimate_power + m3.estimate_power + m4.estimate_power;
+void Chassis::powerEstimate() {
+    m1.powerEstimate();
+    m2.powerEstimate();
+    m3.powerEstimate();
+    m4.powerEstimate();
+    power_estimate.raw = m1.power_estimate + m2.power_estimate + m3.power_estimate + m4.power_estimate;
+
+    // 低通滤波
+    dt = BSP_DWT_GetDeltaT(&dwt_cnt);
+    const float alpha = solve_alpha(ESTIMATE_PWOER_LPF_FREQ, 1 / dt);
+    power_estimate.lpf = lowpass_filter(power_estimate.lpf, power_estimate.raw, alpha);
 }
