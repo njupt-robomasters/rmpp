@@ -1,4 +1,8 @@
 #include "referee.hpp"
+#include <cstring>
+#include "cmsis_os.h"
+
+
 
 void REFEREE::ParsePacket(const uint8_t *packet, uint16_t packetSize) {
     if (packet[0] != 0xA5) {
@@ -137,6 +141,19 @@ void REFEREE::ParsePacket(const uint8_t *packet, uint16_t packetSize) {
             this->keyboard_value = keyboard_value;
             break;
         }
+        case 0x0101:
+        {
+            const uint8_t *dataField = &packet[7];
+            if(data_length != 4) { // 结构体大小为4字节
+                return;
+            }
+            uint32_t event_data = (dataField[3] << 24) | (dataField[2] << 16) | (dataField[1] << 8) | dataField[0];
+            uint32_t center_gain_status = (event_data >> 30) & 0x3;
+            this->center_gain_status = center_gain_status;
+            break;
+        }
+
+
         default:
             break;
     }

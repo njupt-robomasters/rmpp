@@ -5,7 +5,7 @@
 class REFEREE {
 public:
     uint8_t team_is_red = 0; // 0表示不是红方，1表示是红方
-    uint8_t robot_id = 0; // 本车ID
+    uint8_t robot_id = 3; // 本车ID
     uint16_t robot_hp = 0; // 车血量
     uint8_t competition_is_started = 0; // 0表示比赛未开始，1表示比赛开始
     float chassis_power_now = 0; // 车底盘实时功率
@@ -27,9 +27,17 @@ public:
     uint16_t keyboard_value = 0;
     uint8_t keyboard_W_is_pressing = 0;
 
+    // 中心增益点占领情况
+    uint8_t center_gain_status = 0;// 0没有人占领，1己方，2地方占领，3都占领
+
+
     void PhaseData(const uint8_t *data, uint16_t size);
 
+
+
+
 private:
+
     void ParsePacket(const uint8_t *packet, uint16_t packetSize);
 
     unsigned char Get_CRC8_Check_Sum(const uint8_t *pchMessage, unsigned int dwLength, unsigned char ucCRC8);

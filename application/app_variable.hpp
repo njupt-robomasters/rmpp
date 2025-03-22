@@ -7,7 +7,7 @@
 #include "rv2.hpp"
 #include "chassis.hpp"
 #include "gimbal.hpp"
-
+#include "ui.hpp"
 extern Settings settings;
 
 extern IMU imu;
@@ -15,6 +15,6 @@ extern IMU imu;
 extern DJ6 dj6;
 extern REFEREE referee;
 extern RV2 rv2;
-
+extern UI ui;
 extern Chassis chassis;
 extern Gimbal gimbal;
