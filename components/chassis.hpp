@@ -22,8 +22,7 @@ public:
         } wheel;
     } ref{}, measure{};
 
-    Chassis(PID::param_t &wheel_pid_param, PID::param_t &power_limit_pid_param,
-            PID::param_t &speed_comp_pid_param);
+    Chassis(PID::param_t &wheel_pid_param, PID::param_t &speed_comp_pid_param);
 
     void ParseCAN(uint32_t id, uint8_t data[8]);
 
@@ -59,22 +58,23 @@ private:
     // 电机对象
     M3508 m1, m2, m3, m4;
 
-    // 底盘功率控制
-    float power_estimate = 0; // 当前功率估计
-    float power_limit = 120; // 功率限制
-    float power_comp = 0; // PID给出的功率补偿
-    float speed_ratio = 1; // 速度衰减系数
-    PID power_limit_pid;
-
     // 速度补偿
     float vx_comp = 0, vy_comp = 0;
     PID vx_comp_pid, vy_comp_pid;
 
+    // 底盘功率控制
+    float power_estimate = 0; // 当前功率估计
+    float power_limit = 120; // 功率限制
+    float current_max = 0;
+    float current_ratio = 1; // 电流衰减系数
+
     void estimatePower();
+
+    void calcCurrentRatio();
 
     void forwardCalc();
 
     void inverseCalc();
 
-    void sendCurrentCmd() const;
+    void sendCurrentCmd();
 };

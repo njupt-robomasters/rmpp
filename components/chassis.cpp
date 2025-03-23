@@ -3,13 +3,11 @@
 #include "bsp_can.h"
 #include "utils.hpp"
 
-Chassis::Chassis(PID::param_t &wheel_pid_param, PID::param_t &power_limit_pid_param,
-                 PID::param_t &speed_comp_pid_param)
+Chassis::Chassis(PID::param_t &wheel_pid_param, PID::param_t &speed_comp_pid_param)
     : m1(wheel_pid_param),
       m2(wheel_pid_param),
       m3(wheel_pid_param),
       m4(wheel_pid_param),
-      power_limit_pid(power_limit_pid_param),
       vx_comp_pid(speed_comp_pid_param),
       vy_comp_pid(speed_comp_pid_param) {
 }
@@ -61,7 +59,6 @@ void Chassis::SetEnable(const bool is_enable) {
 
     if (is_enable) {
         // 使能后清空PID
-        power_limit_pid.Clear();
         vx_comp_pid.Clear();
         vy_comp_pid.Clear();
     } else {
@@ -95,6 +92,9 @@ void Chassis::Update() {
         m2.Update();
         m3.Update();
         m4.Update();
+
+        // 功率控制
+        calcCurrentRatio();
     }
 
     // 发送CAN报文
@@ -109,33 +109,51 @@ void Chassis::estimatePower() {
     power_estimate = power1 + power2 + power3 + power4;
 }
 
+void Chassis::calcCurrentRatio() {
+    // Mw + I^2*R = P
+    // kIw + I^2*R = P
+    // M_PER_I * xI * w + (xI)^2 * R = P
+    // I^2*R * x^2 + M_PER_I*I*w * x - P = 0
+    // a = I^2*R
+    // b = M_PER_I*I*w
+    // c = -P
+
+    float a = 0;
+    a += m1.ref.current * m1.ref.current * M3508::R;
+    a += m2.ref.current * m2.ref.current * M3508::R;
+    a += m3.ref.current * m3.ref.current * M3508::R;
+    a += m4.ref.current * m4.ref.current * M3508::R;
+
+    float b = 0;
+    b += M3508::M_PER_I * m1.ref.current * m1.measure.speed.rps;
+    b += M3508::M_PER_I * m2.ref.current * m2.measure.speed.rps;
+    b += M3508::M_PER_I * m3.ref.current * m3.measure.speed.rps;
+    b += M3508::M_PER_I * m4.ref.current * m4.measure.speed.rps;
+
+    float c = -power_limit;
+
+    current_ratio = (-b + sqrtf(b * b - 4 * a * c)) / (2 * a);
+
+    current_ratio = clamp(current_ratio, 0, 1);
+}
+
 // 运动学正解
 void Chassis::forwardCalc() {
     ref.correct = ref.gimbal;
-    // 1. 功率限制
-    const float power_err = power_limit - power_estimate;
-    power_comp = power_limit_pid.CalcPosition(power_err);
-    // 速度衰减
-    speed_ratio = (power_estimate + power_comp) / power_estimate;
-    speed_ratio = clamp(speed_ratio, 0, 1);
-    ref.correct.vx *= speed_ratio;
-    ref.correct.vy *= speed_ratio;
-    ref.correct.vz *= speed_ratio;
-    ref.correct.vr *= speed_ratio;
-    // 2. 速度补偿
-    const float vx_err = ref.correct.vx - measure.correct.vx;
-    vx_comp = vx_comp_pid.CalcIncrement(vx_err);
-    const float vy_err = ref.correct.vx - measure.correct.vy;
-    vy_comp = vy_comp_pid.CalcIncrement(vy_err);
+    // // 1. 速度补偿
+    // const float vx_err = ref.correct.vx - measure.correct.vx;
+    // vx_comp = vx_comp_pid.CalcIncrement(vx_err);
+    // const float vy_err = ref.correct.vx - measure.correct.vy;
+    // vy_comp = vy_comp_pid.CalcIncrement(vy_err);
 
-    // 3. vxyzr 云台坐标系->底盘坐标系
+    // 2. vxyzr 云台坐标系->底盘坐标系
     // 注意这里是换参考系，而非旋转速度矢量，速度矢量相对于绝对参考系是不会发生变化的，所以旋转角度为：云台相对于底盘的角度
     std::tie(ref.chassis.vx, ref.chassis.vy) =
             rotate(ref.correct.vx, ref.correct.vy, gimbal_angle_refBy_chassis.degree);
     ref.chassis.vz = ref.correct.vz;
     ref.chassis.vr = ref.correct.vr;
 
-    // 4. vxyzr -> 轮子线速度（运动学正解）
+    // 3. vxyzr -> 轮子线速度（运动学正解）
     // 前进方向为y轴正方向，右平移方向为x轴正方向，一 二 三 四 象限分别为 1 2 3 4 电机
     // 所有电机正转，底盘顺时针旋转（但规定逆时针为底盘旋转正方向）
     constexpr float sqrt2div2 = sqrtf(2) / 2.0f;
@@ -144,14 +162,14 @@ void Chassis::forwardCalc() {
     ref.wheel.v3 = -sqrt2div2 * ref.chassis.vx + sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
     ref.wheel.v4 = -sqrt2div2 * ref.chassis.vx - sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
 
-    // 5. 轮子线速度 -> 轮子角速度
+    // 4. 轮子线速度 -> 轮子角速度
     Speed speed1, speed2, speed3, speed4;
     speed1.tps = ref.wheel.v1 / WHEEL_PERIMETER;
     speed2.tps = ref.wheel.v2 / WHEEL_PERIMETER;
     speed3.tps = ref.wheel.v3 / WHEEL_PERIMETER;
     speed4.tps = ref.wheel.v4 / WHEEL_PERIMETER;
 
-    // 6. 设置电机转速
+    // 5. 设置电机转速
     m1.SetSpeed(speed1);
     m2.SetSpeed(speed2);
     m3.SetSpeed(speed3);
@@ -161,17 +179,16 @@ void Chassis::forwardCalc() {
 // 运动学逆解
 void Chassis::inverseCalc() {
     // 1. 读取电机转速
-    Speed speed1, speed2, speed3, speed4;
-    speed1 = m1.measure.speed;
-    speed2 = m2.measure.speed;
-    speed3 = m3.measure.speed;
-    speed4 = m4.measure.speed;
+    const Speed speed1 = m1.measure.speed;
+    const Speed speed2 = m2.measure.speed;
+    const Speed speed3 = m3.measure.speed;
+    const Speed speed4 = m4.measure.speed;
 
     // 2. 轮子角速度 -> 轮子线速度
-    measure.wheel.v1 = m1.measure.speed.tps * WHEEL_PERIMETER;
-    measure.wheel.v2 = m2.measure.speed.tps * WHEEL_PERIMETER;
-    measure.wheel.v3 = m3.measure.speed.tps * WHEEL_PERIMETER;
-    measure.wheel.v4 = m4.measure.speed.tps * WHEEL_PERIMETER;
+    measure.wheel.v1 = speed1.tps * WHEEL_PERIMETER;
+    measure.wheel.v2 = speed2.tps * WHEEL_PERIMETER;
+    measure.wheel.v3 = speed3.tps * WHEEL_PERIMETER;
+    measure.wheel.v4 = speed4.tps * WHEEL_PERIMETER;
 
     // 3. 轮子线速度 -> vxyzr
     constexpr float sqrt2 = sqrtf(2);
@@ -188,20 +205,15 @@ void Chassis::inverseCalc() {
 
     measure.gimbal = measure.correct;
     // 5. 速度补偿逆解
-    measure.gimbal.vx -= vx_comp;
-    measure.gimbal.vy -= vy_comp;
-    // 6. 功率控制逆解
-    measure.gimbal.vx /= speed_ratio;
-    measure.gimbal.vy /= speed_ratio;
-    measure.gimbal.vz /= speed_ratio;
-    measure.gimbal.vr /= speed_ratio;
+    // measure.gimbal.vx -= vx_comp;
+    // measure.gimbal.vy -= vy_comp;
 }
 
-void Chassis::sendCurrentCmd() const {
-    const int16_t m3508_1_cmd = m1.GetCurrentCMD();
-    const int16_t m3508_2_cmd = m2.GetCurrentCMD();
-    const int16_t m3508_3_cmd = m3.GetCurrentCMD();
-    const int16_t m3508_4_cmd = m4.GetCurrentCMD();
+void Chassis::sendCurrentCmd() {
+    const int16_t m3508_1_cmd = m1.GetCurrentCMD() * current_ratio;
+    const int16_t m3508_2_cmd = m2.GetCurrentCMD() * current_ratio;
+    const int16_t m3508_3_cmd = m3.GetCurrentCMD() * current_ratio;
+    const int16_t m3508_4_cmd = m4.GetCurrentCMD() * current_ratio;
 
     uint8_t data[8];
     data[0] = m3508_1_cmd >> 8; // 3508电机，ID：1
