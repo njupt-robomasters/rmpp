@@ -37,7 +37,7 @@ public:
 
     void SetEnable(bool is_enable);
 
-    void SetYawMode(mode_e yaw_mode);
+    void SetMode(mode_e yaw_mode);
 
     void SetCurrentAsTarget();
 
@@ -47,9 +47,11 @@ public:
 
     void SetYawSpeedFF(const Speed &yaw_speed_ff);
 
-    void SetPrepareShoot(bool is_on);
-
     void SetShootFreq(float shoot_freq);
+
+    void SetPrepareShoot(bool is_prepare_shoot);
+
+    void SetShoot(bool is_shoot);
 
     void Update();
 
@@ -63,12 +65,12 @@ private:
 
     const IMU &imu; // 对陀螺仪的引用，用于云台IMU闭环模式
 
-    bool is_enable = false;
-
-    mode_e mode = IMU_MODE;
-
-    // yaw速度前馈（小陀螺模式需要）
-    Speed yaw_speed_ff{};
+    bool is_enable = false; // 云台使能标志
+    mode_e mode = IMU_MODE; // 云台模式
+    Speed yaw_speed_ff{}; // yaw速度前馈（小陀螺模式需要）
+    float shoot_freq = 0; // 射频
+    bool is_prepare_shoot = false; // 摩擦轮状态
+    bool is_shoot = false; // 开火标志
 
     // 电机对象
     M6020 m_pitch, m_yaw;

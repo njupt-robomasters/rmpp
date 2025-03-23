@@ -2,8 +2,6 @@
 #include "cmsis_os.h"
 #include "bsp_can.h"
 #include "bsp_pwm.h"
-#include "app_variable.hpp"
-#include "utils.hpp"
 
 Gimbal::Gimbal(const IMU &imu, PID::param_t &pitch_pid, PID::param_t &yaw_pid, PID::param_t &shoot_pid) : imu(imu),
     m_pitch(pitch_pid),
@@ -70,18 +68,18 @@ void Gimbal::SetEnable(const bool is_enable) {
     m_pitch.SetEnable(is_enable);
     m_yaw.SetEnable(is_enable);
     m_shoot.SetEnable(is_enable);
-    SetPrepareShoot(is_enable);
 
     if (is_enable) {
         // 使能后，把当前位置设为目标位置
         SetCurrentAsTarget();
     } else {
-        // 失能向电机发送0电流
-        sendCurrentCmd();
+        SetPrepareShoot(false);
+        SetShoot(false);
+        sendCurrentCmd(); // 失能向电机发送0电流
     }
 }
 
-void Gimbal::SetYawMode(const mode_e yaw_mode) {
+void Gimbal::SetMode(const mode_e yaw_mode) {
     if (this->mode == yaw_mode)
         return;
 
@@ -124,16 +122,27 @@ void Gimbal::SetYawSpeedFF(const Speed &yaw_speed_ff) {
     this->yaw_speed_ff = yaw_speed_ff;
 }
 
-void Gimbal::SetPrepareShoot(const bool is_on) {
-    if (is_on) {
+void Gimbal::SetShootFreq(const float shoot_freq) {
+    this->shoot_freq = shoot_freq;
+}
+
+void Gimbal::SetPrepareShoot(const bool is_prepare_shoot) {
+    this->is_prepare_shoot = is_prepare_shoot;
+    if (is_prepare_shoot) {
         BSP_PWM_SetDuty(100);
     } else {
         BSP_PWM_SetDuty(0);
+        SetShoot(false);
     }
 }
 
-void Gimbal::SetShootFreq(const float shoot_freq) {
-    ref.shoot.freq = shoot_freq;
+void Gimbal::SetShoot(const bool is_shoot) {
+    this->is_shoot = is_shoot;
+    if (is_shoot && is_prepare_shoot) {
+        ref.shoot.freq = shoot_freq;
+    } else {
+        ref.shoot.freq = 0;
+    }
 }
 
 void Gimbal::Update() {

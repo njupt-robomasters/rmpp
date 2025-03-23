@@ -1,6 +1,7 @@
 #include "app_variable.hpp"
 
 Settings settings;
+Status status;
 
 IMU imu;
 

@@ -1,15 +1,20 @@
 #pragma once
 
 #include "app_settings.hpp"
+#include "app_status.hpp"
+
 #include "imu.hpp"
+
 #include "dj6.hpp"
 #include "referee.hpp"
 #include "ui.hpp"
 #include "rv2.hpp"
+
 #include "chassis.hpp"
 #include "gimbal.hpp"
 
 extern Settings settings;
+extern Status status;
 
 extern IMU imu;
 

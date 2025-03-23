@@ -28,7 +28,6 @@ public:
     int8_t mouse_left_button_down = 0;
     int8_t mouse_right_button_down = 0;
     uint16_t keyboard_value = 0;
-    uint8_t keyboard_W_is_pressing = 0;
 
     // 中心增益点占领情况
     uint8_t center_gain_status = 0;// 0没有人占领，1己方，2地方占领，3都占领
