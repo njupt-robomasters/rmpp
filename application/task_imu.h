@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-[[noreturn]] void task_imu_entry(void const * argument);
+[[noreturn]] void task_imu_entry(void const *argument);
 
 #ifdef __cplusplus
 }

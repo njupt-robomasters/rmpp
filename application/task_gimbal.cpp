@@ -21,7 +21,8 @@ float dt;
 
             if (dj6.right_switch == DJ6::UP) {
                 gimbal.SetYawMode(Gimbal::ECD_MODE);
-            } else { // MID、DOWN
+            } else {
+                // MID、DOWN
                 gimbal.SetYawMode(Gimbal::IMU_MODE);
                 gimbal.SetYawSpeedFF(-chassis.measure.chassis.vr);
             }

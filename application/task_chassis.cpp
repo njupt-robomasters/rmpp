@@ -2,7 +2,7 @@
 #include "cmsis_os.h"
 #include "app_variable.hpp"
 
-[[noreturn]] void task_chassis_entry(void *argument) {
+[[noreturn]] void task_chassis_entry(void const *argument) {
     imu.WaitReady();
 
     while (true) {
@@ -21,7 +21,8 @@
                 vx = dj6.x * settings.chassis_vxy_max;
                 vy = dj6.y * settings.chassis_vxy_max;
                 vr_rpm = 0;
-            } else { // DOWN
+            } else {
+                // DOWN
                 // 前后移动、左右旋转
                 vx = 0;
                 vy = dj6.y * settings.chassis_vxy_max;

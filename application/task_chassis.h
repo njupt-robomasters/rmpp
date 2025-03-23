@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-[[noreturn]] void task_chassis_entry(void *argument);
+[[noreturn]] void task_chassis_entry(void const *argument);
 
 void task_chassis_callback(uint32_t id, uint8_t data[8]);
 

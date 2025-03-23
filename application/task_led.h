@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-[[noreturn]] void task_led_entry(void *argument);
+[[noreturn]] void task_led_entry(void const *argument);
 
 #ifdef __cplusplus
 }
