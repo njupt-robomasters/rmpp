@@ -11,7 +11,7 @@
             chassis.SetEnable(false); // 底盘失能，关闭电机输出
         } else {
             chassis.SetEnable(true);
-            chassis.SetPowerLimit(40);
+            // chassis.SetPowerLimit(40);
             // chassis.SetPowerLimit(referee.chassis_power_limit);
 
             // 根据运动模式，计算底盘速度分量

@@ -142,17 +142,21 @@ void Gimbal::Update() {
         if (mode == ECD_MODE) {
             // pitch
             ref.pitch.absolute.degree = norm_angle(ref.pitch.relative.degree + PITCH_MID);
+            ref.pitch.absolute.degree = clamp(ref.pitch.absolute.degree, PITCH_MIN, PITCH_MAX);
+            // 逆解更新设置的角度以反应限位
+            ref.pitch.relative.degree = norm_angle(ref.pitch.absolute.degree - PITCH_MID);
             // yaw
             ref.yaw.absolute.degree = norm_angle(ref.yaw.relative.degree + YAW_OFFSET);
         } else if (mode == IMU_MODE) {
             // 此处加上 measure，抵消掉电机PID计算中的 -measure，最终误差变成 ref - imu.yaw
             // pitch
             ref.pitch.absolute.degree = norm_angle(ref.pitch.imu_mode.degree - imu.pitch + measure.pitch.absolute.degree);
+            ref.pitch.absolute.degree = clamp(ref.pitch.absolute.degree, PITCH_MIN, PITCH_MAX);
+            // 逆解更新设置的角度以反应限位
+            ref.pitch.imu_mode.degree = norm_angle(ref.pitch.absolute.degree + imu.pitch - measure.pitch.absolute.degree);
             // yaw
             ref.yaw.absolute.degree = norm_angle(ref.yaw.imu_mode.degree - imu.yaw + measure.yaw.absolute.degree);
         }
-        ref.pitch.absolute.degree = clamp(ref.pitch.absolute.degree, PITCH_MIN, PITCH_MAX);
-        ref.pitch.relative.degree = norm_angle(ref.pitch.absolute.degree - PITCH_MID);
         m_pitch.SetAngle(ref.pitch.absolute);
         m_yaw.SetAngle(ref.yaw.absolute, yaw_speed_ff);
 
