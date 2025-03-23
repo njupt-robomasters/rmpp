@@ -11,6 +11,7 @@ void BSP_PWM_Init() {
     HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3);
     BSP_PWM_SetDuty(0);
 
+    // 用于IMU加热
     HAL_TIM_PWM_Start(&htim10, TIM_CHANNEL_1);
     BSP_PWM_IMUHeat_SetPower(0);
 }

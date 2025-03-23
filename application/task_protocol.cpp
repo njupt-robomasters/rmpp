@@ -19,7 +19,7 @@
             ui.set_center_gain_status = referee.center_gain_status;
             ui.set_chassis_max_speed =  static_cast<uint8_t>(settings.chassis_vxy_max);
             ui.set_chassis_mode = UI::FOLLOW;
-            ui.set_chassis_vr =  static_cast<uint8_t>(settings.chassis_vr_rpm_max);
+            ui.set_chassis_vr =  static_cast<uint8_t>(settings.chassis_vr_max_rpm);
             ui.set_gimbal_is_imu_mode = (settings.gimbal_mode == Gimbal::IMU_MODE);
             ui.set_is_firing = referee.mouse_right_button_down;
             ui.set_is_locked = rv2.is_locked;

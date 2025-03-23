@@ -3,23 +3,15 @@
 #include "bsp_dwt.h"
 #include "utils.hpp"
 
-// 使用参数结构体初始化
-PID::PID(const pid_param_t &pid_param, const float max_out) : kp(pid_param.kp),
-                                                              ki(pid_param.ki),
-                                                              kd(pid_param.kd),
-                                                              ff(pid_param.ff),
-                                                              i_limit(pid_param.i_limit),
-                                                              max_out(max_out) {
-}
+#define kp (param.kp)
+#define ki (param.ki)
+#define kd (param.kd)
+#define ff (param.ff)
+#define i_limit (param.i_limit.value())
+#define max_out (param.max_out.value())
 
-// 使用展开的参数初始化
-PID::PID(const float &kp, const float &ki, const float &kd, const float &ff, const float &i_limit,
-         const float max_out) : kp(kp),
-                                ki(ki),
-                                kd(kd),
-                                ff(ff),
-                                i_limit(i_limit),
-                                max_out(max_out) {
+// 使用参数结构体初始化
+PID::PID(param_t &param) : param(param.SetDefault()) {
 }
 
 // // 启用梯形积分
@@ -112,8 +104,8 @@ void PID::Clear() {
     Pout = 0, Iout = 0, Dout = 0, out_without_ff = 0;
     last_err = 0;
     last2_err = 0;
-    last_out = 0;
-    last_Dout = 0;
+    // last_out = 0;
+    // last_Dout = 0;
     iterm = 0;
     dwt_cnt = 0;
     dt = 0;

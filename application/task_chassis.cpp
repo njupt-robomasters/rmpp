@@ -25,7 +25,7 @@
                 // 前后移动、左右旋转
                 vx = 0;
                 vy = dj6.y * settings.chassis_vxy_max;
-                vr_rpm = -dj6.x * settings.chassis_vr_rpm_max;
+                vr_rpm = -dj6.x * settings.chassis_vr_max_rpm;
             }
 
             chassis.SetSpeed(vx, vy, vr_rpm);

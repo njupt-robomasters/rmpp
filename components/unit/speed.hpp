@@ -129,4 +129,20 @@ public:
         result.rps = -rps;
         return result;
     }
+
+    Speed& operator*=(const float ratio) {
+        m_rpm *= ratio;
+        m_tps *= ratio;
+        m_aps *= ratio;
+        m_rps *= ratio;
+        return *this;
+    }
+
+    Speed& operator/=(const float ratio) {
+        m_rpm /= ratio;
+        m_tps /= ratio;
+        m_aps /= ratio;
+        m_rps /= ratio;
+        return *this;
+    }
 };

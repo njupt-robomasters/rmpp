@@ -5,7 +5,7 @@
 #include "bmi088.h"
 #include "QuaternionEKF.h"
 
-IMU::IMU() : temperature_pid(50, 1, 0, 0, 40, 100) {
+IMU::IMU() : temperature_pid(temperature_pid_param) {
     imu_param.yaw = 0;
     imu_param.pitch = 0;
     imu_param.roll = 180;
@@ -166,8 +166,9 @@ void IMU::IMU_Param_Correction(param_t *param, float gyro[3], float accel[3]) {
  *
  */
 void IMU::IMU_Temperature_Ctrl() {
-    const float temperature_err = temperature_ref - BMI088.Temperature;
-    temperature_pid.CalcIncrement(temperature_err);
+    temperature_measure = BMI088.Temperature;
+    const float temperature_err = temperature_ref - temperature_measure;
+    temperature_pid.CalcPosition(temperature_err);
     BSP_PWM_IMUHeat_SetPower(temperature_pid.out);
 }
 

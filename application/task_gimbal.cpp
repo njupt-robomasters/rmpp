@@ -2,7 +2,6 @@
 #include "cmsis_os.h"
 #include "app_variable.hpp"
 #include "bsp_dwt.h"
-#include "bsp_pwm.h"
 
 uint32_t dwt_cnt;
 float dt;
@@ -24,7 +23,7 @@ float dt;
                 gimbal.SetYawMode(Gimbal::ECD_MODE);
             } else { // MID、DOWN
                 gimbal.SetYawMode(Gimbal::IMU_MODE);
-                gimbal.SetYawSpeedFF(-chassis.measure.vr);
+                gimbal.SetYawSpeedFF(-chassis.measure.chassis.vr);
             }
 
             // pitch、yaw电机
@@ -47,8 +46,7 @@ float dt;
 
             // gimbal.SetEnable(true);
             // gimbal.SetYawMode(Gimbal::IMU_MODE);
-            // const float pitch = norm_angle(rv2.pitch + 20.0f);
-            // gimbal.SetAngle(pitch, rv2.yaw);
+            // gimbal.SetAngle(rv2.pitch, rv2.yaw);
 
             // gimbal.SetEnable(false);
         }

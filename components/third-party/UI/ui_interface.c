@@ -12,9 +12,6 @@ int ui_self_id = 1;
 
 void print_message(const uint8_t *message, const int length) {
     BSP_UART_Referee_Video_Transmit(message, length);
-    while (BSP_UART_Referee_Video_CheckIdle() == 0) {
-        osDelay(1);
-    }
     osDelay(5);
 }
 

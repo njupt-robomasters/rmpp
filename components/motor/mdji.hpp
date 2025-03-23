@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include "pid.hpp"
 #include "unit.hpp"
 
 class MDJI {
@@ -13,13 +14,13 @@ public:
 
     struct measure_data_t {
         float current = 0;
+        float current_raw = 0;
         Angle angle{};
         Speed speed{};
         Speed speed_raw{};
-        Accel accel{};
     } measure;
 
-    MDJI(float current_max, uint16_t can_cmd_max, float reduction_ratio);
+    MDJI(float current_max, uint16_t can_cmd_max, float reduction_ratio, PID::param_t &pid_param);
 
     void ParseCAN(const uint8_t data[8]);
 
@@ -40,8 +41,10 @@ public:
 protected:
     bool is_ready = false; // 电机就绪标志，收到CAN反馈报文后置为true
     bool is_enable = false; // 电机使能标志
+    PID pid;
 
 private:
+    static constexpr float CURRENT_LPF_FREQ = 10.0f; // 电流转低通滤波参数【单位：Hz】
     static constexpr float SPEED_LPF_FREQ = 20.0f; // 转速低通滤波参数【单位：Hz】
 
     // 电机参数
@@ -58,7 +61,6 @@ private:
     } motor_data{};
 
     float can_recv_freq = 0; // CAN报文接收频率【单位：Hz】
-    float last_tpss = 0; // 用于计算加速度
 
     // 作用：计算CAN报文接收频率、计算加速度、速度加速度滤波
     uint32_t dwt_cnt = 0;

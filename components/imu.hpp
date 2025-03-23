@@ -40,7 +40,7 @@ private:
         float roll;
         float scale[3];
         uint8_t flag;
-    };
+    } imu_param{};
 
     // IMU原始数据
     float gyro[3]{}; // 角速度
@@ -59,7 +59,9 @@ private:
     float atanxz = 0;
     float atanyz = 0;
 
-    param_t imu_param{};
+    // IMU加热
+    PID::param_t temperature_pid_param = {.kp = 50, .ki = 1, .i_limit = 40, .max_out = 100};
+    float temperature_measure = 0;
     PID temperature_pid;
 
     void IMU_Temperature_Ctrl();

@@ -5,15 +5,11 @@
 
 class M3508 : public MDJI {
 public:
-    float power_estimate = 0;
-
-    explicit M3508(const PID::pid_param_t &pid_param);
-
-    void ParseCAN(const uint8_t data[8]);
+    explicit M3508(PID::param_t &pid_param);
 
     void Update();
 
-    void powerEstimate();
+    [[nodiscard]] float EstimatePower() const;
 
 private:
     static constexpr float CURRENT_MAX = 20.0f; // 最大电流【单位；A】
@@ -23,6 +19,4 @@ private:
     // 用于底盘功率估计
     static constexpr float M_PER_I = 0.6f; // 电流 -> 力矩 系数（输出轴）
     static constexpr float R = 0.194f; // 电机内阻
-
-    PID pid;
 };

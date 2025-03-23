@@ -15,7 +15,7 @@ public:
 
     // 向上运动 为 pitch角度增大方向
     // 逆时针旋转 为 yaw角度增大方向
-    struct ref_measure_t {
+    struct {
         struct {
             Angle absolute{}, relative{}, imu_mode{};
         } pitch{}, yaw{};
@@ -25,7 +25,7 @@ public:
         } shoot{};
     } ref{}, measure{};
 
-    Gimbal(const IMU &imu, const PID::pid_param_t &pitch_pid, const PID::pid_param_t &yaw_pid, const PID::pid_param_t &shoot_pid);
+    Gimbal(const IMU &imu, PID::param_t &pitch_pid, PID::param_t &yaw_pid, PID::param_t &shoot_pid);
 
     void Init();
 
@@ -47,9 +47,9 @@ public:
 
     void SetYawSpeedFF(const Speed &yaw_speed_ff);
 
-    void SetShootFreq(float shoot_freq);
-
     void SetPrepareShoot(bool is_on);
+
+    void SetShootFreq(float shoot_freq);
 
     void Update();
 
@@ -74,5 +74,5 @@ private:
     M6020 m_pitch, m_yaw;
     M2006 m_shoot;
 
-    void sendCANCmd() const;
+    void sendCurrentCmd() const;
 };
