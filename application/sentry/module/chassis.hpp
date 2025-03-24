@@ -20,7 +20,9 @@ public:
         // 轮子速度【单位：m/s】
         struct {
             float w1 = 0, w2 = 0;
-            Angle s1{}, s2{};
+            struct {
+                Angle absolute{}, relative{};
+            } s1{}, s2{};
         } wheel;
     } ref{}, measure{};
 
@@ -42,16 +44,18 @@ public:
 
 private:
     // 舵电机偏移
-    static constexpr float S1_OFFSET = 0.0f; //【单位：角度】
-    static constexpr float S2_OFFSET = 0.0f; //【单位：角度】
+    static constexpr float S1_OFFSET = 102.7f; //【单位：角度】
+    static constexpr float S2_OFFSET = 345.0f; //【单位：角度】
 
     // 底盘结构参数
-    static constexpr float WHEEL_RADIUS = 0.052f; // 轮子半径【单位：m】
-    static constexpr float CHASSIS_RADIUS = 0.220f; // 底盘半径【单位：m】
+    static constexpr float WHEEL_RADIUS = 0.0525f; // 轮子半径【单位：m】
+    static constexpr float CHASSIS_RADIUS = 0.21492f; // 底盘半径【单位：m】
 
     // 底盘结构参数（自动计算）
     static constexpr float WHEEL_PERIMETER = 2 * static_cast<float>(M_PI) * WHEEL_RADIUS; // 轮子周长【单位：m】
     static constexpr float CHASSIS_PERIMETER = 2 * static_cast<float>(M_PI) * CHASSIS_RADIUS; // 底盘周长【单位：m】
+
+    static constexpr float ESP = 1e-3f;
 
     // 底盘使能标志
     bool is_enable = false;
@@ -73,5 +77,5 @@ private:
 
     void inverseCalc();
 
-    void sendCurrentCmd();
+    void sendCANCmd();
 };

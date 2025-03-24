@@ -17,7 +17,7 @@ static float dt;
 
         const float vx = dj6.x * settings.chassis_vxy_max;
         const float vy = dj6.y * settings.chassis_vxy_max;
-        const float vr_rpm = dj6.yaw * settings.chassis_vr_rpm;
+        const float vr_rpm = -dj6.yaw * settings.chassis_vr_rpm;
 
         chassis.SetEnable(true);
         chassis.SetPowerLimit(120);

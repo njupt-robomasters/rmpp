@@ -6,17 +6,20 @@ Chassis::Chassis(PID::param_t &servo_pid_param, PID::param_t &wheel_pid_param)
       s2(servo_pid_param),
       w1(wheel_pid_param),
       w2(wheel_pid_param) {
+    // 舵轮默认前进方向
+    ref.wheel.s1.relative.degree = 90;
+    ref.wheel.s2.relative.degree = 90;
 }
 
 void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
     if (id == 0x205)
-        s1.ParseCAN(data);
+        s1.ParseCAN(data); // 右前舵电机，6020
     if (id == 0x206)
-        s2.ParseCAN(data);
+        s2.ParseCAN(data); // 左后舵电机，6020
     if (id == 0x207)
-        w1.ParseCAN(data);
+        w1.ParseCAN(data); // 右前轮电机，3508
     if (id == 0x208)
-        w2.ParseCAN(data);
+        w2.ParseCAN(data); // 左后轮电机，3508
 
     inverseCalc(); // 运动学逆解
     estimatePower(); // 底盘功率估算
@@ -52,11 +55,6 @@ void Chassis::SetEnable(const bool is_enable) {
     s2.SetEnable(is_enable);
     w1.SetEnable(is_enable);
     w2.SetEnable(is_enable);
-
-    if (not is_enable) {
-        // 失能向电机发送0电流
-        sendCurrentCmd();
-    }
 }
 
 void Chassis::SetSpeed(const float vx, const float vy, const float vr_rpm) {
@@ -85,15 +83,17 @@ void Chassis::Update() {
     }
 
     // 发送CAN报文
-    sendCurrentCmd();
+    sendCANCmd();
 }
 
+// 估算底盘当前功率，用于调试
 void Chassis::estimatePower() {
     const float power1 = w1.EstimatePower();
     const float power2 = w2.EstimatePower();
     power_estimate = power1 + power2;
 }
 
+// 计算电流衰减系数，需要在电机PID计算后调用
 void Chassis::calcCurrentRatio() {
     // Mw + I^2*R = P
     // kIw + I^2*R = P
@@ -130,36 +130,64 @@ void Chassis::forwardCalc() {
     // 左前舵、左前轮（1号）
     y = ref.chassis.vy - sqrt2div2 * ref.chassis.vz;
     x = ref.chassis.vx - sqrt2div2 * ref.chassis.vz;
-    ref.wheel.s1.rad = atan2f(y, x);
+    if (fabsf(x) > ESP || fabsf(y) > ESP) {
+        ref.wheel.s1.relative.rad = atan2f(y, x);
+    }
     ref.wheel.w1 = sqrtf(powf(y, 2) + powf(x, 2));
     // 右后舵、右后轮（2号）
     y = ref.chassis.vy + sqrt2div2 * ref.chassis.vz;
     x = ref.chassis.vx + sqrt2div2 * ref.chassis.vz;
-    ref.wheel.s2.rad = atan2f(y, x);
+    if (fabsf(x) > ESP || fabsf(y) > ESP) {
+        ref.wheel.s2.relative.rad = atan2f(y, x);
+    }
     ref.wheel.w2 = sqrtf(powf(y, 2) + powf(x, 2));
 
     // 2. 舵电机安装矫正
     // 目前6020为顺时针角度增加，所以要取反
-    ref.wheel.s1.degree = norm_angle( -ref.wheel.s1.degree + S1_OFFSET);
-    ref.wheel.s2.degree = norm_angle(-ref.wheel.s2.degree + S2_OFFSET);
+    ref.wheel.s1.absolute.degree = norm_angle( -ref.wheel.s1.relative.degree + (S1_OFFSET + 90));
+    ref.wheel.s2.absolute.degree = norm_angle(-ref.wheel.s2.relative.degree + (S2_OFFSET + 90));
 
-    // 3. 轮子线速度 -> 轮子角速度
+    // 3. 就近转向
+    // 1号轮
+    float s1_angle_err = calc_angle_err(ref.wheel.s1.absolute.degree, measure.wheel.s1.absolute.degree);
+    if (s1_angle_err < -90.0f) {
+        s1_angle_err += 180.0f;
+        ref.wheel.w1 = -ref.wheel.w1;
+    } else if (s1_angle_err > 90.0f) {
+        s1_angle_err -= 180.0f;
+        ref.wheel.w1 = -ref.wheel.w1;
+    }
+    ref.wheel.s1.absolute.degree = norm_angle(measure.wheel.s1.absolute.degree + s1_angle_err);
+    // 2号轮
+    float s2_angle_err = calc_angle_err(ref.wheel.s2.absolute.degree, measure.wheel.s2.absolute.degree);
+    if (s2_angle_err < -90.0f) {
+        s2_angle_err += 180.0f;
+        ref.wheel.w2 = -ref.wheel.w2;
+    } else if (s2_angle_err > 90.0f) {
+        s2_angle_err -= 180.0f;
+        ref.wheel.w2 = -ref.wheel.w2;
+    }
+    ref.wheel.s2.absolute.degree = norm_angle(measure.wheel.s2.absolute.degree + s2_angle_err);
+
+    // 4. 轮子线速度 -> 轮子角速度
     Speed speed1, speed2;
     speed1.tps = ref.wheel.w1 / WHEEL_PERIMETER;
     speed2.tps = ref.wheel.w2 / WHEEL_PERIMETER;
 
-    // 4. 设置电机
-    s1.SetAngle(ref.wheel.s1);
-    s2.SetAngle(ref.wheel.s2);
+    // 5. 设置电机
+    s1.SetAngle(ref.wheel.s1.absolute);
+    s2.SetAngle(ref.wheel.s2.absolute);
     w1.SetSpeed(speed1);
     w2.SetSpeed(speed2);
 }
 
 // 运动学逆解
 void Chassis::inverseCalc() {
+    // todo 逆解算没有考虑到就近转向问题
+
     // 1. 读取电机
-    measure.wheel.s1 = s1.measure.angle;
-    measure.wheel.s2 = s2.measure.angle;
+    measure.wheel.s1.absolute = s1.measure.angle;
+    measure.wheel.s2.absolute = s2.measure.angle;
     const Speed speed1 = w1.measure.speed;
     const Speed speed2 = w2.measure.speed;
 
@@ -168,22 +196,22 @@ void Chassis::inverseCalc() {
     measure.wheel.w2 = speed2.tps * WHEEL_PERIMETER;
 
     // 3. 舵电机安装逆解
-    measure.wheel.s1.degree = norm_angle( -(measure.wheel.s1.degree - S1_OFFSET));
-    measure.wheel.s2.degree = norm_angle(-(measure.wheel.s2.degree - S2_OFFSET));
+    measure.wheel.s1.relative.degree = norm_angle( -(measure.wheel.s1.absolute.degree - (S1_OFFSET + 90)));
+    measure.wheel.s2.relative.degree = norm_angle(-(measure.wheel.s2.absolute.degree - (S2_OFFSET + 90)));
 
     // 4. 运动学逆解
-    float y1 = measure.wheel.w1 * sinf(measure.wheel.s1.rad);
-    float x1 = measure.wheel.w1 * cosf(measure.wheel.s1.rad);
-    float y2 = measure.wheel.w2 * sinf(measure.wheel.s2.rad);
-    float x2 = measure.wheel.w2 * cosf(measure.wheel.s2.rad);
+    float y1 = measure.wheel.w1 * sinf(measure.wheel.s1.relative.rad);
+    float x1 = measure.wheel.w1 * cosf(measure.wheel.s1.relative.rad);
+    float y2 = measure.wheel.w2 * sinf(measure.wheel.s2.relative.rad);
+    float x2 = measure.wheel.w2 * cosf(measure.wheel.s2.relative.rad);
     measure.chassis.vy = (y1 + y2) / 2;
     measure.chassis.vx = (x1 + x2) / 2;
-    measure.chassis.vz = measure.wheel.w1 - measure.wheel.w2;
+    measure.chassis.vz = (measure.wheel.w1 - measure.wheel.w2) / 2;
 
     measure.chassis.vr.tps = measure.chassis.vz / CHASSIS_PERIMETER; // 底盘旋转线速度【m/s】 -> 底盘旋转角速度【圈/s】
 }
 
-void Chassis::sendCurrentCmd() {
+void Chassis::sendCANCmd() {
     const int16_t m6020_1_cmd = s1.GetCurrentCMD();
     const int16_t m6020_2_cmd = s2.GetCurrentCMD();
     const int16_t m3508_1_cmd = w1.GetCurrentCMD() * current_ratio;
