@@ -1,7 +1,11 @@
 #include "nav.hpp"
-void NAV::SendIMUData(const float roll, const float pitch, const float yaw) {
+#include "mavlink.h"
+#include "bsp_cdc.h"
+
+
+void NAV::SendTargetData(const float x, const float y, const float yaw) {
     mavlink_message_t msg;
-    const int len = mavlink_msg_imu_data_pack(0, 0, &msg, roll, pitch, yaw);
+    const int len = mavlink_msg_target_pack(0, 0, &msg, x, y);
     uint8_t buf[len];
     mavlink_msg_to_send_buffer(buf, &msg);
     BSP_CDC_Transmit(buf, len);
