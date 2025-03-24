@@ -16,7 +16,7 @@
 #include "referee.hpp"
 #include "ui.hpp"
 #include "rv2.hpp"
-
+#include "nav.hpp"
 #include "module/chassis.hpp"
 #include "module/gimbal.hpp"
 
@@ -67,5 +67,6 @@ extern DJ6 dj6;
 extern REFEREE referee;
 extern UI ui;
 extern RV2 rv2;
+extern NAV nav;
 extern Chassis chassis;
 extern Gimbal gimbal;
