@@ -20,7 +20,7 @@ void _ui_init_g_Ungroup_7() {
     ui_g_Ungroup_7.option.operate_tpyel = 1;
     ui_g_Ungroup_7.option.figure_tpye = 7;
     ui_g_Ungroup_7.option.layer = 0;
-    ui_g_Ungroup_7.option.font_size = 25;
+    ui_g_Ungroup_7.option.font_size = 0;
     ui_g_Ungroup_7.option.start_x = 1315;
     ui_g_Ungroup_7.option.start_y = 758;
     ui_g_Ungroup_7.option.color = 3;

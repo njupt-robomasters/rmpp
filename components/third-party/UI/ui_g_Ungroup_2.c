@@ -21,12 +21,12 @@ void _ui_init_g_Ungroup_2() {
     ui_g_Ungroup_2.option.figure_tpye = 7;
     ui_g_Ungroup_2.option.layer = 0;
     ui_g_Ungroup_2.option.font_size = 25;
-    ui_g_Ungroup_2.option.start_x = 61;
+    ui_g_Ungroup_2.option.start_x = 60;
     ui_g_Ungroup_2.option.start_y = 820;
     ui_g_Ungroup_2.option.color = 2;
     ui_g_Ungroup_2.option.str_length = 8;
     ui_g_Ungroup_2.option.width = 2;
-    strcpy(ui_g_Ungroup_chassis_mode->string, "IMU_MODE");
+    strcpy(ui_g_Ungroup_chassis_mode->string, "(Q) IMU_Mode");
 
     ui_proc_string_frame(&ui_g_Ungroup_2);
     SEND_MESSAGE((uint8_t *) &ui_g_Ungroup_2, sizeof(ui_g_Ungroup_2));

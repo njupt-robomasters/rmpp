@@ -22,7 +22,7 @@ void _ui_init_g_Ungroup_10() {
     ui_g_Ungroup_10.option.layer = 0;
     ui_g_Ungroup_10.option.font_size = 24;
     ui_g_Ungroup_10.option.start_x = 1359;
-    ui_g_Ungroup_10.option.start_y = 628;
+    ui_g_Ungroup_10.option.start_y = 640;
     ui_g_Ungroup_10.option.color = 3;
     ui_g_Ungroup_10.option.str_length = 6;
     ui_g_Ungroup_10.option.width = 2;

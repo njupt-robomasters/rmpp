@@ -21,7 +21,7 @@ void _ui_init_g_Ungroup_4() {
     ui_g_Ungroup_4.option.figure_tpye = 7;
     ui_g_Ungroup_4.option.layer = 0;
     ui_g_Ungroup_4.option.font_size = 25;
-    ui_g_Ungroup_4.option.start_x = 98;
+    ui_g_Ungroup_4.option.start_x = 60;
     ui_g_Ungroup_4.option.start_y = 756;
     ui_g_Ungroup_4.option.color = 2;
     ui_g_Ungroup_4.option.str_length = 5;

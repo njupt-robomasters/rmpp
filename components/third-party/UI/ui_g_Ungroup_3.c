@@ -20,13 +20,13 @@ void _ui_init_g_Ungroup_3() {
     ui_g_Ungroup_3.option.operate_tpyel = 1;
     ui_g_Ungroup_3.option.figure_tpye = 7;
     ui_g_Ungroup_3.option.layer = 0;
-    ui_g_Ungroup_3.option.font_size = 30;
-    ui_g_Ungroup_3.option.start_x = 301;
+    ui_g_Ungroup_3.option.font_size = 25;
+    ui_g_Ungroup_3.option.start_x = 60;
     ui_g_Ungroup_3.option.start_y = 565;
     ui_g_Ungroup_3.option.color = 2;
     ui_g_Ungroup_3.option.str_length = 7;
     ui_g_Ungroup_3.option.width = 3;
-    strcpy(ui_g_Ungroup_chassis_around_status->string, "turning");
+    strcpy(ui_g_Ungroup_chassis_around_status->string, "(F) FOLLOW");
 
     ui_proc_string_frame(&ui_g_Ungroup_3);
     SEND_MESSAGE((uint8_t *) &ui_g_Ungroup_3, sizeof(ui_g_Ungroup_3));

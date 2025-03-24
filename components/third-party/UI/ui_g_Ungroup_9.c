@@ -21,8 +21,8 @@ void _ui_init_g_Ungroup_9() {
     ui_g_Ungroup_9.option.figure_tpye = 7;
     ui_g_Ungroup_9.option.layer = 0;
     ui_g_Ungroup_9.option.font_size = 30;
-    ui_g_Ungroup_9.option.start_x = 1697;
-    ui_g_Ungroup_9.option.start_y = 439;
+    ui_g_Ungroup_9.option.start_x = 1650;
+    ui_g_Ungroup_9.option.start_y = 450;
     ui_g_Ungroup_9.option.color = 3;
     ui_g_Ungroup_9.option.str_length = 3;
     ui_g_Ungroup_9.option.width = 3;

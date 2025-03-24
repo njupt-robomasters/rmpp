@@ -12,7 +12,7 @@ int ui_self_id = 1;
 
 void print_message(const uint8_t *message, const int length) {
     BSP_UART_Referee_Video_Transmit(message, length);
-    osDelay(5);
+    osDelay(50);
 }
 
 const unsigned char CRC8_TAB[256] = {

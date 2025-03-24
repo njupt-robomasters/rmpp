@@ -5,7 +5,7 @@
 class REFEREE {
 public:
     uint8_t team_is_red = 0; // 0表示不是红方，1表示是红方
-    uint8_t robot_id = 3; // 本车ID
+    uint8_t robot_id = 0; // 本车ID
     uint16_t robot_hp = 0; // 车血量
     uint8_t competition_is_started = 0; // 0表示比赛未开始，1表示比赛开始
     float chassis_power_now = 0; // 车底盘实时功率

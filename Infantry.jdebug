@@ -4,8 +4,8 @@
 *                         www.segger.com                             *
 **********************************************************************
 
-File          : E:/workspace/rm/code/Infantry/Infantry.jdebug
-Created       : 20 Mar 2025 21:51
+File          : 
+Created       : 24 Mar 2025 11:15
 Ozone Version : V3.24
 */
 
@@ -22,18 +22,18 @@ void OnProjectLoad (void) {
   //
   // Dialog-generated settings
   //
+  Project.AddPathSubstitute ("D:/rocket/current_projects/0RM/Embedded_System/framework/infantry", "$(ProjectDir)");
+  Project.AddPathSubstitute ("d:/rocket/current_projects/0rm/embedded_system/framework/infantry", "$(ProjectDir)");
   Project.SetDevice ("Cortex-M4");
-  Project.SetHostIF ("USB", "1045514797");
+  Project.SetHostIF ("USB", "");
   Project.SetTargetIF ("SWD");
   Project.SetTIFSpeed ("1 MHz");
-  Project.AddPathSubstitute ("E:/workspace/rm/code/Infantry", "$(ProjectDir)");
-  Project.AddPathSubstitute ("e:/workspace/rm/code/infantry", "$(ProjectDir)");
   Project.AddSvdFile ("$(InstallDir)/Config/CPU/Cortex-M4F.svd");
   Project.AddSvdFile ("$(InstallDir)/Config/Peripherals/STM32F407IG.svd");
   //
   // User settings
   //
-  Edit.SysVar (VAR_HSS_SPEED, FREQ_100_HZ);
+  Edit.SysVar (VAR_HSS_SPEED, FREQ_200_HZ);
   File.Open ("$(ProjectDir)/cmake-build-debug/Infantry.elf");
   Project.SetOSPlugin ("FreeRTOSPlugin");
 }
