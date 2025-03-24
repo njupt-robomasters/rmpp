@@ -3,8 +3,6 @@
 #include "bsp_can.h"
 #include "bsp_pwm.h"
 
-using namespace Infantry;
-
 Gimbal::Gimbal(const IMU &imu, PID::param_t &pitch_pid, PID::param_t &yaw_pid, PID::param_t &shoot_pid) : imu(imu),
     m_pitch(pitch_pid),
     m_yaw(yaw_pid),
@@ -158,10 +156,12 @@ void Gimbal::Update() {
         } else if (mode == IMU_MODE) {
             // 此处加上 measure，抵消掉电机PID计算中的 -measure，最终误差变成 ref - imu.yaw
             // pitch
-            ref.pitch.absolute.degree = norm_angle(ref.pitch.imu_mode.degree - imu.pitch + measure.pitch.absolute.degree);
+            ref.pitch.absolute.degree = norm_angle(
+                ref.pitch.imu_mode.degree - imu.pitch + measure.pitch.absolute.degree);
             ref.pitch.absolute.degree = clamp(ref.pitch.absolute.degree, PITCH_MIN, PITCH_MAX);
             // 逆解更新设置的角度以反应限位
-            ref.pitch.imu_mode.degree = norm_angle(ref.pitch.absolute.degree + imu.pitch - measure.pitch.absolute.degree);
+            ref.pitch.imu_mode.degree = norm_angle(
+                ref.pitch.absolute.degree + imu.pitch - measure.pitch.absolute.degree);
             // yaw
             ref.yaw.absolute.degree = norm_angle(ref.yaw.imu_mode.degree - imu.yaw + measure.yaw.absolute.degree);
         }

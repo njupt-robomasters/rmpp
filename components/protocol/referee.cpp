@@ -2,9 +2,7 @@
 #include <cstring>
 #include "cmsis_os.h"
 
-
-
-void REFEREE::ParsePacket(const uint8_t *packet, uint16_t packetSize) {
+void Referee::ParsePacket(const uint8_t *packet, uint16_t packetSize) {
     if (packet[0] != 0xA5) {
         // SOF固定为0xA5
         return;
@@ -144,10 +142,11 @@ void REFEREE::ParsePacket(const uint8_t *packet, uint16_t packetSize) {
             this->keyboard_value = keyboard_value;
             break;
         }
-        case 0x0101://中心增益点占领情况
+        case 0x0101: //中心增益点占领情况
         {
             const uint8_t *dataField = &packet[7];
-            if(data_length != 4) { // 结构体大小为4字节
+            if (data_length != 4) {
+                // 结构体大小为4字节
                 return;
             }
             uint32_t event_data = (dataField[3] << 24) | (dataField[2] << 16) | (dataField[1] << 8) | dataField[0];
@@ -157,13 +156,12 @@ void REFEREE::ParsePacket(const uint8_t *packet, uint16_t packetSize) {
         }
 
 
-
         default:
             break;
     }
 }
 
-void REFEREE::PhaseData(const uint8_t *data, uint16_t size) {
+void Referee::PhaseData(const uint8_t *data, uint16_t size) {
     if (size < 10) //太短
         return;
     for (int i = 0; i < size; i++) {
@@ -192,7 +190,7 @@ void REFEREE::PhaseData(const uint8_t *data, uint16_t size) {
 //以下为CRC校验，不用管-------------------------------------------------------
 //crc8 generator polynomial:G(x=x8+x5+x4+1
 
-unsigned char REFEREE::Get_CRC8_Check_Sum(const uint8_t *pchMessage, unsigned int dwLength, unsigned char ucCRC8) {
+unsigned char Referee::Get_CRC8_Check_Sum(const uint8_t *pchMessage, unsigned int dwLength, unsigned char ucCRC8) {
     unsigned char ucIndex;
     while (dwLength--) {
         ucIndex = ucCRC8 ^ (*pchMessage++);
@@ -206,7 +204,7 @@ unsigned char REFEREE::Get_CRC8_Check_Sum(const uint8_t *pchMessage, unsigned in
 ** Input: Data to Verify,Stream length = Data + checksum
 ** Output: True or False (CRC Verify Result
 */
-unsigned int REFEREE::Verify_CRC8_Check_Sum(const uint8_t *pchMessage, unsigned int dwLength) {
+unsigned int Referee::Verify_CRC8_Check_Sum(const uint8_t *pchMessage, unsigned int dwLength) {
     unsigned char ucExpected = 0;
     if (pchMessage == nullptr || dwLength <= 2)
         return 0;
@@ -219,14 +217,14 @@ unsigned int REFEREE::Verify_CRC8_Check_Sum(const uint8_t *pchMessage, unsigned 
 ** Input: Data to CRC and append,Stream length = Data + checksum
 ** Output: True or False (CRC Verify Result
 */
-void REFEREE::Append_CRC8_Check_Sum(unsigned char *pchMessage, unsigned int dwLength) {
+void Referee::Append_CRC8_Check_Sum(unsigned char *pchMessage, unsigned int dwLength) {
     unsigned char ucCRC = 0;
     if ((pchMessage == 0 || (dwLength <= 2)))return;
     ucCRC = Get_CRC8_Check_Sum(pchMessage, dwLength - 1, CRC8_INIT);
     pchMessage[dwLength - 1] = ucCRC;
 }
 
-uint16_t REFEREE::Get_CRC16_Check_Sum(const uint8_t *pchMessage, uint32_t dwLength, uint16_t wCRC) {
+uint16_t Referee::Get_CRC16_Check_Sum(const uint8_t *pchMessage, uint32_t dwLength, uint16_t wCRC) {
     uint8_t chData;
     if (pchMessage == nullptr) {
         return 0xFFFF;
@@ -243,7 +241,7 @@ uint16_t REFEREE::Get_CRC16_Check_Sum(const uint8_t *pchMessage, uint32_t dwLeng
 ** Input: Data to Verify,Stream length = Data + checksum
 ** Output: True or False (CRC Verify Result
 */
-uint32_t REFEREE::Verify_CRC16_Check_Sum(const uint8_t *pchMessage, uint32_t dwLength) {
+uint32_t Referee::Verify_CRC16_Check_Sum(const uint8_t *pchMessage, uint32_t dwLength) {
     uint16_t wExpected = 0;
     if ((pchMessage == nullptr || (dwLength <= 2))) {
         return 0;
@@ -258,7 +256,7 @@ uint32_t REFEREE::Verify_CRC16_Check_Sum(const uint8_t *pchMessage, uint32_t dwL
 ** Input: Data to CRC and append,Stream length = Data + checksum
 ** Output: True or False (CRC Verify Result
 */
-void REFEREE::Append_CRC16_Check_Sum(uint8_t *pchMessage, uint32_t dwLength) {
+void Referee::Append_CRC16_Check_Sum(uint8_t *pchMessage, uint32_t dwLength) {
     uint16_t wCRC = 0;
     if ((pchMessage == nullptr || (dwLength <= 2))) {
         return;

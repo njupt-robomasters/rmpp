@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-class REFEREE {
+class Referee {
 public:
     uint8_t team_is_red = 0; // 0表示不是红方，1表示是红方
     uint8_t robot_id = 0; // 本车ID
@@ -19,9 +19,9 @@ public:
     uint16_t shooter_projectile_allowance_42mm = 0; // 42mm允许发弹量
     uint16_t shooter_launching_frequency = 0; // 弹丸射速
     float shooter_bullet_speed = 0; // 弹丸初速度
-    uint8_t power_shooter = 0;//发射机构是否上电
-    uint8_t power_chassis = 0;// 底盘是否上电
-    uint8_t power_gimbal = 0;// 云台是否上电
+    uint8_t power_shooter = 0; //发射机构是否上电
+    uint8_t power_chassis = 0; // 底盘是否上电
+    uint8_t power_gimbal = 0; // 云台是否上电
 
     // 以下为键鼠信息
     int16_t mouse_x = 0, mouse_y = 0, mouse_z = 0; //滚轮
@@ -30,16 +30,12 @@ public:
     uint16_t keyboard_value = 0;
 
     // 中心增益点占领情况
-    uint8_t center_gain_status = 0;// 0没有人占领，1己方，2地方占领，3都占领
+    uint8_t center_gain_status = 0; // 0没有人占领，1己方，2地方占领，3都占领
 
 
     void PhaseData(const uint8_t *data, uint16_t size);
 
-
-
-
 private:
-
     void ParsePacket(const uint8_t *packet, uint16_t packetSize);
 
     unsigned char Get_CRC8_Check_Sum(const uint8_t *pchMessage, unsigned int dwLength, unsigned char ucCRC8);

@@ -4,7 +4,7 @@ Settings settings;
 Status status;
 IMU imu(settings.imu_param);
 DJ6 dj6;
-REFEREE referee;
+Referee referee;
 UI ui;
 RV2 rv2;
 Chassis chassis(settings.wheel_pid, settings.speed_comp_pid);
@@ -26,7 +26,7 @@ void app_init() {
     // 设置中断回调函数
     BSP_CAN_SetCallback(can_callback);
     BSP_UART_RC_SetCallback(task_protocol_rc_callback);
-    BSP_UART_RC_SetCallback(task_protocol_referee_callback);
+    BSP_UART_Referee_SetCallback(task_protocol_referee_callback);
     BSP_CDC_SetCallback(task_protocol_cdc_callback);
 
     osThreadDef(task_led, task_led_entry, osPriorityIdle, 0, 128);
