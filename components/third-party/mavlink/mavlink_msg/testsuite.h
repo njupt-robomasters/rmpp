@@ -347,7 +347,7 @@ static void mavlink_test_target(uint8_t system_id, uint8_t component_id, mavlink
     mavlink_target_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
         packet1.x_target = packet_in.x_target;
-        packet1.t_target = packet_in.t_target;
+        packet1.y_target = packet_in.y_target;
         
         
 #ifdef MAVLINK_STATUS_FLAG_OUT_MAVLINK1
@@ -362,12 +362,12 @@ static void mavlink_test_target(uint8_t system_id, uint8_t component_id, mavlink
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
         memset(&packet2, 0, sizeof(packet2));
-    mavlink_msg_target_pack(system_id, component_id, &msg , packet1.x_target , packet1.t_target );
+    mavlink_msg_target_pack(system_id, component_id, &msg , packet1.x_target , packet1.y_target );
     mavlink_msg_target_decode(&msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
         memset(&packet2, 0, sizeof(packet2));
-    mavlink_msg_target_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.x_target , packet1.t_target );
+    mavlink_msg_target_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.x_target , packet1.y_target );
     mavlink_msg_target_decode(&msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
@@ -380,7 +380,7 @@ static void mavlink_test_target(uint8_t system_id, uint8_t component_id, mavlink
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
         
         memset(&packet2, 0, sizeof(packet2));
-    mavlink_msg_target_send(MAVLINK_COMM_1 , packet1.x_target , packet1.t_target );
+    mavlink_msg_target_send(MAVLINK_COMM_1 , packet1.x_target , packet1.y_target );
     mavlink_msg_target_decode(last_msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 

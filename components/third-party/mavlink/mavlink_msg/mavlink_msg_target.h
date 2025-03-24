@@ -6,7 +6,7 @@
 
 typedef struct __mavlink_target_t {
  float x_target; /*< [m] x_target*/
- float t_target; /*< [m] x_target*/
+ float y_target; /*< [m] y_target*/
 } mavlink_target_t;
 
 #define MAVLINK_MSG_ID_TARGET_LEN 8
@@ -14,8 +14,8 @@ typedef struct __mavlink_target_t {
 #define MAVLINK_MSG_ID_9_LEN 8
 #define MAVLINK_MSG_ID_9_MIN_LEN 8
 
-#define MAVLINK_MSG_ID_TARGET_CRC 8
-#define MAVLINK_MSG_ID_9_CRC 8
+#define MAVLINK_MSG_ID_TARGET_CRC 215
+#define MAVLINK_MSG_ID_9_CRC 215
 
 
 
@@ -25,7 +25,7 @@ typedef struct __mavlink_target_t {
     "TARGET", \
     2, \
     {  { "x_target", NULL, MAVLINK_TYPE_FLOAT, 0, 0, offsetof(mavlink_target_t, x_target) }, \
-         { "t_target", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_target_t, t_target) }, \
+         { "y_target", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_target_t, y_target) }, \
          } \
 }
 #else
@@ -33,7 +33,7 @@ typedef struct __mavlink_target_t {
     "TARGET", \
     2, \
     {  { "x_target", NULL, MAVLINK_TYPE_FLOAT, 0, 0, offsetof(mavlink_target_t, x_target) }, \
-         { "t_target", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_target_t, t_target) }, \
+         { "y_target", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_target_t, y_target) }, \
          } \
 }
 #endif
@@ -45,22 +45,22 @@ typedef struct __mavlink_target_t {
  * @param msg The MAVLink message to compress the data into
  *
  * @param x_target [m] x_target
- * @param t_target [m] x_target
+ * @param y_target [m] y_target
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_target_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
-                               float x_target, float t_target)
+                               float x_target, float y_target)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_TARGET_LEN];
     _mav_put_float(buf, 0, x_target);
-    _mav_put_float(buf, 4, t_target);
+    _mav_put_float(buf, 4, y_target);
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_TARGET_LEN);
 #else
     mavlink_target_t packet;
     packet.x_target = x_target;
-    packet.t_target = t_target;
+    packet.y_target = y_target;
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_TARGET_LEN);
 #endif
@@ -77,22 +77,22 @@ static inline uint16_t mavlink_msg_target_pack(uint8_t system_id, uint8_t compon
  * @param msg The MAVLink message to compress the data into
  *
  * @param x_target [m] x_target
- * @param t_target [m] x_target
+ * @param y_target [m] y_target
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_target_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
-                               float x_target, float t_target)
+                               float x_target, float y_target)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_TARGET_LEN];
     _mav_put_float(buf, 0, x_target);
-    _mav_put_float(buf, 4, t_target);
+    _mav_put_float(buf, 4, y_target);
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_TARGET_LEN);
 #else
     mavlink_target_t packet;
     packet.x_target = x_target;
-    packet.t_target = t_target;
+    packet.y_target = y_target;
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_TARGET_LEN);
 #endif
@@ -112,23 +112,23 @@ static inline uint16_t mavlink_msg_target_pack_status(uint8_t system_id, uint8_t
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param x_target [m] x_target
- * @param t_target [m] x_target
+ * @param y_target [m] y_target
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_target_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
                                mavlink_message_t* msg,
-                                   float x_target,float t_target)
+                                   float x_target,float y_target)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_TARGET_LEN];
     _mav_put_float(buf, 0, x_target);
-    _mav_put_float(buf, 4, t_target);
+    _mav_put_float(buf, 4, y_target);
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_TARGET_LEN);
 #else
     mavlink_target_t packet;
     packet.x_target = x_target;
-    packet.t_target = t_target;
+    packet.y_target = y_target;
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_TARGET_LEN);
 #endif
@@ -147,7 +147,7 @@ static inline uint16_t mavlink_msg_target_pack_chan(uint8_t system_id, uint8_t c
  */
 static inline uint16_t mavlink_msg_target_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_target_t* target)
 {
-    return mavlink_msg_target_pack(system_id, component_id, msg, target->x_target, target->t_target);
+    return mavlink_msg_target_pack(system_id, component_id, msg, target->x_target, target->y_target);
 }
 
 /**
@@ -161,7 +161,7 @@ static inline uint16_t mavlink_msg_target_encode(uint8_t system_id, uint8_t comp
  */
 static inline uint16_t mavlink_msg_target_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_target_t* target)
 {
-    return mavlink_msg_target_pack_chan(system_id, component_id, chan, msg, target->x_target, target->t_target);
+    return mavlink_msg_target_pack_chan(system_id, component_id, chan, msg, target->x_target, target->y_target);
 }
 
 /**
@@ -175,7 +175,7 @@ static inline uint16_t mavlink_msg_target_encode_chan(uint8_t system_id, uint8_t
  */
 static inline uint16_t mavlink_msg_target_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_target_t* target)
 {
-    return mavlink_msg_target_pack_status(system_id, component_id, _status, msg,  target->x_target, target->t_target);
+    return mavlink_msg_target_pack_status(system_id, component_id, _status, msg,  target->x_target, target->y_target);
 }
 
 /**
@@ -183,22 +183,22 @@ static inline uint16_t mavlink_msg_target_encode_status(uint8_t system_id, uint8
  * @param chan MAVLink channel to send the message
  *
  * @param x_target [m] x_target
- * @param t_target [m] x_target
+ * @param y_target [m] y_target
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
-static inline void mavlink_msg_target_send(mavlink_channel_t chan, float x_target, float t_target)
+static inline void mavlink_msg_target_send(mavlink_channel_t chan, float x_target, float y_target)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_TARGET_LEN];
     _mav_put_float(buf, 0, x_target);
-    _mav_put_float(buf, 4, t_target);
+    _mav_put_float(buf, 4, y_target);
 
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_TARGET, buf, MAVLINK_MSG_ID_TARGET_MIN_LEN, MAVLINK_MSG_ID_TARGET_LEN, MAVLINK_MSG_ID_TARGET_CRC);
 #else
     mavlink_target_t packet;
     packet.x_target = x_target;
-    packet.t_target = t_target;
+    packet.y_target = y_target;
 
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_TARGET, (const char *)&packet, MAVLINK_MSG_ID_TARGET_MIN_LEN, MAVLINK_MSG_ID_TARGET_LEN, MAVLINK_MSG_ID_TARGET_CRC);
 #endif
@@ -212,7 +212,7 @@ static inline void mavlink_msg_target_send(mavlink_channel_t chan, float x_targe
 static inline void mavlink_msg_target_send_struct(mavlink_channel_t chan, const mavlink_target_t* target)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-    mavlink_msg_target_send(chan, target->x_target, target->t_target);
+    mavlink_msg_target_send(chan, target->x_target, target->y_target);
 #else
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_TARGET, (const char *)target, MAVLINK_MSG_ID_TARGET_MIN_LEN, MAVLINK_MSG_ID_TARGET_LEN, MAVLINK_MSG_ID_TARGET_CRC);
 #endif
@@ -226,18 +226,18 @@ static inline void mavlink_msg_target_send_struct(mavlink_channel_t chan, const 
   is usually the receive buffer for the channel, and allows a reply to an
   incoming message with minimum stack space usage.
  */
-static inline void mavlink_msg_target_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  float x_target, float t_target)
+static inline void mavlink_msg_target_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  float x_target, float y_target)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char *buf = (char *)msgbuf;
     _mav_put_float(buf, 0, x_target);
-    _mav_put_float(buf, 4, t_target);
+    _mav_put_float(buf, 4, y_target);
 
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_TARGET, buf, MAVLINK_MSG_ID_TARGET_MIN_LEN, MAVLINK_MSG_ID_TARGET_LEN, MAVLINK_MSG_ID_TARGET_CRC);
 #else
     mavlink_target_t *packet = (mavlink_target_t *)msgbuf;
     packet->x_target = x_target;
-    packet->t_target = t_target;
+    packet->y_target = y_target;
 
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_TARGET, (const char *)packet, MAVLINK_MSG_ID_TARGET_MIN_LEN, MAVLINK_MSG_ID_TARGET_LEN, MAVLINK_MSG_ID_TARGET_CRC);
 #endif
@@ -260,11 +260,11 @@ static inline float mavlink_msg_target_get_x_target(const mavlink_message_t* msg
 }
 
 /**
- * @brief Get field t_target from target message
+ * @brief Get field y_target from target message
  *
- * @return [m] x_target
+ * @return [m] y_target
  */
-static inline float mavlink_msg_target_get_t_target(const mavlink_message_t* msg)
+static inline float mavlink_msg_target_get_y_target(const mavlink_message_t* msg)
 {
     return _MAV_RETURN_float(msg,  4);
 }
@@ -279,7 +279,7 @@ static inline void mavlink_msg_target_decode(const mavlink_message_t* msg, mavli
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     target->x_target = mavlink_msg_target_get_x_target(msg);
-    target->t_target = mavlink_msg_target_get_t_target(msg);
+    target->y_target = mavlink_msg_target_get_y_target(msg);
 #else
         uint8_t len = msg->len < MAVLINK_MSG_ID_TARGET_LEN? msg->len : MAVLINK_MSG_ID_TARGET_LEN;
         memset(target, 0, MAVLINK_MSG_ID_TARGET_LEN);
