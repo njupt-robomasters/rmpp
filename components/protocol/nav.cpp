@@ -1,43 +1,43 @@
 #include "nav.hpp"
-#include "bsp_cdc.h"
 #include "mavlink.h"
+#include "bsp_cdc.h"
 
-void NAV::SendIMUData(const float roll, const float pitch, const float yaw) {
+
+void NAV::SendTargetData(const float x, const float y, const float yaw) {
     mavlink_message_t msg;
-    const int len = mavlink_msg_imu_data_pack(0, 0, &msg, roll, pitch, yaw);
+    const int len = mavlink_msg_target_pack(0, 0, &msg, x, y);
     uint8_t buf[len];
     mavlink_msg_to_send_buffer(buf, &msg);
     BSP_CDC_Transmit(buf, len);
 }
 
-void NAV::SendRefereeData(const bool team_is_red, const float bullet_speed) {
-    mavlink_message_t msg;
-    const int len = mavlink_msg_referee_data_pack(0, 0, &msg, team_is_red, bullet_speed);
-    uint8_t buf[len];
-    mavlink_msg_to_send_buffer(buf, &msg);
-    BSP_CDC_Transmit(buf, len);
-}
 
 void NAV::ParseStreamingData(const uint8_t *data, const uint32_t len) {
     mavlink_message_t msg;
     mavlink_status_t status;
-
     for (int i = 0; i < len; i++) {
         const uint8_t c = data[i];
         if (mavlink_parse_char(MAVLINK_COMM_0, c, &msg, &status)) {
             switch (msg.msgid) {
-                case MAVLINK_MSG_ID_GIMBAL_CMD: {
-                    mavlink_gimbal_cmd_t gimbal_cmd;
-                    mavlink_msg_gimbal_cmd_decode(&msg, &gimbal_cmd);
+                case MAVLINK_MSG_ID_POSITION: {
+                    mavlink_position_t position_msg;
+                    mavlink_msg_position_decode(&msg, &position_msg);
 
                     // 处理解析到的数据
-                    pitch = gimbal_cmd.pitch;
-                    yaw = gimbal_cmd.yaw;
-                    is_locked = gimbal_cmd.is_locked;
-                    fire_advise = gimbal_cmd.fire_advise;
+                    this->position_x = position_msg.x;
+                    this->position_y = position_msg.y;
+                    this->position_yaw = position_msg.yaw;
+                    break;
                 }
-                break;
+                case MAVLINK_MSG_ID_CMD_VEL:{
+                    mavlink_cmd_vel_t vel_cmd;
+                    mavlink_msg_cmd_vel_decode(&msg,&vel_cmd);
 
+                    this->vel_x =vel_cmd.x_vel;
+                    this->vel_y =vel_cmd.y_vel;
+                    this->vel_yaw =vel_cmd.z_vel;
+                    break;
+                }
                 default:
                     break;
             }
