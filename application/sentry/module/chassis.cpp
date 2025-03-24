@@ -1,44 +1,42 @@
 #include "chassis.hpp"
 #include "bsp_can.h"
 
-Chassis::Chassis(PID::param_t &wheel_pid_param, PID::param_t &speed_comp_pid_param)
-    : m1(wheel_pid_param),
-      m2(wheel_pid_param),
-      m3(wheel_pid_param),
-      m4(wheel_pid_param),
-      vx_comp_pid(speed_comp_pid_param),
-      vy_comp_pid(speed_comp_pid_param) {
+Chassis::Chassis(PID::param_t &servo_pid_param, PID::param_t &wheel_pid_param)
+    : s1(servo_pid_param),
+      s2(servo_pid_param),
+      w1(wheel_pid_param),
+      w2(wheel_pid_param) {
 }
 
 void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
-    if (id == 0x201)
-        m1.ParseCAN(data);
-    if (id == 0x202)
-        m2.ParseCAN(data);
-    if (id == 0x203)
-        m3.ParseCAN(data);
-    if (id == 0x204)
-        m4.ParseCAN(data);
+    if (id == 0x205)
+        s1.ParseCAN(data);
+    if (id == 0x206)
+        s2.ParseCAN(data);
+    if (id == 0x207)
+        w1.ParseCAN(data);
+    if (id == 0x208)
+        w2.ParseCAN(data);
 
     inverseCalc(); // 运动学逆解
     estimatePower(); // 底盘功率估算
 }
 
 void Chassis::ResetReady() {
-    m1.ResetReady();
-    m2.ResetReady();
-    m3.ResetReady();
-    m4.ResetReady();
+    s1.ResetReady();
+    s2.ResetReady();
+    w1.ResetReady();
+    w2.ResetReady();
 }
 
 bool Chassis::CheckReady() const {
-    if (not m1.IsReady())
+    if (not s1.IsReady())
         return false;
-    if (not m2.IsReady())
+    if (not s2.IsReady())
         return false;
-    if (not m3.IsReady())
+    if (not w1.IsReady())
         return false;
-    if (not m4.IsReady())
+    if (not w2.IsReady())
         return false;
     return true;
 }
@@ -50,33 +48,21 @@ void Chassis::SetEnable(const bool is_enable) {
     this->is_enable = is_enable;
 
     // 设置子设备
-    m1.SetEnable(is_enable);
-    m2.SetEnable(is_enable);
-    m3.SetEnable(is_enable);
-    m4.SetEnable(is_enable);
+    s1.SetEnable(is_enable);
+    s2.SetEnable(is_enable);
+    w1.SetEnable(is_enable);
+    w2.SetEnable(is_enable);
 
-    if (is_enable) {
-        // 清空PID
-        vx_comp_pid.Clear();
-        vy_comp_pid.Clear();
-    } else {
-        // 清空PID
-        vx_comp_pid.Clear();
-        vy_comp_pid.Clear();
+    if (not is_enable) {
         // 失能向电机发送0电流
         sendCurrentCmd();
     }
 }
 
 void Chassis::SetSpeed(const float vx, const float vy, const float vr_rpm) {
-    ref.gimbal.vx = vx;
-    ref.gimbal.vy = vy;
-    ref.gimbal.vr.rpm = vr_rpm;
-    ref.gimbal.vz = ref.gimbal.vr.tps * CHASSIS_PERIMETER; // 底盘旋转角速度【圈/s】 -> 底盘旋转线速度【m/s】
-}
-
-void Chassis::SetGimbalAngle_RefByChassis(const Angle &gimbal_angle_refBy_chassis) {
-    this->gimbal_angle_refBy_chassis = gimbal_angle_refBy_chassis;
+    ref.chassis.vx = vx;
+    ref.chassis.vy = vy;
+    ref.chassis.vr.rpm = vr_rpm;
 }
 
 void Chassis::SetPowerLimit(const float power) {
@@ -89,10 +75,10 @@ void Chassis::Update() {
         forwardCalc();
 
         // 电机闭环控制计算
-        m1.Update();
-        m2.Update();
-        m3.Update();
-        m4.Update();
+        s1.Update();
+        s2.Update();
+        w1.Update();
+        w2.Update();
 
         // 功率控制
         calcCurrentRatio();
@@ -103,11 +89,9 @@ void Chassis::Update() {
 }
 
 void Chassis::estimatePower() {
-    const float power1 = m1.EstimatePower();
-    const float power2 = m2.EstimatePower();
-    const float power3 = m3.EstimatePower();
-    const float power4 = m4.EstimatePower();
-    power_estimate = power1 + power2 + power3 + power4;
+    const float power1 = w1.EstimatePower();
+    const float power2 = w2.EstimatePower();
+    power_estimate = power1 + power2;
 }
 
 void Chassis::calcCurrentRatio() {
@@ -120,16 +104,12 @@ void Chassis::calcCurrentRatio() {
     // c = -P
 
     float a = 0;
-    a += m1.ref.current * m1.ref.current * M3508::R;
-    a += m2.ref.current * m2.ref.current * M3508::R;
-    a += m3.ref.current * m3.ref.current * M3508::R;
-    a += m4.ref.current * m4.ref.current * M3508::R;
+    a += w1.ref.current * w1.ref.current * M3508::R;
+    a += w2.ref.current * w2.ref.current * M3508::R;
 
     float b = 0;
-    b += M3508::M_PER_I * m1.ref.current * m1.measure.speed.rps;
-    b += M3508::M_PER_I * m2.ref.current * m2.measure.speed.rps;
-    b += M3508::M_PER_I * m3.ref.current * m3.measure.speed.rps;
-    b += M3508::M_PER_I * m4.ref.current * m4.measure.speed.rps;
+    b += M3508::M_PER_I * w1.ref.current * w1.measure.speed.rps;
+    b += M3508::M_PER_I * w2.ref.current * w2.measure.speed.rps;
 
     float c = -power_limit;
 
@@ -140,91 +120,85 @@ void Chassis::calcCurrentRatio() {
 
 // 运动学正解
 void Chassis::forwardCalc() {
-    ref.correct = ref.gimbal;
-    // // 1. 速度补偿
-    // const float vx_err = ref.correct.vx - measure.correct.vx;
-    // vx_comp = vx_comp_pid.CalcIncrement(vx_err);
-    // const float vy_err = ref.correct.vx - measure.correct.vy;
-    // vy_comp = vy_comp_pid.CalcIncrement(vy_err);
+    ref.chassis.vz = ref.chassis.vr.tps * CHASSIS_PERIMETER; // 底盘旋转角速度【圈/s】 -> 底盘旋转线速度【m/s】
 
-    // 2. vxyzr 云台坐标系->底盘坐标系
-    // 注意这里是换参考系，而非旋转速度矢量，速度矢量相对于绝对参考系是不会发生变化的，所以旋转角度为：云台相对于底盘的角度
-    std::tie(ref.chassis.vx, ref.chassis.vy) =
-            rotate(ref.correct.vx, ref.correct.vy, gimbal_angle_refBy_chassis.degree);
-    ref.chassis.vz = ref.correct.vz;
-    ref.chassis.vr = ref.correct.vr;
+    // 1. 运动学正解
+    // 舵电机正方向：逆时针
+    // 轮电机正方向：车体前进方向
+    const float sqrt2div2 = sqrtf(2) / 2;
+    float y, x;
+    // 左前舵、左前轮（1号）
+    y = ref.chassis.vy - sqrt2div2 * ref.chassis.vz;
+    x = ref.chassis.vx - sqrt2div2 * ref.chassis.vz;
+    ref.wheel.s1.rad = atan2f(y, x);
+    ref.wheel.w1 = sqrtf(powf(y, 2) + powf(x, 2));
+    // 右后舵、右后轮（2号）
+    y = ref.chassis.vy + sqrt2div2 * ref.chassis.vz;
+    x = ref.chassis.vx + sqrt2div2 * ref.chassis.vz;
+    ref.wheel.s2.rad = atan2f(y, x);
+    ref.wheel.w2 = sqrtf(powf(y, 2) + powf(x, 2));
 
-    // 3. vxyzr -> 轮子线速度（运动学正解）
-    // 前进方向为y轴正方向，右平移方向为x轴正方向，一 二 三 四 象限分别为 1 2 3 4 电机
-    // 所有电机正转，底盘顺时针旋转（但规定逆时针为底盘旋转正方向）
-    const float sqrt2div2 = sqrtf(2) / 2.0f;
-    ref.wheel.v1 = +sqrt2div2 * ref.chassis.vx - sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
-    ref.wheel.v2 = +sqrt2div2 * ref.chassis.vx + sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
-    ref.wheel.v3 = -sqrt2div2 * ref.chassis.vx + sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
-    ref.wheel.v4 = -sqrt2div2 * ref.chassis.vx - sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
+    // 2. 舵电机安装矫正
+    // 目前6020为顺时针角度增加，所以要取反
+    ref.wheel.s1.degree = norm_angle( -ref.wheel.s1.degree + S1_OFFSET);
+    ref.wheel.s2.degree = norm_angle(-ref.wheel.s2.degree + S2_OFFSET);
 
-    // 4. 轮子线速度 -> 轮子角速度
-    Speed speed1, speed2, speed3, speed4;
-    speed1.tps = ref.wheel.v1 / WHEEL_PERIMETER;
-    speed2.tps = ref.wheel.v2 / WHEEL_PERIMETER;
-    speed3.tps = ref.wheel.v3 / WHEEL_PERIMETER;
-    speed4.tps = ref.wheel.v4 / WHEEL_PERIMETER;
+    // 3. 轮子线速度 -> 轮子角速度
+    Speed speed1, speed2;
+    speed1.tps = ref.wheel.w1 / WHEEL_PERIMETER;
+    speed2.tps = ref.wheel.w2 / WHEEL_PERIMETER;
 
-    // 5. 设置电机转速
-    m1.SetSpeed(speed1);
-    m2.SetSpeed(speed2);
-    m3.SetSpeed(speed3);
-    m4.SetSpeed(speed4);
+    // 4. 设置电机
+    s1.SetAngle(ref.wheel.s1);
+    s2.SetAngle(ref.wheel.s2);
+    w1.SetSpeed(speed1);
+    w2.SetSpeed(speed2);
 }
 
 // 运动学逆解
 void Chassis::inverseCalc() {
-    // 1. 读取电机转速
-    const Speed speed1 = m1.measure.speed;
-    const Speed speed2 = m2.measure.speed;
-    const Speed speed3 = m3.measure.speed;
-    const Speed speed4 = m4.measure.speed;
+    // 1. 读取电机
+    measure.wheel.s1 = s1.measure.angle;
+    measure.wheel.s2 = s2.measure.angle;
+    const Speed speed1 = w1.measure.speed;
+    const Speed speed2 = w2.measure.speed;
 
     // 2. 轮子角速度 -> 轮子线速度
-    measure.wheel.v1 = speed1.tps * WHEEL_PERIMETER;
-    measure.wheel.v2 = speed2.tps * WHEEL_PERIMETER;
-    measure.wheel.v3 = speed3.tps * WHEEL_PERIMETER;
-    measure.wheel.v4 = speed4.tps * WHEEL_PERIMETER;
+    measure.wheel.w1 = speed1.tps * WHEEL_PERIMETER;
+    measure.wheel.w2 = speed2.tps * WHEEL_PERIMETER;
 
-    // 3. 轮子线速度 -> vxyzr
-    const float sqrt2 = sqrtf(2);
-    measure.chassis.vx = (+sqrt2 * measure.wheel.v1 + sqrt2 * measure.wheel.v2 - sqrt2 * measure.wheel.v3 - sqrt2 *
-                          measure.wheel.v4) / 4.0f;
-    measure.chassis.vy = (-sqrt2 * measure.wheel.v1 + sqrt2 * measure.wheel.v2 + sqrt2 * measure.wheel.v3 - sqrt2 *
-                          measure.wheel.v4) / 4.0f;
-    measure.chassis.vz = -(measure.wheel.v1 + measure.wheel.v2 + measure.wheel.v3 + measure.wheel.v4) / 4.0f;
+    // 3. 舵电机安装逆解
+    measure.wheel.s1.degree = norm_angle( -(measure.wheel.s1.degree - S1_OFFSET));
+    measure.wheel.s2.degree = norm_angle(-(measure.wheel.s2.degree - S2_OFFSET));
+
+    // 4. 运动学逆解
+    float y1 = measure.wheel.w1 * sinf(measure.wheel.s1.rad);
+    float x1 = measure.wheel.w1 * cosf(measure.wheel.s1.rad);
+    float y2 = measure.wheel.w2 * sinf(measure.wheel.s2.rad);
+    float x2 = measure.wheel.w2 * cosf(measure.wheel.s2.rad);
+    measure.chassis.vy = (y1 + y2) / 2;
+    measure.chassis.vx = (x1 + x2) / 2;
+    measure.chassis.vz = measure.wheel.w1 - measure.wheel.w2;
+
     measure.chassis.vr.tps = measure.chassis.vz / CHASSIS_PERIMETER; // 底盘旋转线速度【m/s】 -> 底盘旋转角速度【圈/s】
-
-    // 4. vxyzr 底盘坐标系->云台坐标系
-    std::tie(measure.correct.vx, measure.correct.vy) = rotate(measure.chassis.vx, measure.chassis.vy,
-                                                              -gimbal_angle_refBy_chassis.degree);
-
-    measure.gimbal = measure.correct;
-    // 5. 速度补偿逆解
-    // measure.gimbal.vx -= vx_comp;
-    // measure.gimbal.vy -= vy_comp;
 }
 
 void Chassis::sendCurrentCmd() {
-    const int16_t m3508_1_cmd = m1.GetCurrentCMD() * current_ratio;
-    const int16_t m3508_2_cmd = m2.GetCurrentCMD() * current_ratio;
-    const int16_t m3508_3_cmd = m3.GetCurrentCMD() * current_ratio;
-    const int16_t m3508_4_cmd = m4.GetCurrentCMD() * current_ratio;
+    const int16_t m6020_1_cmd = s1.GetCurrentCMD();
+    const int16_t m6020_2_cmd = s2.GetCurrentCMD();
+    const int16_t m3508_1_cmd = w1.GetCurrentCMD() * current_ratio;
+    const int16_t m3508_2_cmd = w2.GetCurrentCMD() * current_ratio;
+
 
     uint8_t data[8];
-    data[0] = m3508_1_cmd >> 8; // 3508电机，ID：1
-    data[1] = m3508_1_cmd;
-    data[2] = m3508_2_cmd >> 8; // 3508电机，ID：2
-    data[3] = m3508_2_cmd;
-    data[4] = m3508_3_cmd >> 8; // 3508电机，ID：3
-    data[5] = m3508_3_cmd;
-    data[6] = m3508_4_cmd >> 8; // 3508电机，ID：4
-    data[7] = m3508_4_cmd;
+    data[0] = m6020_1_cmd >> 8; // 6020电机，ID：5
+    data[1] = m6020_1_cmd;
+    data[2] = m6020_2_cmd >> 8; // 6020电机，ID：6
+    data[3] = m6020_2_cmd;
+    data[4] = m3508_1_cmd >> 8; // 3508电机，ID：7
+    data[5] = m3508_1_cmd;
+    data[6] = m3508_2_cmd >> 8; // 3508电机，ID：8
+    data[7] = m3508_2_cmd;
 
-    BSP_CAN_Transmit(0x200, data, 8);
+    BSP_CAN_Transmit(0x1FF, data, 8);
 }

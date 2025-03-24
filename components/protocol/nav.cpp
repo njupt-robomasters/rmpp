@@ -1,4 +1,7 @@
 #include "nav.hpp"
+#include "bsp_cdc.h"
+#include "mavlink.h"
+
 void NAV::SendIMUData(const float roll, const float pitch, const float yaw) {
     mavlink_message_t msg;
     const int len = mavlink_msg_imu_data_pack(0, 0, &msg, roll, pitch, yaw);
@@ -33,7 +36,7 @@ void NAV::ParseStreamingData(const uint8_t *data, const uint32_t len) {
                     is_locked = gimbal_cmd.is_locked;
                     fire_advise = gimbal_cmd.fire_advise;
                 }
-                    break;
+                break;
 
                 default:
                     break;

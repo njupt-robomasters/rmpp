@@ -15,22 +15,12 @@ static float dt;
             continue;;
         }
 
-        float vx = 0, vy = 0, vr_rpm = 0;
-
-        vx = dj6.x * settings.chassis_vxy_max;
-        vy = dj6.y * settings.chassis_vxy_max;
-
-        // 解析遥控器
-        if (dj6.right_switch == DJ6::UP or dj6.right_switch == DJ6::MID) {
-            // UP，MID：小陀螺关闭
-            vr_rpm = 0;
-        } else {
-            // DOWM：小陀螺开启
-            vr_rpm = settings.chassis_vr_rpm;
-        }
+        const float vx = dj6.x * settings.chassis_vxy_max;
+        const float vy = dj6.y * settings.chassis_vxy_max;
+        const float vr_rpm = dj6.yaw * settings.chassis_vr_rpm;
 
         chassis.SetEnable(true);
-        chassis.SetPowerLimit(60);
+        chassis.SetPowerLimit(120);
         // chassis.SetPowerLimit(referee.chassis_power_limit);
         chassis.SetSpeed(vx, vy, vr_rpm);
 

@@ -3,7 +3,7 @@
 Settings settings;
 DJ6 dj6;
 Referee referee;
-Chassis chassis(settings.wheel_pid, settings.speed_comp_pid);
+Chassis chassis(settings.servo_pid, settings.servo_pid);
 
 void app_init() {
     BSP_LED_Init();
