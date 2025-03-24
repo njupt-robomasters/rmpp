@@ -5,14 +5,7 @@
 #include "bmi088.h"
 #include "QuaternionEKF.h"
 
-IMU::IMU() : temperature_pid(temperature_pid_param) {
-    imu_param.yaw = 0;
-    imu_param.pitch = 0;
-    imu_param.roll = 180;
-    imu_param.scale[X] = 1;
-    imu_param.scale[Y] = 1;
-    imu_param.scale[Z] = 1;
-    imu_param.flag = 1;
+IMU::IMU(const param_t &param) : param(param), temperature_pid(temperature_pid_param) {
 }
 
 void IMU::Init() {
@@ -48,7 +41,7 @@ void IMU::Update() {
         gyro[Z] = BMI088.Gyro[Z];
 
         // 用于修正安装误差
-        IMU_Param_Correction(&imu_param, gyro, accel);
+        IMU_Param_Correction(&param, gyro, accel);
 
         // 计算重力加速度矢量和b系的XY两轴的夹角,可用作功能扩展,本demo暂时没用
         atanxz = -atan2f(accel[X], accel[Z]) * 180 / PI;

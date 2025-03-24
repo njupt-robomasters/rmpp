@@ -3,7 +3,7 @@
 Settings settings;
 Status status;
 
-IMU imu;
+IMU imu(settings.imu_param);
 
 DJ6 dj6;
 REFEREE referee;

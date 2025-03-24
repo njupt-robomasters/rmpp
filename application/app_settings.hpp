@@ -1,5 +1,6 @@
 #pragma once
 
+#include "imu.hpp"
 #include "pid.hpp"
 
 class Settings {
@@ -11,6 +12,7 @@ public:
     const float mouse_y_max = 300.0f;
     PID::param_t wheel_pid = {.kp = 10000.0f, .ki = 50.0f};
     PID::param_t speed_comp_pid = {}; // 底盘速度补偿（暂时未用到，轮子PID给的激进后，小陀螺模式前进已经很稳）
+    IMU::param_t imu_param = {.yaw = 0, .pitch = 0, .roll = 180};
 
     // PID参数
     PID::param_t pitch_pid = {.kp = 1.0f, .kd = 0.014f}; // pitch

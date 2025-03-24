@@ -4,14 +4,21 @@
 
 class IMU {
 public:
-    bool is_ready = false;
+    // 用于修正安装误差的参数
+    struct param_t {
+        float yaw = 0;
+        float pitch = 0;
+        float roll = 0;
+        float scale[3] = {1, 1, 1};
+        uint8_t flag = 1;
+    };
 
     float roll = 0;
     float pitch = 0;
     float yaw = 0;
     float yaw_total_angle = 0;
 
-    IMU();
+    explicit IMU(const param_t &param);
 
     void Init();
 
@@ -33,14 +40,9 @@ private:
     static constexpr float yb[3] = {0, 1, 0};
     static constexpr float zb[3] = {0, 0, 1};
 
-    // 用于修正安装误差的参数
-    struct param_t {
-        float yaw;
-        float pitch;
-        float roll;
-        float scale[3];
-        uint8_t flag;
-    } imu_param{};
+    bool is_ready = false;
+
+    param_t param;
 
     // IMU原始数据
     float gyro[3]{}; // 角速度

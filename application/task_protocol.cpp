@@ -2,34 +2,37 @@
 #include "cmsis_os.h"
 #include "app_variable.hpp"
 
-[[noreturn]] void task_protocol_entry(void const *argument) {
+[[noreturn]] void task_protocol_rv2_entry(void const *argument) {
+    while (true) {
+        rv2.SendIMUData(imu.roll, imu.pitch, imu.yaw);
+        rv2.SendRefereeData(referee.team_is_red, referee.shooter_bullet_speed);
+
+        osDelay(10);
+    }
+}
+
+[[noreturn]] void task_protocol_ui_entry(void const *argument) {
     uint32_t cnt = 0;
     while (true) {
-        if (++cnt % 10 == 0) { // 100Hz
-            rv2.SendIMUData(imu.roll, imu.pitch, imu.yaw);
-            rv2.SendRefereeData(referee.team_is_red, referee.shooter_bullet_speed);
+        if (++cnt % 10 == 0) {
+            // 1Hz
+            ui.Init(referee.robot_id);
         }
 
-        // if (++cnt % 1000 == 0) { // 1Hz
-        //     ui.Init(referee.robot_id);
-        // }
-        //for test
-//         if (++cnt % 100 == 0) { // 10Hz
-//             ui.set_bullet_frequency = 114;
-//             ui.set_center_gain_status = referee.center_gain_status;
-//             ui.set_chassis_max_speed = 3;
-//             ui.set_chassis_mode = UI::FOLLOW;
-//             ui.set_chassis_vr =  114;
-//             ui.set_gimbal_is_imu_mode = 1;
-//             ui.set_is_firing = referee.mouse_right_button_down;
-//             ui.set_is_locked = rv2.is_locked;
-//             ui.set_shooter_is_on = false; // todo
-//             ui.set_super_cap_percent = 0; // todo
-//             ui.set_chassis_power_limit = referee.chassis_power_limit;
-//             ui.Update();
-//         }
+        ui.set_bullet_frequency = status.shoot_freq;
+        ui.set_center_gain_status = referee.center_gain_status;
+        ui.set_chassis_max_speed = status.chassis_vxy_max;
+        ui.set_chassis_mode = UI::TURNING;
+        ui.set_chassis_vr = status.chassis_vr_rpm;
+        ui.set_gimbal_is_imu_mode = (status.gimbal_mode == Gimbal::IMU_MODE);
+        ui.set_is_firing = referee.mouse_right_button_down;
+        ui.set_is_locked = rv2.is_locked;
+        ui.set_shooter_is_on = true; // todo
+        ui.set_super_cap_percent = 0; // todo
+        ui.set_chassis_power_limit = referee.chassis_power_limit;
+        ui.Update();
 
-        osDelay(1);
+        osDelay(100);
     }
 }
 
