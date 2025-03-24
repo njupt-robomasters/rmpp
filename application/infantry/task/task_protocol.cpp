@@ -1,6 +1,5 @@
 #include "task_protocol.h"
-#include "cmsis_os.h"
-#include "app_variable.hpp"
+#include "../app.hpp"
 
 [[noreturn]] void task_protocol_rv2_entry(void const *argument) {
     while (true) {
@@ -19,17 +18,22 @@
             ui.Init(referee.robot_id);
         }
 
-        ui.set_bullet_frequency = status.shoot_freq;
         ui.set_center_gain_status = referee.center_gain_status;
-        ui.set_chassis_max_speed = status.chassis_vxy_max;
-        ui.set_chassis_mode = UI::TURNING;
-        ui.set_chassis_vr = status.chassis_vr_rpm;
-        ui.set_gimbal_is_imu_mode = (status.gimbal_mode == Gimbal::IMU_MODE);
-        ui.set_is_firing = referee.mouse_right_button_down;
-        ui.set_is_locked = rv2.is_locked;
-        ui.set_shooter_is_on = true; // todo
-        ui.set_super_cap_percent = 0; // todo
         ui.set_chassis_power_limit = referee.chassis_power_limit;
+
+        // 底盘
+        ui.set_chassis_max_speed = status.chassis_vxy_max;
+        ui.set_chassis_vr = status.chassis_vr_rpm;
+        // 云台
+        ui.set_bullet_frequency = status.shoot_freq;
+        ui.set_gimbal_is_imu_mode = (status.gimbal_mode == Gimbal::IMU_MODE);
+        ui.set_is_locked = rv2.is_locked;
+        ui.set_is_firing = referee.mouse_right_button_down;
+
+        // todo
+        ui.set_chassis_mode = UI::TURNING;
+        ui.set_shooter_is_on = true;
+        ui.set_super_cap_percent = 0;
         ui.Update();
 
         osDelay(100);
@@ -44,6 +48,6 @@ void task_protocol_referee_callback(const uint8_t *data, const uint16_t size) {
     referee.PhaseData(data, size);
 }
 
-void task_protocol_cdc_callback(const uint8_t *data, const int size) {
+void task_protocol_cdc_callback(const uint8_t *data, const uint32_t size) {
     rv2.ParseStreamingData(data, size);
 }

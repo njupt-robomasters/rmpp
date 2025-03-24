@@ -18,7 +18,7 @@ void RV2::SendRefereeData(const bool team_is_red, const float bullet_speed) {
     BSP_CDC_Transmit(buf, len);
 }
 
-void RV2::ParseStreamingData(const uint8_t *data, const int len) {
+void RV2::ParseStreamingData(const uint8_t *data, const uint32_t len) {
     mavlink_message_t msg;
     mavlink_status_t status;
 

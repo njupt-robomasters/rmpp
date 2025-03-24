@@ -1,7 +1,5 @@
 #include "task_gimbal.h"
-#include "cmsis_os.h"
-#include "app_variable.hpp"
-#include "bsp_dwt.h"
+#include "../app.hpp"
 
 static uint32_t dwt_cnt;
 static float dt;
@@ -58,7 +56,6 @@ static float dt;
         gimbal.SetEnable(true); // 使能
         gimbal.SetMode(status.gimbal_mode); // 模式
         gimbal.SetYawSpeedFF(-chassis.measure.chassis.vr); // yaw速度前馈
-        gimbal.SetShootFreq(status.shoot_freq); // 射频
         gimbal.SetPrepareShoot(status.is_prepare_shoot); // 摩擦轮
 
         if (status.is_rv2_mode && status.gimbal_mode == Gimbal::IMU_MODE) {
@@ -67,14 +64,14 @@ static float dt;
                 gimbal.SetAngle(rv2.pitch, rv2.yaw);
             }
             if (rv2.fire_advise && status.is_shoot) {
-                gimbal.SetShoot(true);
+                gimbal.SetShoot(true, status.shoot_freq);
             } else {
                 gimbal.SetShoot(false);
             }
         } else {
             // 手动模式
             gimbal.AddAngle(pitch_angle_add, yaw_angle_add); // 角度增量
-            gimbal.SetShoot(status.is_shoot); // 是否开火
+            gimbal.SetShoot(status.is_shoot, status.shoot_freq); // 是否开火
         }
 
         gimbal.Update();

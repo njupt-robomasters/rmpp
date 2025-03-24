@@ -7,11 +7,11 @@
 #define ki (param.ki)
 #define kd (param.kd)
 #define ff (param.ff)
-#define i_limit (param.i_limit.value())
-#define max_out (param.max_out.value())
+#define i_limit (param.i_limit)
+#define max_out (param.max_out)
 
 // 使用参数结构体初始化
-PID::PID(param_t &param) : param(param.SetDefault()) {
+PID::PID(param_t &param) : param(param.SetDefaultILimit()) {
 }
 
 // // 启用梯形积分

@@ -5,7 +5,7 @@ MDJI::MDJI(const float current_max, const uint16_t can_cmd_max, const float redu
            PID::param_t &pid_param) : CURRENT_MAX(current_max),
                                           CAN_CMD_MAX(can_cmd_max),
                                           REDUCTION_RATIO(reduction_ratio),
-                                          pid(pid_param.SetMax(current_max)) {
+                                          pid(pid_param.SetDefaultMax(current_max)) {
 }
 
 void MDJI::ParseCAN(const uint8_t data[8]) {
@@ -53,8 +53,9 @@ void MDJI::SetEnable(const bool is_enable) {
     this->is_enable = is_enable;
 
     if (is_enable) {
-        pid.Clear(); // 使能后清空PID
+        pid.Clear(); // 清空PID
     } else {
+        pid.Clear(); // 清空PID
         ref.current = 0; // 失能电流置0
     }
 }

@@ -1,7 +1,6 @@
 #include "ui.hpp"
 
 #include <cstring>
-#include "app_variable.hpp"
 
 void UI::Init(const uint8_t robot_id) {
     ui_self_id = robot_id;
@@ -23,11 +22,11 @@ uint8_t UI::Update() {
     // id 1 auto_aim_status
     if (set_is_firing != set_is_firing_last || set_is_locked != set_is_locked_last || is_first_update) {
         if (set_is_firing) {
-            strcpy(ui_g_Ungroup_shooter_freq->string, "Firing");
+            strcpy(ui_g_Ungroup_auto_aim_status->string, "Firing");
             ui_g_Ungroup_auto_aim_status->color = 3; //orange
             show_string(ui_g_Ungroup_auto_aim_status);
         } else if (set_is_locked) {
-            strcpy(ui_g_Ungroup_shooter_freq->string, "Locked");
+            strcpy(ui_g_Ungroup_auto_aim_status->string, "Locked");
             ui_g_Ungroup_auto_aim_status->color = 2; //green
             show_string(ui_g_Ungroup_auto_aim_status);
         } else {
@@ -41,10 +40,10 @@ uint8_t UI::Update() {
     // id 2 chassis mode
     if (set_gimbal_is_imu_mode != set_gimbal_is_imu_mode_last || is_first_update) {
         if (set_gimbal_is_imu_mode) {
-            strcpy(ui_g_Ungroup_chassis_mode->string, "Q: IMU_Mode");
+            strcpy(ui_g_Ungroup_chassis_mode->string, "(Q) IMU_Mode");
             ui_g_Ungroup_chassis_mode->color = 2; //green
         } else {
-            strcpy(ui_g_Ungroup_chassis_mode->string, "Q: ECD_Mode");
+            strcpy(ui_g_Ungroup_chassis_mode->string, "(Q) ECD_Mode");
             ui_g_Ungroup_chassis_mode->color = 3; //orange
         }
         _ui_update_g_Ungroup_2();
@@ -106,6 +105,7 @@ uint8_t UI::Update() {
         _ui_update_g_Ungroup_7();
         update_num++;
         update_num++;
+        update_num++;
     }
 
 
@@ -120,7 +120,7 @@ uint8_t UI::Update() {
 
     // id 9 power_limit
     if (set_chassis_power_limit != set_chassis_power_limit_last || is_first_update) {
-        sprintf(ui_buf, "%d W", referee.chassis_power_limit);
+        sprintf(ui_buf, "%d W", set_chassis_power_limit);
         strcpy(ui_g_Ungroup_power_limit->string, ui_buf);
         _ui_update_g_Ungroup_9();
         update_num++;

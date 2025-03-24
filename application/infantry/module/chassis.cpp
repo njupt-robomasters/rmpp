@@ -1,7 +1,7 @@
 #include "chassis.hpp"
-#include <cmath>
 #include "bsp_can.h"
-#include "utils.hpp"
+
+using namespace Infantry;
 
 Chassis::Chassis(PID::param_t &wheel_pid_param, PID::param_t &speed_comp_pid_param)
     : m1(wheel_pid_param),
@@ -58,10 +58,13 @@ void Chassis::SetEnable(const bool is_enable) {
     m4.SetEnable(is_enable);
 
     if (is_enable) {
-        // 使能后清空PID
+        // 清空PID
         vx_comp_pid.Clear();
         vy_comp_pid.Clear();
     } else {
+        // 清空PID
+        vx_comp_pid.Clear();
+        vy_comp_pid.Clear();
         // 失能向电机发送0电流
         sendCurrentCmd();
     }
@@ -156,7 +159,7 @@ void Chassis::forwardCalc() {
     // 3. vxyzr -> 轮子线速度（运动学正解）
     // 前进方向为y轴正方向，右平移方向为x轴正方向，一 二 三 四 象限分别为 1 2 3 4 电机
     // 所有电机正转，底盘顺时针旋转（但规定逆时针为底盘旋转正方向）
-    constexpr float sqrt2div2 = sqrtf(2) / 2.0f;
+    const float sqrt2div2 = sqrtf(2) / 2.0f;
     ref.wheel.v1 = +sqrt2div2 * ref.chassis.vx - sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
     ref.wheel.v2 = +sqrt2div2 * ref.chassis.vx + sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
     ref.wheel.v3 = -sqrt2div2 * ref.chassis.vx + sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
@@ -191,7 +194,7 @@ void Chassis::inverseCalc() {
     measure.wheel.v4 = speed4.tps * WHEEL_PERIMETER;
 
     // 3. 轮子线速度 -> vxyzr
-    constexpr float sqrt2 = sqrtf(2);
+    const float sqrt2 = sqrtf(2);
     measure.chassis.vx = (+sqrt2 * measure.wheel.v1 + sqrt2 * measure.wheel.v2 - sqrt2 * measure.wheel.v3 - sqrt2 *
                           measure.wheel.v4) / 4.0f;
     measure.chassis.vy = (-sqrt2 * measure.wheel.v1 + sqrt2 * measure.wheel.v2 + sqrt2 * measure.wheel.v3 - sqrt2 *

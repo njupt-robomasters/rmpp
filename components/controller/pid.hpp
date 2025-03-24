@@ -1,25 +1,29 @@
 #pragma once
 
 #include <cstdint>
-#include <optional>
+#include <cmath>
 
 class PID {
 public:
+    static constexpr double ESP = 1e-10f;
+
     struct param_t {
         float kp = 0, ki = 0, kd = 0;
         float ff = 0; // 前馈
-        std::optional<float> i_limit = std::nullopt;
-        std::optional<float> max_out = std::nullopt;
+        float i_limit = 0, max_out = 0;
 
-        param_t &SetDefault() {
-            max_out = max_out.value_or(0); // max_out默认值为0
-            i_limit = max_out.value(); // i_limit默认值为max_out
+        param_t &SetDefaultILimit() {
+            if (fabsf(i_limit) < ESP) {
+                i_limit = max_out;
+            }
             return *this;
         }
 
-        param_t &SetMax(const float max) {
-            i_limit = i_limit.value_or(max);
-            max_out = max_out.value_or(max);
+        param_t &SetDefaultMax(const float max) {
+            if (fabsf(i_limit) < ESP)
+                i_limit = max;
+            if (fabsf(max_out) < ESP)
+                max_out = max;
             return *this;
         }
     };

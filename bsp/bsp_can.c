@@ -1,7 +1,8 @@
 #include "bsp_can.h"
 #include "can.h"
-#include "task_chassis.h"
-#include "task_gimbal.h"
+
+// 回调函数
+CAN_Callback_t can_callback = NULL;
 
 void BSP_CAN_Init() {
     CAN_FilterTypeDef can_filter_st;
@@ -40,14 +41,22 @@ void BSP_CAN_Transmit(const uint32_t id, uint8_t data[8], const uint8_t dlc) {
     HAL_CAN_AddTxMessage(&hcan1, &header, data, &send_mail_box);
 }
 
-void BSP_CAN_Rx_Callback(uint32_t id, uint8_t data[8]) {
-    task_chassis_callback(id, data);
-    task_gimbal_callback(id, data);
+void BSP_CAN_SetCallback(const CAN_Callback_t callback) {
+    can_callback = callback;
 }
+
+static void invokeCANCallback(const uint32_t id, uint8_t data[8]) {
+    if (can_callback != NULL) {
+        can_callback(id, data);
+    }
+}
+
+
+/********************* 以下为HAL库回调函数 ********************/
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
     CAN_RxHeaderTypeDef header;
     uint8_t data[8];
     HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &header, data);
-    BSP_CAN_Rx_Callback(header.StdId, data);
+    invokeCANCallback(header.StdId, data);
 }

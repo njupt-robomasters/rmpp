@@ -1,18 +1,19 @@
-#include "app_init.h"
-#include "cmsis_os.h"
+#include "app.hpp"
 
-#include "bsp_led.h"
-#include "bsp_dwt.h"
-#include "bsp_can.h"
-#include "bsp_uart.h"
-#include "bsp_cdc.h"
-#include "bsp_pwm.h"
+Settings settings;
+Status status;
+IMU imu(settings.imu_param);
+DJ6 dj6;
+REFEREE referee;
+UI ui;
+RV2 rv2;
+Chassis chassis(settings.wheel_pid, settings.speed_comp_pid);
+Gimbal gimbal(imu, settings.pitch_pid, settings.yaw_pid, settings.shoot_pid);
 
-#include "task_led.h"
-#include "task_chassis.h"
-#include "task_gimbal.h"
-#include "task_imu.h"
-#include "task_protocol.h"
+static void can_callback(const uint32_t id, uint8_t data[8]) {
+    task_chassis_callback(id, data);
+    task_gimbal_callback(id, data);
+}
 
 void app_init() {
     BSP_LED_Init();
@@ -21,6 +22,12 @@ void app_init() {
     BSP_UART_Init();
     BSP_CDC_Init();
     BSP_PWM_Init();
+
+    // 设置中断回调函数
+    BSP_CAN_SetCallback(can_callback);
+    BSP_UART_RC_SetCallback(task_protocol_rc_callback);
+    BSP_UART_RC_SetCallback(task_protocol_referee_callback);
+    BSP_CDC_SetCallback(task_protocol_cdc_callback);
 
     osThreadDef(task_led, task_led_entry, osPriorityIdle, 0, 128);
     osThreadCreate(osThread(task_led), NULL);

@@ -1,6 +1,9 @@
 #pragma once
 
 #ifdef __cplusplus
+
+#include "app.hpp"
+
 extern "C" {
 #endif
 

@@ -3,6 +3,8 @@
 #include "bsp_can.h"
 #include "bsp_pwm.h"
 
+using namespace Infantry;
+
 Gimbal::Gimbal(const IMU &imu, PID::param_t &pitch_pid, PID::param_t &yaw_pid, PID::param_t &shoot_pid) : imu(imu),
     m_pitch(pitch_pid),
     m_yaw(yaw_pid),
@@ -122,10 +124,6 @@ void Gimbal::SetYawSpeedFF(const Speed &yaw_speed_ff) {
     this->yaw_speed_ff = yaw_speed_ff;
 }
 
-void Gimbal::SetShootFreq(const float shoot_freq) {
-    this->shoot_freq = shoot_freq;
-}
-
 void Gimbal::SetPrepareShoot(const bool is_prepare_shoot) {
     this->is_prepare_shoot = is_prepare_shoot;
     if (is_prepare_shoot) {
@@ -136,11 +134,12 @@ void Gimbal::SetPrepareShoot(const bool is_prepare_shoot) {
     }
 }
 
-void Gimbal::SetShoot(const bool is_shoot) {
-    this->is_shoot = is_shoot;
+void Gimbal::SetShoot(const bool is_shoot, const float shoot_freq) {
     if (is_shoot && is_prepare_shoot) {
+        m_shoot.SetEnable(true);
         ref.shoot.freq = shoot_freq;
     } else {
+        m_shoot.SetEnable(false);
         ref.shoot.freq = 0;
     }
 }

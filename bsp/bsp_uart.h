@@ -6,17 +6,15 @@
 extern "C" {
 #endif
 
+typedef void (*UART_Callback_t)(const uint8_t *data, uint16_t size);
+
 void BSP_UART_Init();
-
-void BSP_UART_RC_Rx_Callback(const uint8_t *data, uint16_t size);
-
-void BSP_UART_Referee_Rx_Callback(const uint8_t *data, uint16_t size);
-
-void BSP_UART_Referee_Video_Rx_Callback(const uint8_t *data, uint16_t size);
 
 void BSP_UART_Referee_Video_Transmit(const uint8_t *data,  uint16_t size);
 
-uint8_t BSP_UART_Referee_Video_CheckIdle();
+void BSP_UART_RC_SetCallback(UART_Callback_t callback);
+
+void BSP_UART_Referee_SetCallback(UART_Callback_t callback);
 
 #ifdef __cplusplus
 }
