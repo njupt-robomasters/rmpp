@@ -7,6 +7,7 @@ DJ6 dj6;
 Referee referee;
 UI ui;
 RV2 rv2;
+NAV nav;
 Chassis chassis(settings.wheel_pid, settings.speed_comp_pid);
 Gimbal gimbal(imu, settings.pitch_pid, settings.yaw_pid, settings.shoot_pid);
 
