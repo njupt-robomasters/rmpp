@@ -53,6 +53,8 @@ include_directories(${includes}
     application/sentry
     components
     components/controller
+    components/device
+    components/module
     components/motor
     components/protocol
     components/unit

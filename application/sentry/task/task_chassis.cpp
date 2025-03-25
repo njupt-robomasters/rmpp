@@ -15,13 +15,13 @@ static float dt;
             continue;;
         }
 
+        // 解析遥控器控制
         const float vx = dj6.x * settings.chassis_vxy_max;
         const float vy = dj6.y * settings.chassis_vxy_max;
         const float vr_rpm = -dj6.yaw * settings.chassis_vr_rpm;
 
         chassis.SetEnable(true);
-        chassis.SetPowerLimit(120);
-        // chassis.SetPowerLimit(referee.chassis_power_limit);
+        chassis.SetPowerLimit(referee.chassis_power_limit); // 底盘功率限制
         chassis.SetSpeed(vx, vy, vr_rpm);
 
         chassis.Update();

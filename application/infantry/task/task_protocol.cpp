@@ -1,15 +1,6 @@
 #include "task_protocol.h"
 #include "../app.hpp"
 
-[[noreturn]] void task_protocol_rv2_entry(void const *argument) {
-    while (true) {
-        rv2.SendIMUData(imu.roll, imu.pitch, imu.yaw);
-        rv2.SendRefereeData(referee.team_is_red, referee.shooter_bullet_speed);
-
-        osDelay(10);
-    }
-}
-
 [[noreturn]] void task_protocol_ui_entry(void const *argument) {
     uint32_t cnt = 0;
     while (true) {
@@ -37,6 +28,15 @@
         ui.Update();
 
         osDelay(100);
+    }
+}
+
+[[noreturn]] void task_protocol_rv2_entry(void const *argument) {
+    while (true) {
+        rv2.SendIMUData(imu.roll, imu.pitch, imu.yaw);
+        rv2.SendRefereeData(referee.team_is_red, referee.shooter_bullet_speed);
+
+        osDelay(10);
     }
 }
 

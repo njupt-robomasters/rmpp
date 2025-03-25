@@ -9,7 +9,7 @@ public:
     uint16_t robot_hp = 0; // 车血量
     uint8_t competition_is_started = 0; // 0表示比赛未开始，1表示比赛开始
     float chassis_power_now = 0; // 车底盘实时功率
-    uint16_t chassis_power_limit = 0; // 底盘功率上限
+    uint16_t chassis_power_limit = 120; // 底盘功率上限
     uint16_t chassis_buffer_energy = 0; // 底盘缓冲能量
     uint16_t shooter_17mm_heat = 0; // 17mm枪口热量
     uint16_t shooter_42mm_heat = 0; // 42mm枪口热量

@@ -7,15 +7,14 @@
 #include "bsp_led.h"
 #include "bsp_dwt.h"
 #include "bsp_can.h"
+#include "bsp_pwm.h"
 #include "bsp_uart.h"
 #include "bsp_cdc.h"
-#include "bsp_pwm.h"
 
 #include "dj6.hpp"
+#include "chassis_steer.hpp"
 #include "referee.hpp"
 #include "nav.hpp"
-
-#include "module/chassis.hpp"
 
 #include "task/task_led.h"
 #include "task/task_chassis.h"
@@ -33,6 +32,6 @@ public:
 
 extern Settings settings;
 extern DJ6 dj6;
-extern Chassis chassis;
+extern ChassisSteer chassis;
 extern Referee referee;
 extern NAV nav;

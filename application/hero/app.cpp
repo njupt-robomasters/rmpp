@@ -2,13 +2,12 @@
 
 Settings settings;
 Status status;
-IMU imu(settings.imu_param);
 DJ6 dj6;
+Chassis4Wheel chassis(Chassis4Wheel::MECANUM, settings.wheel_pid);
+IMU imu(settings.imu_param);
+Gimbal gimbal(imu, settings.pitch_pid, settings.yaw_pid, settings.shoot_pid);
 Referee referee;
 UI ui;
-Chassis chassis(settings.wheel_pid, settings.speed_comp_pid);
-Gimbal gimbal(imu, settings.pitch_pid, settings.yaw_pid, settings.shoot_pid);
-DM4310 dm4310(2, settings.shoot_pid);
 
 static void can_callback(const uint32_t id, uint8_t data[8]) {
     task_chassis_callback(id, data);
@@ -19,8 +18,8 @@ void app_init() {
     BSP_LED_Init();
     BSP_DWT_Init();
     BSP_CAN_Init();
-    BSP_UART_Init();
     BSP_PWM_Init();
+    BSP_UART_Init();
 
     // 设置中断回调函数
     BSP_CAN_SetCallback(can_callback);
@@ -33,11 +32,11 @@ void app_init() {
     osThreadDef(task_chassis, task_chassis_entry, osPriorityHigh, 0, 128);
     osThreadCreate(osThread(task_chassis), NULL);
 
-    osThreadDef(task_gimbal, task_gimbal_entry, osPriorityHigh, 0, 128);
-    osThreadCreate(osThread(task_gimbal), NULL);
-
     osThreadDef(task_imu, task_imu_entry, osPriorityNormal, 0, 128);
     osThreadCreate(osThread(task_imu), NULL);
+
+    osThreadDef(task_gimbal, task_gimbal_entry, osPriorityHigh, 0, 128);
+    osThreadCreate(osThread(task_gimbal), NULL);
 
     osThreadDef(task_protocol_ui, task_protocol_ui_entry, osPriorityNormal, 0, 128);
     osThreadCreate(osThread(task_protocol_ui), NULL);

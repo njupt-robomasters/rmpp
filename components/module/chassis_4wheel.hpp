@@ -4,8 +4,13 @@
 #include "pid.hpp"
 #include "unit.hpp"
 
-class Chassis {
+class Chassis4Wheel {
 public:
+    enum chassis_type_e {
+        OMNI, // 全向轮
+        MECANUM // 麦克纳姆轮
+    };
+
     struct {
         // vx 左右平移速度【单位：m/s】
         // vy 前进后退速度【单位：m/s】
@@ -14,7 +19,7 @@ public:
         struct {
             float vx = 0, vy = 0, vz = 0;
             Speed vr{};
-        } gimbal, correct, chassis;
+        } gimbal, chassis;
 
         // 轮子速度【单位：m/s】
         struct {
@@ -22,7 +27,7 @@ public:
         } wheel;
     } ref{}, measure{};
 
-    Chassis(PID::param_t &wheel_pid_param, PID::param_t &speed_comp_pid_param);
+    explicit Chassis4Wheel(chassis_type_e chassis_type, PID::param_t &wheel_pid_param);
 
     void ParseCAN(uint32_t id, uint8_t data[8]);
 
@@ -49,6 +54,8 @@ private:
     static constexpr float WHEEL_PERIMETER = 2 * static_cast<float>(M_PI) * WHEEL_RADIUS; // 轮子周长【单位：m】
     static constexpr float CHASSIS_PERIMETER = 2 * static_cast<float>(M_PI) * CHASSIS_RADIUS; // 底盘周长【单位：m】
 
+    chassis_type_e chassis_type;
+
     // 底盘使能标志
     bool is_enable = false;
 
@@ -57,10 +64,6 @@ private:
 
     // 电机对象
     M3508 m1, m2, m3, m4;
-
-    // 速度补偿
-    float vx_comp = 0, vy_comp = 0;
-    PID vx_comp_pid, vy_comp_pid;
 
     // 底盘功率控制
     float power_estimate = 0; // 当前功率估计
@@ -76,5 +79,5 @@ private:
 
     void inverseCalc();
 
-    void sendCurrentCmd();
+    void sendCurrentCmd() const;
 };

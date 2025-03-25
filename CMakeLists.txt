@@ -54,6 +54,8 @@ include_directories(Core/Inc Drivers/STM32F4xx_HAL_Driver/Inc Drivers/STM32F4xx_
     application/sentry
     components
     components/controller
+    components/device
+    components/module
     components/motor
     components/protocol
     components/unit
