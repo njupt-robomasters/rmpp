@@ -29,13 +29,15 @@ class Settings {
 public:
     // 底盘
     PID::param_t wheel_pid = {.kp = 10000.0f, .ki = 50.0f};
+    float wheel_radius = 0.063f; // 轮子半径【单位：m】
+    float chassis_radius = 0.225f; // 底盘半径【单位：m】
 
     // 云台
     float pitch_aps_max = 60.0f; // 【单位：度/s】
     float yaw_aps_max = 180.0f; // 【单位：度/s】
-    const float mouse_x_max = 300.0f;
-    const float mouse_y_max = 300.0f;
-    const IMU::param_t imu_param = {.yaw = 0, .pitch = 0, .roll = 180};
+    float mouse_x_max = 300.0f;
+    float mouse_y_max = 300.0f;
+    IMU::param_t imu_param = {.yaw = 0, .pitch = 0, .roll = 180};
     PID::param_t pitch_pid = {.kp = 1.0f, .kd = 0.014f}; // pitch
     PID::param_t yaw_pid = {.kp = 0.7f, .kd = 0.012f}; // yaw
     PID::param_t shoot_pid = {.kp = 10, .ki = 40, .i_limit = 5, .max_out = 10}; // shoot
@@ -44,9 +46,9 @@ public:
 class Status {
 public:
     // 底盘
-    float chassis_vxy_max = 2.0f; // 前后左右平移速度【单位：m/s】
-    float chassis_avy = 0.5f; // 平移方向加速度【单位：m/s^2】
-    float chassis_vr_rpm = 10.0f; // 旋转角速度【单位：rpm】
+    float chassis_vxy_max = 2.0f; // 移动最大速度【单位：m/s】
+    float chassis_avy = 1.0f; // 移动加速度【单位：m/s^2】
+    float chassis_vr_rpm = 60.0f; // 小陀螺旋转速度【单位：rpm】
 
     // 云台
     Gimbal::mode_e gimbal_mode = Gimbal::IMU_MODE;

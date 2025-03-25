@@ -1,13 +1,17 @@
 #include "chassis_4wheel.hpp"
-
 #include "app.hpp"
 #include "bsp_can.h"
 
-Chassis4Wheel::Chassis4Wheel(const chassis_type_e chassis_type, PID::param_t &wheel_pid_param): chassis_type(chassis_type),
-    m1(wheel_pid_param),
-    m2(wheel_pid_param),
-    m3(wheel_pid_param),
-    m4(wheel_pid_param) {
+Chassis4Wheel::Chassis4Wheel(const chassis_type_e chassis_type, const float wheel_radius, const float chassis_radius,
+                             PID::param_t &wheel_pid_param): chassis_type(chassis_type),
+                                                             wheel_radius(wheel_radius),
+                                                             chassis_radius(chassis_radius),
+                                                             m1(wheel_pid_param),
+                                                             m2(wheel_pid_param),
+                                                             m3(wheel_pid_param),
+                                                             m4(wheel_pid_param) {
+    wheel_perimeter = 2 * PI * wheel_radius;
+    chassis_perimeter = 4 * PI * wheel_radius;
 }
 
 void Chassis4Wheel::ParseCAN(const uint32_t id, uint8_t data[8]) {
@@ -127,7 +131,7 @@ void Chassis4Wheel::calcCurrentRatio() {
 
 // 运动学正解
 void Chassis4Wheel::forwardCalc() {
-    ref.gimbal.vz = ref.gimbal.vr.tps * CHASSIS_PERIMETER; // 底盘旋转角速度【圈/s】 -> 底盘旋转线速度【m/s】
+    ref.gimbal.vz = ref.gimbal.vr.tps * chassis_perimeter; // 底盘旋转角速度【圈/s】 -> 底盘旋转线速度【m/s】
 
     // 1. vxyzr 云台坐标系->底盘坐标系
     // 注意这里是换参考系，而非旋转速度矢量，速度矢量相对于绝对参考系是不会发生变化的，所以旋转角度为：云台相对于底盘的角度
@@ -150,10 +154,10 @@ void Chassis4Wheel::forwardCalc() {
 
     // 3. 轮子线速度 -> 轮子角速度
     Speed speed1, speed2, speed3, speed4;
-    speed1.tps = ref.wheel.v1 / WHEEL_PERIMETER;
-    speed2.tps = ref.wheel.v2 / WHEEL_PERIMETER;
-    speed3.tps = ref.wheel.v3 / WHEEL_PERIMETER;
-    speed4.tps = ref.wheel.v4 / WHEEL_PERIMETER;
+    speed1.tps = ref.wheel.v1 / wheel_perimeter;
+    speed2.tps = ref.wheel.v2 / wheel_perimeter;
+    speed3.tps = ref.wheel.v3 / wheel_perimeter;
+    speed4.tps = ref.wheel.v4 / wheel_perimeter;
 
     // 4. 设置电机转速
     m1.SetSpeed(speed1);
@@ -171,10 +175,10 @@ void Chassis4Wheel::inverseCalc() {
     const Speed speed4 = m4.measure.speed;
 
     // 2. 轮子角速度 -> 轮子线速度
-    measure.wheel.v1 = speed1.tps * WHEEL_PERIMETER;
-    measure.wheel.v2 = speed2.tps * WHEEL_PERIMETER;
-    measure.wheel.v3 = speed3.tps * WHEEL_PERIMETER;
-    measure.wheel.v4 = speed4.tps * WHEEL_PERIMETER;
+    measure.wheel.v1 = speed1.tps * wheel_perimeter;
+    measure.wheel.v2 = speed2.tps * wheel_perimeter;
+    measure.wheel.v3 = speed3.tps * wheel_perimeter;
+    measure.wheel.v4 = speed4.tps * wheel_perimeter;
 
     // 3. 轮子线速度 -> vxyzr
     const float sqrt2 = sqrtf(2);
@@ -188,7 +192,7 @@ void Chassis4Wheel::inverseCalc() {
     } else if (chassis_type == MECANUM) {
         // 麦克纳姆轮
     }
-    measure.chassis.vr.tps = measure.chassis.vz / CHASSIS_PERIMETER; // 底盘旋转线速度【m/s】 -> 底盘旋转角速度【圈/s】
+    measure.chassis.vr.tps = measure.chassis.vz / chassis_perimeter; // 底盘旋转线速度【m/s】 -> 底盘旋转角速度【圈/s】
 
     // 4. vxyzr 底盘坐标系->云台坐标系
     std::tie(measure.gimbal.vx, measure.gimbal.vy) = rotate(measure.chassis.vx, measure.chassis.vy,

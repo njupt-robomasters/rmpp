@@ -27,7 +27,8 @@ public:
         } wheel;
     } ref{}, measure{};
 
-    explicit Chassis4Wheel(chassis_type_e chassis_type, PID::param_t &wheel_pid_param);
+    explicit Chassis4Wheel(chassis_type_e chassis_type, float wheel_radius, float chassis_radius,
+                           PID::param_t &wheel_pid_param);
 
     void ParseCAN(uint32_t id, uint8_t data[8]);
 
@@ -46,15 +47,9 @@ public:
     void Update();
 
 private:
-    // 底盘结构参数
-    static constexpr float WHEEL_RADIUS = 0.063f; // 轮子半径【单位：m】
-    static constexpr float CHASSIS_RADIUS = 0.225f; // 底盘半径【单位：m】
-
-    // 底盘结构参数（自动计算）
-    static constexpr float WHEEL_PERIMETER = 2 * static_cast<float>(M_PI) * WHEEL_RADIUS; // 轮子周长【单位：m】
-    static constexpr float CHASSIS_PERIMETER = 2 * static_cast<float>(M_PI) * CHASSIS_RADIUS; // 底盘周长【单位：m】
-
     chassis_type_e chassis_type;
+    float wheel_radius, chassis_radius;
+    float wheel_perimeter, chassis_perimeter;
 
     // 底盘使能标志
     bool is_enable = false;
