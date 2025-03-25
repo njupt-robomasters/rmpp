@@ -6,6 +6,63 @@ static float dt;
 
 static float vx_keyboard = 0, vy_keyboard = 0;
 
+
+// 解析遥控器操作
+static void handle_rc() {
+    status.chassis.rc.vx = dj6.x * status.chassis.vxy_max;
+    status.chassis.rc.vy = dj6.y * status.chassis.vxy_max;
+
+    // 解析遥控器
+    if (dj6.right_switch == DJ6::UP or dj6.right_switch == DJ6::MID) {
+        // UP，MID：小陀螺关闭
+        status.chassis.vr_rpm = 0;
+    } else {
+        // DOWM：小陀螺开启
+        status.chassis.vr_rpm = 30;
+    }
+}
+
+// 解析键盘操作
+static void handle_video() {
+    // 解析键盘操作
+    if (referee.shift) {
+        // 最大加速度模式
+        // 前进后退
+        if (referee.w) {
+            status.chassis.video.vy = status.chassis.vxy_max;
+        } else if (referee.s) {
+            status.chassis.video.vy = -status.chassis.vxy_max;
+        } else {
+            status.chassis.video.vy = 0;
+        }
+        // 左右平移
+        if (referee.a) {
+            status.chassis.video.vx = -status.chassis.vxy_max;
+        } else if (referee.d) {
+            status.chassis.video.vx = status.chassis.vxy_max;
+        } else {
+            status.chassis.video.vx = 0;
+        }
+    } else {
+        // 前进后退
+        if (referee.w) {
+            status.chassis.video.vy += status.chassis.avy * dt;
+        } else if (referee.s) {
+            status.chassis.video.vy -= status.chassis.avy * dt;
+        } else {
+            status.chassis.video.vy = 0;
+        }
+        // 左右平移
+        if (referee.a) {
+            status.chassis.video.vx -= status.chassis.avy * dt;
+        } else if (referee.d) {
+            status.chassis.video.vx += status.chassis.avy * dt;
+        } else {
+            status.chassis.video.vx = 0;
+        }
+    }
+}
+
 [[noreturn]] void task_chassis_entry(void const *argument) {
     imu.WaitReady();
 
@@ -19,48 +76,15 @@ static float vx_keyboard = 0, vy_keyboard = 0;
             continue;;
         }
 
-        float vx = 0, vy = 0, vr_rpm = 0;
-
-        vx = dj6.x * status.chassis_vxy_max;
-        vy = dj6.y * status.chassis_vxy_max;
-
-        // 解析遥控器
-        if (dj6.right_switch == DJ6::UP or dj6.right_switch == DJ6::MID) {
-            // UP，MID：小陀螺关闭
-            vr_rpm = 0;
-        } else {
-            // DOWM：小陀螺开启
-            vr_rpm = status.chassis_vr_rpm;
-        }
-
-        // 解析键盘操作
-        if (referee.keyboard_value & (1<<0)) { // W
-            vy_keyboard += status.chassis_avy * dt;
-        } else if (referee.keyboard_value & (1<<1)) { // S
-            vy_keyboard -= status.chassis_avy * dt;
-        } else {
-            vy_keyboard = 0;
-        }
-        if (referee.keyboard_value & (1<<2)) { // A
-            vx_keyboard -= status.chassis_avy * dt;
-        } else if (referee.keyboard_value & (1<<3)) { // D
-            vx_keyboard += status.chassis_avy * dt;
-        } else {
-            vx_keyboard = 0;
-        }
-
         // 合并遥控器和键盘控制
-        vx += vx_keyboard;
-        vx = clamp(vx, status.chassis_vxy_max);
-        vy += vy_keyboard;
-        vy = clamp(vy, status.chassis_vxy_max);
+        const float vx = clamp(status.chassis.rc.vx + status.chassis.video.vx, status.chassis.vxy_max);
+        const float vy = clamp(status.chassis.rc.vy + status.chassis.video.vy, status.chassis.vxy_max);
 
+        // 控制底盘
         chassis.SetEnable(true);
-        chassis.SetPowerLimit(60);
-        // chassis.SetPowerLimit(referee.chassis_power_limit);
-        chassis.SetGimbalAngle_RefByChassis(gimbal.measure.yaw.relative);
-        chassis.SetSpeed(vx, vy, vr_rpm);
-
+        chassis.SetGimbalAngle_RefByChassis(gimbal.measure.yaw.relative); // 使能
+        chassis.SetPowerLimit(referee.chassis_power_limit); // 功率控制
+        chassis.SetSpeed(vx, vy, status.chassis.vr_rpm); // 设置速度
 
         chassis.Update();
         osDelay(1);

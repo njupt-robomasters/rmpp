@@ -5,6 +5,7 @@
 class DJ6 {
 public:
     typedef enum {
+        ERR,
         DOWN,
         MID,
         UP
@@ -13,8 +14,8 @@ public:
     bool is_connected = false;
     float x = 0, y = 0;
     float pitch = 0, yaw = 0;
-    switch_t left_switch = DOWN;
-    switch_t right_switch = DOWN;
+    switch_t left_switch = ERR;
+    switch_t right_switch = ERR;
 
     void ParseData(const uint8_t *data, uint16_t size);
 

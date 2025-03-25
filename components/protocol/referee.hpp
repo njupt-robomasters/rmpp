@@ -19,7 +19,7 @@ public:
     uint16_t shooter_projectile_allowance_42mm = 0; // 42mm允许发弹量
     uint16_t shooter_launching_frequency = 0; // 弹丸射速
     float shooter_bullet_speed = 0; // 弹丸初速度
-    uint8_t power_shooter = 0; //发射机构是否上电
+    uint8_t power_shooter = 0; // 发射机构是否上电
     uint8_t power_chassis = 0; // 底盘是否上电
     uint8_t power_gimbal = 0; // 云台是否上电
 
@@ -28,6 +28,11 @@ public:
     int8_t mouse_left_button_down = 0;
     int8_t mouse_right_button_down = 0;
     uint16_t keyboard_value = 0;
+    bool w = false, s = false, a = false, d = false;
+    bool shift = false, ctrl = false;
+    bool q = false, e = false, r = false;
+    bool f  = false, g = false;
+    bool z = false, x = false, c = false, v = false, b = false;
 
     // 中心增益点占领情况
     uint8_t center_gain_status = 0; // 0没有人占领，1己方，2地方占领，3都占领
