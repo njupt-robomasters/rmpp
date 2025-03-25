@@ -5,6 +5,8 @@
 #include "bsp_dwt.h"
 #include <math.h>
 
+#include "cmsis_os.h"
+
 float BMI088_ACCEL_SEN = BMI088_ACCEL_6G_SEN;
 float BMI088_GYRO_SEN = BMI088_GYRO_2000_SEN;
 
@@ -110,8 +112,35 @@ static void BMI088_read_muli_reg(uint8_t reg, uint8_t *buf, uint8_t len) {
     }
 }
 
+void BMI088_Init(SPI_HandleTypeDef *bmi088_SPI) {
+    BMI088_SPI = bmi088_SPI;
+    while (bmi088_accel_init() != BMI088_NO_ERROR) {
+        osDelay(1);
+    }
+    while (bmi088_gyro_init() != BMI088_NO_ERROR) {
+        osDelay(1);
+    }
+    BMI088.GyroOffset[0] = 0;
+    BMI088.GyroOffset[1] = 0;
+    BMI088.GyroOffset[2] = 0;
+    BMI088.gNorm = 1;
+    BMI088.AccelScale = 9.81f / BMI088.gNorm;
+    BMI088.TempWhenCali = 40;
+}
+
+void BMI088_SetCalibrateParam(float GxOFFSET, float GyOFFSET, float GzOFFSET, float gNORM) {
+    BMI088.GyroOffset[0] = GxOFFSET;
+    BMI088.GyroOffset[1] = GyOFFSET;
+    BMI088.GyroOffset[2] = GzOFFSET;
+    BMI088.gNorm = gNORM;
+    BMI088.AccelScale = 9.81f / BMI088.gNorm;
+    BMI088.TempWhenCali = 40;
+}
+
 // 较准零飘
-void Calibrate_MPU_Offset(IMU_Data_t *bmi088) {
+void BMI088_Calibrate() {
+    IMU_Data_t *bmi088 = &BMI088;
+
     static float startTime;
     static uint16_t CaliTimes = 6000; // 需要足够多的数据才能得到有效陀螺仪零偏校准结果
     uint8_t buf[8] = {0, 0, 0, 0, 0, 0};
@@ -123,10 +152,10 @@ void Calibrate_MPU_Offset(IMU_Data_t *bmi088) {
     do {
         if (BSP_DWT_GetTime_second() - startTime > 10) {
             // 校准超时
-            bmi088->GyroOffset[0] = GxOFFSET;
-            bmi088->GyroOffset[1] = GyOFFSET;
-            bmi088->GyroOffset[2] = GzOFFSET;
-            bmi088->gNorm = gNORM;
+            bmi088->GyroOffset[0] = 0;
+            bmi088->GyroOffset[1] = 0;
+            bmi088->GyroOffset[2] = 0;
+            bmi088->gNorm = 1;
             bmi088->TempWhenCali = 40;
             break;
         }
@@ -220,31 +249,6 @@ void Calibrate_MPU_Offset(IMU_Data_t *bmi088) {
 
     // 根据标定结果校准加速度计标度因数
     bmi088->AccelScale = 9.81f / bmi088->gNorm;
-}
-
-
-void BMI088_Init(SPI_HandleTypeDef *bmi088_SPI, uint8_t calibrate) {
-    while (BMI088_init(bmi088_SPI, calibrate));
-}
-
-uint8_t BMI088_init(SPI_HandleTypeDef *bmi088_SPI, uint8_t calibrate) {
-    BMI088_SPI = bmi088_SPI;
-    error = BMI088_NO_ERROR;
-
-    error |= bmi088_accel_init();
-    error |= bmi088_gyro_init();
-    if (calibrate)
-        Calibrate_MPU_Offset(&BMI088);
-    else {
-        BMI088.GyroOffset[0] = GxOFFSET;
-        BMI088.GyroOffset[1] = GyOFFSET;
-        BMI088.GyroOffset[2] = GzOFFSET;
-        BMI088.gNorm = gNORM;
-        BMI088.AccelScale = 9.81f / BMI088.gNorm;
-        BMI088.TempWhenCali = 40;
-    }
-
-    return error;
 }
 
 uint8_t bmi088_accel_init(void) {

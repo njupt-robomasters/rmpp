@@ -1,108 +1,125 @@
 #include "task_chassis.h"
 #include "../app.hpp"
+#include "main.h"
 
 static uint32_t dwt_cnt;
 static float dt;
 
-static float vx_keyboard = 0, vy_keyboard = 0;
-static uint8_t q_pressed = 0, e_pressed = 0,f_pressed = 0, r_pressed = 0;
-static uint16_t r_count = 0;
+static DJ6::switch_t last_right_switch = DJ6::ERR;
+static bool last_q = false, last_e = false, last_z = false, last_c = false;
+static int r_count = 0, vb_count = 0;
 
 // 解析遥控器操作
 static void handle_rc() {
-    status.chassis.rc.vx = dj6.x * status.chassis.vxy_max;
-    status.chassis.rc.vy = dj6.y * status.chassis.vxy_max;
+    status.chassis.rc.vx = dj6.x * status.chassis.vxy_limit;
+    status.chassis.rc.vy = dj6.y * status.chassis.vxy_limit;
 
     // 解析遥控器
-    if (dj6.right_switch == DJ6::UP or dj6.right_switch == DJ6::MID) {
-        // UP，MID：小陀螺关闭
-        status.chassis.is_turning = 0;
-    } else {
-        // DOWN：小陀螺开启
-        status.chassis.is_turning = 1;
+    if (dj6.right_switch != last_right_switch) {
+        last_right_switch = dj6.right_switch;
+        if (dj6.right_switch == DJ6::UP or dj6.right_switch == DJ6::MID) {
+            // UP，MID：小陀螺关闭
+            status.chassis.rpm = 0;
+        } else {
+            // DOWN：小陀螺开启
+            status.chassis.rpm = 60; // 60rpm测试小陀螺
+        }
     }
 }
 
 // 解析键盘操作
 static void handle_video() {
-    // 解析键盘操作
+    // shfit+aswd
     if (referee.shift) {
         // 最大加速度模式
         // 前进后退
         if (referee.w) {
-            status.chassis.video.vy = status.chassis.vxy_max;
+            status.chassis.video.vy = status.chassis.vxy_limit;
         } else if (referee.s) {
-            status.chassis.video.vy = -status.chassis.vxy_max;
+            status.chassis.video.vy = -status.chassis.vxy_limit;
         } else {
             status.chassis.video.vy = 0;
         }
         // 左右平移
         if (referee.a) {
-            status.chassis.video.vx = -status.chassis.vxy_max;
+            status.chassis.video.vx = -status.chassis.vxy_limit;
         } else if (referee.d) {
-            status.chassis.video.vx = status.chassis.vxy_max;
+            status.chassis.video.vx = status.chassis.vxy_limit;
         } else {
             status.chassis.video.vx = 0;
         }
     } else {
         // 前进后退
         if (referee.w) {
-            status.chassis.video.vy += status.chassis.avy * dt;
+            status.chassis.video.vy += settings.axy * dt;
         } else if (referee.s) {
-            status.chassis.video.vy -= status.chassis.avy * dt;
+            status.chassis.video.vy -= settings.axy * dt;
         } else {
             status.chassis.video.vy = 0;
         }
         // 左右平移
         if (referee.a) {
-            status.chassis.video.vx -= status.chassis.avy * dt;
+            status.chassis.video.vx -= settings.axy * dt;
         } else if (referee.d) {
-            status.chassis.video.vx += status.chassis.avy * dt;
+            status.chassis.video.vx += settings.axy * dt;
         } else {
             status.chassis.video.vx = 0;
         }
     }
-    //按下e增加rpm
-    if(referee.e){
-        if(e_pressed==0){
-            e_pressed = 1;
-            if(status.chassis.vr_rpm<100)
-                status.chassis.vr_rpm+=20;
+
+    // E增加小陀螺转速
+    if (referee.e != last_e) {
+        last_e = referee.e;
+        if (referee.e) {
+            status.chassis.rpm += settings.rpm_per_press;
+            status.chassis.rpm = clamp(status.chassis.rpm, 0, settings.rpm_max);
         }
     }
-    else
-        e_pressed = 0;
 
-    //按下q减少rpm
-    if(referee.q){
-        if(q_pressed==0){
-            q_pressed = 1;
-            if(status.chassis.vr_rpm>20)
-                status.chassis.vr_rpm-=20;
+    // Q减少小陀螺转速
+    if (referee.q != last_q) {
+        last_q = referee.q;
+        if (referee.q) {
+            status.chassis.rpm -= settings.rpm_per_press;
+            status.chassis.rpm = clamp(status.chassis.rpm, 0, settings.rpm_max);
         }
     }
-    else
-        q_pressed = 0;
 
-    //F开启小陀螺
-    if(referee.f){
-        if(f_pressed==0){
-            f_pressed = 1;
-            status.chassis.is_turning = !status.chassis.is_turning;//开启或者关闭小陀螺
+    // C增大移动速度
+    if (referee.c != last_c) {
+        last_c = referee.c;
+        if (referee.c) {
+            status.chassis.vxy_limit += settings.vxy_per_press;
+            status.chassis.vxy_limit = clamp(status.chassis.vxy_limit, 0, settings.vxy_max);
         }
     }
-    else
-        f_pressed = 0;
 
-    //R强制使用键盘，忽略一切遥控器信号
-    if(referee.r){
+    // Z减少移动速度
+    if (referee.z != last_z) {
+        last_z = referee.z;
+        if (referee.z) {
+            status.chassis.vxy_limit -= settings.vxy_per_press;
+            status.chassis.vxy_limit = clamp(status.chassis.vxy_limit, 0, settings.vxy_max);
+        }
+    }
+
+    // R强制使用键盘，忽略遥控器断连
+    if (referee.r) {
         r_count++;
-        if(r_count>3000)//按住三秒
-            status.is_force_keyboard = 1;
-    }
-    else
+        if (r_count > 3000) // 按住三秒
+            status.ignore_rc_disconnect = true;
+    } else {
         r_count = 0;
+    }
 
+    // // 同时按VB三秒重启C板
+    // if (referee.v && referee.b) {
+    //     vb_count++;
+    //     if (vb_count > 3000) // 按住三秒
+    //         NVIC_SystemReset();
+    // } else {
+    //     vb_count = 0;
+    // }
 }
 
 [[noreturn]] void task_chassis_entry(void const *argument) {
@@ -111,24 +128,30 @@ static void handle_video() {
     while (true) {
         dt = BSP_DWT_GetDeltaT(&dwt_cnt);
 
+        handle_rc();
+        handle_video();
+
         // 检查遥控器连接,以及是否强制启用键盘
-        if (dj6.is_connected == false && !status.is_force_keyboard) {
+        if (dj6.is_connected == false && !status.ignore_rc_disconnect) {
             chassis.SetEnable(false); // 底盘失能，关闭电机输出
             osDelay(1);
             continue;
         }
-        // 合并遥控器和键盘控制
-        handle_rc();
-        handle_video();
 
-        const float vx = clamp(status.chassis.rc.vx + status.chassis.video.vx, status.chassis.vxy_max);
-        const float vy = clamp(status.chassis.rc.vy + status.chassis.video.vy, status.chassis.vxy_max);
+        // 合并遥控器和键盘控制
+        const float vx = clamp(status.chassis.rc.vx + status.chassis.video.vx, status.chassis.vxy_limit);
+        const float vy = clamp(status.chassis.rc.vy + status.chassis.video.vy, status.chassis.vxy_limit);
 
         // 控制底盘
-        chassis.SetEnable(true);
-        chassis.SetGimbalAngle_RefByChassis(gimbal.measure.yaw.relative); // 使能
-        chassis.SetPowerLimit(referee.chassis_power_limit); // 功率控制
-        chassis.SetSpeed(vx, vy, status.chassis.is_turning?status.chassis.vr_rpm:0); // 根据小陀螺状态设置
+        chassis.SetEnable(true); // 使能
+        chassis.SetGimbalAngle_RefByChassis(gimbal.measure.yaw.relative);
+        if (superCapacity.isLowEnergy()) {
+            chassis.SetPowerLimit(referee.chassis_power_limit); // 主动功率控制
+        } else {
+            chassis.SetPowerLimit(200);
+        }
+        chassis.SetSpeed(vx, vy, status.chassis.rpm);
+        superCapacity.SendPowerLimit(referee.chassis_power_limit - 5);
 
         chassis.Update();
         osDelay(1);
@@ -137,4 +160,5 @@ static void handle_video() {
 
 void task_chassis_callback(const uint32_t id, uint8_t data[8]) {
     chassis.ParseCAN(id, data);
+    superCapacity.ParseCAN(id, data);
 }

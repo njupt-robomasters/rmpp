@@ -13,12 +13,17 @@ public:
         uint8_t flag = 1;
     };
 
+    struct calib_t {
+        float GxOFFSET = 0, GyOFFSET = 0, GzOFFSET = 0;
+        float gNORM = 1;
+    };
+
     float roll = 0;
     float pitch = 0;
     float yaw = 0;
     float yaw_total_angle = 0;
 
-    explicit IMU(const param_t &param);
+    IMU(const param_t &param, const calib_t &calib);
 
     void Init();
 
@@ -43,6 +48,7 @@ private:
     bool is_ready = false;
 
     param_t param;
+    calib_t calib;
 
     // IMU原始数据
     float gyro[3]{}; // 角速度

@@ -14,8 +14,10 @@
         ui.set_chassis_power_limit = referee.chassis_power_limit;
 
         // 底盘
-        ui.set_chassis_max_speed = status.chassis.vxy_max;
-        ui.set_chassis_vr = status.chassis.vr_rpm;
+        ui.set_chassis_max_speed = status.chassis.vxy_limit;
+        ui.set_chassis_vr = status.chassis.vxy_limit;
+        ui.set_super_cap_percent = superCapacity.percentage;
+
         // 云台
         ui.set_gimbal_is_imu_mode = (status.gimbal.mode == Gimbal::IMU_MODE);
         ui.set_shooter_is_on = status.gimbal.is_prepare_shoot;
@@ -24,12 +26,6 @@
         // 自瞄
         ui.set_is_locked = rv2.is_locked;
         ui.set_is_firing = (rv2.is_locked && status.gimbal.is_shoot);
-
-        //是否自转
-        ui.set_chassis_mode = status.chassis.is_turning?UI::TURNING:UI::FOLLOW;
-
-        // todo
-        ui.set_super_cap_percent = 0;
 
         ui.Update();
         osDelay(100); // 10Hz

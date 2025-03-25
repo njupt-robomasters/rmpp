@@ -30,12 +30,6 @@
 #define BMI088_GYRO_250_SEN 0.00013315805450396191230191732547673f
 #define BMI088_GYRO_125_SEN 0.000066579027251980956150958662738366f
 
-// 需手动修改
-#define GxOFFSET (-0.00298113562)
-#define GyOFFSET (0.00259035057)
-#define GzOFFSET (-0.00091807748)
-#define gNORM 9.82509899
-
 typedef struct {
     float Accel[3];
 
@@ -77,9 +71,11 @@ extern IMU_Data_t BMI088;
 extern "C" {
 #endif
 
-void BMI088_Init(SPI_HandleTypeDef *bmi088_SPI, uint8_t calibrate);
+void BMI088_Init(SPI_HandleTypeDef *bmi088_SPI);
 
-uint8_t BMI088_init(SPI_HandleTypeDef *bmi088_SPI, uint8_t calibrate);
+void BMI088_SetCalibrateParam(float GxOFFSET, float GyOFFSET, float GzOFFSET, float gNORM);
+
+void BMI088_Calibrate();
 
 uint8_t bmi088_accel_init(void);
 

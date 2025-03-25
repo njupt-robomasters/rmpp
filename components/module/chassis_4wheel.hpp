@@ -27,8 +27,7 @@ public:
         } wheel;
     } ref{}, measure{};
 
-    explicit Chassis4Wheel(chassis_type_e chassis_type, float wheel_radius, float chassis_radius,
-                           PID::param_t &wheel_pid_param);
+    Chassis4Wheel(chassis_type_e chassis_type, float wheel_radius, float chassis_radius, PID::param_t &wheel_pid_param);
 
     void ParseCAN(uint32_t id, uint8_t data[8]);
 

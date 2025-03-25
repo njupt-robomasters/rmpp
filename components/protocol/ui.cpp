@@ -111,7 +111,7 @@ uint8_t UI::Update() {
 
     // id 8 superCap status
     if (set_super_cap_percent != set_super_cap_percent_last || is_first_update) {
-        sprintf(ui_buf, "%.1f \% ", set_super_cap_percent);
+        sprintf(ui_buf, "%.1f %%", set_super_cap_percent * 100);
         strcpy(ui_g_Ungroup_super_cap_status->string, ui_buf);
         _ui_update_g_Ungroup_8();
         update_num++;

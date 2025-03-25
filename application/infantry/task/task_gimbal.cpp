@@ -62,7 +62,7 @@ static void handle_video() {
     }
 
     // 3. 右键自瞄
-    // 需要云台是IMU模式
+    // 仅在云台IMU模式下允许自瞄
     if (referee.mouse_right_button_down && status.gimbal.mode == Gimbal::IMU_MODE) {
         status.gimbal.is_rv2_mode = true;
     } else {
@@ -77,15 +77,15 @@ static void handle_video() {
     while (true) {
         dt = BSP_DWT_GetDeltaT(&dwt_cnt);
 
+        handle_rc();
+        handle_video();
+
         // 检查遥控器连接 是否为强制键盘模式
-        if (dj6.is_connected == false && !status.is_force_keyboard) {
+        if (dj6.is_connected == false && !status.ignore_rc_disconnect) {
             gimbal.SetEnable(false); // 云台失能，关闭所有电机输出
             osDelay(1);
             continue;
         }
-
-        handle_rc();
-        handle_video();
 
         // 控制云台
         gimbal.SetEnable(true); // 使能
@@ -93,8 +93,8 @@ static void handle_video() {
         gimbal.SetYawSpeedFF(-chassis.measure.chassis.vr); // yaw速度前馈
         gimbal.SetPrepareShoot(status.gimbal.is_prepare_shoot); // 摩擦轮
 
-        if (status.gimbal.is_rv2_mode && status.gimbal.mode == Gimbal::IMU_MODE) {
-            // 自瞄模式
+        // 自瞄模式
+        if (status.gimbal.is_rv2_mode) {
             if (rv2.is_locked) {
                 gimbal.SetAngle(rv2.pitch, rv2.yaw);
             }

@@ -18,6 +18,7 @@
 #include "referee.hpp"
 #include "ui.hpp"
 #include "rv2.hpp"
+#include "super_capacity.hpp"
 
 #include "task/task_led.h"
 #include "task/task_chassis.h"
@@ -30,6 +31,12 @@ public:
     // 底盘
     float wheel_radius = 0.063f; // 轮子半径【单位：m】
     float chassis_radius = 0.225f; // 底盘半径【单位：m】
+    // 操作手控制参数
+    float axy = 1.0f; // 移动加速度【单位：m/s^2】
+    float rpm_max = 100.0f; // 最大小陀螺转速【单位：rpm】
+    float rpm_per_press = 20.0f; // 小陀螺转速调节挡位【单位：rpm】
+    float vxy_max = 5.0f; // 【单位：m/s】
+    float vxy_per_press = 1.0f; // 【单位：m/s】
     // 底盘PID参数
     PID::param_t wheel_pid = {.kp = 10000.0f, .ki = 50.0f};
 
@@ -38,8 +45,9 @@ public:
     float yaw_aps_max = 180.0f; // 【单位：度/s】
     float mouse_x_max = 300.0f;
     float mouse_y_max = 300.0f;
-    // IMU安装方向
+    // IMU参数
     IMU::param_t imu_param = {.yaw = 0, .pitch = 0, .roll = 180};
+    IMU::calib_t imu_calib = {-0.00298113562, 0.00259035057, -0.00091807748, 9.82509899};
     // 云台PID参数
     PID::param_t pitch_pid = {.kp = 1.0f, .kd = 0.014f}; // pitch
     PID::param_t yaw_pid = {.kp = 0.7f, .kd = 0.012f}; // yaw
@@ -50,10 +58,8 @@ class Status {
 public:
     // 底盘
     struct {
-        float vxy_max = 2.0f; // 移动最大速度【单位：m/s】
-        float avy = 1.0f; // 移动加速度【单位：m/s^2】
-        float vr_rpm = 60.0f; // 小陀螺旋转速度【单位：rpm】
-        uint8_t is_turning = 0;//是否开启小陀螺
+        float vxy_limit = 5.0f; // 移动最大速度【单位：m/s】
+        float rpm = 0.0f; // 当前小陀螺旋转速度【单位：rpm】
         struct {
             float vx = 0, vy = 0;
         } rc{}, video{};
@@ -69,11 +75,11 @@ public:
 
         bool is_prepare_shoot = false;
         bool is_shoot = false;
-        float shoot_freq = 15.0f; // 【单位：Hz】
+        float shoot_freq = 10.0f; // 【单位：Hz】
         bool is_rv2_mode = false;
     } gimbal;
 
-    uint8_t is_force_keyboard = 0;
+    bool ignore_rc_disconnect = false;
 };
 
 extern Settings settings;
@@ -85,3 +91,4 @@ extern Gimbal gimbal;
 extern Referee referee;
 extern UI ui;
 extern RV2 rv2;
+extern SuperCapacity superCapacity;

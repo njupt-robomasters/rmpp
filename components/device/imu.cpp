@@ -5,15 +5,15 @@
 #include "bmi088.h"
 #include "QuaternionEKF.h"
 
-IMU::IMU(const param_t &param) : param(param), temperature_pid(temperature_pid_param) {
+IMU::IMU(const param_t &param, const calib_t &calib) : param(param), calib(calib) , temperature_pid(temperature_pid_param) {
 }
 
 void IMU::Init() {
     IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0);
 
-    while (BMI088_init(&hspi1, 0) != BMI088_NO_ERROR) {
-        osDelay(1);
-    }
+    BMI088_Init(&hspi1);
+    BMI088_SetCalibrateParam(calib.GxOFFSET, calib.GyOFFSET, calib.GzOFFSET, calib.gNORM);
+    // BMI088_Calibrate();
 }
 
 void IMU::WaitReady() const {
