@@ -89,3 +89,16 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
         }
     }
 }
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == USART3) {
+        __HAL_UNLOCK(huart);
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart3, rc_rxbuf, rc_rxbuf_size);
+    } else if (huart->Instance == USART6) {
+        __HAL_UNLOCK(huart);
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart6, referee_rxbuf, referee_rxbuf_size);
+    } else if (huart->Instance == USART1) {
+        __HAL_UNLOCK(huart);
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart1, video_rxbuf, referee_video_rxbuf_size);
+    }
+}
