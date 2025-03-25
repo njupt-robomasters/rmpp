@@ -52,11 +52,11 @@ void MDJI::SetEnable(const bool is_enable) {
 
     this->is_enable = is_enable;
 
-    if (is_enable) {
-        pid.Clear(); // 清空PID
-    } else {
-        pid.Clear(); // 清空PID
-        ref.current = 0; // 失能电流置0
+    pid.Clear(); // 清空PID
+
+    if (not is_enable) {
+        // 失能电流置0
+        ref.current = 0;
     }
 }
 

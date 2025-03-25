@@ -75,5 +75,5 @@ private:
     M6020 m_pitch, m_yaw;
     M2006 m_shoot;
 
-    void sendCurrentCmd() const;
+    void sendCANCmd() const;
 };

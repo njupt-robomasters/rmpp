@@ -14,7 +14,7 @@ uint16_t DM4310::float_to_uint(const float x, const float x_min, const float x_m
     return static_cast<uint16_t>((x - offset) * static_cast<float>((1 << bits) - 1) / span);
 }
 
-DM4310::DM4310(const uint8_t id, PID::param_t &pid_param) : motor_id(id), pid(pid_param) {
+DM4310::DM4310(const uint8_t id, PID::param_t &pid_param) : motor_id(id), pid(pid_param.SetDefaultMax(10)) {
 }
 
 void DM4310::ParseCAN(const uint8_t data[8]) {
@@ -49,16 +49,18 @@ void DM4310::ResetReady() {
     return this->is_ready;
 }
 
-void DM4310::ClearERR() {
-    uint8_t data[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfb};
-    BSP_CAN_Transmit(motor_id, data, 8);
-}
-
 void DM4310::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable)
         return;
 
-    pid.Clear();
+    this->is_enable = is_enable;
+
+    pid.Clear(); // 清空PID
+
+    if (not is_enable) {
+        // 失能力矩置0
+        ref.torque = 0;
+    }
 }
 
 void DM4310::SetAngle(const Angle &angle) {
@@ -76,16 +78,14 @@ void DM4310::AddAngle(const Angle &angle) {
 
 void DM4310::Update() {
     if (is_enable) {
-        // pid控制模式（ZCY优化版）
         const float angle_err = calc_angle_err(ref.angle.degree, measure.angle.degree);
-        const float angle_err_sqrt = signed_sqrt(angle_err);
         const float speed_err = ref.speed.aps - measure.speed.aps;
-        ref.torque = pid.CalcPosition(angle_err_sqrt, speed_err);
+        ref.torque = pid.CalcPosition(angle_err, speed_err);
     }
 }
 
 void DM4310::SendCANCmd() {
-    if (send_enable_cnt++ % 1000 == 0) {
+    if (send_enable_cnt++ % 100 == 0) { // 每100次调用重新发送使能/失能状态
         if (is_enable) {
             // 使能
             uint8_t data[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfc};
@@ -95,9 +95,7 @@ void DM4310::SendCANCmd() {
             uint8_t data[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfd};
             BSP_CAN_Transmit(motor_id, data, 8);
         }
-    }
-
-    if (is_enable) {
+    } else {
         const uint16_t pos_value = 0;
         const uint16_t vel_value = 0;
         const uint16_t kp_value = 0;

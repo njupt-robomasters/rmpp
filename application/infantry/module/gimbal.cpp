@@ -73,9 +73,9 @@ void Gimbal::SetEnable(const bool is_enable) {
         // 使能后，把当前位置设为目标位置
         SetCurrentAsTarget();
     } else {
+        // 失能关闭摩擦轮，停止射击
         SetPrepareShoot(false);
         SetShoot(false);
-        sendCurrentCmd(); // 失能向电机发送0电流
     }
 }
 
@@ -179,10 +179,10 @@ void Gimbal::Update() {
     }
 
     // CAN发送控制报文
-    sendCurrentCmd();
+    sendCANCmd();
 }
 
-void Gimbal::sendCurrentCmd() const {
+void Gimbal::sendCANCmd() const {
     const int16_t pitch_cmd = m_pitch.GetCurrentCMD();
     const int16_t yaw_cmd = m_yaw.GetCurrentCMD();
     const int16_t shoot_cmd = m_shoot.GetCurrentCMD();

@@ -61,11 +61,13 @@ void Gimbal::SetEnable(const bool is_enable) {
     m_pitch.SetEnable(is_enable);
     m_yaw.SetEnable(is_enable);
     m_shoot.SetEnable(is_enable);
-    SetPrepareShoot(false);
 
     if (is_enable) {
         // 使能后，把当前位置设为目标位置
         SetCurrentAsTarget();
+    } else {
+        // 失能关闭摩擦轮
+        SetPrepareShoot(false);
     }
 }
 
@@ -126,7 +128,7 @@ void Gimbal::SetPrepareShoot(const bool is_prepare_shoot) {
 
 void Gimbal::Shoot() {
     if (is_prepare_shoot) {
-        float degree_add = 360.0f / SHOOT_NUM_PER_ROUND;
+        const float degree_add = 360.0f / SHOOT_NUM_PER_ROUND;
         ref.shoot.absolute.degree = norm_angle(ref.shoot.absolute.degree + degree_add);
     }
 }
@@ -154,8 +156,8 @@ void Gimbal::Update() {
             // yaw
             ref.yaw.absolute.degree = norm_angle(ref.yaw.imu_mode.degree - imu.yaw + measure.yaw.absolute.degree);
         }
-        m_pitch.SetAngle(ref.pitch.absolute);
-        m_yaw.SetAngle(ref.yaw.absolute, yaw_speed_ff);
+        m_pitch.SetAngle(ref.pitch.absolute); // pitch
+        m_yaw.SetAngle(ref.yaw.absolute, yaw_speed_ff); // yaw
 
         // shoot
         m_shoot.SetAngle(ref.shoot.absolute);

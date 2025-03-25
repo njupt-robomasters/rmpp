@@ -35,9 +35,9 @@ public:
     const float mouse_x_max = 300;
     const float mouse_y_max = 300;
     const IMU::param_t imu_param = {.yaw = 0, .pitch = 0, .roll = 180};
-    PID::param_t pitch_pid = {.kp = 80, .ff = 0.75f}; // pitch
+    PID::param_t pitch_pid = {.kp = 1.4f, .kd = 0, .ff = 0.75f}; // pitch
     PID::param_t yaw_pid = {.kp = 0.7f, .kd = 0.012f}; // yaw
-    PID::param_t shoot_pid = {.kp = 2, .kd = 0.8f, .ff = -0.8f}; // shoot
+    PID::param_t shoot_pid = {.kp = 0.035f, .kd = 0.014f, .ff = -0.8f}; // shoot
 };
 
 class Status {

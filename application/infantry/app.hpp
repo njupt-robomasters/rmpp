@@ -35,10 +35,10 @@ public:
     float yaw_aps_max = 180.0f; // 【单位：度/s】
     const float mouse_x_max = 300.0f;
     const float mouse_y_max = 300.0f;
+    const IMU::param_t imu_param = {.yaw = 0, .pitch = 0, .roll = 180};
     PID::param_t pitch_pid = {.kp = 1.0f, .kd = 0.014f}; // pitch
     PID::param_t yaw_pid = {.kp = 0.7f, .kd = 0.012f}; // yaw
     PID::param_t shoot_pid = {.kp = 10, .ki = 40, .i_limit = 5, .max_out = 10}; // shoot
-    const IMU::param_t imu_param = {.yaw = 0, .pitch = 0, .roll = 180};
 };
 
 class Status {

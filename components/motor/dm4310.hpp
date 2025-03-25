@@ -20,8 +20,6 @@ public:
 
     [[nodiscard]] bool IsReady() const;
 
-    void ClearERR();
-
     void SetEnable(bool is_enable);
 
     void SetAngle(const Angle &angle);

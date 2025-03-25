@@ -68,7 +68,7 @@ private:
     Speed yaw_speed_ff{}; // yaw速度前馈（小陀螺模式需要）
     bool is_prepare_shoot = false; // 摩擦轮状态
 
-    uint32_t can_send_cnt = 0;
+    uint32_t can_send_cnt = 0; // 用于间隔发送三个电机的CAN报文
 
     // 电机对象
     DM4310 m_pitch;
