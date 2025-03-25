@@ -35,7 +35,7 @@ public:
     bool z = false, x = false, c = false, v = false, b = false;
 
     // 中心增益点占领情况
-    uint8_t center_gain_status = 0; // 0没有人占领，1己方，2地方占领，3都占领
+    uint8_t center_gain_status = 0; // 0没有人占领，1己方，2敌方占领，3都占领
 
 
     void PhaseData(const uint8_t *data, uint16_t size);

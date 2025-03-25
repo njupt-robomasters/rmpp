@@ -17,7 +17,7 @@ static void handle_rc() {
         // UP，MID：小陀螺关闭
         status.chassis.vr_rpm = 0;
     } else {
-        // DOWM：小陀螺开启
+        // DOWN：小陀螺开启
         status.chassis.vr_rpm = 30;
     }
 }
@@ -75,7 +75,6 @@ static void handle_video() {
             osDelay(1);
             continue;;
         }
-
         // 合并遥控器和键盘控制
         const float vx = clamp(status.chassis.rc.vx + status.chassis.video.vx, status.chassis.vxy_max);
         const float vy = clamp(status.chassis.rc.vy + status.chassis.video.vy, status.chassis.vxy_max);
