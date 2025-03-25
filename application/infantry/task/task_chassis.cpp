@@ -5,7 +5,8 @@ static uint32_t dwt_cnt;
 static float dt;
 
 static float vx_keyboard = 0, vy_keyboard = 0;
-
+static uint8_t q_pressed = 0, e_pressed = 0,f_pressed = 0, r_pressed = 0;
+static uint16_t r_count = 0;
 
 // 解析遥控器操作
 static void handle_rc() {
@@ -15,10 +16,10 @@ static void handle_rc() {
     // 解析遥控器
     if (dj6.right_switch == DJ6::UP or dj6.right_switch == DJ6::MID) {
         // UP，MID：小陀螺关闭
-        status.chassis.vr_rpm = 0;
+        status.chassis.is_turning = 0;
     } else {
         // DOWN：小陀螺开启
-        status.chassis.vr_rpm = 30;
+        status.chassis.is_turning = 1;
     }
 }
 
@@ -61,6 +62,47 @@ static void handle_video() {
             status.chassis.video.vx = 0;
         }
     }
+    //按下e增加rpm
+    if(referee.e){
+        if(e_pressed==0){
+            e_pressed = 1;
+            if(status.chassis.vr_rpm<100)
+                status.chassis.vr_rpm+=20;
+        }
+    }
+    else
+        e_pressed = 0;
+
+    //按下q减少rpm
+    if(referee.q){
+        if(q_pressed==0){
+            q_pressed = 1;
+            if(status.chassis.vr_rpm>20)
+                status.chassis.vr_rpm-=20;
+        }
+    }
+    else
+        q_pressed = 0;
+
+    //F开启小陀螺
+    if(referee.f){
+        if(f_pressed==0){
+            f_pressed = 1;
+            status.chassis.is_turning = !status.chassis.is_turning;//开启或者关闭小陀螺
+        }
+    }
+    else
+        f_pressed = 0;
+
+    //R强制使用键盘，忽略一切遥控器信号
+    if(referee.r){
+        r_count++;
+        if(r_count>3000)//按住三秒
+            status.is_force_keyboard = 1;
+    }
+    else
+        r_count = 0;
+
 }
 
 [[noreturn]] void task_chassis_entry(void const *argument) {
@@ -69,13 +111,16 @@ static void handle_video() {
     while (true) {
         dt = BSP_DWT_GetDeltaT(&dwt_cnt);
 
-        // 检查遥控器连接
-        if (dj6.is_connected == false) {
+        // 检查遥控器连接,以及是否强制启用键盘
+        if (dj6.is_connected == false && !status.is_force_keyboard) {
             chassis.SetEnable(false); // 底盘失能，关闭电机输出
             osDelay(1);
-            continue;;
+            continue;
         }
         // 合并遥控器和键盘控制
+        handle_rc();
+        handle_video();
+
         const float vx = clamp(status.chassis.rc.vx + status.chassis.video.vx, status.chassis.vxy_max);
         const float vy = clamp(status.chassis.rc.vy + status.chassis.video.vy, status.chassis.vxy_max);
 
@@ -83,7 +128,7 @@ static void handle_video() {
         chassis.SetEnable(true);
         chassis.SetGimbalAngle_RefByChassis(gimbal.measure.yaw.relative); // 使能
         chassis.SetPowerLimit(referee.chassis_power_limit); // 功率控制
-        chassis.SetSpeed(vx, vy, status.chassis.vr_rpm); // 设置速度
+        chassis.SetSpeed(vx, vy, status.chassis.is_turning?status.chassis.vr_rpm:0); // 根据小陀螺状态设置
 
         chassis.Update();
         osDelay(1);

@@ -77,8 +77,8 @@ static void handle_video() {
     while (true) {
         dt = BSP_DWT_GetDeltaT(&dwt_cnt);
 
-        // 检查遥控器连接
-        if (dj6.is_connected == false) {
+        // 检查遥控器连接 是否为强制键盘模式
+        if (dj6.is_connected == false && !status.is_force_keyboard) {
             gimbal.SetEnable(false); // 云台失能，关闭所有电机输出
             osDelay(1);
             continue;

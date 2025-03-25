@@ -53,6 +53,7 @@ public:
         float vxy_max = 2.0f; // 移动最大速度【单位：m/s】
         float avy = 1.0f; // 移动加速度【单位：m/s^2】
         float vr_rpm = 60.0f; // 小陀螺旋转速度【单位：rpm】
+        uint8_t is_turning = 0;//是否开启小陀螺
         struct {
             float vx = 0, vy = 0;
         } rc{}, video{};
@@ -71,6 +72,8 @@ public:
         float shoot_freq = 15.0f; // 【单位：Hz】
         bool is_rv2_mode = false;
     } gimbal;
+
+    uint8_t is_force_keyboard = 0;
 };
 
 extern Settings settings;
