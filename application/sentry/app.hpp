@@ -12,7 +12,7 @@
 #include "bsp_cdc.h"
 
 #include "dj6.hpp"
-#include "chassis_steer.hpp"
+#include "module/chassis.hpp"
 #include "referee.hpp"
 #include "nav.hpp"
 
@@ -32,6 +32,6 @@ public:
 
 extern Settings settings;
 extern DJ6 dj6;
-extern ChassisSteer chassis;
+extern Chassis chassis;
 extern Referee referee;
 extern NAV nav;

@@ -12,8 +12,8 @@
 #include "bsp_cdc.h"
 
 #include "dj6.hpp"
-#include "chassis_4wheel.hpp"
 #include "imu.hpp"
+#include "module/chassis.hpp"
 #include "module/gimbal.hpp"
 #include "referee.hpp"
 #include "ui.hpp"
@@ -88,8 +88,8 @@ public:
 extern Settings settings;
 extern Status status;
 extern DJ6 dj6;
-extern Chassis4Wheel chassis;
 extern IMU imu;
+extern Chassis chassis;
 extern Gimbal gimbal;
 extern Referee referee;
 extern UI ui;

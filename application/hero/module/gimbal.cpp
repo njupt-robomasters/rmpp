@@ -13,6 +13,9 @@ void Gimbal::Init() {
     // 等待所有电机启动
     ResetReady();
     while (not CheckReady()) {
+        m_pitch.SendCANEnable();
+        osDelay(1);
+        m_shoot.SendCANEnable();
         osDelay(1);
     }
 
@@ -30,7 +33,7 @@ void Gimbal::ParseCAN(const uint32_t id, uint8_t data[8]) {
     measure.pitch.relative.degree = norm_angle(measure.pitch.absolute.degree - PITCH_MID); // pitch相对角度
 
     measure.yaw.absolute = m_yaw.measure.angle; // yaw绝对角度
-    measure.yaw.relative.degree = norm_angle(measure.yaw.absolute.degree - YAW_OFFSET); // yaw相对角度
+    measure.yaw.relative.degree = norm_angle(-(measure.yaw.absolute.degree - YAW_OFFSET)); // yaw相对角度
 
     measure.shoot.absolute = m_shoot.measure.angle; // shoot绝对角度
 }
@@ -46,8 +49,8 @@ bool Gimbal::CheckReady() const {
         return false;
     if (not m_yaw.IsReady())
         return false;
-    if (not m_shoot.IsReady())
-        return false;
+    // if (not m_shoot.IsReady())
+    //     return false;
     return true;
 }
 
@@ -143,7 +146,7 @@ void Gimbal::Update() {
             // 逆解更新设置的角度以反应限位
             ref.pitch.relative.degree = norm_angle(ref.pitch.absolute.degree - PITCH_MID);
             // yaw
-            ref.yaw.absolute.degree = norm_angle(ref.yaw.relative.degree + YAW_OFFSET);
+            ref.yaw.absolute.degree = norm_angle(-ref.yaw.relative.degree + YAW_OFFSET);
         } else if (mode == IMU_MODE) {
             // 此处加上 measure，抵消掉电机PID计算中的 -measure，最终误差变成 ref - imu.yaw
             // pitch
@@ -154,7 +157,7 @@ void Gimbal::Update() {
             ref.pitch.imu_mode.degree = norm_angle(
                 ref.pitch.absolute.degree + imu.pitch - measure.pitch.absolute.degree);
             // yaw
-            ref.yaw.absolute.degree = norm_angle(ref.yaw.imu_mode.degree - imu.yaw + measure.yaw.absolute.degree);
+            ref.yaw.absolute.degree = norm_angle(-(ref.yaw.imu_mode.degree - imu.yaw - measure.yaw.absolute.degree));
         }
         m_pitch.SetAngle(ref.pitch.absolute); // pitch
         m_yaw.SetAngle(ref.yaw.absolute, yaw_speed_ff); // yaw

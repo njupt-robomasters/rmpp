@@ -23,7 +23,7 @@ void OnProjectLoad (void) {
   // Dialog-generated settings
   //
   Project.SetDevice ("Cortex-M4");
-  Project.SetHostIF ("USB", "1046400971");
+  Project.SetHostIF ("USB", "1040849617");
   Project.SetTargetIF ("SWD");
   Project.SetTIFSpeed ("1 MHz");
   Project.AddPathSubstitute ("D:/rocket/current_projects/0RM/Embedded_System/framework/infantry", "$(ProjectDir)");

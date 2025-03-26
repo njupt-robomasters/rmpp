@@ -30,6 +30,8 @@ public:
 
     void Update();
 
+    void SendCANEnable();
+
     void SendCANCmd();
 
 private:

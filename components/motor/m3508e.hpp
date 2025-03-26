@@ -1,0 +1,22 @@
+#pragma once
+
+#include "mdji.hpp"
+#include "pid.hpp"
+
+class M3508E : public MDJI {
+public:
+    // 用于底盘功率估计
+    static constexpr float M_PER_I = 0.4f; // 电流 -> 力矩 系数（输出轴）
+    static constexpr float R = 0.194f; // 电机内阻
+
+    explicit M3508E(PID::param_t &pid_param);
+
+    void Update();
+
+    [[nodiscard]] float EstimatePower() const;
+
+private:
+    static constexpr float CURRENT_MAX = 20.0f; // 最大电流【单位；A】
+    static constexpr int16_t CURRENT_CMD_MAX = 16384; // CAN通信最大电流对应的值
+    static constexpr float REDUCTION_RATIO = 14.0f; // 电机减速比
+};

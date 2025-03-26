@@ -2,7 +2,7 @@
 
 Settings settings;
 DJ6 dj6;
-ChassisSteer chassis(settings.servo_pid, settings.wheel_pid);
+Chassis chassis(settings.servo_pid, settings.wheel_pid);
 Referee referee;
 NAV nav;
 

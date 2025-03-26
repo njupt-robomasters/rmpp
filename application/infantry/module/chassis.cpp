@@ -1,10 +1,8 @@
-#include "chassis_4wheel.hpp"
-#include "app.hpp"
+#include "chassis.hpp"
 #include "bsp_can.h"
 
-Chassis4Wheel::Chassis4Wheel(const chassis_type_e chassis_type, const float wheel_radius, const float chassis_radius,
-                             PID::param_t &wheel_pid_param): chassis_type(chassis_type),
-                                                             wheel_radius(wheel_radius),
+Chassis::Chassis(const float wheel_radius, const float chassis_radius,
+                             PID::param_t &wheel_pid_param): wheel_radius(wheel_radius),
                                                              chassis_radius(chassis_radius),
                                                              m1(wheel_pid_param),
                                                              m2(wheel_pid_param),
@@ -14,7 +12,7 @@ Chassis4Wheel::Chassis4Wheel(const chassis_type_e chassis_type, const float whee
     chassis_perimeter = 4 * PI * wheel_radius;
 }
 
-void Chassis4Wheel::ParseCAN(const uint32_t id, uint8_t data[8]) {
+void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
     if (id == 0x201)
         m1.ParseCAN(data);
     if (id == 0x202)
@@ -28,14 +26,14 @@ void Chassis4Wheel::ParseCAN(const uint32_t id, uint8_t data[8]) {
     estimatePower(); // 底盘功率估算
 }
 
-void Chassis4Wheel::ResetReady() {
+void Chassis::ResetReady() {
     m1.ResetReady();
     m2.ResetReady();
     m3.ResetReady();
     m4.ResetReady();
 }
 
-bool Chassis4Wheel::CheckReady() const {
+bool Chassis::CheckReady() const {
     if (not m1.IsReady())
         return false;
     if (not m2.IsReady())
@@ -47,7 +45,7 @@ bool Chassis4Wheel::CheckReady() const {
     return true;
 }
 
-void Chassis4Wheel::SetEnable(const bool is_enable) {
+void Chassis::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable)
         return;
 
@@ -60,21 +58,21 @@ void Chassis4Wheel::SetEnable(const bool is_enable) {
     m4.SetEnable(is_enable);
 }
 
-void Chassis4Wheel::SetSpeed(const float vx, const float vy, const float vr_rpm) {
+void Chassis::SetSpeed(const float vx, const float vy, const float vr_rpm) {
     ref.gimbal.vx = vx;
     ref.gimbal.vy = vy;
     ref.gimbal.vr.rpm = vr_rpm;
 }
 
-void Chassis4Wheel::SetGimbalAngle_RefByChassis(const Angle &gimbal_angle_refBy_chassis) {
+void Chassis::SetGimbalAngle_RefByChassis(const Angle &gimbal_angle_refBy_chassis) {
     this->gimbal_angle_refBy_chassis = gimbal_angle_refBy_chassis;
 }
 
-void Chassis4Wheel::SetPowerLimit(const float power) {
+void Chassis::SetPowerLimit(const float power) {
     power_limit = power;
 }
 
-void Chassis4Wheel::Update() {
+void Chassis::Update() {
     if (is_enable) {
         // 运动学正解
         forwardCalc();
@@ -93,7 +91,7 @@ void Chassis4Wheel::Update() {
     sendCurrentCmd();
 }
 
-void Chassis4Wheel::estimatePower() {
+void Chassis::estimatePower() {
     const float power1 = m1.EstimatePower();
     const float power2 = m2.EstimatePower();
     const float power3 = m3.EstimatePower();
@@ -101,7 +99,7 @@ void Chassis4Wheel::estimatePower() {
     power_estimate = power1 + power2 + power3 + power4;
 }
 
-void Chassis4Wheel::calcCurrentRatio() {
+void Chassis::calcCurrentRatio() {
     // Mw + I^2*R = P
     // kIw + I^2*R = P
     // M_PER_I * xI * w + (xI)^2 * R = P
@@ -130,7 +128,7 @@ void Chassis4Wheel::calcCurrentRatio() {
 }
 
 // 运动学正解
-void Chassis4Wheel::forwardCalc() {
+void Chassis::forwardCalc() {
     ref.gimbal.vz = ref.gimbal.vr.tps * chassis_perimeter; // 底盘旋转角速度【圈/s】 -> 底盘旋转线速度【m/s】
 
     // 1. vxyzr 云台坐标系->底盘坐标系
@@ -143,14 +141,11 @@ void Chassis4Wheel::forwardCalc() {
     // 2. vxyzr -> 轮子线速度
     // 前进方向为y轴正方向，右平移方向为x轴正方向，一 二 三 四 象限分别为 1 2 3 4 电机
     const float sqrt2div2 = sqrtf(2) / 2.0f;
-    if (chassis_type == OMNI) {
-        // 所有电机正转，底盘顺时针旋转（但规定逆时针为底盘旋转正方向）
-        ref.wheel.v1 = +sqrt2div2 * ref.chassis.vx - sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
-        ref.wheel.v2 = +sqrt2div2 * ref.chassis.vx + sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
-        ref.wheel.v3 = -sqrt2div2 * ref.chassis.vx + sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
-        ref.wheel.v4 = -sqrt2div2 * ref.chassis.vx - sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
-    } else if (chassis_type == MECANUM) {
-    }
+    // 所有电机正转，底盘顺时针旋转（但规定逆时针为底盘旋转正方向）
+    ref.wheel.v1 = +sqrt2div2 * ref.chassis.vx - sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
+    ref.wheel.v2 = +sqrt2div2 * ref.chassis.vx + sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
+    ref.wheel.v3 = -sqrt2div2 * ref.chassis.vx + sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
+    ref.wheel.v4 = -sqrt2div2 * ref.chassis.vx - sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
 
     // 3. 轮子线速度 -> 轮子角速度
     Speed speed1, speed2, speed3, speed4;
@@ -167,7 +162,7 @@ void Chassis4Wheel::forwardCalc() {
 }
 
 // 运动学逆解
-void Chassis4Wheel::inverseCalc() {
+void Chassis::inverseCalc() {
     // 1. 读取电机转速
     const Speed speed1 = m1.measure.speed;
     const Speed speed2 = m2.measure.speed;
@@ -182,16 +177,12 @@ void Chassis4Wheel::inverseCalc() {
 
     // 3. 轮子线速度 -> vxyzr
     const float sqrt2 = sqrtf(2);
-    if (chassis_type == OMNI) {
-        // 全向轮
-        measure.chassis.vx = (+sqrt2 * measure.wheel.v1 + sqrt2 * measure.wheel.v2 - sqrt2 * measure.wheel.v3 - sqrt2 *
-                              measure.wheel.v4) / 4.0f;
-        measure.chassis.vy = (-sqrt2 * measure.wheel.v1 + sqrt2 * measure.wheel.v2 + sqrt2 * measure.wheel.v3 - sqrt2 *
-                              measure.wheel.v4) / 4.0f;
-        measure.chassis.vz = -(measure.wheel.v1 + measure.wheel.v2 + measure.wheel.v3 + measure.wheel.v4) / 4.0f;
-    } else if (chassis_type == MECANUM) {
-        // 麦克纳姆轮
-    }
+    // 全向轮
+    measure.chassis.vx = (+sqrt2 * measure.wheel.v1 + sqrt2 * measure.wheel.v2 - sqrt2 * measure.wheel.v3 - sqrt2 *
+                          measure.wheel.v4) / 4.0f;
+    measure.chassis.vy = (-sqrt2 * measure.wheel.v1 + sqrt2 * measure.wheel.v2 + sqrt2 * measure.wheel.v3 - sqrt2 *
+                          measure.wheel.v4) / 4.0f;
+    measure.chassis.vz = -(measure.wheel.v1 + measure.wheel.v2 + measure.wheel.v3 + measure.wheel.v4) / 4.0f;
     measure.chassis.vr.tps = measure.chassis.vz / chassis_perimeter; // 底盘旋转线速度【m/s】 -> 底盘旋转角速度【圈/s】
 
     // 4. vxyzr 底盘坐标系->云台坐标系
@@ -201,7 +192,7 @@ void Chassis4Wheel::inverseCalc() {
     measure.gimbal.vr = ref.chassis.vr;
 }
 
-void Chassis4Wheel::sendCurrentCmd() const {
+void Chassis::sendCurrentCmd() const {
     const int16_t m3508_1_cmd = m1.GetCurrentCMD() * current_ratio;
     const int16_t m3508_2_cmd = m2.GetCurrentCMD() * current_ratio;
     const int16_t m3508_3_cmd = m3.GetCurrentCMD() * current_ratio;

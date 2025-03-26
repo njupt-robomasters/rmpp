@@ -1,7 +1,7 @@
-#include "chassis_steer.hpp"
+#include "chassis.hpp"
 #include "bsp_can.h"
 
-ChassisSteer::ChassisSteer(PID::param_t &servo_pid_param, PID::param_t &wheel_pid_param)
+Chassis::Chassis(PID::param_t &servo_pid_param, PID::param_t &wheel_pid_param)
     : s1(servo_pid_param),
       s2(servo_pid_param),
       w1(wheel_pid_param),
@@ -11,7 +11,7 @@ ChassisSteer::ChassisSteer(PID::param_t &servo_pid_param, PID::param_t &wheel_pi
     ref.wheel.s2.relative.degree = 90;
 }
 
-void ChassisSteer::ParseCAN(const uint32_t id, uint8_t data[8]) {
+void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
     if (id == 0x205)
         s1.ParseCAN(data); // 右前舵电机，6020
     if (id == 0x206)
@@ -25,14 +25,14 @@ void ChassisSteer::ParseCAN(const uint32_t id, uint8_t data[8]) {
     estimatePower(); // 底盘功率估算
 }
 
-void ChassisSteer::ResetReady() {
+void Chassis::ResetReady() {
     s1.ResetReady();
     s2.ResetReady();
     w1.ResetReady();
     w2.ResetReady();
 }
 
-bool ChassisSteer::CheckReady() const {
+bool Chassis::CheckReady() const {
     if (not s1.IsReady())
         return false;
     if (not s2.IsReady())
@@ -44,7 +44,7 @@ bool ChassisSteer::CheckReady() const {
     return true;
 }
 
-void ChassisSteer::SetEnable(const bool is_enable) {
+void Chassis::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable)
         return;
 
@@ -57,17 +57,17 @@ void ChassisSteer::SetEnable(const bool is_enable) {
     w2.SetEnable(is_enable);
 }
 
-void ChassisSteer::SetSpeed(const float vx, const float vy, const float vr_rpm) {
+void Chassis::SetSpeed(const float vx, const float vy, const float vr_rpm) {
     ref.chassis.vx = vx;
     ref.chassis.vy = vy;
     ref.chassis.vr.rpm = vr_rpm;
 }
 
-void ChassisSteer::SetPowerLimit(const float power) {
+void Chassis::SetPowerLimit(const float power) {
     power_limit = power;
 }
 
-void ChassisSteer::Update() {
+void Chassis::Update() {
     if (is_enable) {
         // 运动学正解
         forwardCalc();
@@ -87,14 +87,14 @@ void ChassisSteer::Update() {
 }
 
 // 估算底盘当前功率，用于调试
-void ChassisSteer::estimatePower() {
+void Chassis::estimatePower() {
     const float power1 = w1.EstimatePower();
     const float power2 = w2.EstimatePower();
     power_estimate = power1 + power2;
 }
 
 // 计算电流衰减系数，需要在电机PID计算后调用
-void ChassisSteer::calcCurrentRatio() {
+void Chassis::calcCurrentRatio() {
     // Mw + I^2*R = P
     // kIw + I^2*R = P
     // M_PER_I * xI * w + (xI)^2 * R = P
@@ -119,7 +119,7 @@ void ChassisSteer::calcCurrentRatio() {
 }
 
 // 运动学正解
-void ChassisSteer::forwardCalc() {
+void Chassis::forwardCalc() {
     ref.chassis.vz = ref.chassis.vr.tps * CHASSIS_PERIMETER; // 底盘旋转角速度【圈/s】 -> 底盘旋转线速度【m/s】
 
     // 1. 运动学正解
@@ -182,7 +182,7 @@ void ChassisSteer::forwardCalc() {
 }
 
 // 运动学逆解
-void ChassisSteer::inverseCalc() {
+void Chassis::inverseCalc() {
     // todo 逆解算没有考虑到就近转向问题
 
     // 1. 读取电机
@@ -211,7 +211,7 @@ void ChassisSteer::inverseCalc() {
     measure.chassis.vr.tps = measure.chassis.vz / CHASSIS_PERIMETER; // 底盘旋转线速度【m/s】 -> 底盘旋转角速度【圈/s】
 }
 
-void ChassisSteer::sendCANCmd() {
+void Chassis::sendCANCmd() {
     const int16_t m6020_1_cmd = s1.GetCurrentCMD();
     const int16_t m6020_2_cmd = s2.GetCurrentCMD();
     const int16_t m3508_1_cmd = w1.GetCurrentCMD() * current_ratio;

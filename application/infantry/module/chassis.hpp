@@ -4,13 +4,8 @@
 #include "pid.hpp"
 #include "unit.hpp"
 
-class Chassis4Wheel {
+class Chassis {
 public:
-    enum chassis_type_e {
-        OMNI, // 全向轮
-        MECANUM // 麦克纳姆轮
-    };
-
     struct {
         // vx 左右平移速度【单位：m/s】
         // vy 前进后退速度【单位：m/s】
@@ -27,7 +22,7 @@ public:
         } wheel;
     } ref{}, measure{};
 
-    Chassis4Wheel(chassis_type_e chassis_type, float wheel_radius, float chassis_radius, PID::param_t &wheel_pid_param);
+    Chassis(float wheel_radius, float chassis_radius, PID::param_t &wheel_pid_param);
 
     void ParseCAN(uint32_t id, uint8_t data[8]);
 
@@ -46,7 +41,6 @@ public:
     void Update();
 
 private:
-    chassis_type_e chassis_type;
     float wheel_radius, chassis_radius;
     float wheel_perimeter, chassis_perimeter;
 

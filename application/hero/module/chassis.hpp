@@ -1,11 +1,10 @@
 #pragma once
 
-#include "m3508.hpp"
-#include "m6020.hpp"
+#include "m3508e.hpp"
 #include "pid.hpp"
 #include "unit.hpp"
 
-class ChassisSteer {
+class Chassis {
 public:
     struct {
         // vx 左右平移速度【单位：m/s】
@@ -15,18 +14,15 @@ public:
         struct {
             float vx = 0, vy = 0, vz = 0;
             Speed vr{};
-        } chassis;
+        } gimbal, chassis;
 
         // 轮子速度【单位：m/s】
         struct {
-            float w1 = 0, w2 = 0;
-            struct {
-                Angle absolute{}, relative{};
-            } s1{}, s2{};
+            float v1 = 0, v2 = 0, v3 = 0, v4 = 0;
         } wheel;
     } ref{}, measure{};
 
-    ChassisSteer(PID::param_t &servo_pid_param, PID::param_t &wheel_pid_param);
+    Chassis(float wheel_radius, float chassis_radius, PID::param_t &wheel_pid_param);
 
     void ParseCAN(uint32_t id, uint8_t data[8]);
 
@@ -38,35 +34,29 @@ public:
 
     void SetSpeed(float vx, float vy, float vr_rpm);
 
+    void SetGimbalAngle_RefByChassis(const Angle &gimbal_angle_refBy_chassis);
+
     void SetPowerLimit(float power);
 
     void Update();
 
 private:
-    // 舵电机偏移
-    static constexpr float S1_OFFSET = 102.7f; //【单位：角度】
-    static constexpr float S2_OFFSET = 345.0f; //【单位：角度】
-
-    // 底盘结构参数
-    static constexpr float WHEEL_RADIUS = 0.0525f; // 轮子半径【单位：m】
-    static constexpr float CHASSIS_RADIUS = 0.21492f; // 底盘半径【单位：m】
-
-    // 底盘结构参数（自动计算）
-    static constexpr float WHEEL_PERIMETER = 2 * static_cast<float>(M_PI) * WHEEL_RADIUS; // 轮子周长【单位：m】
-    static constexpr float CHASSIS_PERIMETER = 2 * static_cast<float>(M_PI) * CHASSIS_RADIUS; // 底盘周长【单位：m】
-
-    static constexpr float ESP = 1e-3f;
+    float wheel_radius, chassis_radius;
+    float wheel_perimeter, chassis_perimeter;
 
     // 底盘使能标志
     bool is_enable = false;
 
+    // 设置云台参考于底盘的角度，逆时针为正方向
+    Angle gimbal_angle_refBy_chassis{};
+
     // 电机对象
-    M6020 s1, s2; // 舵电机
-    M3508 w1, w2; // 轮电机
+    M3508E m1, m2, m3, m4;
 
     // 底盘功率控制
     float power_estimate = 0; // 当前功率估计
     float power_limit = 120; // 功率限制
+    float current_max = 0;
     float current_ratio = 1; // 电流衰减系数
 
     void estimatePower();
@@ -77,5 +67,5 @@ private:
 
     void inverseCalc();
 
-    void sendCANCmd();
+    void sendCurrentCmd() const;
 };
