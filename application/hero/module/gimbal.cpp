@@ -9,20 +9,6 @@ Gimbal::Gimbal(const IMU &imu, PID::param_t &pitch_pid, PID::param_t &yaw_pid, P
     m_shoot(2, shoot_pid) {
 }
 
-void Gimbal::Init() {
-    // 等待所有电机启动
-    ResetReady();
-    while (not CheckReady()) {
-        m_pitch.SendCANEnable();
-        osDelay(1);
-        m_shoot.SendCANEnable();
-        osDelay(1);
-    }
-
-    // 设置当前位置为目标位置
-    SetCurrentAsTarget();
-}
-
 void Gimbal::ParseCAN(const uint32_t id, uint8_t data[8]) {
     if (id == 0x205) // yaw
         m_yaw.ParseCAN(data);
@@ -38,20 +24,22 @@ void Gimbal::ParseCAN(const uint32_t id, uint8_t data[8]) {
     measure.shoot.absolute = m_shoot.measure.angle; // shoot绝对角度
 }
 
-void Gimbal::ResetReady() {
+void Gimbal::WaitReady() {
     m_pitch.ResetReady();
     m_yaw.ResetReady();
     m_shoot.ResetReady();
-}
 
-bool Gimbal::CheckReady() const {
-    if (not m_pitch.IsReady())
-        return false;
-    if (not m_yaw.IsReady())
-        return false;
-    // if (not m_shoot.IsReady())
-    //     return false;
-    return true;
+    while (not m_pitch.IsReady()) {
+        m_pitch.SendCANEnable();
+        osDelay(1);
+    }
+    while (not m_yaw.IsReady()) {
+        osDelay(1);
+    }
+    while (not m_shoot.IsReady()) {
+        m_shoot.SendCANEnable();
+        osDelay(1);
+    }
 }
 
 void Gimbal::SetEnable(const bool is_enable) {
@@ -130,10 +118,15 @@ void Gimbal::SetPrepareShoot(const bool is_prepare_shoot) {
 }
 
 void Gimbal::Shoot() {
-    if (is_prepare_shoot) {
-        const float degree_add = 360.0f / SHOOT_NUM_PER_ROUND;
+    if (is_prepare_shoot && is_shoot_finish) {
+        is_shoot_finish = false;
+        const float degree_add = -360.0f / SHOOT_NUM_PER_ROUND;
         ref.shoot.absolute.degree = norm_angle(ref.shoot.absolute.degree + degree_add);
     }
+}
+
+bool Gimbal::isShootFinish() const {
+    return this->is_shoot_finish;
 }
 
 void Gimbal::Update() {
@@ -143,7 +136,7 @@ void Gimbal::Update() {
             // pitch
             ref.pitch.absolute.degree = norm_angle(ref.pitch.relative.degree + PITCH_MID);
             ref.pitch.absolute.degree = clamp(ref.pitch.absolute.degree, PITCH_MIN, PITCH_MAX);
-            // 逆解更新设置的角度以反应限位
+            // 逆解更新设置的角度以反映限位
             ref.pitch.relative.degree = norm_angle(ref.pitch.absolute.degree - PITCH_MID);
             // yaw
             ref.yaw.absolute.degree = norm_angle(-ref.yaw.relative.degree + YAW_OFFSET);
@@ -153,7 +146,7 @@ void Gimbal::Update() {
             ref.pitch.absolute.degree = norm_angle(
                 ref.pitch.imu_mode.degree - imu.pitch + measure.pitch.absolute.degree);
             ref.pitch.absolute.degree = clamp(ref.pitch.absolute.degree, PITCH_MIN, PITCH_MAX);
-            // 逆解更新设置的角度以反应限位
+            // 逆解更新设置的角度以反映限位
             ref.pitch.imu_mode.degree = norm_angle(
                 ref.pitch.absolute.degree + imu.pitch - measure.pitch.absolute.degree);
             // yaw
@@ -163,6 +156,12 @@ void Gimbal::Update() {
         m_yaw.SetAngle(ref.yaw.absolute, yaw_speed_ff); // yaw
 
         // shoot
+        // 转到90%认为射击完成
+        const float degree_err = calc_angle_err(ref.shoot.absolute.degree, measure.shoot.absolute.degree);
+        if (fabsf(degree_err) < 360.0f / SHOOT_NUM_PER_ROUND * 0.1f)
+            is_shoot_finish = true;
+        if (is_shoot_finish)
+            ref.shoot.absolute = measure.shoot.absolute;
         m_shoot.SetAngle(ref.shoot.absolute);
 
         // 电机闭环控制计算

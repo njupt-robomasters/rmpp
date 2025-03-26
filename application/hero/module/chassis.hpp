@@ -22,13 +22,9 @@ public:
         } wheel;
     } ref{}, measure{};
 
-    Chassis(float wheel_radius, float chassis_radius, PID::param_t &wheel_pid_param);
+    explicit Chassis(PID::param_t &wheel_pid_param);
 
     void ParseCAN(uint32_t id, uint8_t data[8]);
-
-    void ResetReady();
-
-    [[nodiscard]] bool CheckReady() const;
 
     void SetEnable(bool is_enable);
 
@@ -41,8 +37,13 @@ public:
     void Update();
 
 private:
-    float wheel_radius, chassis_radius;
-    float wheel_perimeter, chassis_perimeter;
+    // 底盘结构参数
+    static constexpr float WHEEL_RADIUS = 0.077f; // 轮子半径【单位：m】
+    static constexpr float CHASSIS_RADIUS = 0.235f; // 底盘半径【单位：m】
+
+    // 底盘结构参数（自动计算）
+    static constexpr float WHEEL_PERIMETER = 2 * PI * WHEEL_RADIUS; // 轮子周长【单位：m】
+    static constexpr float CHASSIS_PERIMETER = 2 * PI * CHASSIS_RADIUS; // 底盘周长【单位：m】
 
     // 底盘使能标志
     bool is_enable = false;
@@ -59,13 +60,13 @@ private:
     float current_max = 0;
     float current_ratio = 1; // 电流衰减系数
 
-    void estimatePower();
-
-    void calcCurrentRatio();
-
     void forwardCalc();
 
     void inverseCalc();
 
-    void sendCurrentCmd() const;
+    void estimatePower();
+
+    void calcCurrentRatio();
+
+    void sendCANCmd() const;
 };

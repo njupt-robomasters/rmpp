@@ -27,8 +27,6 @@
 class Settings {
 public:
     // 底盘
-    float wheel_radius = 0.063f; // 轮子半径【单位：m】
-    float chassis_radius = 0.225f; // 底盘半径【单位：m】
     // 操作手控制参数
     // 移动
     float axy = 1.0f; // 移动加速度【单位：m/s^2】
@@ -51,9 +49,8 @@ public:
     IMU::calib_t imu_calib = {-0.00298113562, 0.00259035057, -0.00091807748, 9.82509899};
     // 云台PID参数
     // PID::param_t pitch_pid = {.kp = 0.2f, .kd = 0, .ff = 0.75f}; // pitch
-    // PID::param_t yaw_pid = {.kp = 0.7f, .kd = 0.012f}; // yaw
     PID::param_t pitch_pid = {.kp = 0, .kd = 0, .ff = 0}; // pitch
-    PID::param_t yaw_pid = {.kp = 0, .kd = 0}; // yaw
+    PID::param_t yaw_pid = {.kp = 1.0f, .kd = 0.02f}; // yaw
     PID::param_t shoot_pid = {.kp = 0.035f, .kd = 0.014f, .ff = -0.8f}; // shoot
 };
 
@@ -77,9 +74,7 @@ public:
         } rc{}, video{};
 
         bool is_prepare_shoot = false;
-        bool is_shoot = false;
-        float shoot_freq = 10.0f; // 【单位：Hz】
-        bool is_rv2_mode = false;
+        bool is_need_shoot = false;
     } gimbal;
 
     bool ignore_rc_disconnect = false;

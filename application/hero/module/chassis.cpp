@@ -1,15 +1,10 @@
 #include "chassis.hpp"
 #include "bsp_can.h"
 
-Chassis::Chassis(const float wheel_radius, const float chassis_radius,
-                             PID::param_t &wheel_pid_param): wheel_radius(wheel_radius),
-                                                             chassis_radius(chassis_radius),
-                                                             m1(wheel_pid_param),
-                                                             m2(wheel_pid_param),
-                                                             m3(wheel_pid_param),
-                                                             m4(wheel_pid_param) {
-    wheel_perimeter = 2 * PI * wheel_radius;
-    chassis_perimeter = 4 * PI * wheel_radius;
+Chassis::Chassis(PID::param_t &wheel_pid_param): m1(wheel_pid_param),
+                                                 m2(wheel_pid_param),
+                                                 m3(wheel_pid_param),
+                                                 m4(wheel_pid_param) {
 }
 
 void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
@@ -24,25 +19,6 @@ void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
 
     inverseCalc(); // 运动学逆解
     estimatePower(); // 底盘功率估算
-}
-
-void Chassis::ResetReady() {
-    m1.ResetReady();
-    m2.ResetReady();
-    m3.ResetReady();
-    m4.ResetReady();
-}
-
-bool Chassis::CheckReady() const {
-    if (not m1.IsReady())
-        return false;
-    if (not m2.IsReady())
-        return false;
-    if (not m3.IsReady())
-        return false;
-    if (not m4.IsReady())
-        return false;
-    return true;
 }
 
 void Chassis::SetEnable(const bool is_enable) {
@@ -88,7 +64,70 @@ void Chassis::Update() {
     }
 
     // 发送CAN报文
-    sendCurrentCmd();
+    sendCANCmd();
+}
+
+// 运动学正解
+void Chassis::forwardCalc() {
+    ref.gimbal.vz = ref.gimbal.vr.tps * CHASSIS_PERIMETER; // 底盘旋转角速度【圈/s】 -> 底盘旋转线速度【m/s】
+
+    // 1. vxyzr 云台坐标系->底盘坐标系
+    // 注意这里是换参考系，而非旋转速度矢量，速度矢量相对于绝对参考系是不会发生变化的，所以旋转角度为：云台相对于底盘的角度
+    std::tie(ref.chassis.vx, ref.chassis.vy) =
+            rotate(ref.gimbal.vx, ref.gimbal.vy, gimbal_angle_refBy_chassis.degree);
+    ref.chassis.vz = ref.gimbal.vz;
+    ref.chassis.vr = ref.gimbal.vr;
+
+    // 2. vxyz -> 轮子线速度（麦克纳姆轮）
+    // 前进方向为y轴正方向，右平移方向为x轴正方向，一 二 三 四 象限分别为 1 2 3 4 电机
+    const float sqrt2 = sqrtf(2);
+    // 所有电机正转，底盘顺时针旋转（但规定逆时针为底盘旋转正方向）
+    ref.wheel.v1 = +ref.chassis.vx - ref.chassis.vy - sqrt2 * ref.chassis.vz;
+    ref.wheel.v2 = +ref.chassis.vx + ref.chassis.vy - sqrt2 * ref.chassis.vz;
+    ref.wheel.v3 = -ref.chassis.vx + ref.chassis.vy - sqrt2 * ref.chassis.vz;
+    ref.wheel.v4 = -ref.chassis.vx - ref.chassis.vy - sqrt2 * ref.chassis.vz;
+
+    // 3. 轮子线速度 -> 轮子角速度
+    Speed speed1, speed2, speed3, speed4;
+    speed1.tps = ref.wheel.v1 / WHEEL_PERIMETER;
+    speed2.tps = ref.wheel.v2 / WHEEL_PERIMETER;
+    speed3.tps = ref.wheel.v3 / WHEEL_PERIMETER;
+    speed4.tps = ref.wheel.v4 / WHEEL_PERIMETER;
+
+    // 4. 设置电机转速
+    m1.SetSpeed(speed1);
+    m2.SetSpeed(speed2);
+    m3.SetSpeed(speed3);
+    m4.SetSpeed(speed4);
+}
+
+// 运动学逆解
+void Chassis::inverseCalc() {
+    // 1. 读取电机转速
+    const Speed speed1 = m1.measure.speed;
+    const Speed speed2 = m2.measure.speed;
+    const Speed speed3 = m3.measure.speed;
+    const Speed speed4 = m4.measure.speed;
+
+    // 2. 轮子角速度 -> 轮子线速度
+    measure.wheel.v1 = speed1.tps * WHEEL_PERIMETER;
+    measure.wheel.v2 = speed2.tps * WHEEL_PERIMETER;
+    measure.wheel.v3 = speed3.tps * WHEEL_PERIMETER;
+    measure.wheel.v4 = speed4.tps * WHEEL_PERIMETER;
+
+    // 3. 轮子线速度 -> vxyz（麦克纳姆轮）
+    const float sqrt2div2 = sqrtf(2) / 2;
+    measure.chassis.vx = (+measure.wheel.v1 + measure.wheel.v2 - measure.wheel.v3 - measure.wheel.v4) / 4.0f;
+    measure.chassis.vy = (-measure.wheel.v1 + measure.wheel.v2 + measure.wheel.v3 - measure.wheel.v4) / 4.0f;
+    measure.chassis.vz = -(measure.wheel.v1 + measure.wheel.v2 + measure.wheel.v3 + measure.wheel.v4) * sqrt2div2 /
+                         4.0f;
+    measure.chassis.vr.tps = measure.chassis.vz / CHASSIS_PERIMETER; // 底盘旋转线速度【m/s】 -> 底盘旋转角速度【圈/s】
+
+    // 4. vxyzr 底盘坐标系->云台坐标系
+    std::tie(measure.gimbal.vx, measure.gimbal.vy) = rotate(measure.chassis.vx, measure.chassis.vy,
+                                                            -gimbal_angle_refBy_chassis.degree);
+    measure.gimbal.vz = measure.chassis.vz;
+    measure.gimbal.vr = ref.chassis.vr;
 }
 
 void Chassis::estimatePower() {
@@ -127,72 +166,7 @@ void Chassis::calcCurrentRatio() {
     current_ratio = clamp(current_ratio, 0, 1);
 }
 
-// 运动学正解
-void Chassis::forwardCalc() {
-    ref.gimbal.vz = ref.gimbal.vr.tps * chassis_perimeter; // 底盘旋转角速度【圈/s】 -> 底盘旋转线速度【m/s】
-
-    // 1. vxyzr 云台坐标系->底盘坐标系
-    // 注意这里是换参考系，而非旋转速度矢量，速度矢量相对于绝对参考系是不会发生变化的，所以旋转角度为：云台相对于底盘的角度
-    std::tie(ref.chassis.vx, ref.chassis.vy) =
-            rotate(ref.gimbal.vx, ref.gimbal.vy, gimbal_angle_refBy_chassis.degree);
-    ref.chassis.vz = ref.gimbal.vz;
-    ref.chassis.vr = ref.gimbal.vr;
-
-    // 2. vxyzr -> 轮子线速度
-    // 前进方向为y轴正方向，右平移方向为x轴正方向，一 二 三 四 象限分别为 1 2 3 4 电机
-    const float sqrt2div2 = sqrtf(2) / 2.0f;
-    // 所有电机正转，底盘顺时针旋转（但规定逆时针为底盘旋转正方向）
-    ref.wheel.v1 = +sqrt2div2 * ref.chassis.vx - sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
-    ref.wheel.v2 = +sqrt2div2 * ref.chassis.vx + sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
-    ref.wheel.v3 = -sqrt2div2 * ref.chassis.vx + sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
-    ref.wheel.v4 = -sqrt2div2 * ref.chassis.vx - sqrt2div2 * ref.chassis.vy - ref.chassis.vz;
-
-    // 3. 轮子线速度 -> 轮子角速度
-    Speed speed1, speed2, speed3, speed4;
-    speed1.tps = ref.wheel.v1 / wheel_perimeter;
-    speed2.tps = ref.wheel.v2 / wheel_perimeter;
-    speed3.tps = ref.wheel.v3 / wheel_perimeter;
-    speed4.tps = ref.wheel.v4 / wheel_perimeter;
-
-    // 4. 设置电机转速
-    m1.SetSpeed(speed1);
-    m2.SetSpeed(speed2);
-    m3.SetSpeed(speed3);
-    m4.SetSpeed(speed4);
-}
-
-// 运动学逆解
-void Chassis::inverseCalc() {
-    // 1. 读取电机转速
-    const Speed speed1 = m1.measure.speed;
-    const Speed speed2 = m2.measure.speed;
-    const Speed speed3 = m3.measure.speed;
-    const Speed speed4 = m4.measure.speed;
-
-    // 2. 轮子角速度 -> 轮子线速度
-    measure.wheel.v1 = speed1.tps * wheel_perimeter;
-    measure.wheel.v2 = speed2.tps * wheel_perimeter;
-    measure.wheel.v3 = speed3.tps * wheel_perimeter;
-    measure.wheel.v4 = speed4.tps * wheel_perimeter;
-
-    // 3. 轮子线速度 -> vxyzr
-    const float sqrt2 = sqrtf(2);
-    // 全向轮
-    measure.chassis.vx = (+sqrt2 * measure.wheel.v1 + sqrt2 * measure.wheel.v2 - sqrt2 * measure.wheel.v3 - sqrt2 *
-                          measure.wheel.v4) / 4.0f;
-    measure.chassis.vy = (-sqrt2 * measure.wheel.v1 + sqrt2 * measure.wheel.v2 + sqrt2 * measure.wheel.v3 - sqrt2 *
-                          measure.wheel.v4) / 4.0f;
-    measure.chassis.vz = -(measure.wheel.v1 + measure.wheel.v2 + measure.wheel.v3 + measure.wheel.v4) / 4.0f;
-    measure.chassis.vr.tps = measure.chassis.vz / chassis_perimeter; // 底盘旋转线速度【m/s】 -> 底盘旋转角速度【圈/s】
-
-    // 4. vxyzr 底盘坐标系->云台坐标系
-    std::tie(measure.gimbal.vx, measure.gimbal.vy) = rotate(measure.chassis.vx, measure.chassis.vy,
-                                                            -gimbal_angle_refBy_chassis.degree);
-    measure.gimbal.vz = measure.chassis.vz;
-    measure.gimbal.vr = ref.chassis.vr;
-}
-
-void Chassis::sendCurrentCmd() const {
+void Chassis::sendCANCmd() const {
     const int16_t M3508E_1_cmd = m1.GetCurrentCMD() * current_ratio;
     const int16_t M3508E_2_cmd = m2.GetCurrentCMD() * current_ratio;
     const int16_t M3508E_3_cmd = m3.GetCurrentCMD() * current_ratio;

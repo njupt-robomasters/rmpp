@@ -33,15 +33,13 @@ static void handle_rc() {
         if (dj6.left_switch == DJ6::UP) {
             // 摩擦轮关，拨弹电机关
             status.gimbal.is_prepare_shoot = false;
-            status.gimbal.is_shoot = false;
         } else if (dj6.left_switch == DJ6::MID) {
             // 摩擦轮开，拨弹电机关
             status.gimbal.is_prepare_shoot = true;
-            status.gimbal.is_shoot = false;
         } else if (dj6.left_switch == DJ6::DOWN) {
             // 摩擦轮开，拨弹电机开
             status.gimbal.is_prepare_shoot = true;
-            status.gimbal.is_shoot = true;
+            status.gimbal.is_need_shoot = true;
         }
     }
 }
@@ -58,21 +56,13 @@ static void handle_video() {
     // 只响应变化量
     if (referee.mouse_left_button_down != last_mouse_left) {
         last_mouse_left = referee.mouse_left_button_down;
-        status.gimbal.is_shoot = referee.mouse_left_button_down;
-    }
-
-    // 3. 右键自瞄
-    // 仅在云台IMU模式下允许自瞄
-    if (referee.mouse_right_button_down && status.gimbal.mode == Gimbal::IMU_MODE) {
-        status.gimbal.is_rv2_mode = true;
-    } else {
-        status.gimbal.is_rv2_mode = false;
+        status.gimbal.is_need_shoot = referee.mouse_left_button_down;
     }
 }
 
 [[noreturn]] void task_gimbal_entry(void const *argument) {
     imu.WaitReady();
-    gimbal.Init();
+    gimbal.WaitReady();
 
     while (true) {
         dt = BSP_DWT_GetDeltaT(&dwt_cnt);
@@ -99,7 +89,11 @@ static void handle_video() {
         const float pitch_angle_add = (status.gimbal.rc.pitch_speed + status.gimbal.video.pitch_speed) * dt;
         const float yaw_angle_add = (status.gimbal.rc.yaw_speed + status.gimbal.video.yaw_speed) * dt;
         gimbal.AddAngle(pitch_angle_add, yaw_angle_add); // 角度增量
-        // gimbal.SetShoot(status.gimbal.is_shoot, status.gimbal.shoot_freq); // 是否开火
+        // 单发开火
+        if (status.gimbal.is_need_shoot) {
+            status.gimbal.is_need_shoot = false;
+            gimbal.Shoot();
+        }
 
         gimbal.Update();
         osDelay(1);

@@ -4,7 +4,7 @@ Settings settings;
 Status status;
 DJ6 dj6;
 IMU imu(settings.imu_param, settings.imu_calib);
-Chassis chassis(settings.wheel_radius, settings.chassis_radius, settings.wheel_pid);
+Chassis chassis(settings.wheel_pid);
 Gimbal gimbal(imu, settings.pitch_pid, settings.yaw_pid, settings.shoot_pid);
 Referee referee;
 UI ui;

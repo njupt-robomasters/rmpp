@@ -52,8 +52,8 @@ private:
     static constexpr float CHASSIS_RADIUS = 0.21492f; // 底盘半径【单位：m】
 
     // 底盘结构参数（自动计算）
-    static constexpr float WHEEL_PERIMETER = 2 * static_cast<float>(M_PI) * WHEEL_RADIUS; // 轮子周长【单位：m】
-    static constexpr float CHASSIS_PERIMETER = 2 * static_cast<float>(M_PI) * CHASSIS_RADIUS; // 底盘周长【单位：m】
+    static constexpr float WHEEL_PERIMETER = 2 * PI * WHEEL_RADIUS; // 轮子周长【单位：m】
+    static constexpr float CHASSIS_PERIMETER = 2 * PI * CHASSIS_RADIUS; // 底盘周长【单位：m】
 
     static constexpr float ESP = 1e-3f;
 
@@ -69,13 +69,13 @@ private:
     float power_limit = 120; // 功率限制
     float current_ratio = 1; // 电流衰减系数
 
-    void estimatePower();
-
-    void calcCurrentRatio();
-
     void forwardCalc();
 
     void inverseCalc();
+
+    void estimatePower();
+
+    void calcCurrentRatio();
 
     void sendCANCmd();
 };

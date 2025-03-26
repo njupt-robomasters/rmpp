@@ -25,25 +25,6 @@ void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
     estimatePower(); // 底盘功率估算
 }
 
-void Chassis::ResetReady() {
-    s1.ResetReady();
-    s2.ResetReady();
-    w1.ResetReady();
-    w2.ResetReady();
-}
-
-bool Chassis::CheckReady() const {
-    if (not s1.IsReady())
-        return false;
-    if (not s2.IsReady())
-        return false;
-    if (not w1.IsReady())
-        return false;
-    if (not w2.IsReady())
-        return false;
-    return true;
-}
-
 void Chassis::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable)
         return;
@@ -84,38 +65,6 @@ void Chassis::Update() {
 
     // 发送CAN报文
     sendCANCmd();
-}
-
-// 估算底盘当前功率，用于调试
-void Chassis::estimatePower() {
-    const float power1 = w1.EstimatePower();
-    const float power2 = w2.EstimatePower();
-    power_estimate = power1 + power2;
-}
-
-// 计算电流衰减系数，需要在电机PID计算后调用
-void Chassis::calcCurrentRatio() {
-    // Mw + I^2*R = P
-    // kIw + I^2*R = P
-    // M_PER_I * xI * w + (xI)^2 * R = P
-    // I^2*R * x^2 + M_PER_I*I*w * x - P = 0
-    // a = I^2*R
-    // b = M_PER_I*I*w
-    // c = -P
-
-    float a = 0;
-    a += w1.ref.current * w1.ref.current * M3508::R;
-    a += w2.ref.current * w2.ref.current * M3508::R;
-
-    float b = 0;
-    b += M3508::M_PER_I * w1.ref.current * w1.measure.speed.rps;
-    b += M3508::M_PER_I * w2.ref.current * w2.measure.speed.rps;
-
-    float c = -power_limit;
-
-    current_ratio = (-b + sqrtf(b * b - 4 * a * c)) / (2 * a);
-
-    current_ratio = clamp(current_ratio, 0, 1);
 }
 
 // 运动学正解
@@ -209,6 +158,38 @@ void Chassis::inverseCalc() {
     measure.chassis.vz = (measure.wheel.w1 - measure.wheel.w2) / 2;
 
     measure.chassis.vr.tps = measure.chassis.vz / CHASSIS_PERIMETER; // 底盘旋转线速度【m/s】 -> 底盘旋转角速度【圈/s】
+}
+
+// 估算底盘当前功率，用于调试
+void Chassis::estimatePower() {
+    const float power1 = w1.EstimatePower();
+    const float power2 = w2.EstimatePower();
+    power_estimate = power1 + power2;
+}
+
+// 计算电流衰减系数，需要在电机PID计算后调用
+void Chassis::calcCurrentRatio() {
+    // Mw + I^2*R = P
+    // kIw + I^2*R = P
+    // M_PER_I * xI * w + (xI)^2 * R = P
+    // I^2*R * x^2 + M_PER_I*I*w * x - P = 0
+    // a = I^2*R
+    // b = M_PER_I*I*w
+    // c = -P
+
+    float a = 0;
+    a += w1.ref.current * w1.ref.current * M3508::R;
+    a += w2.ref.current * w2.ref.current * M3508::R;
+
+    float b = 0;
+    b += M3508::M_PER_I * w1.ref.current * w1.measure.speed.rps;
+    b += M3508::M_PER_I * w2.ref.current * w2.measure.speed.rps;
+
+    float c = -power_limit;
+
+    current_ratio = (-b + sqrtf(b * b - 4 * a * c)) / (2 * a);
+
+    current_ratio = clamp(current_ratio, 0, 1);
 }
 
 void Chassis::sendCANCmd() {

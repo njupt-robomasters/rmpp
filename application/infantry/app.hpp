@@ -29,8 +29,6 @@
 class Settings {
 public:
     // 底盘
-    float wheel_radius = 0.063f; // 轮子半径【单位：m】
-    float chassis_radius = 0.225f; // 底盘半径【单位：m】
     // 操作手控制参数
     // 移动
     float axy = 1.0f; // 移动加速度【单位：m/s^2】

@@ -18,11 +18,14 @@
         // 云台
         ui.set_gimbal_is_imu_mode = (status.gimbal.mode == Gimbal::IMU_MODE);
         ui.set_shooter_is_on = status.gimbal.is_prepare_shoot;
-        ui.set_bullet_frequency = status.gimbal.shoot_freq;
+        ui.set_bullet_frequency = 0;
 
         // 自瞄
         ui.set_is_locked = false;
         ui.set_is_firing = false;
+
+        // todo
+        ui.set_chassis_mode = UI::FOLLOW;
 
         ui.Update();
         osDelay(1);

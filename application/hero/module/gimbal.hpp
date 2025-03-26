@@ -31,9 +31,7 @@ public:
 
     void ParseCAN(uint32_t id, uint8_t data[8]);
 
-    void ResetReady();
-
-    [[nodiscard]] bool CheckReady() const;
+    void WaitReady();
 
     void SetEnable(bool is_enable);
 
@@ -51,6 +49,8 @@ public:
 
     void Shoot();
 
+    bool isShootFinish() const;
+
     void Update();
 
 private:
@@ -63,12 +63,23 @@ private:
 
     const IMU &imu; // 对陀螺仪的引用，用于云台IMU闭环模式
 
-    bool is_enable = false; // 云台使能标志
-    mode_e mode = ECD_MODE; // 云台模式
-    Speed yaw_speed_ff{}; // yaw速度前馈（小陀螺模式需要）
-    bool is_prepare_shoot = false; // 摩擦轮状态
+    // 云台使能标志
+    bool is_enable = false;
 
-    uint32_t can_send_cnt = 0; // 用于间隔发送三个电机的CAN报文
+    // 云台模式
+    mode_e mode = ECD_MODE;
+
+    // yaw速度前馈（小陀螺模式需要）
+    Speed yaw_speed_ff{};
+
+    // 摩擦轮状态
+    bool is_prepare_shoot = false;
+
+    // 当前射击是否为完成
+    bool is_shoot_finish = true;
+
+    // 用于间隔发送三个电机的CAN报文
+    uint32_t can_send_cnt = 0;
 
     // 电机对象
     DM4310 m_pitch;
