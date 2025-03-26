@@ -42,10 +42,14 @@ public:
     PID::param_t wheel_pid = {.kp = 10000.0f, .ki = 50.0f};
 
     // 云台
+    // 操作手操作参数
     float pitch_aps_max = 60.0f; // 【单位：度/s】
     float yaw_aps_max = 240.0f; // 【单位：度/s】
     float mouse_x_max = 100.0f;
     float mouse_y_max = 100.0f;
+    float shoot_freq_min = 5.0;
+    float shoot_freq_max = 20.0;
+    float shoot_freq_per_press = 5.0f;
     // IMU参数
     IMU::param_t imu_param = {.yaw = 0, .pitch = 0, .roll = 180};
     IMU::calib_t imu_calib = {-0.00298113562, 0.00259035057, -0.00091807748, 9.82509899};

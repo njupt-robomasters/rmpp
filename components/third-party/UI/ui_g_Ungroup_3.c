@@ -26,7 +26,7 @@ void _ui_init_g_Ungroup_3() {
     ui_g_Ungroup_3.option.color = 2;
     ui_g_Ungroup_3.option.str_length = 7;
     ui_g_Ungroup_3.option.width = 3;
-    strcpy(ui_g_Ungroup_chassis_around_status->string, "(F) FOLLOW");
+    strcpy(ui_g_Ungroup_chassis_around_status->string, "TURNING");
 
     ui_proc_string_frame(&ui_g_Ungroup_3);
     SEND_MESSAGE((uint8_t *) &ui_g_Ungroup_3, sizeof(ui_g_Ungroup_3));

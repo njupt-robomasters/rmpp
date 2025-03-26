@@ -44,10 +44,10 @@ uint8_t UI::Update() {
     // id 2 chassis mode
     if (set_gimbal_is_imu_mode != set_gimbal_is_imu_mode_last || is_force_init) {
         if (set_gimbal_is_imu_mode) {
-            strcpy(ui_g_Ungroup_chassis_mode->string, "(Q) IMU_Mode");
+            strcpy(ui_g_Ungroup_chassis_mode->string, "IMU_Mode");
             ui_g_Ungroup_chassis_mode->color = 2; //green
         } else {
-            strcpy(ui_g_Ungroup_chassis_mode->string, "(Q) ECD_Mode");
+            strcpy(ui_g_Ungroup_chassis_mode->string, "ECD_Mode");
             ui_g_Ungroup_chassis_mode->color = 3; //orange
         }
         _ui_update_g_Ungroup_2();
@@ -58,9 +58,9 @@ uint8_t UI::Update() {
     // id 3 chassis_mode
     if (set_chassis_mode != set_chassis_mode_last || is_force_init) {
         if (set_chassis_mode == UI::TURNING)
-            strcpy(ui_g_Ungroup_chassis_around_status->string, "(F) TURNING");
+            strcpy(ui_g_Ungroup_chassis_around_status->string, "TURNING");
         else
-            strcpy(ui_g_Ungroup_chassis_around_status->string, "(F) FOLLOW");
+            strcpy(ui_g_Ungroup_chassis_around_status->string, "FOLLOW");
         _ui_update_g_Ungroup_3();
         update_num++;
     }

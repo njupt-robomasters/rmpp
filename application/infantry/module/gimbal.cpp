@@ -110,7 +110,7 @@ void Gimbal::SetYawSpeedFF(const Speed &yaw_speed_ff) {
 void Gimbal::SetPrepareShoot(const bool is_prepare_shoot) {
     this->is_prepare_shoot = is_prepare_shoot;
     if (is_prepare_shoot) {
-        BSP_PWM_SetDuty(100);
+        BSP_PWM_SetDuty(80);
     } else {
         BSP_PWM_SetDuty(0);
         SetShoot(false);

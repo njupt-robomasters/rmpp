@@ -7,6 +7,7 @@ static float dt;
 static DJ6::switch_t last_right_switch = DJ6::ERR;
 static DJ6::switch_t last_left_switch = DJ6::ERR;
 static bool last_mouse_left = false;
+static uint16_t last_mouse_z = 0;
 
 // 解析遥控器操作
 static void handle_rc() {
@@ -68,6 +69,25 @@ static void handle_video() {
     } else {
         status.gimbal.is_rv2_mode = false;
     }
+
+    // 4. 鼠标滚轮射频调节
+    if (referee.mouse_z != last_mouse_z) {
+        last_mouse_z = referee.mouse_z;
+        if (referee.mouse_z > 0) {
+            status.gimbal.shoot_freq += settings.shoot_freq_per_press;
+        } else if (referee.mouse_z < 0) {
+            status.gimbal.shoot_freq -= settings.shoot_freq_per_press;
+        }
+        status.gimbal.shoot_freq = clamp(status.gimbal.shoot_freq, settings.shoot_freq_min, settings.shoot_freq_max);
+    }
+}
+
+static bool checkHeatProtect() {
+    if (referee.shooter_17mm_heat > referee.mouse_left_button_down * 0.8) {
+        return false;
+    } else {
+        return true;
+    }
 }
 
 [[noreturn]] void task_gimbal_entry(void const *argument) {
@@ -99,7 +119,7 @@ static void handle_video() {
                 gimbal.SetAngle(rv2.pitch, rv2.yaw);
             }
             // rv2发送开火建议，且选手允许开火才开火
-            if (rv2.fire_advise && status.gimbal.is_shoot) {
+            if (rv2.fire_advise && status.gimbal.is_shoot && checkHeatProtect()) {
                 gimbal.SetShoot(true, status.gimbal.shoot_freq);
             } else {
                 gimbal.SetShoot(false);
@@ -110,7 +130,11 @@ static void handle_video() {
             const float pitch_angle_add = (status.gimbal.rc.pitch_speed + status.gimbal.video.pitch_speed) * dt;
             const float yaw_angle_add = (status.gimbal.rc.yaw_speed + status.gimbal.video.yaw_speed) * dt;
             gimbal.AddAngle(pitch_angle_add, yaw_angle_add); // 角度增量
-            gimbal.SetShoot(status.gimbal.is_shoot, status.gimbal.shoot_freq); // 是否开火
+            if (checkHeatProtect()) {
+                gimbal.SetShoot(status.gimbal.is_shoot, status.gimbal.shoot_freq); // 是否开火
+            } else {
+                gimbal.SetShoot(false);
+            }
         }
 
         gimbal.Update();

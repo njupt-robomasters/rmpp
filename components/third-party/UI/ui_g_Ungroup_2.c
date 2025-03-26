@@ -26,7 +26,7 @@ void _ui_init_g_Ungroup_2() {
     ui_g_Ungroup_2.option.color = 2;
     ui_g_Ungroup_2.option.str_length = 8;
     ui_g_Ungroup_2.option.width = 2;
-    strcpy(ui_g_Ungroup_chassis_mode->string, "(Q) IMU_Mode");
+    strcpy(ui_g_Ungroup_chassis_mode->string, "IMU_Mode");
 
     ui_proc_string_frame(&ui_g_Ungroup_2);
     SEND_MESSAGE((uint8_t *) &ui_g_Ungroup_2, sizeof(ui_g_Ungroup_2));

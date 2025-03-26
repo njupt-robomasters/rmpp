@@ -22,16 +22,37 @@
 
 class Settings {
 public:
-    // PID参数
+    // 底盘PID参数
     PID::param_t servo_pid = {.kp = 0.6f};
     PID::param_t wheel_pid = {.kp = 10000.0f, .ki = 50.0f};
 
-    float chassis_vxy_max = 2.0f; // 前后左右平移速度【单位：m/s】
-    float chassis_vr_rpm = 180.0f; // 旋转角速度【单位：rpm】
+    // 底盘运动参数
+    float vxy_max = 2.0f; // 前后左右平移速度【单位：m/s】
+    float rpm_max = 180.0f; // 旋转角速度【单位：rpm】
+
+    // 导航参数
+    uint16_t go_home_hp = 50;
+    float home_x = 0, home_y = 0;
+    float center_x = 1, center_y = 1;
+    float center_range = 0.2;
 };
 
 class Status {
 public:
+    struct {
+        float vx = 0, vy = 0, rpm = 0;
+    } rc{}, nav{};
+
+    bool is_nav_on = false;
+    float nav_target_x = 0, nav_target_y = 0;
+
+    enum {
+        GO_CENTER,
+        IN_CENTER,
+        GO_HOME,
+        IN_HOME
+    } nav_status = GO_CENTER;
+
     bool ignore_rc_disconnect = false;
 };
 

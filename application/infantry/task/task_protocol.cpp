@@ -24,6 +24,9 @@
         ui.set_is_locked = rv2.is_locked;
         ui.set_is_firing = (rv2.is_locked && status.gimbal.is_shoot);
 
+        // todo
+        ui.set_chassis_mode = UI::TURNING;
+
         ui.Update();
         osDelay(1);
     }
