@@ -118,15 +118,10 @@ void Gimbal::SetPrepareShoot(const bool is_prepare_shoot) {
 }
 
 void Gimbal::Shoot() {
-    if (is_prepare_shoot && is_shoot_finish) {
-        is_shoot_finish = false;
+    if (is_prepare_shoot) {
         const float degree_add = -360.0f / SHOOT_NUM_PER_ROUND;
         ref.shoot.absolute.degree = norm_angle(ref.shoot.absolute.degree + degree_add);
     }
-}
-
-bool Gimbal::isShootFinish() const {
-    return this->is_shoot_finish;
 }
 
 void Gimbal::Update() {
@@ -153,16 +148,8 @@ void Gimbal::Update() {
             ref.yaw.absolute.degree = norm_angle(-(ref.yaw.imu_mode.degree - imu.yaw - measure.yaw.absolute.degree));
         }
         m_pitch.SetAngle(ref.pitch.absolute); // pitch
-        m_yaw.SetAngle(ref.yaw.absolute, yaw_speed_ff); // yaw
-
-        // shoot
-        // 转到90%认为射击完成
-        const float degree_err = calc_angle_err(ref.shoot.absolute.degree, measure.shoot.absolute.degree);
-        if (fabsf(degree_err) < 360.0f / SHOOT_NUM_PER_ROUND * 0.1f)
-            is_shoot_finish = true;
-        if (is_shoot_finish)
-            ref.shoot.absolute = measure.shoot.absolute;
-        m_shoot.SetAngle(ref.shoot.absolute);
+        m_yaw.SetAngle(ref.yaw.absolute, -yaw_speed_ff); // yaw
+        m_shoot.SetAngle(ref.shoot.absolute); // shoot
 
         // 电机闭环控制计算
         m_pitch.Update();

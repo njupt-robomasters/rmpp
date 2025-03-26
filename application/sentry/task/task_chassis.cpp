@@ -64,6 +64,8 @@ static void handle_nav() {
 
         switch (status.nav_status) {
             case Status::GO_CENTER:
+                status.nav_target_x = settings.center_x;
+                status.nav_target_y = settings.center_y;
                 followNAV();
                 if (checkCenter()) {
                     status.nav_status = Status::IN_CENTER;
@@ -75,6 +77,8 @@ static void handle_nav() {
                 break;
 
             case Status::GO_HOME:
+                status.nav_target_x = settings.home_x;
+                status.nav_target_y = settings.home_y;
                 followNAV();
                 if (checkHome()) {
                     status.nav_status = Status::IN_HOME;

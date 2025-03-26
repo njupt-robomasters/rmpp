@@ -60,6 +60,15 @@ static void handle_video() {
     }
 }
 
+static bool checkHeatProtect() {
+    // if (referee.shooter_17mm_heat > referee.shooter_heat_limit * 0.8) {
+    //     return false;
+    // } else {
+    //     return true;
+    // }
+    return true;
+}
+
 [[noreturn]] void task_gimbal_entry(void const *argument) {
     imu.WaitReady();
     gimbal.WaitReady();
@@ -71,7 +80,7 @@ static void handle_video() {
         handle_video();
 
         // 检查遥控器连接 是否为强制键盘模式
-        if (dj6.is_connected == false && !status.ignore_rc_disconnect) {
+        if (dj6.is_connected == false && not status.ignore_rc_disconnect) {
             gimbal.SetEnable(false); // 云台失能，关闭所有电机输出
             gimbal.Update();
             osDelay(1);
@@ -92,7 +101,9 @@ static void handle_video() {
         // 单发开火
         if (status.gimbal.is_need_shoot) {
             status.gimbal.is_need_shoot = false;
-            gimbal.Shoot();
+            if (checkHeatProtect()) {
+                gimbal.Shoot();
+            }
         }
 
         gimbal.Update();

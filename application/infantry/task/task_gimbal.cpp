@@ -83,7 +83,7 @@ static void handle_video() {
 }
 
 static bool checkHeatProtect() {
-    if (referee.shooter_17mm_heat > referee.mouse_left_button_down * 0.8) {
+    if (referee.shooter_17mm_heat > referee.shooter_heat_limit * 0.7) {
         return false;
     } else {
         return true;
@@ -101,7 +101,7 @@ static bool checkHeatProtect() {
         handle_video();
 
         // 检查遥控器连接 是否为强制键盘模式
-        if (dj6.is_connected == false && !status.ignore_rc_disconnect) {
+        if (dj6.is_connected == false && not status.ignore_rc_disconnect) {
             gimbal.SetEnable(false); // 云台失能，关闭所有电机输出
             osDelay(1);
             continue;

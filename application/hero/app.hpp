@@ -51,7 +51,7 @@ public:
     // PID::param_t pitch_pid = {.kp = 0.2f, .kd = 0, .ff = 0.75f}; // pitch
     PID::param_t pitch_pid = {.kp = 0, .kd = 0, .ff = 0}; // pitch
     PID::param_t yaw_pid = {.kp = 1.0f, .kd = 0.02f}; // yaw
-    PID::param_t shoot_pid = {.kp = 0.035f, .kd = 0.014f, .ff = -0.8f}; // shoot
+    PID::param_t shoot_pid = {.kp = 0.1f, .kd = 0.005f, .ff = 0}; // shoot
 };
 
 class Status {

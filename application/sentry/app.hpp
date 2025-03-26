@@ -33,8 +33,8 @@ public:
     // 导航参数
     uint16_t go_home_hp = 50;
     float home_x = 0, home_y = 0;
-    float center_x = 1, center_y = 1;
-    float center_range = 0.2;
+    float center_x = 0.5, center_y = 1;
+    float center_range = 0.1;
 };
 
 class Status {

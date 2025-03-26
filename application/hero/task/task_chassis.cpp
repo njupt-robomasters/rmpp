@@ -107,7 +107,7 @@ static void handle_video() {
     // 长按R三秒，强制使用键盘，忽略遥控器断连
     if (referee.r) {
         r_cnt++;
-        if (r_cnt > 3000) { // 按住三秒
+        if (r_cnt > 2000) { // 按住三秒
             status.ignore_rc_disconnect = true;
             r_cnt = 0;
         }
@@ -118,7 +118,7 @@ static void handle_video() {
     // 长安F三秒，强制更新UI
     if (referee.f) {
         f_cnt++;
-        if (f_cnt > 3000) { // 按住三秒
+        if (f_cnt > 2000) { // 按住三秒
             ui.ForceInit();
             f_cnt = 0;
         }
@@ -129,7 +129,7 @@ static void handle_video() {
     // 同时按VB三秒重启C板
     if (referee.v && referee.b) {
         vb_cnt++;
-        if (vb_cnt > 3000) {
+        if (vb_cnt > 2000) {
             // 按住三秒
             NVIC_SystemReset();
             vb_cnt = 0;
@@ -149,7 +149,7 @@ static void handle_video() {
         handle_video();
 
         // 检查遥控器连接,以及是否强制启用键盘
-        if (dj6.is_connected == false && !status.ignore_rc_disconnect) {
+        if (dj6.is_connected == false && not status.ignore_rc_disconnect) {
             chassis.SetEnable(false); // 底盘失能，关闭电机输出
             osDelay(1);
             continue;
@@ -163,7 +163,7 @@ static void handle_video() {
         chassis.SetEnable(true); // 使能
         chassis.SetGimbalAngle_RefByChassis(gimbal.measure.yaw.relative);
         chassis.SetPowerLimit(referee.chassis_power_limit); // 主动功率控制
-        chassis.SetSpeed(vx, vy, status.chassis.rpm);
+        chassis.SetSpeed(vx, vy, status.chassis.rpm); // 设置速度
 
         chassis.Update();
         osDelay(1);
