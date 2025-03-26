@@ -53,7 +53,8 @@ static void notNAV() {
     // 不响应导航，自转
     status.nav.vx = 0;
     status.nav.vy = 0;
-    status.nav.rpm = settings.rpm_max;
+    // status.nav.rpm = settings.rpm_max;
+    status.nav.rpm = 0;
 }
 
 static void handle_nav() {

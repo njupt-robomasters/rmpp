@@ -6,7 +6,7 @@
 class M3508 : public MDJI {
 public:
     // 用于底盘功率估计
-    static constexpr float M_PER_I = 0.4f; // 电流 -> 力矩 系数（输出轴）
+    static constexpr float M_PER_I = 0.55f; // 电流 -> 力矩 系数（输出轴）
     static constexpr float R = 0.194f; // 电机内阻
 
     explicit M3508(PID::param_t &pid_param);

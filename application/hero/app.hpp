@@ -48,10 +48,9 @@ public:
     IMU::param_t imu_param = {.yaw = 0, .pitch = 0, .roll = 0};
     IMU::calib_t imu_calib = {-0.00298113562, 0.00259035057, -0.00091807748, 9.82509899};
     // 云台PID参数
-    // PID::param_t pitch_pid = {.kp = 0.2f, .kd = 0, .ff = 0.75f}; // pitch
-    PID::param_t pitch_pid = {.kp = 0, .kd = 0, .ff = 0}; // pitch
-    PID::param_t yaw_pid = {.kp = 1.0f, .kd = 0.02f}; // yaw
-    PID::param_t shoot_pid = {.kp = 0.1f, .kd = 0.005f, .ff = 0}; // shoot
+    PID::param_t pitch_pid = {.kp = 0.25, .kd = 0.012, .ff = 0.6}; // pitch
+    PID::param_t yaw_pid = {.kp = 0.7, .kd = 0.02}; // yaw
+    PID::param_t shoot_pid = {.kp = 0.1, .kd = 0.005, .ff = 0}; // shoot
 };
 
 class Status {

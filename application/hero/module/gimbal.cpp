@@ -12,8 +12,10 @@ Gimbal::Gimbal(const IMU &imu, PID::param_t &pitch_pid, PID::param_t &yaw_pid, P
 void Gimbal::ParseCAN(const uint32_t id, uint8_t data[8]) {
     if (id == 0x205) // yaw
         m_yaw.ParseCAN(data);
-    m_pitch.ParseCAN(data);
-    m_shoot.ParseCAN(data);
+    if (id == 0) {
+        m_pitch.ParseCAN(data);
+        m_shoot.ParseCAN(data);
+    }
 
     measure.pitch.absolute = m_pitch.measure.angle; // pitch绝对角度
     measure.pitch.relative.degree = norm_angle(measure.pitch.absolute.degree - PITCH_MID); // pitch相对角度
@@ -111,7 +113,7 @@ void Gimbal::SetYawSpeedFF(const Speed &yaw_speed_ff) {
 void Gimbal::SetPrepareShoot(const bool is_prepare_shoot) {
     this->is_prepare_shoot = is_prepare_shoot;
     if (is_prepare_shoot) {
-        BSP_PWM_SetDuty(100);
+        BSP_PWM_SetDuty(40);
     } else {
         BSP_PWM_SetDuty(0);
     }

@@ -83,11 +83,12 @@ static void handle_video() {
 }
 
 static bool checkHeatProtect() {
-    if (referee.shooter_17mm_heat > referee.shooter_heat_limit * 0.7) {
-        return false;
-    } else {
-        return true;
-    }
+    // if (referee.shooter_17mm_heat > referee.shooter_heat_limit * 0.1) {
+    //     return false;
+    // } else {
+    //     return true;
+    // }
+    return true;
 }
 
 [[noreturn]] void task_gimbal_entry(void const *argument) {
@@ -119,7 +120,7 @@ static bool checkHeatProtect() {
                 gimbal.SetAngle(rv2.pitch, rv2.yaw);
             }
             // rv2发送开火建议，且选手允许开火才开火
-            if (rv2.fire_advise && status.gimbal.is_shoot && checkHeatProtect()) {
+            if (status.gimbal.is_shoot && checkHeatProtect()) {
                 gimbal.SetShoot(true, status.gimbal.shoot_freq);
             } else {
                 gimbal.SetShoot(false);
