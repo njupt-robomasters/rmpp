@@ -43,7 +43,8 @@ void Referee::ParsePacket(const uint8_t *packet, uint16_t packetSize) {
                 this->team_is_red = 0;
             }
             this->robot_hp = (dataField[3] << 8) | dataField[2];
-            this->shooter_cooling = (dataField[7] << 8) | dataField[8];
+            this->robot_hp_limit = (dataField[5] << 8) | dataField[4];
+            this->shooter_cooling = (dataField[7] << 8) | dataField[6];
             this->shooter_heat_limit = (dataField[9] << 8) | dataField[8];
             this->chassis_power_limit = (dataField[11] << 8) | dataField[10];
             uint8_t powerManagement = dataField[12];

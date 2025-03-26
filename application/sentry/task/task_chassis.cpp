@@ -83,7 +83,7 @@ static void handle_nav() {
 
             case Status::IN_HOME:
                 notNAV();
-                if (referee.robot_hp ==) {
+                if (referee.robot_hp == referee.robot_hp_limit) {
                     status.nav_status = Status::GO_CENTER;
                 }
                 break;

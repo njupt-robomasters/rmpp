@@ -18,6 +18,7 @@ public:
     uint16_t shooter_projectile_allowance_17mm = 0; // 17mm允许发弹量
     uint16_t shooter_projectile_allowance_42mm = 0; // 42mm允许发弹量
     uint16_t shooter_launching_frequency = 0; // 弹丸射速
+    uint16_t robot_hp_limit = 0; //新增： 机器人血量上限
     float shooter_bullet_speed = 0; // 弹丸初速度
     uint8_t power_shooter = 0; // 发射机构是否上电
     uint8_t power_chassis = 0; // 底盘是否上电
@@ -31,7 +32,7 @@ public:
     bool w = false, s = false, a = false, d = false;
     bool shift = false, ctrl = false;
     bool q = false, e = false, r = false;
-    bool f  = false, g = false;
+    bool f = false, g = false;
     bool z = false, x = false, c = false, v = false, b = false;
 
     // 中心增益点占领情况

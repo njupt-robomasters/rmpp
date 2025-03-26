@@ -21,7 +21,7 @@ public:
     uint8_t set_chassis_max_speed = 1; // 底盘平移速度
     uint8_t set_is_locked = 0; // 自瞄是否锁定
     uint8_t set_is_firing = 0; // 是否自动火控
-    chassis_mode_t set_chassis_mode = TURNING; // 底盘模式
+    chassis_mode_t set_chassis_mode = FOLLOW; // 底盘模式
     uint16_t set_chassis_vr = 0; // 底盘自转速度
     uint8_t set_center_gain_status = 0; // 中心增益点占领情况
     float set_super_cap_percent = 0; // 超电百分比
@@ -34,7 +34,7 @@ private:
     uint8_t set_chassis_max_speed_last = 1; // 底盘平移速度
     uint8_t set_is_locked_last = 0; // 自瞄是否锁定
     uint8_t set_is_firing_last = 0; // 是否自动火控
-    chassis_mode_t set_chassis_mode_last = TURNING; // 底盘模式
+    chassis_mode_t set_chassis_mode_last = FOLLOW; // 底盘模式
     uint16_t set_chassis_vr_last = 0; // 底盘自转速度
     uint8_t set_center_gain_status_last = 0; // 中心增益点占领情况
     float set_super_cap_percent_last = 0; // 超电百分比
