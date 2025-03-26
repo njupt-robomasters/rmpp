@@ -1,5 +1,5 @@
 #include "task_protocol.h"
-#include "../app.hpp"
+#include "app.hpp"
 
 [[noreturn]] void task_protocol_nav_entry(void const *argument) {
     while (true) {

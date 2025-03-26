@@ -1,5 +1,5 @@
 #include "task_gimbal.h"
-#include "../app.hpp"
+#include "app.hpp"
 
 static uint32_t dwt_cnt;
 static float dt;

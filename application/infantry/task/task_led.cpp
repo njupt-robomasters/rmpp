@@ -1,5 +1,5 @@
 #include "task_led.h"
-#include "../app.hpp"
+#include "app.hpp"
 
 #define FLOW_COLOR_LENGTH 6
 #define FLOW_COLOR_CHANGE_TIME 1000
