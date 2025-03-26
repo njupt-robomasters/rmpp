@@ -30,7 +30,13 @@ public:
     float chassis_vr_rpm = 180.0f; // 旋转角速度【单位：rpm】
 };
 
+class Status {
+public:
+    bool ignore_rc_disconnect = false;
+};
+
 extern Settings settings;
+extern Status status;
 extern DJ6 dj6;
 extern Chassis chassis;
 extern Referee referee;

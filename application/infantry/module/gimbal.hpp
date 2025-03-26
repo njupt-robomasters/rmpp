@@ -28,13 +28,9 @@ public:
 
     Gimbal(const IMU &imu, PID::param_t &pitch_pid, PID::param_t &yaw_pid, PID::param_t &shoot_pid);
 
-    void Init();
-
     void ParseCAN(uint32_t id, uint8_t data[8]);
 
-    void ResetReady();
-
-    [[nodiscard]] bool CheckReady() const;
+    void WaitReady();
 
     void SetEnable(bool is_enable);
 

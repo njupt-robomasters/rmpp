@@ -72,7 +72,7 @@ static void handle_video() {
 
 [[noreturn]] void task_gimbal_entry(void const *argument) {
     imu.WaitReady();
-    gimbal.Init();
+    gimbal.WaitReady();
 
     while (true) {
         dt = BSP_DWT_GetDeltaT(&dwt_cnt);

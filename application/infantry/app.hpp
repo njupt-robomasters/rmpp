@@ -43,15 +43,15 @@ public:
 
     // 云台
     float pitch_aps_max = 60.0f; // 【单位：度/s】
-    float yaw_aps_max = 180.0f; // 【单位：度/s】
-    float mouse_x_max = 300.0f;
-    float mouse_y_max = 300.0f;
+    float yaw_aps_max = 240.0f; // 【单位：度/s】
+    float mouse_x_max = 100.0f;
+    float mouse_y_max = 100.0f;
     // IMU参数
     IMU::param_t imu_param = {.yaw = 0, .pitch = 0, .roll = 180};
     IMU::calib_t imu_calib = {-0.00298113562, 0.00259035057, -0.00091807748, 9.82509899};
     // 云台PID参数
-    PID::param_t pitch_pid = {.kp = 1.0f, .kd = 0.014f}; // pitch
-    PID::param_t yaw_pid = {.kp = 0.7f, .kd = 0.012f}; // yaw
+    PID::param_t pitch_pid = {.kp = 1.0f, .kd = 0.025f}; // pitch
+    PID::param_t yaw_pid = {.kp = 1.0f, .kd = 0.023f}; // yaw
     PID::param_t shoot_pid = {.kp = 10, .ki = 40, .i_limit = 5, .max_out = 10}; // shoot
 };
 

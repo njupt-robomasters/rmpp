@@ -9,21 +9,6 @@ Gimbal::Gimbal(const IMU &imu, PID::param_t &pitch_pid, PID::param_t &yaw_pid, P
     m_shoot(shoot_pid) {
 }
 
-void Gimbal::Init() {
-    // 等待pitch yaw电机启动
-    m_pitch.ResetReady();
-    m_yaw.ResetReady();
-    while (not m_pitch.IsReady()) {
-        osDelay(1);
-    }
-    while (not m_yaw.IsReady()) {
-        osDelay(1);
-    }
-
-    // 设置当前位置为目标位置
-    SetCurrentAsTarget();
-}
-
 void Gimbal::ParseCAN(const uint32_t id, uint8_t data[8]) {
     if (id == 0x205) // yaw
         m_yaw.ParseCAN(data);
@@ -42,20 +27,20 @@ void Gimbal::ParseCAN(const uint32_t id, uint8_t data[8]) {
     measure.shoot.freq = measure.shoot.speed.tps * SHOOT_NUM_PER_ROUND; // shoot射频
 }
 
-void Gimbal::ResetReady() {
+void Gimbal::WaitReady() {
     m_pitch.ResetReady();
     m_yaw.ResetReady();
     m_shoot.ResetReady();
-}
 
-bool Gimbal::CheckReady() const {
-    if (not m_pitch.IsReady())
-        return false;
-    if (not m_yaw.IsReady())
-        return false;
-    if (not m_shoot.IsReady())
-        return false;
-    return true;
+    while (not m_pitch.IsReady()) {
+        osDelay(1);
+    }
+    while (not m_yaw.IsReady()) {
+        osDelay(1);
+    };
+    while (not m_shoot.IsReady()) {
+        osDelay(1);
+    }
 }
 
 void Gimbal::SetEnable(const bool is_enable) {
