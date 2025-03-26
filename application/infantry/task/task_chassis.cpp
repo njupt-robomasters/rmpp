@@ -7,7 +7,8 @@ static float dt;
 
 static DJ6::switch_t last_right_switch = DJ6::ERR;
 static bool last_q = false, last_e = false, last_z = false, last_c = false;
-static int r_count = 0, vb_count = 0;
+
+static int r_cnt = 0, f_cnt = 0, vb_cnt = 0;
 
 // 解析遥控器操作
 static void handle_rc() {
@@ -34,17 +35,17 @@ static void handle_video() {
         // 最大加速度模式
         // 前进后退
         if (referee.w) {
-            status.chassis.video.vy = status.chassis.vxy_limit;
+            status.chassis.video.vy = settings.vxy_limit_max;
         } else if (referee.s) {
-            status.chassis.video.vy = -status.chassis.vxy_limit;
+            status.chassis.video.vy = -settings.vxy_limit_max;
         } else {
             status.chassis.video.vy = 0;
         }
         // 左右平移
         if (referee.a) {
-            status.chassis.video.vx = -status.chassis.vxy_limit;
+            status.chassis.video.vx = -settings.vxy_limit_max;
         } else if (referee.d) {
-            status.chassis.video.vx = status.chassis.vxy_limit;
+            status.chassis.video.vx = settings.vxy_limit_max;
         } else {
             status.chassis.video.vx = 0;
         }
@@ -89,8 +90,8 @@ static void handle_video() {
     if (referee.c != last_c) {
         last_c = referee.c;
         if (referee.c) {
-            status.chassis.vxy_limit += settings.vxy_per_press;
-            status.chassis.vxy_limit = clamp(status.chassis.vxy_limit, 0, settings.vxy_max);
+            status.chassis.vxy_limit += settings.vxy_limit_per_press;
+            status.chassis.vxy_limit = clamp(status.chassis.vxy_limit, settings.vxy_limit_min, settings.vxy_limit_max);
         }
     }
 
@@ -98,28 +99,44 @@ static void handle_video() {
     if (referee.z != last_z) {
         last_z = referee.z;
         if (referee.z) {
-            status.chassis.vxy_limit -= settings.vxy_per_press;
-            status.chassis.vxy_limit = clamp(status.chassis.vxy_limit, 0, settings.vxy_max);
+            status.chassis.vxy_limit -= settings.vxy_limit_per_press;
+            status.chassis.vxy_limit = clamp(status.chassis.vxy_limit, settings.vxy_limit_min, settings.vxy_limit_max);
         }
     }
 
-    // R强制使用键盘，忽略遥控器断连
+    // 长按R三秒，强制使用键盘，忽略遥控器断连
     if (referee.r) {
-        r_count++;
-        if (r_count > 3000) // 按住三秒
+        r_cnt++;
+        if (r_cnt > 3000) { // 按住三秒
             status.ignore_rc_disconnect = true;
+            r_cnt = 0;
+        }
     } else {
-        r_count = 0;
+        r_cnt = 0;
     }
 
-    // // 同时按VB三秒重启C板
-    // if (referee.v && referee.b) {
-    //     vb_count++;
-    //     if (vb_count > 3000) // 按住三秒
-    //         NVIC_SystemReset();
-    // } else {
-    //     vb_count = 0;
-    // }
+    // 长安F三秒，强制更新UI
+    if (referee.f) {
+        f_cnt++;
+        if (f_cnt > 3000) { // 按住三秒
+            ui.ForceInit();
+            f_cnt = 0;
+        }
+    } else {
+        f_cnt = 0;
+    }
+
+    // 同时按VB三秒重启C板
+    if (referee.v && referee.b) {
+        vb_cnt++;
+        if (vb_cnt > 3000) {
+            // 按住三秒
+            NVIC_SystemReset();
+            vb_cnt = 0;
+        }
+    } else {
+        vb_cnt = 0;
+    }
 }
 
 [[noreturn]] void task_chassis_entry(void const *argument) {
@@ -130,6 +147,7 @@ static void handle_video() {
 
         handle_rc();
         handle_video();
+        superCapacity.SendPowerLimit(referee.chassis_power_limit * 0.95f);
 
         // 检查遥控器连接,以及是否强制启用键盘
         if (dj6.is_connected == false && !status.ignore_rc_disconnect) {
@@ -151,7 +169,6 @@ static void handle_video() {
             chassis.SetPowerLimit(200);
         }
         chassis.SetSpeed(vx, vy, status.chassis.rpm);
-        superCapacity.SendPowerLimit(referee.chassis_power_limit - 5);
 
         chassis.Update();
         osDelay(1);

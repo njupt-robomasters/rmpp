@@ -140,22 +140,22 @@ void Referee::ParsePacket(const uint8_t *packet, uint16_t packetSize) {
             this->mouse_left_button_down = left_button_down;
             this->mouse_right_button_down = right_button_down;
             this->keyboard_value = keyboard_value;
-            w = keyboard_value & (1<<0);
-            s = keyboard_value & (1<<1);
-            a = keyboard_value & (1<<2);
-            d = keyboard_value & (1<<3);
-            shift = keyboard_value & (1<<4);
-            ctrl = keyboard_value & (1<<5);
-            q = keyboard_value & (1<<6);
-            e = keyboard_value & (1<<7);
-            r = keyboard_value & (1<<8);
-            f = keyboard_value & (1<<9);
-            g = keyboard_value & (1<<10);
-            z = keyboard_value & (1<<11);
-            x = keyboard_value & (1<<12);
-            c = keyboard_value & (1<<13);
-            v = keyboard_value & (1<<14);
-            b = keyboard_value & (1<<15);
+            w = keyboard_value & (1 << 0);
+            s = keyboard_value & (1 << 1);
+            a = keyboard_value & (1 << 2);
+            d = keyboard_value & (1 << 3);
+            shift = keyboard_value & (1 << 4);
+            ctrl = keyboard_value & (1 << 5);
+            q = keyboard_value & (1 << 6);
+            e = keyboard_value & (1 << 7);
+            r = keyboard_value & (1 << 8);
+            f = keyboard_value & (1 << 9);
+            g = keyboard_value & (1 << 10);
+            z = keyboard_value & (1 << 11);
+            x = keyboard_value & (1 << 12);
+            c = keyboard_value & (1 << 13);
+            v = keyboard_value & (1 << 14);
+            b = keyboard_value & (1 << 15);
             break;
         }
         case 0x0101: //中心增益点占领情况

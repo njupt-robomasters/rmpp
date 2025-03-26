@@ -1,18 +1,22 @@
 #include "ui.hpp"
-
 #include <cstring>
 
-void UI::Init(const uint8_t robot_id) {
-    ui_self_id = robot_id;
-    is_first_update = 1;
-    ui_init_g_Ungroup();
+void UI::ForceInit() {
+    is_force_init = 1;
 }
 
 uint8_t UI::Update() {
     uint8_t update_num = 0;
     char ui_buf[30];
+
+    ui_self_id = robot_id;
+
+    if (is_force_init) {
+        ui_init_g_Ungroup();
+    }
+
     // id 0 shoot freq
-    if (set_bullet_frequency != set_bullet_frequency_last || is_first_update) {
+    if (set_bullet_frequency != set_bullet_frequency_last || is_force_init) {
         sprintf(ui_buf, "%dhz", this->set_bullet_frequency);
         strcpy(ui_g_Ungroup_shooter_freq->string, ui_buf);
         _ui_update_g_Ungroup_0();
@@ -20,7 +24,7 @@ uint8_t UI::Update() {
     }
 
     // id 1 auto_aim_status
-    if (set_is_firing != set_is_firing_last || set_is_locked != set_is_locked_last || is_first_update) {
+    if (set_is_firing != set_is_firing_last || set_is_locked != set_is_locked_last || is_force_init) {
         if (set_is_firing) {
             strcpy(ui_g_Ungroup_auto_aim_status->string, "Firing");
             ui_g_Ungroup_auto_aim_status->color = 3; //orange
@@ -38,7 +42,7 @@ uint8_t UI::Update() {
 
 
     // id 2 chassis mode
-    if (set_gimbal_is_imu_mode != set_gimbal_is_imu_mode_last || is_first_update) {
+    if (set_gimbal_is_imu_mode != set_gimbal_is_imu_mode_last || is_force_init) {
         if (set_gimbal_is_imu_mode) {
             strcpy(ui_g_Ungroup_chassis_mode->string, "(Q) IMU_Mode");
             ui_g_Ungroup_chassis_mode->color = 2; //green
@@ -52,7 +56,7 @@ uint8_t UI::Update() {
 
 
     // id 3 chassis_mode
-    if (set_chassis_mode != set_chassis_mode_last || is_first_update) {
+    if (set_chassis_mode != set_chassis_mode_last || is_force_init) {
         if (set_chassis_mode == UI::TURNING)
             strcpy(ui_g_Ungroup_chassis_around_status->string, "(F) TURNING");
         else
@@ -62,7 +66,7 @@ uint8_t UI::Update() {
     }
 
     // id 4 chassis_vr
-    if (set_chassis_vr != set_chassis_vr_last || is_first_update) {
+    if (set_chassis_vr != set_chassis_vr_last || is_force_init) {
         sprintf(ui_buf, "%d rpm", set_chassis_vr);
         strcpy(ui_g_Ungroup_chassis_vr->string, ui_buf);
         _ui_update_g_Ungroup_4();
@@ -70,7 +74,7 @@ uint8_t UI::Update() {
     }
 
     // id 5
-    if (set_chassis_max_speed != set_chassis_max_speed_last || is_first_update) {
+    if (set_chassis_max_speed != set_chassis_max_speed_last || is_force_init) {
         sprintf(ui_buf, "%d m/s", set_chassis_max_speed);
         strcpy(ui_g_Ungroup_chassis_speed->string, ui_buf);
         _ui_update_g_Ungroup_5();
@@ -79,7 +83,7 @@ uint8_t UI::Update() {
 
 
     // id 6 7 update
-    if (set_center_gain_status != set_center_gain_status_last || is_first_update) {
+    if (set_center_gain_status != set_center_gain_status_last || is_force_init) {
         switch (set_center_gain_status) {
             case 0:
                 hide_string(ui_g_Ungroup_our_gain_status);
@@ -110,7 +114,7 @@ uint8_t UI::Update() {
 
 
     // id 8 superCap status
-    if (set_super_cap_percent != set_super_cap_percent_last || is_first_update) {
+    if (set_super_cap_percent != set_super_cap_percent_last || is_force_init) {
         sprintf(ui_buf, "%.1f %%", set_super_cap_percent * 100);
         strcpy(ui_g_Ungroup_super_cap_status->string, ui_buf);
         _ui_update_g_Ungroup_8();
@@ -119,7 +123,7 @@ uint8_t UI::Update() {
 
 
     // id 9 power_limit
-    if (set_chassis_power_limit != set_chassis_power_limit_last || is_first_update) {
+    if (set_chassis_power_limit != set_chassis_power_limit_last || is_force_init) {
         sprintf(ui_buf, "%d W", set_chassis_power_limit);
         strcpy(ui_g_Ungroup_power_limit->string, ui_buf);
         _ui_update_g_Ungroup_9();
@@ -127,7 +131,7 @@ uint8_t UI::Update() {
     }
 
     // id 10 摩擦轮电机状态
-    if (set_shooter_is_on != set_shooter_is_on_last || is_first_update) {
+    if (set_shooter_is_on != set_shooter_is_on_last || is_force_init) {
         if (set_shooter_is_on) {
             strcpy(ui_g_Ungroup_shooter_status->string, "AM ON");
             ui_g_Ungroup_shooter_status->color = 2; //green
@@ -138,8 +142,9 @@ uint8_t UI::Update() {
         _ui_update_g_Ungroup_10();
         update_num++;
     }
+
     save_last();
-    is_first_update = 0;
+    is_force_init = 0;
     return update_num;
 }
 
@@ -162,4 +167,5 @@ void UI::save_last() {
     set_center_gain_status_last = set_center_gain_status; // 中心增益点占领情况
     set_super_cap_percent_last = set_super_cap_percent; // 超电百分比
     set_shooter_is_on_last = set_shooter_is_on; // 摩擦轮电机状态
+    set_chassis_power_limit_last = set_chassis_power_limit;
 }

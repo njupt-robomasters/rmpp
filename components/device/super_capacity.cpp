@@ -11,7 +11,7 @@ void SuperCapacity::ParseCAN(const uint32_t id, const uint8_t data[8]) {
 
         // 计算更多数据
         input_power = input_voltage * input_current;
-        percentage = capacity_voltage * capacity_voltage / (25 * 25);
+        percentage = capacity_voltage * capacity_voltage / (26 * 26);
         percentage = clamp(percentage, 0, 1);
     }
 }
@@ -19,8 +19,8 @@ void SuperCapacity::ParseCAN(const uint32_t id, const uint8_t data[8]) {
 void SuperCapacity::SendPowerLimit(const float power) {
     const auto power_limit = static_cast<uint16_t>(power * 100.0f);
     uint8_t data[8];
-    data[0] = power_limit;
-    data[1] = power_limit >> 8;
+    data[0] = power_limit >> 8;
+    data[1] = power_limit;
     BSP_CAN_Transmit(0x210, data, 2);
 }
 

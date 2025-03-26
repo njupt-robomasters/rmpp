@@ -5,7 +5,7 @@
 
 class UI {
 public:
-    void Init(uint8_t robot_id); // 初始化UI
+    void ForceInit();
 
     uint8_t Update(); // 更新UI
 
@@ -13,6 +13,8 @@ public:
         TURNING,
         FOLLOW
     } chassis_mode_t;
+
+    uint8_t robot_id = 0;
 
     uint8_t set_bullet_frequency = 10; // 弹丸发射频率
     uint8_t set_gimbal_is_imu_mode = 1; // 云台模式，是imu模式为1，否则为0
@@ -38,9 +40,10 @@ private:
     float set_super_cap_percent_last = 0; // 超电百分比
     uint8_t set_shooter_is_on_last = 0; // 摩擦轮电机状态
     uint8_t set_chassis_power_limit_last = 0;
-    uint8_t is_first_update = 0; //是否init
 
-    void save_last(); //保存上次值
+    uint8_t is_force_init = 0; // 是否init
+
+    void save_last(); // 保存上次值
 
     void show_string(ui_interface_string_t *ui_string);
 

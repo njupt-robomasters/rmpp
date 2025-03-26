@@ -32,11 +32,14 @@ public:
     float wheel_radius = 0.063f; // 轮子半径【单位：m】
     float chassis_radius = 0.225f; // 底盘半径【单位：m】
     // 操作手控制参数
+    // 移动
     float axy = 1.0f; // 移动加速度【单位：m/s^2】
+    float vxy_limit_min = 1.0f; // 【单位：m/s】
+    float vxy_limit_max = 5.0f; // 【单位：m/s】
+    float vxy_limit_per_press = 1.0f; // 【单位：m/s】
+    // 旋转
     float rpm_max = 100.0f; // 最大小陀螺转速【单位：rpm】
     float rpm_per_press = 20.0f; // 小陀螺转速调节挡位【单位：rpm】
-    float vxy_max = 5.0f; // 【单位：m/s】
-    float vxy_per_press = 1.0f; // 【单位：m/s】
     // 底盘PID参数
     PID::param_t wheel_pid = {.kp = 10000.0f, .ki = 50.0f};
 

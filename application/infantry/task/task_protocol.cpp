@@ -2,12 +2,9 @@
 #include "../app.hpp"
 
 [[noreturn]] void task_protocol_ui_entry(void const *argument) {
-    uint32_t cnt = 0;
     while (true) {
-        if (++cnt % 10 == 0) {
-            // 1Hz
-            ui.Init(referee.robot_id);
-        }
+        // 必须告知机器人ID
+        ui.robot_id = referee.robot_id;
 
         // 从裁判系统获得的数据
         ui.set_center_gain_status = referee.center_gain_status;
@@ -15,7 +12,7 @@
 
         // 底盘
         ui.set_chassis_max_speed = status.chassis.vxy_limit;
-        ui.set_chassis_vr = status.chassis.vxy_limit;
+        ui.set_chassis_vr = status.chassis.rpm;
         ui.set_super_cap_percent = superCapacity.percentage;
 
         // 云台
@@ -28,7 +25,7 @@
         ui.set_is_firing = (rv2.is_locked && status.gimbal.is_shoot);
 
         ui.Update();
-        osDelay(100); // 10Hz
+        osDelay(1);
     }
 }
 
