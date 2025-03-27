@@ -30,10 +30,6 @@ public:
 
     void ParseCAN(uint32_t id, uint8_t data[8]);
 
-    void ResetReady();
-
-    [[nodiscard]] bool CheckReady() const;
-
     void SetEnable(bool is_enable);
 
     void SetSpeed(float vx, float vy, float vr_rpm);

@@ -12,17 +12,17 @@ static void handle_rc() {
 
     // 右边摇杆
     if (dj6.right_switch == DJ6::UP) {
-        // 开启自动导航，忽略遥控器断连
-        status.is_nav_on = true;
-        status.ignore_rc_disconnect = true;
+        // 关闭自动导航，不忽略遥控器断连
+        status.is_nav_on = false;
+        status.ignore_rc_disconnect = false;
     } else if (dj6.right_switch == DJ6::MID) {
         // 开启自动导航，不忽略遥控器断连
         status.is_nav_on = true;
         status.ignore_rc_disconnect = false;
     } else if (dj6.right_switch == DJ6::DOWN) {
-        // 关闭自动导航，不忽略遥控器断连
-        status.is_nav_on = false;
-        status.ignore_rc_disconnect = false;
+        // 开启自动导航，忽略遥控器断连
+        status.is_nav_on = true;
+        status.ignore_rc_disconnect = true;
     }
 }
 
@@ -44,8 +44,16 @@ static bool checkCenter() {
 
 static void followNAV() {
     // 响应导航，不自转
-    status.nav.vx = nav.vel_x;
-    status.nav.vy = nav.vel_y;
+    const float ratio1 = fabsf(nav.vel_x / settings.vxy_max);
+    const float ratio2 = fabsf(nav.vel_y / settings.vxy_max);
+    const float ratio = fmaxf(ratio1, ratio2);
+    if (ratio > 1) {
+        status.nav.vx = nav.vel_x / ratio;
+        status.nav.vy = nav.vel_y / ratio;
+    } else {
+        status.nav.vx = nav.vel_x;
+        status.nav.vy = nav.vel_y;
+    }
     status.nav.rpm = 0;
 }
 
@@ -53,48 +61,76 @@ static void notNAV() {
     // 不响应导航，自转
     status.nav.vx = 0;
     status.nav.vy = 0;
-    // status.nav.rpm = settings.rpm_max;
-    status.nav.rpm = 0;
+    status.nav.rpm = settings.rpm_max;
+}
+
+static void followStateMachine() {
+    // 比赛尚未开始，速度置0退出
+    if (referee.competition_is_started != 1) {
+        status.nav.vx = 0;
+        status.nav.vy = 0;
+        status.nav.rpm = 0;
+        return;
+    }
+
+    // 血量低且不在家里，立刻回家
+    if (referee.robot_hp < settings.go_home_hp && not checkHome()) {
+        status.nav_state = Status::GO_HOME;
+    }
+
+    // 状态机
+    switch (status.nav_state) {
+        case Status::GO_CENTER:
+            status.nav_target_x = settings.center_x;
+            status.nav_target_y = settings.center_y;
+            followNAV();
+            if (checkCenter()) {
+                status.nav_state = Status::IN_CENTER;
+            }
+            break;
+
+        case Status::IN_CENTER:
+            notNAV();
+            break;
+
+        case Status::GO_HOME:
+            status.nav_target_x = settings.home_x;
+            status.nav_target_y = settings.home_y;
+            followNAV();
+            if (checkHome()) {
+                status.nav_state = Status::IN_HOME;
+            }
+            break;
+
+        case Status::IN_HOME:
+            notNAV();
+            if (referee.robot_hp == referee.robot_hp_limit) {
+                status.nav_state = Status::GO_CENTER;
+            }
+            break;
+
+        default:
+            break;
+    }
 }
 
 static void handle_nav() {
+    // 是否开启导航
     if (status.is_nav_on) {
-        if (referee.robot_hp < settings.go_home_hp) {
-            status.nav_status = Status::GO_HOME;
-        }
-
-        switch (status.nav_status) {
-            case Status::GO_CENTER:
-                status.nav_target_x = settings.center_x;
-                status.nav_target_y = settings.center_y;
-                followNAV();
-                if (checkCenter()) {
-                    status.nav_status = Status::IN_CENTER;
-                }
-                break;
-
-            case Status::IN_CENTER:
-                notNAV();
-                break;
-
-            case Status::GO_HOME:
-                status.nav_target_x = settings.home_x;
-                status.nav_target_y = settings.home_y;
-                followNAV();
-                if (checkHome()) {
-                    status.nav_status = Status::IN_HOME;
-                }
-                break;
-
-            case Status::IN_HOME:
-                notNAV();
-                if (referee.robot_hp == referee.robot_hp_limit) {
-                    status.nav_status = Status::GO_CENTER;
-                }
-                break;
-
-            default:
-                break;
+        // 左边摇杆
+        if (dj6.left_switch == DJ6::UP) {
+            // 强制回家
+            status.nav_target_x = settings.home_x;
+            status.nav_target_y = settings.home_y;
+            followNAV();
+        } else if (dj6.left_switch == DJ6::MID) {
+            // 强制去中心增益点
+            status.nav_target_x = settings.center_x;
+            status.nav_target_y = settings.center_y;
+            followNAV();
+        } else if (dj6.left_switch == DJ6::DOWN) {
+            // 遵循状态机决策
+            followStateMachine();
         }
     } else {
         status.nav.vx = 0;

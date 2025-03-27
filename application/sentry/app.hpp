@@ -27,14 +27,14 @@ public:
     PID::param_t wheel_pid = {.kp = 10000.0f, .ki = 50.0f};
 
     // 底盘运动参数
-    float vxy_max = 2.0f; // 前后左右平移速度【单位：m/s】
+    float vxy_max = 2.5f; // 前后左右平移速度【单位：m/s】
     float rpm_max = 180.0f; // 旋转角速度【单位：rpm】
 
     // 导航参数
-    uint16_t go_home_hp = 50;
-    float home_x = 0, home_y = 0;
-    float center_x = 0.5, center_y = 1;
-    float center_range = 0.1;
+    uint16_t go_home_hp = 200;
+    float home_x = 1, home_y = -0.75;
+    float center_x = -(4.5 + 0.215), center_y = 2 + 0.215;
+    float center_range = 0.375;
 };
 
 class Status {
@@ -51,7 +51,7 @@ public:
         IN_CENTER,
         GO_HOME,
         IN_HOME
-    } nav_status = GO_CENTER;
+    } nav_state = GO_CENTER;
 
     bool ignore_rc_disconnect = false;
 };
