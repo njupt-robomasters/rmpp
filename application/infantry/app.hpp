@@ -50,6 +50,7 @@ public:
     float shoot_freq_min = 5.0;
     float shoot_freq_max = 20.0;
     float shoot_freq_per_press = 5.0f;
+    float backward_shoot_freq = -5.0f;
     // IMU参数
     IMU::param_t imu_param = {.yaw = 0, .pitch = 0, .roll = 180};
     IMU::calib_t imu_calib = {-0.00298113562, 0.00259035057, -0.00091807748, 9.82509899};

@@ -78,6 +78,9 @@ static bool checkHeatProtect() {
 
         handle_rc();
         handle_video();
+        if (referee.competition_is_started == 1) {
+            status.gimbal.is_prepare_shoot = true;
+        }
 
         // 检查遥控器连接 是否为强制键盘模式
         if (dj6.is_connected == false && not status.ignore_rc_disconnect) {

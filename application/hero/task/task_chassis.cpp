@@ -104,10 +104,10 @@ static void handle_video() {
         }
     }
 
-    // 长按R三秒，强制使用键盘，忽略遥控器断连
+    // 长按R一秒，强制使用键盘，忽略遥控器断连
     if (referee.r) {
         r_cnt++;
-        if (r_cnt > 2000) { // 按住三秒
+        if (r_cnt > 1000) { // 按住一秒
             status.ignore_rc_disconnect = true;
             r_cnt = 0;
         }
@@ -115,10 +115,10 @@ static void handle_video() {
         r_cnt = 0;
     }
 
-    // 长安F三秒，强制更新UI
+    // 长安F一秒，强制更新UI
     if (referee.f) {
         f_cnt++;
-        if (f_cnt > 2000) { // 按住三秒
+        if (f_cnt > 1000) { // 按住一秒
             ui.ForceInit();
             f_cnt = 0;
         }
@@ -126,10 +126,10 @@ static void handle_video() {
         f_cnt = 0;
     }
 
-    // 同时按VB三秒重启C板
+    // 同时按VB两秒重启C板
     if (referee.v && referee.b) {
         vb_cnt++;
-        if (vb_cnt > 2000) {
+        if (vb_cnt > 2000) { // 按住两秒
             // 按住三秒
             NVIC_SystemReset();
             vb_cnt = 0;

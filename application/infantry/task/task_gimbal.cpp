@@ -7,7 +7,8 @@ static float dt;
 static DJ6::switch_t last_right_switch = DJ6::ERR;
 static DJ6::switch_t last_left_switch = DJ6::ERR;
 static bool last_mouse_left = false;
-static uint16_t last_mouse_z = 0;
+static int16_t last_mouse_z_dir = 0;
+static bool last_x = false;
 
 // 解析遥控器操作
 static void handle_rc() {
@@ -71,14 +72,32 @@ static void handle_video() {
     }
 
     // 4. 鼠标滚轮射频调节
-    if (referee.mouse_z != last_mouse_z) {
-        last_mouse_z = referee.mouse_z;
-        if (referee.mouse_z > 0) {
+    int16_t now_mouse_z_dir;
+    if (referee.mouse_z == 0) {
+        now_mouse_z_dir = 0;
+    } else if (referee.mouse_z > 0) {
+        now_mouse_z_dir = 1;
+    } else {
+        now_mouse_z_dir = -1;
+    }
+    if (now_mouse_z_dir != last_mouse_z_dir) {
+        last_mouse_z_dir = now_mouse_z_dir;
+        if (last_mouse_z_dir > 0) {
             status.gimbal.shoot_freq += settings.shoot_freq_per_press;
-        } else if (referee.mouse_z < 0) {
+        } else if (last_mouse_z_dir < 0) {
             status.gimbal.shoot_freq -= settings.shoot_freq_per_press;
         }
         status.gimbal.shoot_freq = clamp(status.gimbal.shoot_freq, settings.shoot_freq_min, settings.shoot_freq_max);
+    }
+
+    // 5. 按X反转拨弹电机，用于改善摩擦轮启动失败
+    if (referee.x != last_x) {
+        last_x = referee.x;
+        if (referee.x) {
+            status.gimbal.shoot_freq = settings.backward_shoot_freq;
+        } else {
+            status.gimbal.shoot_freq= settings.shoot_freq_min;
+        }
     }
 }
 
@@ -100,6 +119,9 @@ static bool checkHeatProtect() {
 
         handle_rc();
         handle_video();
+        if (referee.competition_is_started == 1) {
+            status.gimbal.is_prepare_shoot = true;
+        }
 
         // 检查遥控器连接 是否为强制键盘模式
         if (dj6.is_connected == false && not status.ignore_rc_disconnect) {

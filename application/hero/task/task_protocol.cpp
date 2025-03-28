@@ -18,7 +18,8 @@
         // 云台
         ui.set_gimbal_is_imu_mode = (status.gimbal.mode == Gimbal::IMU_MODE);
         ui.set_shooter_is_on = status.gimbal.is_prepare_shoot;
-        ui.set_bullet_frequency = 0;
+        const float angle_err = calc_angle_err(gimbal.ref.shoot.absolute.degree, gimbal.measure.shoot.absolute.degree);
+        ui.set_bullet_frequency = angle_err;
 
         // 自瞄
         ui.set_is_locked = false;
