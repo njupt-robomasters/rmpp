@@ -178,12 +178,12 @@ void Chassis::calcCurrentRatio() {
     // c = -P
 
     float a = 0;
-    a += w1.ref.current * w1.ref.current * M3508::R;
-    a += w2.ref.current * w2.ref.current * M3508::R;
+    a += w1.ref.current * w1.ref.current * M3508E::R;
+    a += w2.ref.current * w2.ref.current * M3508E::R;
 
     float b = 0;
-    b += M3508::M_PER_I * w1.ref.current * w1.measure.speed.rps;
-    b += M3508::M_PER_I * w2.ref.current * w2.measure.speed.rps;
+    b += M3508E::M_PER_I * w1.ref.current * w1.measure.speed.rps;
+    b += M3508E::M_PER_I * w2.ref.current * w2.measure.speed.rps;
 
     float c = -power_limit;
 

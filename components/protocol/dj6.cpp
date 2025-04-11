@@ -58,10 +58,10 @@ void DJ6::ParseData(const uint8_t *data, uint16_t size) {
 
     is_connected = channel.is_connected;
     if (channel.is_connected) {
-        yaw = norm_xy(channel.CH1); // 右手水平
-        pitch = norm_xy(channel.CH2); // 右手垂直
-        y = norm_xy(channel.CH3); // 左手垂直
-        x = norm_xy(channel.CH4); // 左手水平
+        x = norm_xy(channel.CH1); // 右手水平
+        y = norm_xy(channel.CH2); // 右手垂直
+        pitch = norm_xy(channel.CH3); // 左手垂直
+        yaw = norm_xy(channel.CH4); // 左手水平
         left_switch = get_switch(channel.CH6); // 左拨杆 CH6
         right_switch = get_switch(channel.CH7); // 右拨杆 CH7
     }

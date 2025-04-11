@@ -93,8 +93,18 @@ void DM4310::SendCANEnable() {
     // BSP_CAN_Transmit(motor_id, data, 8);
 }
 
+void DM4310::ClearErr() {
+    // 使能
+    uint8_t data[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfb};
+    BSP_CAN_Transmit(motor_id, data, 8);
+    // // 失能
+    // uint8_t data[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfd};
+    // BSP_CAN_Transmit(motor_id, data, 8);
+}
+
 void DM4310::SendCANCmd() {
-    if (send_enable_cnt++ % 100 == 0) { // 每100次调用重新发送使能
+    if (send_enable_cnt++ % 100 == 0) {
+        // 每100次调用重新发送使能
         SendCANEnable();
     } else {
         const uint16_t pos_value = 0;

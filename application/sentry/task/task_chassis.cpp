@@ -4,25 +4,80 @@
 static uint32_t dwt_cnt;
 static float dt;
 
-static void handle_rc() {
-    // 解析遥控器控制
-    status.rc.vx = dj6.x * settings.vxy_max;
-    status.rc.vy = dj6.y * settings.vxy_max;
-    status.rc.rpm = -dj6.yaw * settings.rpm_max;
+static DJ6::switch_t last_right_switch = DJ6::ERR;
+static DJ6::switch_t last_left_switch = DJ6::ERR;
+static uint32_t last_competition_is_started = 0;
 
-    // 右边摇杆
-    if (dj6.right_switch == DJ6::UP) {
-        // 关闭自动导航，不忽略遥控器断连
-        status.is_nav_on = false;
-        status.ignore_rc_disconnect = false;
-    } else if (dj6.right_switch == DJ6::MID) {
-        // 开启自动导航，不忽略遥控器断连
-        status.is_nav_on = true;
-        status.ignore_rc_disconnect = false;
-    } else if (dj6.right_switch == DJ6::DOWN) {
-        // 开启自动导航，忽略遥控器断连
-        status.is_nav_on = true;
-        status.ignore_rc_disconnect = true;
+static float nonlinear_transform(const float val, const float max_val, const float rate) {
+    float result = val / max_val;
+    if (result > 0) {
+        result = powf(result, rate);
+    } else {
+        result = -powf(-result, rate);
+    }
+    result = result * max_val;
+    return result;
+}
+
+static void handle_rc() {
+    // 解析遥控器控制（实时状态响应）
+    if (dj6.is_connected) {
+        status.rc.vx = dj6.x * settings.vxy_max;
+        status.rc.vy = dj6.y * settings.vxy_max;
+        status.rc.rpm = nonlinear_transform(-dj6.yaw * settings.rpm_max, settings.rpm_max, 4.0f);
+    } else {
+        status.rc.vx = 0;
+        status.rc.vy = 0;
+        status.rc.rpm = 0;
+    }
+
+    // 解析右边摇杆（变化量响应）
+    if (dj6.right_switch != last_right_switch) {
+        last_right_switch = dj6.right_switch;
+        if (dj6.right_switch == DJ6::UP) {
+            // 关闭自动导航，不忽略遥控器断连
+            status.is_nav_on = false;
+            status.ignore_rc_disconnect = false;
+        } else if (dj6.right_switch == DJ6::MID) {
+            // 开启自动导航，不忽略遥控器断连
+            status.is_nav_on = true;
+            status.ignore_rc_disconnect = false;
+        } else if (dj6.right_switch == DJ6::DOWN) {
+            // 开启自动导航，忽略遥控器断连
+            status.is_nav_on = true;
+            status.ignore_rc_disconnect = true;
+        }
+    }
+
+    // 解析左边摇杆（变化量响应）
+    if (dj6.left_switch != last_left_switch) {
+        last_left_switch = dj6.left_switch;
+        if (dj6.left_switch == DJ6::UP) {
+            // 强制回家
+            status.nav_policy = Status::FORCE_HOME;
+        } else if (dj6.left_switch == DJ6::MID) {
+            // 强制去中心增益点
+            status.nav_policy = Status::FORCE_CENTER;
+        } else if (dj6.left_switch == DJ6::DOWN) {
+            // 遵循状态机决策
+            status.nav_policy = Status::FOLLOW_STATEMACHINE;
+        }
+    }
+}
+
+void static handle_game_start() {
+    if (referee.competition_is_started != last_competition_is_started) {
+        last_competition_is_started = referee.competition_is_started;
+        if (referee.competition_is_started == 1) {
+            // 比赛开始
+            status.is_nav_on = true;
+            status.nav_policy = Status::FOLLOW_STATEMACHINE;
+            status.ignore_rc_disconnect = true;
+        } else {
+            // 比赛结束
+            status.is_nav_on = false;
+            status.ignore_rc_disconnect = false;
+        }
     }
 }
 
@@ -65,14 +120,6 @@ static void notNAV() {
 }
 
 static void followStateMachine() {
-    // 比赛尚未开始，速度置0退出
-    if (referee.competition_is_started != 1) {
-        status.nav.vx = 0;
-        status.nav.vy = 0;
-        status.nav.rpm = 0;
-        return;
-    }
-
     // 血量低且不在家里，立刻回家
     if (referee.robot_hp < settings.go_home_hp && not checkHome()) {
         status.nav_state = Status::GO_HOME;
@@ -115,20 +162,19 @@ static void followStateMachine() {
 }
 
 static void handle_nav() {
-    // 是否开启导航
     if (status.is_nav_on) {
         // 左边摇杆
-        if (dj6.left_switch == DJ6::UP) {
+        if (status.nav_policy == Status::FORCE_HOME) {
             // 强制回家
             status.nav_target_x = settings.home_x;
             status.nav_target_y = settings.home_y;
             followNAV();
-        } else if (dj6.left_switch == DJ6::MID) {
+        } else if (status.nav_policy == Status::FORCE_CENTER) {
             // 强制去中心增益点
             status.nav_target_x = settings.center_x;
             status.nav_target_y = settings.center_y;
             followNAV();
-        } else if (dj6.left_switch == DJ6::DOWN) {
+        } else if (status.nav_policy == Status::FOLLOW_STATEMACHINE) {
             // 遵循状态机决策
             followStateMachine();
         }
@@ -144,6 +190,7 @@ static void handle_nav() {
         dt = BSP_DWT_GetDeltaT(&dwt_cnt);
 
         handle_rc();
+        handle_game_start();
         handle_nav();
 
         // 检查遥控器连接

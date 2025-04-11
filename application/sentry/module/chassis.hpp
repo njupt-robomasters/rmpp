@@ -1,7 +1,7 @@
 #pragma once
 
-#include "m3508.hpp"
 #include "m6020.hpp"
+#include "m3508e.hpp"
 #include "pid.hpp"
 #include "unit.hpp"
 
@@ -58,7 +58,7 @@ private:
 
     // 电机对象
     M6020 s1, s2; // 舵电机
-    M3508 w1, w2; // 轮电机
+    M3508E w1, w2; // 轮电机
 
     // 底盘功率控制
     float power_estimate = 0; // 当前功率估计

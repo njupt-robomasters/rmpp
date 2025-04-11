@@ -47,15 +47,13 @@ public:
 
     void Shoot();
 
-    bool isShootFinish() const;
-
     void Update();
 
 private:
     static constexpr float PITCH_MIN = 40.0f; // pitch最小绝对角度【单位：角度】
     static constexpr float PITCH_MID = 60.0f; // pitch水平时的绝对角度【单位：角度】
     static constexpr float PITCH_MAX = 80.0f; // pitch最大绝对角度【单位：角度】
-    static constexpr float YAW_OFFSET = 140.0f; // yaw重合于底盘正方向时的绝对角度【单位：角度】
+    static constexpr float YAW_OFFSET = 220.676f; // yaw重合于底盘正方向时的绝对角度【单位：角度】
 
     static constexpr float SHOOT_NUM_PER_ROUND = 6.0f; // 拨弹电机每转一圈发射的弹数
 
@@ -83,6 +81,8 @@ private:
     DM4310 m_pitch;
     M6020 m_yaw;
     DM4310 m_shoot;
+
+    uint32_t stop_shoot_cnt = 0;
 
     void sendCANCmd();
 };

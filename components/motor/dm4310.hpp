@@ -32,6 +32,8 @@ public:
 
     void SendCANEnable();
 
+    void ClearErr();
+
     void SendCANCmd();
 
 private:

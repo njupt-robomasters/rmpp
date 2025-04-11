@@ -4,12 +4,12 @@
 
 class DJ6 {
 public:
-    typedef enum {
+    enum switch_t {
         ERR,
         DOWN,
         MID,
         UP
-    } switch_t;
+    };
 
     bool is_connected = false;
     float x = 0, y = 0;
