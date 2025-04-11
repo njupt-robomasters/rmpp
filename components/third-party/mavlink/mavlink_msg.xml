@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<mavlink>
+    <version>1</version>
+    <messages>
+        <message id="0" name="IMU_DATA">
+            <description>from c to nuc imu report</description>
+            <field type="float" name="roll" units="deg">roll</field>
+            <field type="float" name="pitch" units="deg">pitch</field>
+            <field type="float" name="yaw" units="deg">yaw</field>
+        </message>
+        <message id="1" name="GIMBAL_CMD">
+            <description>from nuc to c gimbal_control</description>
+            <field type="uint8_t" name="fire_advise">to control fire</field>
+            <field type="float" name="pitch" units="deg">pitch</field>
+            <field type="float" name="yaw" units="deg">yaw</field>
+            <field type="uint8_t" name="is_locked">is_locked</field>
+        </message>
+        <message id="2" name="REFEREE_DATA">
+            <description>from c to nuc referee_data</description>
+            <field type="uint8_t" name="team_is_red">team color(1 is red,0 is bule)</field>
+            <field type="float" name="bullet_speed" units="m/s">bullet_speed</field>
+        </message>
+
+        <message id="7" name="CMD_VEL">
+            <description>from nuc to c CMD_VEL</description>
+            <field type="float" name="x_vel" units="m/s">x_vel</field>
+            <field type="float" name="y_vel" units="m/s">y_vel</field>
+            <field type="float" name="z_vel" units="m/s">yaw_vel</field>
+        </message>
+        <message id="8" name="POSITION">
+            <description>from nuc to c position msg</description>
+            <field type="float" name="x" units="m">x_position</field>
+            <field type="float" name="y" units="m">y_position</field>
+            <field type="float" name="yaw" units="deg">yaw_angle</field>
+        </message>
+        <message id="9" name="TARGET">
+            <description>from c to nuc target_data</description>
+            <field type="float" name="x_target" units="m">x_target</field>
+            <field type="float" name="y_target" units="m">y_target</field>
+        </message>
+
+    </messages>
+</mavlink>
