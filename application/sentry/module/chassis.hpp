@@ -1,9 +1,9 @@
 #pragma once
 
+#include "unit.hpp"
+#include "pid.hpp"
 #include "m6020.hpp"
 #include "m3508.hpp"
-#include "pid.hpp"
-#include "unit.hpp"
 
 class Chassis {
 private:
@@ -17,10 +17,12 @@ private:
 
     static constexpr Unit<m_s> MIN_V = 1e-2f; // 最小转舵速度
 
+public:
     // 电机对象
     M6020 m6020_1, m6020_2; // 舵电机
     M3508 m3508_1, m3508_2; // 轮电机
 
+private:
     // 底盘使能标志
     bool is_enable = false;
 
@@ -39,8 +41,6 @@ private:
 
     void calcCurrentRatio();
 
-    void sendCANCmd();
-
 public:
     // vx 前后速度，前为正
     // vy 左右速度，左为正
@@ -49,6 +49,7 @@ public:
     struct {
         Unit<m_s> ref = 0, measure = 0;
     } vx{}, vy{}, vz{};
+
     struct {
         Unit<rpm> ref = 0, measure = 0;
     } vr{};
@@ -65,7 +66,7 @@ public:
         } relative{}, absolute{};
     } s1{}, s2{};
 
-    Chassis(PID::param_t& servo_pid_param, PID::param_t& wheel_pid_param);
+    Chassis(PID::param_t& m6020_pid_param, PID::param_t& m3508_pid_param);
 
     void SetEnable(bool is_enable);
 

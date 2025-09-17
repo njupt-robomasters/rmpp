@@ -2,7 +2,7 @@
 #include "app.hpp"
 #include "utils.hpp"
 
-Chassis::Chassis(PID::param_t& servo_pid_param, PID::param_t& wheel_pid_param) :
+Chassis::Chassis(PID::param_t& m6020_pid_param, PID::param_t& m3508_pid_param) :
     m6020_1(1, 0x207),
     m6020_2(1, 0x208),
     m3508_1(1, 0x201),
@@ -13,19 +13,13 @@ Chassis::Chassis(PID::param_t& servo_pid_param, PID::param_t& wheel_pid_param) :
     m3508_1.SetReduction(14.0f);
     m3508_2.SetReduction(14.0f);
 
-    m6020_1.SetPIDParam(servo_pid_param);
-    m6020_2.SetPIDParam(servo_pid_param);
-    m3508_1.SetPIDParam(wheel_pid_param);
-    m3508_2.SetPIDParam(wheel_pid_param);
+    m6020_1.SetPIDParam(m6020_pid_param);
+    m6020_2.SetPIDParam(m6020_pid_param);
+    m3508_1.SetPIDParam(m3508_pid_param);
+    m3508_2.SetPIDParam(m3508_pid_param);
 }
 
 void Chassis::SetEnable(const bool is_enable) {
-    // 防止重复操作
-    if (this->is_enable == is_enable)
-        return;
-
-    this->is_enable = is_enable;
-
     // 设置子设备
     m6020_1.SetEnable(is_enable);
     m6020_2.SetEnable(is_enable);
@@ -55,8 +49,6 @@ void Chassis::Update() {
     m3508_2.Update();
 
     calcCurrentRatio(); // 功率控制
-
-    sendCANCmd(); // 发送CAN报文
 }
 
 // 运动学正解
@@ -160,35 +152,6 @@ void Chassis::calcCurrentRatio() {
     power.current_ratio = (-b + sqrtf(b * b - 4 * a * c)) / (2 * a);
 
     power.current_ratio = clamp(power.current_ratio, 0, 1);
-}
 
-void Chassis::sendCANCmd() {
-    const int16_t m6020_1_cmd = m6020_1.GetCurrentCMD();
-    const int16_t m6020_2_cmd = m6020_2.GetCurrentCMD();
-    const int16_t m3508_1_cmd = (int16_t)((float)m3508_1.GetCurrentCMD() * power.current_ratio);
-    const int16_t m3508_2_cmd = (int16_t)((float)m3508_2.GetCurrentCMD() * power.current_ratio);
-
-    uint8_t data[8];
-
-    // M3508，ID：1、2
-    data[0] = m3508_1_cmd >> 8;
-    data[1] = m3508_1_cmd;
-    data[2] = m3508_2_cmd >> 8;
-    data[3] = m3508_2_cmd;
-    data[4] = 0;
-    data[5] = 0;
-    data[6] = 0;
-    data[7] = 0;
-    BSP::CAN::TransmitStd(1, 0x200, data);
-
-    // M6020，ID：3、4
-    data[0] = 0;
-    data[1] = 0;
-    data[2] = 0;
-    data[3] = 0;
-    data[4] = m6020_1_cmd >> 8;
-    data[5] = m6020_1_cmd;
-    data[6] = m6020_2_cmd >> 8;
-    data[7] = m6020_2_cmd;
-    BSP::CAN::TransmitStd(1, 0x1FF, data);
+    m3508_1.SetCurrentRatio(power.current_ratio);
 }

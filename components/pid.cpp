@@ -19,7 +19,7 @@ void PID::SetParam(param_t& param) {
 float PID::CalcPosition(const float err) {
     this->err = err;
 
-    dt = dwt.GetDT();
+    float dt = dwt.GetDT();
 
     // 基础PID计算
     p_out = kp * err;
@@ -35,7 +35,7 @@ float PID::CalcPosition(const float err) {
 float PID::CalcPosition(const float err, const float derr) {
     this->err = err;
 
-    dt = dwt.GetDT();
+    float dt = dwt.GetDT();
 
     // 基础PID计算
     p_out = kp * err;
@@ -51,7 +51,7 @@ float PID::CalcPosition(const float err, const float derr) {
 float PID::CalcIncrement(const float err) {
     this->err = err;
 
-    dt = dwt.GetDT();
+    float dt = dwt.GetDT();
 
     p_out = kp * (err - last_err);
     i_out = ki * err;
@@ -84,7 +84,6 @@ void PID::Clear() {
     di = 0;
 
     dwt.Clear();
-    dt = 0;
 }
 
 void PID::calcPositionCommon() {

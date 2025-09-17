@@ -18,7 +18,7 @@ void MDJI::callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dl
     if (id != feedback_can_id) return;
     if (dlc != 8) return;
 
-    dt = dwt.GetDT();
+    float dt = dwt.GetDT();
 
     // 记录CAN反馈报文频率
     can_feedback_freq = 1 / dt;
@@ -56,12 +56,16 @@ void MDJI::callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dl
     is_ready = true;
 }
 
-void MDJI::SetInvert(bool is_invert) {
+void MDJI::SetReduction(const float reduction) {
+    this->reduction = reduction;
+}
+
+void MDJI::SetInvert(const bool is_invert) {
     this->is_invert = is_invert;
 }
 
-void MDJI::SetReduction(float reduction) {
-    this->reduction = reduction;
+void MDJI::SetCurrentRatio(const float current_ratio) {
+    this->current_ratio = current_ratio;
 }
 
 void MDJI::SetPIDParam(PID::param_t& pid_param) {
@@ -69,29 +73,23 @@ void MDJI::SetPIDParam(PID::param_t& pid_param) {
 }
 
 void MDJI::SetEnable(const bool is_enable) {
-    if (this->is_enable == is_enable) // 避免重复设置
-        return;
-
     this->is_enable = is_enable;
-
-    current.ref = 0.0f;
-    pid.Clear();
 }
 
-void MDJI::SetAngle(Angle<deg> angle) {
+void MDJI::SetAngle(const Angle<deg> angle) {
     this->angle.ref = angle;
 }
 
-void MDJI::SetSpeed(Unit<m_s> speed) {
+void MDJI::SetSpeed(const Unit<rpm> speed) {
     this->speed.ref = speed;
 }
 
 int16_t MDJI::GetCurrentCMD() const {
     int16_t current_cmd;
     if (!is_invert) {
-        current_cmd = (int16_t)(current.ref / current_max * (float)current_cmd_max);
+        current_cmd = (int16_t)(current.ref * current_ratio / current_max * (float)current_cmd_max);
     } else {
-        current_cmd = -(int16_t)(current.ref / current_max * (float)current_cmd_max);
+        current_cmd = (int16_t)(-current.ref * current_ratio / current_max * (float)current_cmd_max);
     }
     return current_cmd;
 }

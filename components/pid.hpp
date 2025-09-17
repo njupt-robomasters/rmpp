@@ -21,9 +21,7 @@ private:
 
     float di = 0; // 当前时刻的i增量
 
-    // 维护dt
-    BSP::Dwt dwt;
-    float dt = 0;
+    BSP::Dwt dwt; // 维护dt
 
     void calcPositionCommon();
 

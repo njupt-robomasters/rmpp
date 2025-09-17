@@ -104,6 +104,10 @@ public:
     constexpr float operator/(const float other) const {
         return (float)(*this) / other;
     }
+
+    constexpr float get(const U& u_) {
+        return (float)(*this) / u_.m_scale;
+    }
 };
 
 template <const U& u = no_unit>

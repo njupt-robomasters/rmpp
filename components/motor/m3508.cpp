@@ -9,6 +9,9 @@ void M3508::Update() {
     if (is_enable) {
         const float speed_err = speed.ref - speed.measure;
         current.ref = pid.CalcIncrement(speed_err);
+    } else {
+        pid.Clear();
+        current.ref = 0;
     }
 }
 

@@ -16,17 +16,11 @@ private:
     const Unit<A> current_max; // 最大电流
     const uint16_t current_cmd_max; // CAN通信最大电流对应的值
 
-    float reduction; // 电机减速比
+    bool is_invert = false; // 电机反转标志
+    float reduction = 1.0f; // 电机减速比
+    float current_ratio = 1.0f; // 用于功率控制
 
-    // 电机反转标志
-    bool is_invert = false;
-
-    // 维护dt
-    BSP::Dwt dwt;
-    float dt = 0;
-
-    // CAN反馈报文频率【单位：Hz】
-    float can_feedback_freq = 0;
+    BSP::Dwt dwt; // 维护dt
 
     // CAN回调函数
     void callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dlc);
@@ -54,13 +48,16 @@ public:
     } speed{};
 
     Unit<C> temperate; // 电机温度
+    Unit<Hz> can_feedback_freq; // CAN反馈报文频率【单位：Hz】
 
     MDJI(uint8_t can_port, uint32_t feedback_can_id,
          Unit<A> current_max, uint16_t current_cmd_max, float reduction);
 
+    void SetReduction(float reduction);
+
     void SetInvert(bool is_invert);
 
-    void SetReduction(float reduction);
+    void SetCurrentRatio(float current_ratio);
 
     void SetPIDParam(PID::param_t& pid_param);
 
@@ -68,7 +65,7 @@ public:
 
     void SetAngle(Angle<deg> angle);
 
-    void SetSpeed(Unit<m_s> speed);
+    void SetSpeed(Unit<rpm> speed);
 
     int16_t GetCurrentCMD() const;
 };
