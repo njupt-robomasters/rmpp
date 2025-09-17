@@ -1,213 +1,194 @@
 #include "chassis.hpp"
-#include "bsp_can.h"
+#include "app.hpp"
+#include "utils.hpp"
 
-Chassis::Chassis(PID::param_t &servo_pid_param, PID::param_t &wheel_pid_param)
-    : s1(servo_pid_param),
-      s2(servo_pid_param),
-      w1(wheel_pid_param),
-      w2(wheel_pid_param) {
-    // 舵轮默认前进方向
-    ref.wheel.s1.relative.degree = 90;
-    ref.wheel.s2.relative.degree = 90;
-}
+Chassis::Chassis(PID::param_t& servo_pid_param, PID::param_t& wheel_pid_param) :
+    m6020_1(1, 0x207),
+    m6020_2(1, 0x208),
+    m3508_1(1, 0x201),
+    m3508_2(1, 0x202) {
+    m6020_1.SetInvert(true);
+    m6020_2.SetInvert(true);
 
-void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
-    if (id == 0x205)
-        s1.ParseCAN(data); // 右前舵电机，6020
-    if (id == 0x206)
-        s2.ParseCAN(data); // 左后舵电机，6020
-    if (id == 0x207)
-        w1.ParseCAN(data); // 右前轮电机，3508
-    if (id == 0x208)
-        w2.ParseCAN(data); // 左后轮电机，3508
+    m3508_1.SetReduction(14.0f);
+    m3508_2.SetReduction(14.0f);
 
-    inverseCalc(); // 运动学逆解
-    estimatePower(); // 底盘功率估算
+    m6020_1.SetPIDParam(servo_pid_param);
+    m6020_2.SetPIDParam(servo_pid_param);
+    m3508_1.SetPIDParam(wheel_pid_param);
+    m3508_2.SetPIDParam(wheel_pid_param);
 }
 
 void Chassis::SetEnable(const bool is_enable) {
+    // 防止重复操作
     if (this->is_enable == is_enable)
         return;
 
     this->is_enable = is_enable;
 
     // 设置子设备
-    s1.SetEnable(is_enable);
-    s2.SetEnable(is_enable);
-    w1.SetEnable(is_enable);
-    w2.SetEnable(is_enable);
+    m6020_1.SetEnable(is_enable);
+    m6020_2.SetEnable(is_enable);
+    m3508_1.SetEnable(is_enable);
+    m3508_2.SetEnable(is_enable);
 }
 
-void Chassis::SetSpeed(const float vx, const float vy, const float vr_rpm) {
-    ref.chassis.vx = vx;
-    ref.chassis.vy = vy;
-    ref.chassis.vr.rpm = vr_rpm;
+void Chassis::SetSpeed(const Unit<m_s>& vx, const Unit<m_s>& vy, const Unit<rpm>& vr) {
+    this->vx.ref = vx;
+    this->vy.ref = vy;
+    this->vr.ref = vr;
+    this->vz.ref = vr * CHASSIS_RADIUS;
 }
 
-void Chassis::SetPowerLimit(const float power) {
-    power_limit = power;
+void Chassis::SetPowerLimit(const Unit<W>& power) {
+    this->power.limit = power;
 }
 
 void Chassis::Update() {
-    if (is_enable) {
-        // 运动学正解
-        forwardCalc();
+    forwardCalc(); // 运动学正解
+    inverseCalc(); // 运动学逆解
 
-        // 电机闭环控制计算
-        s1.Update();
-        s2.Update();
-        w1.Update();
-        w2.Update();
+    // 电机闭环控制计算
+    m6020_1.Update();
+    m6020_2.Update();
+    m3508_1.Update();
+    m3508_2.Update();
 
-        // 功率控制
-        calcCurrentRatio();
-    }
+    calcCurrentRatio(); // 功率控制
 
-    // 发送CAN报文
-    sendCANCmd();
+    sendCANCmd(); // 发送CAN报文
 }
 
 // 运动学正解
 void Chassis::forwardCalc() {
-    ref.chassis.vz = ref.chassis.vr.tps * CHASSIS_PERIMETER; // 底盘旋转角速度【圈/s】 -> 底盘旋转线速度【m/s】
-
-    // 1. 运动学正解
-    // 舵电机正方向：逆时针
-    // 轮电机正方向：车体前进方向
-    const float sqrt2div2 = sqrtf(2) / 2;
-    float y, x;
-    // 左前舵、左前轮（1号）
-    y = ref.chassis.vy - sqrt2div2 * ref.chassis.vz;
-    x = ref.chassis.vx - sqrt2div2 * ref.chassis.vz;
-    if (fabsf(x) > ESP || fabsf(y) > ESP) {
-        ref.wheel.s1.relative.rad = atan2f(y, x);
-    }
-    ref.wheel.w1 = sqrtf(powf(y, 2) + powf(x, 2));
-    // 右后舵、右后轮（2号）
-    y = ref.chassis.vy + sqrt2div2 * ref.chassis.vz;
-    x = ref.chassis.vx + sqrt2div2 * ref.chassis.vz;
-    if (fabsf(x) > ESP || fabsf(y) > ESP) {
-        ref.wheel.s2.relative.rad = atan2f(y, x);
-    }
-    ref.wheel.w2 = sqrtf(powf(y, 2) + powf(x, 2));
+    // 1. 读取电机
+    s1.absolute.measure = m6020_1.angle.measure;
+    s2.absolute.measure = m6020_2.angle.measure;
+    v1.measure = m3508_1.speed.measure * WHEEL_RADIUS;
+    v2.measure = m3508_2.speed.measure * WHEEL_RADIUS;
 
     // 2. 舵电机安装矫正
-    // 目前6020为顺时针角度增加，所以要取反
-    ref.wheel.s1.absolute.degree = norm_angle( -ref.wheel.s1.relative.degree + (S1_OFFSET + 90));
-    ref.wheel.s2.absolute.degree = norm_angle(-ref.wheel.s2.relative.degree + (S2_OFFSET + 90));
+    s1.relative.measure = s1.absolute.measure - SERVO1_OFFSET;
+    s2.relative.measure = s2.absolute.measure - SERVO2_OFFSET;
 
-    // 3. 就近转向
-    // 1号轮
-    float s1_angle_err = calc_angle_err(ref.wheel.s1.absolute.degree, measure.wheel.s1.absolute.degree);
-    if (s1_angle_err < -90.0f) {
-        s1_angle_err += 180.0f;
-        ref.wheel.w1 = -ref.wheel.w1;
-    } else if (s1_angle_err > 90.0f) {
-        s1_angle_err -= 180.0f;
-        ref.wheel.w1 = -ref.wheel.w1;
-    }
-    ref.wheel.s1.absolute.degree = norm_angle(measure.wheel.s1.absolute.degree + s1_angle_err);
-    // 2号轮
-    float s2_angle_err = calc_angle_err(ref.wheel.s2.absolute.degree, measure.wheel.s2.absolute.degree);
-    if (s2_angle_err < -90.0f) {
-        s2_angle_err += 180.0f;
-        ref.wheel.w2 = -ref.wheel.w2;
-    } else if (s2_angle_err > 90.0f) {
-        s2_angle_err -= 180.0f;
-        ref.wheel.w2 = -ref.wheel.w2;
-    }
-    ref.wheel.s2.absolute.degree = norm_angle(measure.wheel.s2.absolute.degree + s2_angle_err);
-
-    // 4. 轮子线速度 -> 轮子角速度
-    Speed speed1, speed2;
-    speed1.tps = ref.wheel.w1 / WHEEL_PERIMETER;
-    speed2.tps = ref.wheel.w2 / WHEEL_PERIMETER;
-
-    // 5. 设置电机
-    s1.SetAngle(ref.wheel.s1.absolute);
-    s2.SetAngle(ref.wheel.s2.absolute);
-    w1.SetSpeed(speed1);
-    w2.SetSpeed(speed2);
+    // 3. 运动学逆解
+    float x1 = v1.measure * cosf(s1.relative.measure);
+    float y1 = v1.measure * sinf(s1.relative.measure);
+    float x2 = v2.measure * cosf(s2.relative.measure);
+    float y2 = v2.measure * sinf(s2.relative.measure);
+    vx.measure = (x1 + x2) / 2;
+    vy.measure = (y1 + y2) / 2;
+    vz.measure = (-v1.measure + v2.measure) / 2;
+    vr.measure = vz.measure / CHASSIS_RADIUS;
 }
 
 // 运动学逆解
 void Chassis::inverseCalc() {
-    // todo 逆解算没有考虑到就近转向问题
+    // 1. 运动学正解
+    constexpr float sqrt2div2 = sqrtf(2) / 2;
+    float x, y;
+    // 左前舵轮
+    x = vx.ref - sqrt2div2 * vz.ref;
+    y = vy.ref + sqrt2div2 * vz.ref;
+    if (fabsf(x) > MIN_V || fabsf(y) > MIN_V) {
+        s1.relative.ref = atan2f(y, x);
+    }
+    v1.ref = sqrtf(powf(y, 2) + powf(x, 2));
+    // 右后舵轮
+    x = vx.ref + sqrt2div2 * vz.ref;
+    y = vy.ref - sqrt2div2 * vz.ref;
+    if (fabsf(x) > MIN_V || fabsf(y) > MIN_V) {
+        s2.relative.ref = atan2f(y, x);
+    }
+    v2.ref = sqrtf(powf(y, 2) + powf(x, 2));
 
-    // 1. 读取电机
-    measure.wheel.s1.absolute = s1.measure.angle;
-    measure.wheel.s2.absolute = s2.measure.angle;
-    const Speed speed1 = w1.measure.speed;
-    const Speed speed2 = w2.measure.speed;
+    // 2. 舵电机安装矫正
+    s1.absolute.ref = s1.relative.ref + SERVO1_OFFSET;
+    s2.absolute.ref = s2.relative.ref + SERVO2_OFFSET;
 
-    // 2. 轮子角速度 -> 轮子线速度
-    measure.wheel.w1 = speed1.tps * WHEEL_PERIMETER;
-    measure.wheel.w2 = speed2.tps * WHEEL_PERIMETER;
+    // 3. 就近转向
+    // 左前舵轮
+    Angle angle1_err = s1.absolute.ref - s1.absolute.measure;
+    if (fabsf(angle1_err) > 90.0f * deg) {
+        s1.relative.ref = s1.relative.ref + 180.0f * deg;
+        s1.absolute.ref = s1.absolute.ref + 180.0f * deg;
+        v1.ref = -v1.ref;
+    }
+    // 右后舵轮
+    Angle angle2_err = s2.absolute.ref - s2.absolute.measure;
+    if (fabsf(angle2_err) > 90.0f * deg) {
+        s2.relative.ref = s2.relative.ref + 180.0f * deg;
+        s2.absolute.ref = s2.absolute.ref + 180.0f * deg;
+        v2.ref = -v2.ref;
+    }
 
-    // 3. 舵电机安装逆解
-    measure.wheel.s1.relative.degree = norm_angle( -(measure.wheel.s1.absolute.degree - (S1_OFFSET + 90)));
-    measure.wheel.s2.relative.degree = norm_angle(-(measure.wheel.s2.absolute.degree - (S2_OFFSET + 90)));
-
-    // 4. 运动学逆解
-    float y1 = measure.wheel.w1 * sinf(measure.wheel.s1.relative.rad);
-    float x1 = measure.wheel.w1 * cosf(measure.wheel.s1.relative.rad);
-    float y2 = measure.wheel.w2 * sinf(measure.wheel.s2.relative.rad);
-    float x2 = measure.wheel.w2 * cosf(measure.wheel.s2.relative.rad);
-    measure.chassis.vy = (y1 + y2) / 2;
-    measure.chassis.vx = (x1 + x2) / 2;
-    measure.chassis.vz = (measure.wheel.w1 - measure.wheel.w2) / 2;
-
-    measure.chassis.vr.tps = measure.chassis.vz / CHASSIS_PERIMETER; // 底盘旋转线速度【m/s】 -> 底盘旋转角速度【圈/s】
+    // 4. 设置电机
+    m6020_1.SetAngle(s1.absolute.ref);
+    m6020_2.SetAngle(s2.absolute.ref);
+    m3508_1.SetSpeed(v1.ref / WHEEL_RADIUS);
+    m3508_2.SetSpeed(v2.ref / WHEEL_RADIUS);
 }
 
 // 估算底盘当前功率，用于调试
 void Chassis::estimatePower() {
-    const float power1 = w1.EstimatePower();
-    const float power2 = w2.EstimatePower();
-    power_estimate = power1 + power2;
+    const float power1 = m3508_1.EstimatePower();
+    const float power2 = m3508_2.EstimatePower();
+    power.estimate = power1 + power2;
 }
 
 // 计算电流衰减系数，需要在电机PID计算后调用
 void Chassis::calcCurrentRatio() {
-    // Mw + I^2*R = P
-    // kIw + I^2*R = P
-    // M_PER_I * xI * w + (xI)^2 * R = P
-    // I^2*R * x^2 + M_PER_I*I*w * x - P = 0
+    // M*w + I^2*R = P
+    // kt*I*w + I^2*R = P
+    // kt * xI * w + (xI)^2 * R = P
+    // I^2*R * x^2 + kt*I*w * x - P = 0
     // a = I^2*R
-    // b = M_PER_I*I*w
+    // b = kt*I*w
     // c = -P
 
     float a = 0;
-    a += w1.ref.current * w1.ref.current * M3508E::R;
-    a += w2.ref.current * w2.ref.current * M3508E::R;
+    a += m3508_1.current.ref * m3508_1.current.ref * M3508::R;
+    a += m3508_2.current.ref * m3508_2.current.ref * M3508::R;
 
     float b = 0;
-    b += M3508E::M_PER_I * w1.ref.current * w1.measure.speed.rps;
-    b += M3508E::M_PER_I * w2.ref.current * w2.measure.speed.rps;
+    b += m3508_1.kt * m3508_1.current.ref * m3508_1.speed.measure;
+    b += m3508_2.kt * m3508_2.current.ref * m3508_2.speed.measure;
 
-    float c = -power_limit;
+    float c = -power.limit;
 
-    current_ratio = (-b + sqrtf(b * b - 4 * a * c)) / (2 * a);
+    // 一定为一正根和一负根（x1*x2 = c/a < 0)
+    power.current_ratio = (-b + sqrtf(b * b - 4 * a * c)) / (2 * a);
 
-    current_ratio = clamp(current_ratio, 0, 1);
+    power.current_ratio = clamp(power.current_ratio, 0, 1);
 }
 
 void Chassis::sendCANCmd() {
-    const int16_t m6020_1_cmd = s1.GetCurrentCMD();
-    const int16_t m6020_2_cmd = s2.GetCurrentCMD();
-    const int16_t m3508_1_cmd = w1.GetCurrentCMD() * current_ratio;
-    const int16_t m3508_2_cmd = w2.GetCurrentCMD() * current_ratio;
-
+    const int16_t m6020_1_cmd = m6020_1.GetCurrentCMD();
+    const int16_t m6020_2_cmd = m6020_2.GetCurrentCMD();
+    const int16_t m3508_1_cmd = (int16_t)((float)m3508_1.GetCurrentCMD() * power.current_ratio);
+    const int16_t m3508_2_cmd = (int16_t)((float)m3508_2.GetCurrentCMD() * power.current_ratio);
 
     uint8_t data[8];
-    data[0] = m6020_1_cmd >> 8; // 6020电机，ID：5
-    data[1] = m6020_1_cmd;
-    data[2] = m6020_2_cmd >> 8; // 6020电机，ID：6
-    data[3] = m6020_2_cmd;
-    data[4] = m3508_1_cmd >> 8; // 3508电机，ID：7
-    data[5] = m3508_1_cmd;
-    data[6] = m3508_2_cmd >> 8; // 3508电机，ID：8
-    data[7] = m3508_2_cmd;
 
-    BSP_CAN_Transmit(0x1FF, data, 8);
+    // M3508，ID：1、2
+    data[0] = m3508_1_cmd >> 8;
+    data[1] = m3508_1_cmd;
+    data[2] = m3508_2_cmd >> 8;
+    data[3] = m3508_2_cmd;
+    data[4] = 0;
+    data[5] = 0;
+    data[6] = 0;
+    data[7] = 0;
+    BSP::CAN::TransmitStd(1, 0x200, data);
+
+    // M6020，ID：3、4
+    data[0] = 0;
+    data[1] = 0;
+    data[2] = 0;
+    data[3] = 0;
+    data[4] = m6020_1_cmd >> 8;
+    data[5] = m6020_1_cmd;
+    data[6] = m6020_2_cmd >> 8;
+    data[7] = m6020_2_cmd;
+    BSP::CAN::TransmitStd(1, 0x1FF, data);
 }

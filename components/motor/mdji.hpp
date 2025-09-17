@@ -1,68 +1,74 @@
 #pragma once
 
-#include <cstdint>
-#include "pid.hpp"
+#include "bsp.hpp"
 #include "unit.hpp"
+#include "pid.hpp"
 
 class MDJI {
+private:
+    // 滤波参数
+    static constexpr float CURRENT_LPF_FREQ = 10.0f; // 电流低通滤波参数【单位：Hz】
+    static constexpr float SPEED_LPF_FREQ = 20.0f; // 转速低通滤波参数【单位：Hz】
+
+    // CAN通信参数
+    const uint8_t can_port; // CAN接口
+    const uint32_t feedback_can_id; // CAN反馈报文ID
+    const Unit<A> current_max; // 最大电流
+    const uint16_t current_cmd_max; // CAN通信最大电流对应的值
+
+    float reduction; // 电机减速比
+
+    // 电机反转标志
+    bool is_invert = false;
+
+    // 维护dt
+    BSP::Dwt dwt;
+    float dt = 0;
+
+    // CAN反馈报文频率【单位：Hz】
+    float can_feedback_freq = 0;
+
+    // CAN回调函数
+    void callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dlc);
+
+protected:
+    PID pid;
+
 public:
-    struct ref_data_t {
-        float current = 0;
-        Angle angle{};
-        Speed speed{};
-    } ref;
+    bool is_ready = false; // 电机就绪标志，收到CAN反馈报文后置为true
+    bool is_enable = false; // 电机使能标志
 
-    struct measure_data_t {
-        float current = 0;
-        float current_raw = 0;
-        Angle angle{};
-        Speed speed{};
-        Speed speed_raw{};
-    } measure;
+    struct {
+        Unit<A> ref, measure, measure_no_lfp;
+        int16_t raw = 0; // 电流原始值
+    } current{};
 
-    MDJI(float current_max, uint16_t can_cmd_max, float reduction_ratio, PID::param_t &pid_param);
+    struct {
+        Angle<deg> ref, measure; // 输出轴角度
+        uint16_t raw = 0; // 电机侧角度原始值【单位：0~8191 -> 0~360°】
+    } angle{};
 
-    void ParseCAN(const uint8_t data[8]);
+    struct {
+        Unit<rpm> ref, measure, measure_no_lfp; // 输出轴转速
+        int16_t raw = 0; // 电机侧转速原始值【单位：rpm】
+    } speed{};
 
-    void ResetReady();
+    Unit<C> temperate; // 电机温度
 
-    [[nodiscard]] bool IsReady() const;
+    MDJI(uint8_t can_port, uint32_t feedback_can_id,
+         Unit<A> current_max, uint16_t current_cmd_max, float reduction);
+
+    void SetInvert(bool is_invert);
+
+    void SetReduction(float reduction);
+
+    void SetPIDParam(PID::param_t& pid_param);
 
     void SetEnable(bool is_enable);
 
-    void SetAngle(const Angle &angle, const Speed &speed);
+    void SetAngle(Angle<deg> angle);
 
-    void SetAngle(const Angle &angle);
+    void SetSpeed(Unit<m_s> speed);
 
-    void SetSpeed(const Speed &speed);
-
-    [[nodiscard]] int16_t GetCurrentCMD() const;
-
-protected:
-    bool is_ready = false; // 电机就绪标志，收到CAN反馈报文后置为true
-    bool is_enable = false; // 电机使能标志
-    PID pid;
-
-private:
-    static constexpr float CURRENT_LPF_FREQ = 10.0f; // 电流转低通滤波参数【单位：Hz】
-    static constexpr float SPEED_LPF_FREQ = 20.0f; // 转速低通滤波参数【单位：Hz】
-
-    // 电机参数
-    const float CURRENT_MAX; // 最大电流【单位；A】
-    const uint16_t CAN_CMD_MAX; // CAN控制报文最大值
-    const float REDUCTION_RATIO; // 电机减速比
-
-    // 从CAN获得的电机数据
-    struct motor_data_t {
-        uint16_t ecd = 0; // 转子角度（减速前）【单位：0~8191 -> 0~360°】
-        int16_t speed_rpm = 0; // 转速（减速前）【单位：rpm】
-        int16_t current = 0; // 电流原始值
-        uint8_t temperate = 0;  // 电机温度【单位：℃】
-    } motor_data{};
-
-    float can_recv_freq = 0; // CAN报文接收频率【单位：Hz】
-
-    // 作用：计算CAN报文接收频率、计算加速度、速度加速度滤波
-    uint32_t dwt_cnt = 0;
-    float dt = 0;
+    int16_t GetCurrentCMD() const;
 };

@@ -1,79 +1,97 @@
 #include "mdji.hpp"
-#include "bsp_dwt.h"
+#include "bsp.hpp"
+#include "utils.hpp"
 
-MDJI::MDJI(const float current_max, const uint16_t can_cmd_max, const float reduction_ratio,
-           PID::param_t &pid_param) : CURRENT_MAX(current_max),
-                                          CAN_CMD_MAX(can_cmd_max),
-                                          REDUCTION_RATIO(reduction_ratio),
-                                          pid(pid_param.SetDefaultMax(current_max)) {
+MDJI::MDJI(uint8_t can_port, uint32_t feedback_can_id,
+           Unit<A> current_max, uint16_t current_cmd_max, float reduction) :
+    can_port(can_port), feedback_can_id(feedback_can_id),
+    current_max(current_max), current_cmd_max(current_cmd_max), reduction(reduction) {
+    BSP::CAN::RegisterCallback(std::bind(&MDJI::callback, this,
+                                         std::placeholders::_1,
+                                         std::placeholders::_2,
+                                         std::placeholders::_3,
+                                         std::placeholders::_4));
 }
 
-void MDJI::ParseCAN(const uint8_t data[8]) {
-    dt = BSP_DWT_GetDeltaT(&dwt_cnt);
+void MDJI::callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dlc) {
+    if (port != can_port) return;
+    if (id != feedback_can_id) return;
+    if (dlc != 8) return;
 
-    can_recv_freq = 1 / dt;
+    dt = dwt.GetDT();
+
+    // 记录CAN反馈报文频率
+    can_feedback_freq = 1 / dt;
 
     // 解析CAN报文
-    motor_data.ecd = static_cast<uint16_t>(data[0] << 8 | data[1]);
-    motor_data.speed_rpm = static_cast<int16_t>(data[2] << 8 | data[3]);
-    motor_data.current = static_cast<int16_t>(data[4] << 8 | data[5]);
-    motor_data.temperate = data[6];
+    if (!is_invert) {
+        angle.raw = (uint16_t)(data[0] << 8 | data[1]);
+        speed.raw = (int16_t)(data[2] << 8 | data[3]);
+        current.raw = (int16_t)(data[4] << 8 | data[5]);
+        temperate = data[6];
+    } else {
+        angle.raw = 8191 - (uint16_t)(data[0] << 8 | data[1]);
+        speed.raw = -(int16_t)(data[2] << 8 | data[3]);
+        current.raw = -(int16_t)(data[4] << 8 | data[5]);
+        temperate = data[6];
+    }
 
-    // 转换为人类友好参数
+    // 转换为标准单位
     // 电流
-    measure.current_raw = static_cast<float>(motor_data.current) / static_cast<float>(CAN_CMD_MAX) * CURRENT_MAX;
-    // 电流低通滤波
+    current.measure_no_lfp = (float)current.raw / (float)current_cmd_max * current_max;
+    // 低通滤波
     const float alpha1 = solve_alpha(CURRENT_LPF_FREQ, 1 / dt);
-    measure.current = lowpass_filter(measure.current, measure.current_raw, alpha1);
+    current.measure = lowpass_filter(current.measure, current.measure_no_lfp, alpha1);
 
-    // 转子角度（减速前）【单位：角度】
-    measure.angle.degree = static_cast<float>(motor_data.ecd) / 8192.0f * 360.0f;
+    // 角度
+    angle.measure = (float)angle.raw / 8192.0f * 360.0f * deg;
 
-    // 转速（减速后）
-    measure.speed_raw.rpm = static_cast<float>(motor_data.speed_rpm) / REDUCTION_RATIO; // 【单位：rpm】
-    // 转速低通滤波
+    // 转速
+    speed.measure_no_lfp = (float)speed.raw * rpm / reduction;
+    // 低通滤波
     const float alpha2 = solve_alpha(SPEED_LPF_FREQ, 1 / dt);
-    measure.speed.rpm = lowpass_filter(measure.speed.rpm, measure.speed_raw.rpm, alpha2);
+    speed.measure = lowpass_filter(speed.measure, speed.measure_no_lfp, alpha2);
 
+    // 电机就绪标识
     is_ready = true;
 }
 
-void MDJI::ResetReady() {
-    is_ready = false;
+void MDJI::SetInvert(bool is_invert) {
+    this->is_invert = is_invert;
 }
 
-bool MDJI::IsReady() const {
-    return is_ready;
+void MDJI::SetReduction(float reduction) {
+    this->reduction = reduction;
+}
+
+void MDJI::SetPIDParam(PID::param_t& pid_param) {
+    pid.SetParam(pid_param);
 }
 
 void MDJI::SetEnable(const bool is_enable) {
-    if (this->is_enable == is_enable)
+    if (this->is_enable == is_enable) // 避免重复设置
         return;
 
     this->is_enable = is_enable;
 
-    pid.Clear(); // 清空PID
-
-    if (not is_enable) {
-        // 失能电流置0
-        ref.current = 0;
-    }
+    current.ref = 0.0f;
+    pid.Clear();
 }
 
-void MDJI::SetAngle(const Angle &angle) {
-    ref.angle = angle;
+void MDJI::SetAngle(Angle<deg> angle) {
+    this->angle.ref = angle;
 }
 
-void MDJI::SetAngle(const Angle &angle, const Speed &speed) {
-    ref.angle = angle;
-    ref.speed = speed;
-}
-
-void MDJI::SetSpeed(const Speed &speed) {
-    ref.speed = speed;
+void MDJI::SetSpeed(Unit<m_s> speed) {
+    this->speed.ref = speed;
 }
 
 int16_t MDJI::GetCurrentCMD() const {
-    const auto cmd = static_cast<int16_t>(ref.current / CURRENT_MAX * static_cast<float>(CAN_CMD_MAX));
-    return cmd;
+    int16_t current_cmd;
+    if (!is_invert) {
+        current_cmd = (int16_t)(current.ref / current_max * (float)current_cmd_max);
+    } else {
+        current_cmd = -(int16_t)(current.ref / current_max * (float)current_cmd_max);
+    }
+    return current_cmd;
 }

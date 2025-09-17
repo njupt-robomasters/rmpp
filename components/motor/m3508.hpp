@@ -6,17 +6,19 @@
 class M3508 : public MDJI {
 public:
     // 用于底盘功率估计
-    static constexpr float M_PER_I = 0.55f; // 电流 -> 力矩 系数（输出轴）
-    static constexpr float R = 0.194f; // 电机内阻
+    static constexpr float R = 0.194f / 2; // 相电阻（两相电阻/2）
+    float kt = 0.55f; // 输出轴力矩常数
 
-    explicit M3508(PID::param_t &pid_param);
+    M3508(uint8_t can_port, uint32_t feedback_can_id);
 
     void Update();
 
-    [[nodiscard]] float EstimatePower() const;
+    void SetKt(float kt);
+
+    float EstimatePower();
 
 private:
-    static constexpr float CURRENT_MAX = 20.0f; // 最大电流【单位；A】
-    static constexpr int16_t CURRENT_CMD_MAX = 16384; // CAN通信最大电流对应的值
-    static constexpr float REDUCTION_RATIO = 3591.0f / 187.0f; // 电机减速比
+    static constexpr Unit<A> CURRENT_MAX = 20.0f;
+    static constexpr int16_t CURRENT_CMD_MAX = 16384;
+    static constexpr float REDUCTION = 3591.0f / 187.0f;
 };

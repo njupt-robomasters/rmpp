@@ -1,73 +1,35 @@
 #pragma once
 
-#include "app.h"
-
 #include "cmsis_os.h"
 
-#include "bsp_led.h"
-#include "bsp_dwt.h"
-#include "bsp_can.h"
-#include "bsp_pwm.h"
-#include "bsp_uart.h"
-#include "bsp_cdc.h"
+// bsp
+#include "bsp.hpp"
 
+// components
+#include "unit.hpp"
+#include "pid.hpp"
+#include "imu.hpp"
 #include "dj6.hpp"
-#include "module/chassis.hpp"
-#include "referee.hpp"
-#include "nav.hpp"
 
-#include "task/task_led.h"
-#include "task/task_chassis.h"
-#include "task/task_protocol.h"
+// module
+#include "module/chassis.hpp"
 
 class Settings {
 public:
+    // IMU参数
+    IMU::dir_t imu_dir = {.yaw = 90.0f, .pitch = 0, .roll = 0};
+    IMU::calib_t imu_calib = {.gx_offset = 0.00130902638, .gy_offset = 0.00142620632, .gz_offset = 0.00215413119, .g_norm = 9.65372658};
+
     // 底盘PID参数
-    PID::param_t servo_pid = {.kp = 0.6f};
-    PID::param_t wheel_pid = {.kp = 10000.0f, .ki = 50.0f};
+    PID::param_t servo_pid = {.kp = 0.6f / deg * A, .max_out = 3.0f};
+    PID::param_t wheel_pid = {.kp = 10000.0f / rps * A, .ki = 50.0f / rps * A, .max_out = 20.0f};
 
     // 底盘运动参数
-    float vxy_max = 3.0f; // 前后左右平移速度【单位：m/s】
-    float rpm_max = 120.0f; // 旋转角速度【单位：rpm】
-
-    // 导航参数
-    uint16_t go_home_hp = 200;
-    float home_x = -0.375, home_y = -0.375;
-    float center_x = 2.31, center_y = 4.93;
-    float center_range = 0.375;
-    // float home_x = 0, home_y = 0;
-    // float center_x = 0, center_y = 1;
-    // float center_range = 0.375;
-};
-
-class Status {
-public:
-    struct {
-        float vx = 0, vy = 0, rpm = 0;
-    } rc{}, nav{};
-
-    bool is_nav_on = false;
-    float nav_target_x = 0, nav_target_y = 0;
-
-    enum {
-        GO_CENTER,
-        IN_CENTER,
-        GO_HOME,
-        IN_HOME
-    } nav_state = GO_CENTER;
-
-    enum {
-        FORCE_HOME,
-        FORCE_CENTER,
-        FOLLOW_STATEMACHINE
-    } nav_policy = FORCE_HOME;
-
-    bool ignore_rc_disconnect = false;
+    Unit<m_s> vxy_max = 3.0f * m_s; // 前后左右平移速度
+    Unit<rpm> vr_max = 120.0f * rpm; // 旋转角速度
 };
 
 extern Settings settings;
-extern Status status;
+extern IMU imu;
 extern DJ6 dj6;
 extern Chassis chassis;
-extern Referee referee;
-extern NAV nav;

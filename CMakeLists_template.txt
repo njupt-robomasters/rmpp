@@ -49,19 +49,13 @@ else ()
 endif ()
 
 include_directories(${includes}
-    bsp
     application/sentry
+    bsp
     components
-    components/controller
-    components/device
-    components/module
+    components/imu
+    components/imu/bmi088
+    components/imu/ekf
     components/motor
-    components/protocol
-    components/unit
-    components/third-party/bmi088
-    components/third-party/ekf
-    components/third-party/ui
-    components/third-party/mavlink/mavlink_msg
 )
 
 add_definitions(${defines})

@@ -1,14 +1,16 @@
 #include "m6020.hpp"
 
-M6020::M6020(PID::param_t &pid_param) : MDJI(CURRENT_MAX, CURRENT_CMD_MAX, REDUCTION_RATIO, pid_param) {
-}
+M6020::M6020(uint8_t can_port, uint32_t feedback_can_id) :
+    MDJI(can_port, feedback_can_id,
+         CURRENT_MAX, CURRENT_CMD_MAX, REDUCTION) {}
 
 void M6020::Update() {
     if (is_enable) {
-        // pid控制模式（ZCY优化版）
-        const float angle_err = calc_angle_err(ref.angle.degree, measure.angle.degree);
-        const float angle_err_sqrt = signed_sqrt(angle_err);
-        const float speed_err = ref.speed.aps - measure.speed.aps;
-        ref.current = pid.CalcPosition(angle_err_sqrt, speed_err);
+        const Angle angle_err = angle.ref - angle.measure;
+        const float speed_err = speed.ref - speed.measure;
+        current.ref = pid.CalcPosition(angle_err, speed_err);
+    } else {
+        pid.Clear();
+        current.ref = 0;
     }
 }
