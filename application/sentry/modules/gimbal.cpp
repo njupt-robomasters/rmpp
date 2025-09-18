@@ -1,18 +1,22 @@
 #include "gimbal.hpp"
 
-Gimbal::Gimbal(const IMU& imu, PID::param_t* yaw_pid_param, PID::param_t* pitch_pid_param) :
+Gimbal::Gimbal(const IMU& imu, PID::param_t* yaw1_pid_param, PID::param_t* yaw2_pid_param, PID::param_t* pitch_pid_param) :
     imu(imu),
-    m_yaw(1, 0x205),
+    m_yaw1(1, 0x01),
+    m_yaw2(1, 0x205),
     m_pitch(2, 0x00, 0x01) {
-    m_pitch.SetInvert(true);
-    m_yaw.SetPIDParam(yaw_pid_param);
+    // 设置PID参数
+    m_yaw1.SetPIDParam(yaw1_pid_param);
+    m_yaw2.SetPIDParam(yaw2_pid_param);
     m_pitch.SetPIDParam(pitch_pid_param);
+
+    // 反转电机
+    m_pitch.SetInvert(true);
 }
 
 // 设置当前位置为目标位置
 void Gimbal::setCurrentAsTarget() {
     if (mode == ECD_MODE) {
-        // relative
         yaw.relative.ref = yaw.relative.measure;
         pitch.relative.ref = pitch.relative.measure;
     } else if (mode == IMU_MODE) {
@@ -33,11 +37,14 @@ void Gimbal::addAngle(const Angle<deg> yaw, const Angle<deg> pitch) {
 
 void Gimbal::forwardCalc() {
     // absolute，从电机读取
-    yaw.absolute.measure = m_yaw.angle.measure;
+    yaw1.absolute.measure = m_yaw1.angle.measure;
+    yaw2.absolute.measure = m_yaw2.angle.measure;
     pitch.absolute.measure = m_pitch.angle.measure;
 
     // relative
-    yaw.relative.measure = m_yaw.angle.measure - YAW_OFFSET;
+    yaw1.relative.measure = m_yaw1.angle.measure - YAW1_OFFSET;
+    yaw2.relative.measure = m_yaw2.angle.measure - YAW2_OFFSET;
+    yaw.relative.measure = yaw1.relative.measure + yaw2.relative.measure;
     pitch.relative.measure = m_pitch.angle.measure - PITCH_OFFSET;
 
     // imu
@@ -46,25 +53,33 @@ void Gimbal::forwardCalc() {
 }
 
 void Gimbal::inverseCalc() {
-    Angle yaw_imu_minus_relative = yaw.imu.measure - yaw.relative.measure;
-    Angle pitch_imu_minus_relative = pitch.imu.measure - pitch.relative.measure;
+    // 用于参考系转换
+    const Angle yaw_imu_minus_relative = yaw.imu.measure - yaw.relative.measure;
+    const Angle pitch_imu_minus_relative = pitch.imu.measure - pitch.relative.measure;
 
     if (mode == ECD_MODE) {
-        // imu
+        // 换算到imu参考系
         yaw.imu.ref = yaw.relative.ref + yaw_imu_minus_relative;
         pitch.imu.ref = pitch.relative.ref + pitch_imu_minus_relative;
     } else if (mode == IMU_MODE) {
-        // relative
+        // 换算到relative参考系
         yaw.relative.ref = yaw.imu.ref - yaw_imu_minus_relative;
         pitch.relative.ref = pitch.imu.ref - pitch_imu_minus_relative;
     }
 
+    // 分配大小yaw
+    yaw1.relative.ref = yaw.relative.ref;
+    // yaw2.relative.ref = yaw.relative.ref - yaw1.relative.measure;
+    yaw2.relative.ref = 0; // 暂时锁定小yaw
+
     // absolute
-    yaw.absolute.ref = yaw.relative.ref + YAW_OFFSET;
+    yaw1.absolute.ref = yaw1.relative.ref + YAW1_OFFSET;
+    yaw2.absolute.ref = yaw2.relative.ref + YAW2_OFFSET;
     pitch.absolute.ref = pitch.relative.ref + PITCH_OFFSET;
 
     // pitch软件限位
-    Angle angle_err = pitch.absolute.ref - PITCH_MIN;
+    Angle angle_err;
+    angle_err = pitch.absolute.ref - PITCH_MIN;
     if (angle_err < 0) pitch.absolute.ref = PITCH_MIN;
     angle_err = pitch.absolute.ref - PITCH_MAX;
     if (angle_err > 0) pitch.absolute.ref = PITCH_MAX;
@@ -74,11 +89,13 @@ void Gimbal::inverseCalc() {
 
     // 应用到电机
     m_pitch.SetAngle(pitch.absolute.ref);
-    m_yaw.SetAngle(yaw.absolute.ref);
+    m_yaw1.SetAngle(yaw1.absolute.ref, Unit<deg_s>(chassis_vr));
+    m_yaw2.SetAngle(yaw2.absolute.ref);
 }
 
 void Gimbal::WaitReady() {
-    m_yaw.WaitReady();
+    m_yaw1.WaitReady();
+    m_yaw2.WaitReady();
     m_pitch.WaitReady();
 }
 
@@ -86,7 +103,8 @@ void Gimbal::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable) return;
     this->is_enable = is_enable;
 
-    m_yaw.SetEnable(is_enable);
+    m_yaw1.SetEnable(is_enable);
+    m_yaw2.SetEnable(is_enable);
     m_pitch.SetEnable(is_enable);
 
     setCurrentAsTarget();
@@ -114,8 +132,8 @@ void Gimbal::SetSpeed(const Unit<deg_s> yaw_speed, const Unit<deg_s> pitch_speed
     this->pitch_speed = pitch_speed;
 }
 
-void Gimbal::SetYawSpeedFF(const Unit<rpm> yaw_speed_ff) {
-    this->yaw_speed_ff = yaw_speed_ff;
+void Gimbal::SetChassisVR(const Unit<rpm> chassis_vr) {
+    this->chassis_vr = chassis_vr;
 }
 
 void Gimbal::Update() {
@@ -130,5 +148,6 @@ void Gimbal::Update() {
     inverseCalc();
 
     m_pitch.Update();
-    m_yaw.Update();
+    m_yaw1.Update();
+    m_yaw2.Update();
 }

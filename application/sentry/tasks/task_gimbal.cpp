@@ -18,9 +18,11 @@ extern "C" void task_gimbal_entry(const void* argument) {
                 break;
             }
 
-            Unit<deg_s> yaw_speed = dj6.yaw * app_params.yaw_max_speed;
-            Unit<deg_s> pitch_speed = dj6.pitch * app_params.pitch_max_speed;
-            gimbal.SetSpeed(0, pitch_speed);
+            gimbal.SetChassisVR(-chassis.vr.measure);
+
+            const Unit<deg_s> yaw_speed = dj6.yaw * app_params.yaw_max_speed;
+            const Unit<deg_s> pitch_speed = dj6.pitch * app_params.pitch_max_speed;
+            gimbal.SetSpeed(yaw_speed, pitch_speed);
         } else {
             gimbal.SetEnable(false);
         }

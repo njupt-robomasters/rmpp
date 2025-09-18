@@ -1,11 +1,11 @@
 #include "shooter.hpp"
 
-Shooter::Shooter(PID::param_t* m2006_pid) :
+Shooter::Shooter(PID::param_t* m2006_pid_param) :
     m2006(1, 0x206),
     n630_1(2, 96),
     n630_2(2, 98) {
     m2006.SetInvert(true),
-    m2006.SetPIDParam(m2006_pid);
+    m2006.SetPIDParam(m2006_pid_param);
     SetBulletSpeed(24.0f);
     SetShootFreq(5.0f);
 }

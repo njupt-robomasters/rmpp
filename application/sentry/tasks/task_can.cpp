@@ -9,7 +9,7 @@ extern "C" void task_can_entry(const void* argument) {
         const int16_t cmd2 = chassis.m3508_2.GetCurrentCMD(); // ID：2
 
         // 云台
-        const int16_t cmd5 = gimbal.m_yaw.GetCurrentCMD(); // ID：5
+        const int16_t cmd5 = gimbal.m_yaw2.GetCurrentCMD(); // ID：5
 
         // 发射机构
         const int16_t cmd6 = shooter.m2006.GetCurrentCMD(); // ID：6

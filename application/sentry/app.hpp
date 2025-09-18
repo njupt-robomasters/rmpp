@@ -27,7 +27,8 @@ public:
     PID::param_t wheel_pid_param = {.kp = 10000.0f * A / rps, .ki = 50.0f * A / rps, .max_out = 20.0f * A};
 
     // 云台PID参数
-    PID::param_t yaw_pid_param = {.kp = 1.0f * A / deg, .kd = 0.023f * A / deg, .max_out = 3.0f * A};
+    PID::param_t yaw1_pid_param = {.kp = 20.0f, .kd = 3.0f, .max_out = 10.0f};
+    PID::param_t yaw2_pid_param = {.kp = 1.0f * A / deg, .kd = 0.023f * A / deg, .max_out = 3.0f * A};
     PID::param_t pitch_pid_param = {.kp = 0.25f * Nm / deg, .kd = 0.012f * Nm / deg, .max_out = 3.0f * Nm};
 
     // 发射机构PID参数

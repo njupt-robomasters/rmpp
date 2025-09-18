@@ -13,6 +13,7 @@ void DM4310::callback(const uint8_t port, const uint32_t id, const uint8_t data[
     if (port != can_port) return;
     if (id != master_id) return;
     if (dlc != 8) return;
+
     if ((data[0] & 0x0F) != (slave_id & 0x0F)) return;
 
     // 维护dt
@@ -79,11 +80,8 @@ void DM4310::SetEnable(const bool is_enable) {
     torque.ref = 0;
 }
 
-void DM4310::SetAngle(const Angle<deg> angle) {
+void DM4310::SetAngle(const Angle<deg> angle, const Unit<deg_s> speed) {
     this->angle.ref = angle;
-}
-
-void DM4310::SetSpeed(const Unit<deg> speed) {
     this->speed.ref = speed;
 }
 
