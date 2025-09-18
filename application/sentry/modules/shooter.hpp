@@ -4,16 +4,17 @@
 #include "m2006.hpp"
 #include "n630.hpp"
 
+extern "C" void task_can_entry(const void* argument);
+
 class Shooter {
+    friend void task_can_entry(const void* argument);
+
 private:
     static constexpr Unit<mm> WHEEL_RADIUS = 30.0f * mm;
     static constexpr float SHOOT_PRE_ROUND = 7.0f;
 
     // 电机对象
-public:
     M2006 m2006;
-
-private:
     N630 n630_1, n630_2;
 
     // 使能标志

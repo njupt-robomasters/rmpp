@@ -21,58 +21,14 @@ void Gimbal::setCurrentAsTarget() {
     }
 }
 
-void Gimbal::WaitReady() {
-    m_yaw.WaitReady();
-    m_pitch.WaitReady();
-}
-
-void Gimbal::SetEnable(const bool is_enable) {
-    if (this->is_enable == is_enable) return;
-    this->is_enable = is_enable;
-
-    m_yaw.SetEnable(is_enable);
-    m_pitch.SetEnable(is_enable);
-
-    setCurrentAsTarget();
-}
-
-void Gimbal::SetMode(const mode_e mode) {
-    if (this->mode == mode) return;
-    this->mode = mode;
-
-    setCurrentAsTarget();
-}
-
-void Gimbal::SetAngle(const Angle<deg> yaw, const Angle<deg> pitch) {
-    if (mode == ECD_MODE) {
-        this->yaw.relative.ref = yaw;
-        this->pitch.relative.ref = pitch;
-    } else if (mode == IMU_MODE) {
-        this->yaw.imu.ref = yaw;
-        this->pitch.imu.ref = pitch;
-    }
-}
-
-void Gimbal::AddAngle(const Angle<deg> yaw, const Angle<deg> pitch) {
+void Gimbal::addAngle(const Angle<deg> yaw, const Angle<deg> pitch) {
     if (mode == ECD_MODE) {
         this->yaw.relative.ref = this->yaw.relative.ref + yaw;
         this->pitch.relative.ref = this->pitch.relative.ref + pitch;
     } else if (mode == IMU_MODE) {
         this->yaw.imu.ref = this->yaw.imu.ref + yaw;
-        this->pitch.imu.ref = this->yaw.imu.ref + pitch;
+        this->pitch.imu.ref = this->pitch.imu.ref + pitch;
     }
-}
-
-void Gimbal::SetYawSpeedFF(const Unit<rpm> yaw_speed_ff) {
-    this->yaw_speed_ff = yaw_speed_ff;
-}
-
-void Gimbal::Update() {
-    forwardCalc();
-    inverseCalc();
-
-    m_pitch.Update();
-    m_yaw.Update();
 }
 
 void Gimbal::forwardCalc() {
@@ -119,4 +75,60 @@ void Gimbal::inverseCalc() {
     // 应用到电机
     m_pitch.SetAngle(pitch.absolute.ref);
     m_yaw.SetAngle(yaw.absolute.ref);
+}
+
+void Gimbal::WaitReady() {
+    m_yaw.WaitReady();
+    m_pitch.WaitReady();
+}
+
+void Gimbal::SetEnable(const bool is_enable) {
+    if (this->is_enable == is_enable) return;
+    this->is_enable = is_enable;
+
+    m_yaw.SetEnable(is_enable);
+    m_pitch.SetEnable(is_enable);
+
+    setCurrentAsTarget();
+}
+
+void Gimbal::SetMode(const mode_e mode) {
+    if (this->mode == mode) return;
+    this->mode = mode;
+
+    setCurrentAsTarget();
+}
+
+void Gimbal::SetAngle(const Angle<deg> yaw, const Angle<deg> pitch) {
+    if (mode == ECD_MODE) {
+        this->yaw.relative.ref = yaw;
+        this->pitch.relative.ref = pitch;
+    } else if (mode == IMU_MODE) {
+        this->yaw.imu.ref = yaw;
+        this->pitch.imu.ref = pitch;
+    }
+}
+
+void Gimbal::SetSpeed(const Unit<deg_s> yaw_speed, const Unit<deg_s> pitch_speed) {
+    this->yaw_speed = yaw_speed;
+    this->pitch_speed = pitch_speed;
+}
+
+void Gimbal::SetYawSpeedFF(const Unit<rpm> yaw_speed_ff) {
+    this->yaw_speed_ff = yaw_speed_ff;
+}
+
+void Gimbal::Update() {
+    const float dt = dwt.GetDT();
+    if (is_enable) {
+        const Angle<deg> yaw_add = yaw_speed * dt;
+        const Angle<deg> pitch_add = pitch_speed * dt;
+        addAngle(yaw_add, pitch_add);
+    }
+
+    forwardCalc();
+    inverseCalc();
+
+    m_pitch.Update();
+    m_yaw.Update();
 }

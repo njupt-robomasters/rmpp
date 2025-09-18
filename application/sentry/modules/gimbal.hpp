@@ -33,7 +33,13 @@ private:
     mode_e mode = ECD_MODE; // 云台模式
     Unit<rpm> yaw_speed_ff; // yaw速度前馈（小陀螺模式需要）
 
+    Unit<deg_s> yaw_speed, pitch_speed;
+
+    BSP::Dwt dwt; // 维护dt
+
     void setCurrentAsTarget();
+
+    void addAngle(Angle<deg> pitch, Angle<deg> yaw);
 
     void forwardCalc();
 
@@ -56,7 +62,7 @@ public:
 
     void SetAngle(Angle<deg> yaw, Angle<deg> pitch);
 
-    void AddAngle(Angle<deg> pitch, Angle<deg> yaw);
+    void SetSpeed(Unit<deg_s> yaw_speed, Unit<deg_s> pitch_speed);
 
     void SetYawSpeedFF(Unit<rpm> yaw_speed_ff);
 

@@ -1,11 +1,12 @@
 #include "app.hpp"
 
-Settings settings;
-IMU imu(settings.imu_dir, settings.imu_calib);
+ModuleParams module_params;
+AppParams app_params;
+IMU imu(module_params.imu_dir, module_params.imu_calib);
 DJ6 dj6;
-Chassis chassis(&settings.servo_pid_param, &settings.wheel_pid_param);
-Gimbal gimbal(imu, &settings.yaw_pid_param, &settings.pitch_pid_param);
-Shooter shooter(&settings.m2006_pid_param);
+Chassis chassis(&module_params.servo_pid_param, &module_params.wheel_pid_param);
+Gimbal gimbal(imu, &module_params.yaw_pid_param, &module_params.pitch_pid_param);
+Shooter shooter(&module_params.m2006_pid_param);
 
 extern "C" void app_init() {
     BSP::Init();

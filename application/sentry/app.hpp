@@ -12,11 +12,11 @@
 #include "dj6.hpp"
 
 // module
-#include "module/chassis.hpp"
-#include "module/gimbal.hpp"
-#include "module/shooter.hpp"
+#include "modules/chassis.hpp"
+#include "modules/gimbal.hpp"
+#include "modules/shooter.hpp"
 
-class Settings {
+class ModuleParams {
 public:
     // IMU参数
     IMU::dir_t imu_dir = {.yaw = 90.0f, .pitch = 0, .roll = 0};
@@ -32,13 +32,21 @@ public:
 
     // 发射机构PID参数
     PID::param_t m2006_pid_param = {.kp = 10.0f * A / rps, .ki = 40.0f * A / rps, .max_i = 5.0f, .max_out = 10.0f * A};
-
-    // 底盘运动参数
-    Unit<m_s> vxy_max = 3.0f * m_s; // 前后左右平移速度
-    Unit<rpm> vr_max = 120.0f * rpm; // 旋转角速度
 };
 
-extern Settings settings;
+class AppParams {
+public:
+    // 底盘速度参数
+    Unit<m_s> vxy_max = 2.0f * m_s; // 前后左右平移速度
+    Unit<rpm> vr_max = 60.0f * rpm; // 旋转角速度
+
+    // 云台速度参数
+    Unit<deg_s> yaw_max_speed = 60.0f * deg_s;
+    Unit<deg_s> pitch_max_speed = 60.0f * deg_s;
+};
+
+extern ModuleParams module_params;
+extern AppParams app_params;
 extern IMU imu;
 extern DJ6 dj6;
 extern Chassis chassis;
