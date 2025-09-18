@@ -12,8 +12,7 @@ public:
     };
 
 private:
-    param_t default_param{};
-    param_t& param = default_param; // PID参数
+    param_t* param = nullptr; // PID参数
 
     float err = 0; // 误差值 err = ref - measure
     float p_out = 0, i_out = 0, d_out = 0, out_without_ff = 0; // PID输出分量
@@ -30,9 +29,9 @@ public:
 
     PID() = default;
 
-    PID(param_t& param);
+    PID(param_t* param);
 
-    void SetParam(param_t& param);
+    void SetParam(param_t* param);
 
     float CalcPosition(float err);
 

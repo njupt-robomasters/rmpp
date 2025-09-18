@@ -31,7 +31,7 @@ private:
     } shoot_freq;
 
 public:
-    Shooter(PID::param_t& m2006_pid);
+    Shooter(PID::param_t* m2006_pid);
 
     void SetEnable(bool is_enable);
 

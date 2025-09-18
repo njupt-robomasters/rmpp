@@ -1,6 +1,6 @@
 #include "app.hpp"
 
-extern "C" [[noreturn]] void task_chassis_entry(const void* argument) {
+extern "C" void task_chassis_entry(const void* argument) {
     while (true) {
         if (dj6.is_connected) {
             chassis.SetEnable(true);

@@ -28,7 +28,7 @@ private:
         PID pid;
 
     public:
-        Temperature_Control() : pid(pid_param) {}
+        Temperature_Control() : pid(&pid_param) {}
         void Update();
     } temperature_control{};
 

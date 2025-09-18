@@ -1,8 +1,7 @@
 #include "chassis.hpp"
 #include "app.hpp"
-#include "utils.hpp"
 
-Chassis::Chassis(PID::param_t& m6020_pid_param, PID::param_t& m3508_pid_param) :
+Chassis::Chassis(PID::param_t* m6020_pid_param, PID::param_t* m3508_pid_param) :
     m6020_1(1, 0x207),
     m6020_2(1, 0x208),
     m3508_1(1, 0x201),
@@ -151,7 +150,7 @@ void Chassis::calcCurrentRatio() {
     // 一定为一正根和一负根（x1*x2 = c/a < 0)
     power.current_ratio = (-b + sqrtf(b * b - 4 * a * c)) / (2 * a);
 
-    power.current_ratio = clamp(power.current_ratio, 0, 1);
+    power.current_ratio = std::clamp(power.current_ratio, 0.0f, 1.0f);
 
     m3508_1.SetCurrentRatio(power.current_ratio);
 }

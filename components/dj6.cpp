@@ -52,7 +52,7 @@ void DJ6::parseSBUS(const uint8_t* data) {
 // 遥杆值归一化到 -1~0~1
 float DJ6::get_stick(const uint16_t val) {
     float result = ((float)val - 1024.0f) / STICK_MAX;
-    result = clamp(result, -1, 1);
+    result = std::clamp(result, -1.0f, 1.0f);
     if (fabsf(result) < STICK_DEADLINE) result = 0;
     return result;
 }

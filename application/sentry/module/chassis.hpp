@@ -5,7 +5,11 @@
 #include "m6020.hpp"
 #include "m3508.hpp"
 
+extern "C" void task_can_entry(const void* argument);
+
 class Chassis {
+    friend void task_can_entry(const void* argument);
+
 private:
     // 舵电机偏移
     static constexpr Angle<deg> SERVO1_OFFSET = -136.0f * deg;
@@ -17,7 +21,6 @@ private:
 
     static constexpr Unit<m_s> MIN_V = 1e-2f; // 最小转舵速度
 
-public:
     // 电机对象
     M6020 m6020_1, m6020_2; // 舵电机
     M3508 m3508_1, m3508_2; // 轮电机
@@ -66,7 +69,7 @@ public:
         } relative{}, absolute{};
     } s1{}, s2{};
 
-    Chassis(PID::param_t& m6020_pid_param, PID::param_t& m3508_pid_param);
+    Chassis(PID::param_t* m6020_pid_param, PID::param_t* m3508_pid_param);
 
     void SetEnable(bool is_enable);
 

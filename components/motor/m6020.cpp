@@ -9,8 +9,5 @@ void M6020::Update() {
         const Angle angle_err = angle.ref - angle.measure;
         const float speed_err = speed.ref - speed.measure;
         current.ref = pid.CalcPosition(angle_err, speed_err);
-    } else {
-        pid.Clear();
-        current.ref = 0;
     }
 }

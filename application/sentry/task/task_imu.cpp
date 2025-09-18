@@ -1,6 +1,6 @@
 #include "app.hpp"
 
-extern "C" [[noreturn]] void task_imu_entry(const void* argument) {
+extern "C" void task_imu_entry(const void* argument) {
     imu.Init();
     // imu.Calibrate();
     while (true) {

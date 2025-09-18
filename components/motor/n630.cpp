@@ -1,7 +1,7 @@
 #include "n630.hpp"
 #include "bsp.hpp"
 
-N630::N630(const uint8_t can_port, const uint8_t n630_id) :
+N630::N630(const uint8_t can_port, const uint32_t n630_id) :
     can_port(can_port), n630_id(n630_id) {}
 
 void N630::makeCANData(uint8_t buffer[4], const float value, const float scale) {

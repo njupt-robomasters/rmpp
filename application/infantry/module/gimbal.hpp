@@ -34,7 +34,7 @@ public:
 
     void SetEnable(bool is_enable);
 
-    void SetMode(mode_e yaw_mode);
+    void SetMode(mode_e mode);
 
     void SetCurrentAsTarget();
 

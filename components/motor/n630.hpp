@@ -18,7 +18,7 @@ private:
     } oommand_id_e;
 
     const uint8_t can_port;
-    const uint8_t n630_id;
+    const uint32_t n630_id;
 
     bool is_enable = false;
 
@@ -27,7 +27,7 @@ private:
     void makeCANData(uint8_t buffer[4], float value, float scale);
 
 public:
-    N630(uint8_t can_port, uint8_t n630_id);
+    N630(uint8_t can_port, uint32_t n630_id);
 
     void SetEnable(bool is_enable);
 

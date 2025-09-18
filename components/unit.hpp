@@ -32,6 +32,8 @@ inline constexpr U rad("rad", 1.0f);
 inline constexpr U deg("deg", 1 / 180.0f * PI);
 
 // 角速度
+inline constexpr U rad_s("rad/s", 1.0f);
+inline constexpr U deg_s("deg/s", 1 / 180.0f * PI);
 inline constexpr U rpm("rpm", 1 / 60.0f * (2 * PI));
 inline constexpr U rps("rps", 2 * PI);
 
@@ -42,9 +44,10 @@ inline constexpr U W("W", 1.0f);
 
 // 其他
 inline constexpr U no_unit("no_unit", 1.0f); // 无单位
-inline constexpr U percentage("%", 0.01f); // 白分配
+inline constexpr U percentage("%", 0.01f); // 百分比
 inline constexpr U Hz("Hz", 1.0f); // 频率
 inline constexpr U C("℃", 1.0f); // ℃
+inline constexpr U Nm("Nm", 1.0f); // 扭矩
 
 
 template <const U& u = no_unit>

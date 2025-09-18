@@ -1,7 +1,8 @@
 #include "bsp_led.hpp"
+
 #include <cmath>
+#include <algorithm>
 #include "tim.h"
-#include "utils.hpp"
 
 using namespace BSP;
 
@@ -14,9 +15,9 @@ void LED::Init() {
 }
 
 void LED::SetRGB(float red, float green, float blue) {
-    red = clamp(red, 0, 1);
-    green = clamp(green, 0, 1);
-    blue = clamp(blue, 0, 1);
+    red = std::clamp(red, 0.0f, 1.0f);
+    green = std::clamp(green, 0.0f, 1.0f);
+    blue = std::clamp(blue, 0.0f, 1.0f);
 
     const auto red_ccr = (uint16_t)(red * 65535.0f);
     const auto green_ccr = (uint16_t)(green * 65535.0f);
@@ -37,8 +38,8 @@ void LED::SetHSV(float hue, float saturation, float brightness) {
     // 确保输入在有效范围内
     hue = fmodf(hue, 360.0f); // 色相循环 0-360
     if (hue < 0) hue += 360.0f;
-    saturation = clamp(saturation, 0, 1);
-    brightness = clamp(brightness, 0, 1);
+    saturation = std::clamp(saturation, 0.0f, 1.0f);
+    brightness = std::clamp(brightness, 0.0f, 1.0f);
 
     // HSV 到 RGB 转换
     float c = brightness * saturation;

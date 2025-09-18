@@ -16,8 +16,8 @@ private:
     const Unit<A> current_max; // 最大电流
     const uint16_t current_cmd_max; // CAN通信最大电流对应的值
 
-    bool is_invert = false; // 电机反转标志
     float reduction = 1.0f; // 电机减速比
+    bool is_invert = false; // 电机反转标志
     float current_ratio = 1.0f; // 用于功率控制
 
     BSP::Dwt dwt; // 维护dt
@@ -26,29 +26,32 @@ private:
     void callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dlc);
 
 protected:
+    volatile bool is_ready = false; // 电机就绪标志，收到CAN反馈报文后置为true
+    bool is_enable = false; // 电机使能标志
     PID pid;
 
 public:
-    bool is_ready = false; // 电机就绪标志，收到CAN反馈报文后置为true
-    bool is_enable = false; // 电机使能标志
-
+    // 电流
     struct {
         Unit<A> ref, measure, measure_no_lfp;
         int16_t raw = 0; // 电流原始值
-    } current{};
+    } current;
 
+    // 角度
     struct {
         Angle<deg> ref, measure; // 输出轴角度
         uint16_t raw = 0; // 电机侧角度原始值【单位：0~8191 -> 0~360°】
-    } angle{};
+    } angle;
 
+    // 转速
     struct {
         Unit<rpm> ref, measure, measure_no_lfp; // 输出轴转速
         int16_t raw = 0; // 电机侧转速原始值【单位：rpm】
-    } speed{};
+    } speed;
 
-    Unit<C> temperate; // 电机温度
-    Unit<Hz> can_feedback_freq; // CAN反馈报文频率【单位：Hz】
+    // 其他
+    Unit<C> temperate_motor; // 电机温度
+    Unit<Hz> can_feedback_freq; // CAN反馈报文频率
 
     MDJI(uint8_t can_port, uint32_t feedback_can_id,
          Unit<A> current_max, uint16_t current_cmd_max, float reduction);
@@ -59,7 +62,9 @@ public:
 
     void SetCurrentRatio(float current_ratio);
 
-    void SetPIDParam(PID::param_t& pid_param);
+    void SetPIDParam(PID::param_t* pid_param);
+
+    void WaitReady();
 
     void SetEnable(bool is_enable);
 

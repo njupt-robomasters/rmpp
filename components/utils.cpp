@@ -15,22 +15,6 @@ float lowpass_filter(float x, const float next, const float alpha) {
     return x;
 }
 
-float clamp(float x, const float max) {
-    if (x > max) {
-        x = max;
-    }
-    if (x < -max) {
-        x = -max;
-    }
-    return x;
-}
-
-float clamp(float x, const float min, const float max) {
-    if (x > max) x = max;
-    if (x < min) x = min;
-    return x;
-}
-
 std::tuple<float, float> rotate(const float x, const float y, const float angle) {
     const float rad = angle / 180.0f * PI;
     const float cos = arm_cos_f32(rad);

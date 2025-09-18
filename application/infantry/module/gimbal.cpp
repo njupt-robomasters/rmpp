@@ -64,11 +64,11 @@ void Gimbal::SetEnable(const bool is_enable) {
     }
 }
 
-void Gimbal::SetMode(const mode_e yaw_mode) {
-    if (this->mode == yaw_mode)
+void Gimbal::SetMode(const mode_e mode) {
+    if (this->mode == mode)
         return;
 
-    this->mode = yaw_mode;
+    this->mode = mode;
     SetCurrentAsTarget(); // 切换模式后，把当前位置设为目标位置
 }
 

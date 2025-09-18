@@ -13,12 +13,13 @@ MDJI::MDJI(uint8_t can_port, uint32_t feedback_can_id,
                                          std::placeholders::_4));
 }
 
-void MDJI::callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dlc) {
+void MDJI::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
     if (port != can_port) return;
     if (id != feedback_can_id) return;
     if (dlc != 8) return;
 
-    float dt = dwt.GetDT();
+    // 维护dt
+    const float dt = dwt.GetDT();
 
     // 记录CAN反馈报文频率
     can_feedback_freq = 1 / dt;
@@ -28,12 +29,12 @@ void MDJI::callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dl
         angle.raw = (uint16_t)(data[0] << 8 | data[1]);
         speed.raw = (int16_t)(data[2] << 8 | data[3]);
         current.raw = (int16_t)(data[4] << 8 | data[5]);
-        temperate = data[6];
+        temperate_motor = data[6];
     } else {
         angle.raw = 8191 - (uint16_t)(data[0] << 8 | data[1]);
         speed.raw = -(int16_t)(data[2] << 8 | data[3]);
         current.raw = -(int16_t)(data[4] << 8 | data[5]);
-        temperate = data[6];
+        temperate_motor = data[6];
     }
 
     // 转换为标准单位
@@ -68,12 +69,23 @@ void MDJI::SetCurrentRatio(const float current_ratio) {
     this->current_ratio = current_ratio;
 }
 
-void MDJI::SetPIDParam(PID::param_t& pid_param) {
+void MDJI::SetPIDParam(PID::param_t* pid_param) {
     pid.SetParam(pid_param);
 }
 
+void MDJI::WaitReady() {
+    this->is_ready = false;
+    while (this->is_ready == false) {
+        BSP::OS::Delay(1);
+    }
+}
+
 void MDJI::SetEnable(const bool is_enable) {
+    if (this->is_enable == is_enable) return;
     this->is_enable = is_enable;
+
+    pid.Clear();
+    current.ref = 0;
 }
 
 void MDJI::SetAngle(const Angle<deg> angle) {

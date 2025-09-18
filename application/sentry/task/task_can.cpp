@@ -1,33 +1,39 @@
 #include "app.hpp"
 
-extern "C" [[noreturn]] void task_can_entry(const void* argument) {
+extern "C" void task_can_entry(const void* argument) {
     while (true) {
-        const int16_t m6020_1_cmd = chassis.m6020_1.GetCurrentCMD(); // ID：3
-        const int16_t m6020_2_cmd = chassis.m6020_2.GetCurrentCMD(); // ID：4
-        const int16_t m3508_1_cmd = chassis.m3508_1.GetCurrentCMD(); // ID：1
-        const int16_t m3508_2_cmd = chassis.m3508_2.GetCurrentCMD(); // ID：2
-        const int16_t m2006_cmd = shooter.m2006.GetCurrentCMD(); // ID：6
+        // 底盘
+        const int16_t cmd7 = chassis.m6020_1.GetCurrentCMD(); // ID：7
+        const int16_t cmd8 = chassis.m6020_2.GetCurrentCMD(); // ID：8
+        const int16_t cmd1 = chassis.m3508_1.GetCurrentCMD(); // ID：1
+        const int16_t cmd2 = chassis.m3508_2.GetCurrentCMD(); // ID：2
+
+        // 云台
+        const int16_t cmd5 = gimbal.m_yaw.GetCurrentCMD(); // ID：5
+
+        // 发射机构
+        const int16_t cmd6 = shooter.m2006.GetCurrentCMD(); // ID：6
 
         uint8_t data[8];
 
-        data[0] = m3508_1_cmd >> 8;
-        data[1] = m3508_1_cmd;
-        data[2] = m3508_2_cmd >> 8;
-        data[3] = m3508_2_cmd;
+        data[0] = cmd1 >> 8;
+        data[1] = cmd1;
+        data[2] = cmd2 >> 8;
+        data[3] = cmd2;
         data[4] = 0;
         data[5] = 0;
         data[6] = 0;
         data[7] = 0;
         BSP::CAN::TransmitStd(1, 0x200, data);
 
-        data[0] = 0;
-        data[1] = 0;
-        data[2] = m2006_cmd >> 8;
-        data[3] = m2006_cmd;
-        data[4] = m6020_1_cmd >> 8;
-        data[5] = m6020_1_cmd;
-        data[6] = m6020_2_cmd >> 8;
-        data[7] = m6020_2_cmd;
+        data[0] = cmd5 >> 8;
+        data[1] = cmd5;
+        data[2] = cmd6 >> 8;
+        data[3] = cmd6;
+        data[4] = cmd7 >> 8;
+        data[5] = cmd7;
+        data[6] = cmd8 >> 8;
+        data[7] = cmd8;
         BSP::CAN::TransmitStd(1, 0x1FF, data);
 
         BSP::OS::Delay(1);

@@ -1,6 +1,6 @@
 #include "app.hpp"
 
-extern "C" [[noreturn]] void task_shooter_entry(const void* argument) {
+extern "C" void task_shooter_entry(const void* argument) {
     while (true) {
         if (dj6.is_connected) {
             shooter.SetEnable(true);
