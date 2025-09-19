@@ -43,7 +43,6 @@ void Shooter::SetShoot(const bool is_shoot) {
     m2006.SetEnable(is_shoot);
 }
 
-
 void Shooter::Update() {
     shoot_freq.measure = m2006.speed.measure.get(rps) * SHOOT_PRE_ROUND;
 

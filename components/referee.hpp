@@ -3,59 +3,20 @@
 #include <cstdint>
 
 class Referee {
-public:
-    uint8_t team_is_red = 0; // 0表示不是红方，1表示是红方
-    uint8_t robot_id = 0; // 本车ID
-    uint16_t robot_hp = 0; // 车血量
-    uint8_t competition_is_started = 0; // 0表示比赛未开始，1表示比赛开始
-    float chassis_power_now = 0; // 车底盘实时功率
-    uint16_t chassis_power_limit = 120; // 底盘功率上限
-    uint16_t chassis_buffer_energy = 0; // 底盘缓冲能量
-    uint16_t shooter_17mm_heat = 0; // 17mm枪口热量
-    uint16_t shooter_42mm_heat = 0; // 42mm枪口热量
-    uint16_t shooter_cooling = 0; // 枪口每秒冷却
-    uint16_t shooter_heat_limit = 0; // 枪口热量上限
-    uint16_t shooter_projectile_allowance_17mm = 0; // 17mm允许发弹量
-    uint16_t shooter_projectile_allowance_42mm = 0; // 42mm允许发弹量
-    uint16_t shooter_launching_frequency = 0; // 弹丸射速
-    uint16_t robot_hp_limit = 0; //新增： 机器人血量上限
-    float shooter_bullet_speed = 0; // 弹丸初速度
-    uint8_t power_shooter = 0; // 发射机构是否上电
-    uint8_t power_chassis = 0; // 底盘是否上电
-    uint8_t power_gimbal = 0; // 云台是否上电
-
-    // 以下为键鼠信息
-    int16_t mouse_x = 0, mouse_y = 0, mouse_z = 0; //滚轮
-    int8_t mouse_left_button_down = 0;
-    int8_t mouse_right_button_down = 0;
-    uint16_t keyboard_value = 0;
-    bool w = false, s = false, a = false, d = false;
-    bool shift = false, ctrl = false;
-    bool q = false, e = false, r = false;
-    bool f = false, g = false;
-    bool z = false, x = false, c = false, v = false, b = false;
-
-    // 中心增益点占领情况
-    uint8_t center_gain_status = 0; // 0没有人占领，1己方，2敌方占领，3都占领
-
-
-    void PhaseData(const uint8_t *data, uint16_t size);
-
 private:
-    void ParsePacket(const uint8_t *packet, uint16_t packetSize);
+    void parsePacket(const uint8_t* packet, uint16_t packetSize);
 
-    unsigned char Get_CRC8_Check_Sum(const uint8_t *pchMessage, unsigned int dwLength, unsigned char ucCRC8);
+    unsigned char Get_CRC8_Check_Sum(const uint8_t* pchMessage, unsigned int dwLength, unsigned char ucCRC8);
 
-    unsigned int Verify_CRC8_Check_Sum(const uint8_t *pchMessage, unsigned int dwLength);
+    unsigned int Verify_CRC8_Check_Sum(const uint8_t* pchMessage, unsigned int dwLength);
 
-    void Append_CRC8_Check_Sum(unsigned char *pchMessage, unsigned int dwLength);
+    void Append_CRC8_Check_Sum(unsigned char* pchMessage, unsigned int dwLength);
 
-    uint16_t Get_CRC16_Check_Sum(const uint8_t *pchMessage, uint32_t dwLength, uint16_t wCRC);
+    uint16_t Get_CRC16_Check_Sum(const uint8_t* pchMessage, uint32_t dwLength, uint16_t wCRC);
 
-    uint32_t Verify_CRC16_Check_Sum(const uint8_t *pchMessage, uint32_t dwLength);
+    uint32_t Verify_CRC16_Check_Sum(const uint8_t* pchMessage, uint32_t dwLength);
 
-    void Append_CRC16_Check_Sum(uint8_t *pchMessage, uint32_t dwLength);
-
+    void Append_CRC16_Check_Sum(uint8_t* pchMessage, uint32_t dwLength);
 
     const unsigned char CRC8_INIT = 0xff;
     const unsigned char CRC8_TAB[256] =
@@ -77,6 +38,7 @@ private:
         0xe9, 0xb7, 0x55, 0x0b, 0x88, 0xd6, 0x34, 0x6a, 0x2b, 0x75, 0x97, 0xc9, 0x4a, 0x14, 0xf6, 0xa8,
         0x74, 0x2a, 0xc8, 0x96, 0x15, 0x4b, 0xa9, 0xf7, 0xb6, 0xe8, 0x0a, 0x54, 0xd7, 0x89, 0x6b, 0x35,
     };
+
     uint16_t CRC_INIT = 0xffff;
     const uint16_t wCRC_Table[256] =
     {
@@ -113,4 +75,41 @@ private:
         0xf78f, 0xe606, 0xd49d, 0xc514, 0xb1ab, 0xa022, 0x92b9, 0x8330,
         0x7bc7, 0x6a4e, 0x58d5, 0x495c, 0x3de3, 0x2c6a, 0x1ef1, 0x0f78
     };
+
+public:
+    uint8_t team_is_red = 0; // 0表示不是红方，1表示是红方
+    uint8_t robot_id = 0; // 本车ID
+    uint16_t robot_hp = 0; // 车血量
+    uint8_t competition_is_started = 0; // 0表示比赛未开始，1表示比赛开始
+    float chassis_power_now = 0; // 车底盘实时功率
+    uint16_t chassis_power_limit = 120; // 底盘功率上限
+    uint16_t chassis_buffer_energy = 0; // 底盘缓冲能量
+    uint16_t shooter_17mm_heat = 0; // 17mm枪口热量
+    uint16_t shooter_42mm_heat = 0; // 42mm枪口热量
+    uint16_t shooter_cooling = 0; // 枪口每秒冷却
+    uint16_t shooter_heat_limit = 0; // 枪口热量上限
+    uint16_t shooter_projectile_allowance_17mm = 0; // 17mm允许发弹量
+    uint16_t shooter_projectile_allowance_42mm = 0; // 42mm允许发弹量
+    uint16_t shooter_launching_frequency = 0; // 弹丸射速
+    uint16_t robot_hp_limit = 0; //新增： 机器人血量上限
+    float shooter_bullet_speed = 0; // 弹丸初速度
+    uint8_t power_shooter = 0; // 发射机构是否上电
+    uint8_t power_chassis = 0; // 底盘是否上电
+    uint8_t power_gimbal = 0; // 云台是否上电
+    uint8_t center_gain_status = 0; // 中心增益点占领情况，0没有人占领，1己方，2敌方占领，3都占领
+
+    // 以下为键鼠信息
+    int16_t mouse_x = 0, mouse_y = 0, mouse_z = 0; // 滚轮
+    int8_t mouse_left_button_down = 0;
+    int8_t mouse_right_button_down = 0;
+    uint16_t keyboard_value = 0;
+    bool w = false, s = false, a = false, d = false;
+    bool shift = false, ctrl = false;
+    bool q = false, e = false, r = false;
+    bool f = false, g = false;
+    bool z = false, x = false, c = false, v = false, b = false;
+
+    Referee();
+
+    void callback(const uint8_t data[], uint16_t size);
 };

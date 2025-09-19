@@ -72,7 +72,7 @@ extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t S
     }
 
     // 裁判系统图传发送端串口
-    if (huart->Instance == USART1) {
+    if (huart->Instance == USART6) {
         const uint8_t event_type = HAL_UARTEx_GetRxEventType(huart);
         if (event_type == HAL_UART_RXEVENT_IDLE) { // 串口空闲中断
             HAL_UART_DMAStop(huart); // 停止接收
@@ -88,7 +88,7 @@ extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef* huart) {
     if (huart->Instance == USART3) { // 遥控器
         __HAL_UNLOCK(huart);
         UART_RC::Init(); // 继续接收
-    } else if (huart->Instance == USART1) { // 裁判系统图传发送端串口
+    } else if (huart->Instance == USART6) { // 裁判系统图传发送端串口
         __HAL_UNLOCK(huart);
         UART_Video::Init(); // 继续接收
     }

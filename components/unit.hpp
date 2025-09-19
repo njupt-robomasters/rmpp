@@ -27,6 +27,9 @@ inline constexpr U ms("ms", 0.001f);
 // 速度
 inline constexpr U m_s("m/s", 1.0f);
 
+// 加速度
+inline constexpr U m_ss("m/s^2", 1.0f);
+
 // 角度
 inline constexpr U rad("rad", 1.0f);
 inline constexpr U deg("deg", 1 / 180.0f * PI);

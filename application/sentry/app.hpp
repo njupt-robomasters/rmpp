@@ -10,6 +10,7 @@
 #include "pid.hpp"
 #include "imu.hpp"
 #include "dj6.hpp"
+#include "referee.hpp"
 
 // module
 #include "modules/chassis.hpp"
@@ -42,14 +43,19 @@ public:
     Unit<rpm> vr_max = 60.0f * rpm; // 旋转角速度
 
     // 云台速度参数
-    Unit<deg_s> yaw_max_speed = 60.0f * deg_s;
-    Unit<deg_s> pitch_max_speed = 60.0f * deg_s;
+    Unit<deg_s> yaw_max_speed = 240.0f * deg_s;
+    Unit<deg_s> pitch_max_speed = 240.0f * deg_s;
+
+    // 键鼠参数
+    float mouse_x_max = 100.0f;
+    float mouse_y_max = 100.0f;
 };
 
 extern ModuleParams module_params;
 extern AppParams app_params;
 extern IMU imu;
 extern DJ6 dj6;
+extern Referee referee;
 extern Chassis chassis;
 extern Gimbal gimbal;
 extern Shooter shooter;

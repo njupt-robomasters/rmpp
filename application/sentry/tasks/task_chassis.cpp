@@ -1,24 +1,63 @@
 #include "app.hpp"
 
+static float vx_rc, vy_rc, vx_video, vy_video;
+static float vr;
+
+// 解析遥控器操作
+static void handle_rc() {
+    vx_rc = dj6.x * app_params.vxy_max;
+    vy_rc = dj6.y * app_params.vxy_max;
+
+    if (dj6.right_switch == DJ6::DOWN) { // DOWN：测试小陀螺
+        vr = app_params.vr_max;
+    } else {
+        vr = 0;
+    }
+}
+
+// 解析键盘操作
+static void handle_video() {
+    // 前进后退
+    if (referee.w) {
+        vx_video = app_params.vxy_max / 2.0f;
+    } else if (referee.s) {
+        vx_video = -app_params.vxy_max / 2.0f;
+    } else {
+        vx_video = 0;
+    }
+    // 左右平移
+    if (referee.a) {
+        vy_video = app_params.vxy_max / 2.0f;
+    } else if (referee.d) {
+        vy_video = -app_params.vxy_max / 2.0f;
+    } else {
+        vy_video = 0;
+    }
+}
+
 extern "C" void task_chassis_entry(const void* argument) {
     while (true) {
-        if (dj6.is_connected) {
-            chassis.SetEnable(true);
-
-            chassis.SetGimbalYaw(gimbal.yaw.relative.measure);
-
-            Unit<m_s> vx = dj6.x * app_params.vxy_max;
-            Unit<m_s> vy = dj6.y * app_params.vxy_max;
-            Unit<rpm> vr;
-            if (dj6.right_switch == DJ6::DOWN) {
-                vr = app_params.vr_max;
-            } else {
-                vr = 0;
-            }
-            chassis.SetSpeed(vx, vy, vr);
-        } else {
+        // 检查遥控器断联
+        if (dj6.is_connected == false) {
             chassis.SetEnable(false);
+            chassis.Update();
+            BSP::OS::Delay(1);
+            continue;
         }
+
+        // 使能底盘
+        chassis.SetEnable(true);
+
+        // 设置云台方向
+        chassis.SetGimbalYaw(gimbal.yaw.relative.measure);
+
+        handle_rc(); // 解析遥控器
+        handle_video(); // 解析图传链路键盘鼠
+
+        // 合并遥控器和键盘控制
+        const float vx = std::clamp(vx_rc + vx_video, -app_params.vxy_max, +app_params.vxy_max);
+        const float vy = std::clamp(vy_rc + vy_video, -app_params.vxy_max, +app_params.vxy_max);
+        chassis.SetSpeed(vx, vy, vr);
 
         chassis.Update();
         BSP::OS::Delay(1);

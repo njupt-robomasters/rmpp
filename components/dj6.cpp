@@ -1,7 +1,6 @@
 #include "DJ6.hpp"
 #include <cmath>
 #include "bsp.hpp"
-#include "utils.hpp"
 
 DJ6::DJ6() {
     BSP::UART_RC::RegisterCallback(std::bind(&DJ6::callback, this,

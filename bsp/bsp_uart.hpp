@@ -32,7 +32,7 @@ namespace BSP {
         static std::vector<CallbackFunc>* callbacks; // 保存注册的回调函数
 
         // 串口接收缓冲区相关
-        static constexpr UART_HandleTypeDef* huart = &huart1;
+        static constexpr UART_HandleTypeDef* huart = &huart6;
         static constexpr uint8_t RXBUF_SIZE = 128;
         static uint8_t rxbuf[RXBUF_SIZE];
 
