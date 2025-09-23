@@ -80,7 +80,7 @@ float PID::CalcIncrement(const float err) {
     out = out_without_ff + ff;
 
     // 输出限幅
-    out = std::clamp(out, -max_out, max_out);
+    out = clamp(out, max_out);
 
     last2_err = last_err;
     last_err = err;
@@ -108,13 +108,13 @@ void PID::calcPositionCommon() {
     }
     // 情况二：I输出超过设定最大值 -> 对I输出钳位
     i_out += di;
-    i_out = std::clamp(i_out, -max_i, max_i);
+    i_out = clamp(i_out, max_i);
 
     out_without_ff = p_out + i_out + d_out;
     out = out_without_ff + ff;
 
     // 输出限幅
-    out = std::clamp(out, -max_out, max_out);
+    out = clamp(out, max_out);
 
     last_err = err; // 用于下一次求d输出
 }

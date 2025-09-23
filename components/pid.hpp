@@ -2,13 +2,15 @@
 
 #include <bsp.hpp>
 
+#include "unit.hpp"
+
 class PID {
 public:
     struct param_t {
-        float kp = 0, ki = 0, kd = 0;
-        float ff = 0; // 前馈
-        float max_i = 0; // 积分限制
-        float max_out = 0; // 最大输出
+        UnitFloat<> kp, ki, kd;
+        UnitFloat<> ff; // 前馈
+        UnitFloat<> max_i; // 积分限制
+        UnitFloat<> max_out; // 最大输出
     };
 
 private:

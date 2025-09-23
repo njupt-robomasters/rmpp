@@ -24,16 +24,40 @@ public:
     IMU::calib_t imu_calib = {.gx_offset = 0.00130902638, .gy_offset = 0.00142620632, .gz_offset = 0.00215413119, .g_norm = 9.65372658};
 
     // 底盘PID参数
-    PID::param_t servo_pid_param = {.kp = 0.6f * A / deg, .max_out = 3.0f * A};
-    PID::param_t wheel_pid_param = {.kp = 10000.0f * A / rps, .ki = 50.0f * A / rps, .max_out = 20.0f * A};
+    PID::param_t servo_pid_param = {
+        .kp = UnitFloat<A_deg>(0.6f * A_deg),
+        .max_out = UnitFloat<A>(3.0f * A)
+    };
+    PID::param_t wheel_pid_param = {
+        .kp = UnitFloat<A_rpm>(167.0f * A_rpm),
+        .ki = UnitFloat<A_rpm>(0.83f * A_rpm),
+        .max_out = UnitFloat<A>(20.0f * A)
+    };
 
     // 云台PID参数
-    PID::param_t yaw1_pid_param = {.kp = 20.0f, .kd = 3.0f, .max_out = 10.0f};
-    PID::param_t yaw2_pid_param = {.kp = 1.0f * A / deg, .kd = 0.023f * A / deg, .max_out = 3.0f * A};
-    PID::param_t pitch_pid_param = {.kp = 0.25f * Nm / deg, .kd = 0.012f * Nm / deg, .max_out = 3.0f * Nm};
+    PID::param_t yaw1_pid_param = {
+        .kp = UnitFloat<A_deg>(0.35f * A_deg),
+        .kd = UnitFloat<A_deg>(0.052f * A_deg),
+        .max_out = UnitFloat<A>(10.0f * A)
+    };
+    PID::param_t yaw2_pid_param = {
+        .kp = UnitFloat<A_deg>(1.0f * A_deg),
+        .kd = UnitFloat<A_deg>(0.023f * A_deg),
+        .max_out = UnitFloat<A>(3.0f * A)
+    };
+    PID::param_t pitch_pid_param = {
+        .kp = UnitFloat<Nm_deg>(0.25f * Nm_deg),
+        .kd = UnitFloat<Nm_deg>(0.012f * Nm_deg),
+        .max_out = UnitFloat<Nm>(3.0f * Nm)
+    };
 
     // 发射机构PID参数
-    PID::param_t m2006_pid_param = {.kp = 10.0f * A / rps, .ki = 40.0f * A / rps, .max_i = 5.0f, .max_out = 10.0f * A};
+    PID::param_t m2006_pid_param = {
+        .kp = UnitFloat<A_rpm>(0.17f * A_rpm),
+        .ki = UnitFloat<A_rpm>(0.67f * A_rpm),
+        .max_i = UnitFloat<A>(5.0f * A),
+        .max_out = UnitFloat<A>(10.0f * A)
+    };
 };
 
 class AppParams {

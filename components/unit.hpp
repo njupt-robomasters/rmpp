@@ -40,17 +40,22 @@ inline constexpr Unit deg_s("deg/s", 1 / 180.0f * PI);
 inline constexpr Unit rpm("rpm", 1 / 60.0f * (2 * PI));
 inline constexpr Unit rps("rps", 2 * PI);
 
-// 电压、电流、功率
+// 电压、电流、功率、扭矩
 inline constexpr Unit V("V", 1.0f);
 inline constexpr Unit A("A", 1.0f);
 inline constexpr Unit W("W", 1.0f);
+inline constexpr Unit Nm("Nm", 1.0f);
+
+// pid单位
+inline constexpr Unit A_deg("A/deg", A / deg);
+inline constexpr Unit Nm_deg("Nm/deg", Nm / deg);
+inline constexpr Unit A_rpm("A/rpm", A / rpm);
 
 // 其他
 inline constexpr Unit no_unit("", 1.0f); // 无单位
 inline constexpr Unit percentage("%", 0.01f); // 百分比
 inline constexpr Unit Hz("Hz", 1.0f); // 频率
 inline constexpr Unit C("℃", 1.0f); // ℃
-inline constexpr Unit Nm("Nm", 1.0f); // 扭矩
 
 
 template <const Unit& T = no_unit>
@@ -98,6 +103,13 @@ public:
         return *this;
     }
 
+    // +=运算
+    constexpr UnitFloat& operator+=(const float other) {
+        m_value += other / m_scale;
+        return *this;
+    }
+
+    // 转换到float
     constexpr operator float() const {
         return m_value * m_scale;
     }
@@ -207,6 +219,12 @@ public:
             this->m_str = other.m_str;
         }
         this->m_value = normalize((float)other) / this->m_scale;
+        return *this;
+    }
+
+    // +=运算
+    constexpr Angle& operator+=(const float other) {
+        this->m_value = normalize((float)(*this) + other) / this->m_scale;
         return *this;
     }
 };

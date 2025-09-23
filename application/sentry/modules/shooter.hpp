@@ -28,7 +28,9 @@ private:
 
     // 摩擦轮状态
     bool is_shoot = false;
-    UnitFloat<m_s> bullet_speed;
+    struct {
+        UnitFloat<m_s> ref, measure1, measure2;
+    } bullet_speed;
 
     void forwardCalc();
 

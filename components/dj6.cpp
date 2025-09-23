@@ -14,7 +14,7 @@ void DJ6::callback(const uint8_t data[], const uint16_t size) {
     parseSBUS(data);
 
     is_connected = raw.is_connected;
-    if (raw.is_connected) {
+    if (is_connected) {
         y = -get_stick(raw.CH1); // 右手水平
         x = get_stick(raw.CH2); // 右手垂直
         pitch = get_stick(raw.CH3); // 左手垂直

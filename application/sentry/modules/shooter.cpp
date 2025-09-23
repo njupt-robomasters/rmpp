@@ -6,8 +6,8 @@ Shooter::Shooter(PID::param_t* shoot_pid_param) :
     n630_2(2, 98) {
     // 设置电机反转
     m_shoot.SetInvert(true),
-    // 设置电机PID参数
-    m_shoot.SetPIDParam(shoot_pid_param);
+        // 设置电机PID参数
+        m_shoot.SetPIDParam(shoot_pid_param);
     // 设置默认弹速
     SetBulletSpeed(24.0f);
     // 设置默认弹频
@@ -16,7 +16,7 @@ Shooter::Shooter(PID::param_t* shoot_pid_param) :
 
 void Shooter::forwardCalc() {
     if (is_prepare_shoot) {
-        const UnitFloat<rpm> n630_speed = bullet_speed / WHEEL_RADIUS * 7;
+        const UnitFloat<rpm> n630_speed = bullet_speed.ref / WHEEL_RADIUS;
         n630_1.SetEnable(true);
         n630_2.SetEnable(true);
         n630_1.SetSpeed(n630_speed);
@@ -36,6 +36,8 @@ void Shooter::forwardCalc() {
 }
 
 void Shooter::backwardCalc() {
+    bullet_speed.measure1 = n630_1.speed.measure * WHEEL_RADIUS;
+    bullet_speed.measure2 = n630_2.speed.measure * WHEEL_RADIUS;
     shoot_freq.measure = m_shoot.speed.measure.get(rps) * SHOOT_PRE_ROUND;
 }
 
@@ -52,7 +54,7 @@ void Shooter::SetEnable(const bool is_enable) {
 }
 
 void Shooter::SetBulletSpeed(const UnitFloat<m_s> bullet_speed) {
-    this->bullet_speed = bullet_speed;
+    this->bullet_speed.ref = bullet_speed;
 }
 
 void Shooter::SetShootFreq(const UnitFloat<Hz> shoot_freq) {
