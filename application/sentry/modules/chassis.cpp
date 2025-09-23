@@ -2,56 +2,27 @@
 #include "app.hpp"
 #include "utils.hpp"
 
-Chassis::Chassis(PID::param_t* m6020_pid_param, PID::param_t* m3508_pid_param) :
-    m6020_1(1, 0x207),
-    m6020_2(1, 0x208),
-    m3508_1(1, 0x201),
-    m3508_2(1, 0x202) {
+Chassis::Chassis(PID::param_t* servo_pid_param, PID::param_t* wheel_pid_param) :
+    m_servo1(1, 0x207),
+    m_servo2(1, 0x208),
+    m_wheel1(1, 0x201),
+    m_wheel2(1, 0x202) {
     // 设置PID参数
-    m6020_1.SetPIDParam(m6020_pid_param);
-    m6020_2.SetPIDParam(m6020_pid_param);
-    m3508_1.SetPIDParam(m3508_pid_param);
-    m3508_2.SetPIDParam(m3508_pid_param);
+    m_servo1.SetPIDParam(servo_pid_param);
+    m_servo2.SetPIDParam(servo_pid_param);
+    m_wheel1.SetPIDParam(wheel_pid_param);
+    m_wheel2.SetPIDParam(wheel_pid_param);
 
     // 设置减速比
-    m3508_1.SetReduction(14.0f);
-    m3508_2.SetReduction(14.0f);
+    m_wheel1.SetReduction(14.0f);
+    m_wheel2.SetReduction(14.0f);
 
     // 反转电机
-    m6020_1.SetInvert(true);
-    m6020_2.SetInvert(true);
+    m_servo1.SetInvert(true);
+    m_servo2.SetInvert(true);
 }
 
-// 运动学正解
 void Chassis::forwardCalc() {
-    // 1. 读取电机
-    s1.absolute.measure = m6020_1.angle.measure;
-    s2.absolute.measure = m6020_2.angle.measure;
-    v1.measure = m3508_1.speed.measure * WHEEL_RADIUS;
-    v2.measure = m3508_2.speed.measure * WHEEL_RADIUS;
-
-    // 2. 舵电机安装矫正
-    s1.relative.measure = s1.absolute.measure - SERVO1_OFFSET;
-    s2.relative.measure = s2.absolute.measure - SERVO2_OFFSET;
-
-    // 3. 运动学逆解
-    float x1 = v1.measure * cosf(s1.relative.measure);
-    float y1 = v1.measure * sinf(s1.relative.measure);
-    float x2 = v2.measure * cosf(s2.relative.measure);
-    float y2 = v2.measure * sinf(s2.relative.measure);
-    float z1 = v1.measure * cosf(s1.relative.measure - 135 * deg);
-    float z2 = v2.measure * cosf(s2.relative.measure + 45 * deg);
-    vx.chassis.measure = (x1 + x2) / 2;
-    vy.chassis.measure = (y1 + y2) / 2;
-    vz.measure = (z1 + z2) / 2;
-    vr.measure = vz.measure / CHASSIS_RADIUS;
-
-    // 4. 转换到云台参考系
-    std::tie(vx.gimbal.measure, vy.gimbal.measure) = rotate(vx.gimbal.measure, vy.gimbal.measure, -gimbal_yaw);
-}
-
-// 运动学逆解
-void Chassis::inverseCalc() {
     // 1. 转换到底盘参考系
     // 注意这里是换参考系，而非旋转速度矢量，速度矢量相对于绝对参考系是不会发生变化的，所以旋转角度为：云台相对于底盘的角度
     std::tie(vx.chassis.ref, vy.chassis.ref) = rotate(vx.gimbal.ref, vy.gimbal.ref, gimbal_yaw);
@@ -95,16 +66,43 @@ void Chassis::inverseCalc() {
     }
 
     // 5. 设置电机
-    m6020_1.SetAngle(s1.absolute.ref);
-    m6020_2.SetAngle(s2.absolute.ref);
-    m3508_1.SetSpeed(v1.ref / WHEEL_RADIUS);
-    m3508_2.SetSpeed(v2.ref / WHEEL_RADIUS);
+    m_servo1.SetAngle(s1.absolute.ref);
+    m_servo2.SetAngle(s2.absolute.ref);
+    m_wheel1.SetSpeed(v1.ref / WHEEL_RADIUS);
+    m_wheel2.SetSpeed(v2.ref / WHEEL_RADIUS);
+}
+
+void Chassis::backwardCalc() {
+    // 1. 读取电机
+    s1.absolute.measure = m_servo1.angle.measure;
+    s2.absolute.measure = m_servo2.angle.measure;
+    v1.measure = m_wheel1.speed.measure * WHEEL_RADIUS;
+    v2.measure = m_wheel2.speed.measure * WHEEL_RADIUS;
+
+    // 2. 舵电机安装矫正
+    s1.relative.measure = s1.absolute.measure - SERVO1_OFFSET;
+    s2.relative.measure = s2.absolute.measure - SERVO2_OFFSET;
+
+    // 3. 运动学逆解
+    float x1 = v1.measure * cosf(s1.relative.measure);
+    float y1 = v1.measure * sinf(s1.relative.measure);
+    float x2 = v2.measure * cosf(s2.relative.measure);
+    float y2 = v2.measure * sinf(s2.relative.measure);
+    float z1 = v1.measure * cosf(s1.relative.measure - 135 * deg);
+    float z2 = v2.measure * cosf(s2.relative.measure + 45 * deg);
+    vx.chassis.measure = (x1 + x2) / 2;
+    vy.chassis.measure = (y1 + y2) / 2;
+    vz.measure = (z1 + z2) / 2;
+    vr.measure = vz.measure / CHASSIS_RADIUS;
+
+    // 4. 转换到云台参考系
+    std::tie(vx.gimbal.measure, vy.gimbal.measure) = rotate(vx.gimbal.measure, vy.gimbal.measure, -gimbal_yaw);
 }
 
 // 估算底盘当前功率，用于调试
 void Chassis::estimatePower() {
-    const float power1 = m3508_1.EstimatePower();
-    const float power2 = m3508_2.EstimatePower();
+    const float power1 = m_wheel1.EstimatePower();
+    const float power2 = m_wheel2.EstimatePower();
     power.estimate = power1 + power2;
 }
 
@@ -119,56 +117,57 @@ void Chassis::calcCurrentRatio() {
     // c = -P
 
     float a = 0;
-    a += m3508_1.current.ref * m3508_1.current.ref * M3508::R;
-    a += m3508_2.current.ref * m3508_2.current.ref * M3508::R;
+    a += m_wheel1.current.ref * m_wheel1.current.ref * M3508::R;
+    a += m_wheel2.current.ref * m_wheel2.current.ref * M3508::R;
 
     float b = 0;
-    b += m3508_1.kt * m3508_1.current.ref * m3508_1.speed.measure;
-    b += m3508_2.kt * m3508_2.current.ref * m3508_2.speed.measure;
+    b += m_wheel1.kt * m_wheel1.current.ref * m_wheel1.speed.measure;
+    b += m_wheel2.kt * m_wheel2.current.ref * m_wheel2.speed.measure;
 
     float c = -power.limit;
 
     // 一定为一正根和一负根（x1*x2 = c/a < 0)
     power.current_ratio = (-b + sqrtf(b * b - 4 * a * c)) / (2 * a);
 
-    power.current_ratio = std::clamp(power.current_ratio, 0.0f, 1.0f);
+    // 钳位
+    power.current_ratio = clamp(power.current_ratio, 0.0f, 1.0f);
 
-    m3508_1.SetCurrentRatio(power.current_ratio);
+    m_wheel1.SetCurrentRatio(power.current_ratio);
+    m_wheel2.SetCurrentRatio(power.current_ratio);
 }
 
 
 void Chassis::SetEnable(const bool is_enable) {
-    // 设置子设备
-    m6020_1.SetEnable(is_enable);
-    m6020_2.SetEnable(is_enable);
-    m3508_1.SetEnable(is_enable);
-    m3508_2.SetEnable(is_enable);
+    this->is_enable = is_enable;
+    m_servo1.SetEnable(is_enable);
+    m_servo2.SetEnable(is_enable);
+    m_wheel1.SetEnable(is_enable);
+    m_wheel2.SetEnable(is_enable);
 }
 
-void Chassis::SetGimbalYaw(const Angle<deg> gimbal_yaw) {
+void Chassis::SetGimbalYaw(const Angle<>& gimbal_yaw) {
     this->gimbal_yaw = gimbal_yaw;
 }
 
-void Chassis::SetSpeed(const Unit<m_s>& vx, const Unit<m_s>& vy, const Unit<rpm>& vr) {
+void Chassis::SetSpeed(const UnitFloat<>& vx, const UnitFloat<>& vy, const UnitFloat<>& vr) {
     this->vx.gimbal.ref = vx;
     this->vy.gimbal.ref = vy;
     this->vr.ref = vr;
     this->vz.ref = vr * CHASSIS_RADIUS;
 }
 
-void Chassis::SetPowerLimit(const Unit<W>& power) {
+void Chassis::SetPowerLimit(const UnitFloat<>& power) {
     this->power.limit = power;
 }
 
 void Chassis::Update() {
-    forwardCalc(); // 运动学正解
-    inverseCalc(); // 运动学逆解
+    backwardCalc();
+    forwardCalc();
 
-    // 电机闭环控制计算
-    m6020_1.Update();
-    m6020_2.Update();
-    m3508_1.Update();
-    m3508_2.Update();
+    m_servo1.Update();
+    m_servo2.Update();
+    m_wheel1.Update();
+    m_wheel2.Update();
 
     calcCurrentRatio(); // 功率控制
 }

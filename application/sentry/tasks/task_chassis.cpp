@@ -1,7 +1,8 @@
 #include "app.hpp"
+#include "utils.hpp"
 
-static float vx_rc, vy_rc, vx_video, vy_video;
-static float vr;
+static UnitFloat<m_s> vx_rc, vy_rc, vx_video, vy_video;
+static UnitFloat<rpm> vr;
 
 // 解析遥控器操作
 static void handle_rc() {
@@ -17,22 +18,27 @@ static void handle_rc() {
 
 // 解析键盘操作
 static void handle_video() {
+    static BSP::Dwt dwt;
+    const float dt = dwt.GetDT();
+
     // 前进后退
     if (referee.w) {
-        vx_video = app_params.vxy_max / 2.0f;
+        vx_video = vx_video + app_params.axy * dt;
     } else if (referee.s) {
-        vx_video = -app_params.vxy_max / 2.0f;
+        vx_video = vx_video - app_params.axy * dt;
     } else {
         vx_video = 0;
     }
+    vx_video = clamp(vx_video, -app_params.vxy_max, app_params.vxy_max);
     // 左右平移
     if (referee.a) {
-        vy_video = app_params.vxy_max / 2.0f;
+        vy_video = vy_video + app_params.axy * dt;
     } else if (referee.d) {
-        vy_video = -app_params.vxy_max / 2.0f;
+        vy_video = vy_video - app_params.axy * dt;
     } else {
         vy_video = 0;
     }
+    vy_video = clamp(vy_video, -app_params.vxy_max, app_params.vxy_max);
 }
 
 extern "C" void task_chassis_entry(const void* argument) {
@@ -55,8 +61,8 @@ extern "C" void task_chassis_entry(const void* argument) {
         handle_video(); // 解析图传链路键盘鼠
 
         // 合并遥控器和键盘控制
-        const float vx = std::clamp(vx_rc + vx_video, -app_params.vxy_max, +app_params.vxy_max);
-        const float vy = std::clamp(vy_rc + vy_video, -app_params.vxy_max, +app_params.vxy_max);
+        const UnitFloat<m_s> vx = clamp(vx_rc + vx_video, -app_params.vxy_max, app_params.vxy_max);
+        const UnitFloat<m_s> vy = clamp(vy_rc + vy_video, -app_params.vxy_max, app_params.vxy_max);
         chassis.SetSpeed(vx, vy, vr);
 
         chassis.Update();

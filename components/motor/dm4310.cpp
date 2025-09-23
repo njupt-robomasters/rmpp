@@ -80,7 +80,7 @@ void DM4310::SetEnable(const bool is_enable) {
     torque.ref = 0;
 }
 
-void DM4310::SetAngle(const Angle<deg> angle, const Unit<deg_s> speed) {
+void DM4310::SetAngle(const Angle<deg> angle, const UnitFloat<deg_s> speed) {
     this->angle.ref = angle;
     this->speed.ref = speed;
 }

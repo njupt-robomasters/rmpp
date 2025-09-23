@@ -10,35 +10,38 @@ class Shooter {
     friend void task_can_entry(const void* argument);
 
 private:
-    static constexpr Unit<mm> WHEEL_RADIUS = 30.0f * mm;
+    static constexpr UnitFloat<mm> WHEEL_RADIUS = 30.0f * mm;
     static constexpr float SHOOT_PRE_ROUND = 7.0f;
 
     // 电机对象
-    M2006 m2006;
+    M2006 m_shoot;
     N630 n630_1, n630_2;
 
     // 使能标志
     bool is_enable = false;
-    bool is_prepare_shoot = false;
-    bool is_shoot = false;
-
-    // 摩擦轮状态
-    Unit<m_s> bullet_speed;
-    Unit<rpm> n630_speed;
 
     // 拨弹电机状态
+    bool is_prepare_shoot = false;
     struct {
-        Unit<Hz> ref, measure;
+        UnitFloat<Hz> ref, measure;
     } shoot_freq;
 
+    // 摩擦轮状态
+    bool is_shoot = false;
+    UnitFloat<m_s> bullet_speed;
+
+    void forwardCalc();
+
+    void backwardCalc();
+
 public:
-    Shooter(PID::param_t* m2006_pid_param);
+    Shooter(PID::param_t* shoot_pid_param);
 
     void SetEnable(bool is_enable);
 
-    void SetBulletSpeed(Unit<m_s> bullet_speed);
+    void SetBulletSpeed(UnitFloat<m_s> bullet_speed);
 
-    void SetShootFreq(Unit<Hz> shoot_freq);
+    void SetShootFreq(UnitFloat<Hz> shoot_freq);
 
     void SetPrepareShoot(bool is_prepare_shoot);
 

@@ -39,7 +39,7 @@ private:
 public:
     // 力矩
     struct {
-        Unit<Nm> ref, measure;
+        UnitFloat<Nm> ref, measure;
         uint16_t raw = 0; // 力矩原始值【12bit数据表示-T_MAX~T_MAX，单位N*m】
     } torque;
 
@@ -51,14 +51,14 @@ public:
 
     // 转速
     struct {
-        Unit<deg_s> ref, measure;
+        UnitFloat<deg_s> ref, measure;
         uint16_t raw = 0; // 转速原始值【12bit数据表示-V_MAX~V_MAX，单位rad/s】
     } speed;
 
     uint8_t err_code = 0; // 故障代码，8->超压，9->欠压，A->过电流，B->MOS过温，C->电机过温，D->通讯丢失，E->过载
-    Unit<C> temperate_mos; // MOS温度
-    Unit<C> temperate_motor; // 电机温度
-    Unit<Hz> can_feedback_freq; // CAN反馈报文频率
+    UnitFloat<C> temperate_mos; // MOS温度
+    UnitFloat<C> temperate_motor; // 电机温度
+    UnitFloat<Hz> can_feedback_freq; // CAN反馈报文频率
 
     DM4310(uint8_t can_port, uint32_t master_id, uint32_t slave_id);
 
@@ -70,7 +70,7 @@ public:
 
     void SetEnable(bool is_enable);
 
-    void SetAngle(Angle<deg> angle, Unit<deg_s> speed = 0);
+    void SetAngle(Angle<deg> angle, UnitFloat<deg_s> speed = 0);
 
     void Update();
 };

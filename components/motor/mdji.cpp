@@ -3,7 +3,7 @@
 #include "utils.hpp"
 
 MDJI::MDJI(uint8_t can_port, uint32_t feedback_can_id,
-           Unit<A> current_max, uint16_t current_cmd_max, float reduction) :
+           UnitFloat<A> current_max, uint16_t current_cmd_max, float reduction) :
     can_port(can_port), feedback_can_id(feedback_can_id),
     current_max(current_max), current_cmd_max(current_cmd_max), reduction(reduction) {
     BSP::CAN::RegisterCallback(std::bind(&MDJI::callback, this,
@@ -92,7 +92,7 @@ void MDJI::SetAngle(const Angle<deg> angle) {
     this->angle.ref = angle;
 }
 
-void MDJI::SetSpeed(const Unit<rpm> speed) {
+void MDJI::SetSpeed(const UnitFloat<rpm> speed) {
     this->speed.ref = speed;
 }
 

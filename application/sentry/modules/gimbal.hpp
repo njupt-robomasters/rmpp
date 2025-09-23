@@ -19,10 +19,11 @@ public:
     };
 
 private:
+    // 电机偏移参数
     // 大yaw
     static constexpr Angle<deg> YAW1_OFFSET = -54.0f * deg; // 大yaw与前进方向重合时的绝对角度
     // 小yaw
-    static constexpr Angle<deg> YAW2_OFFSET = -120.0f * deg; // 小yaw相对于yaw1居中时的绝对角度
+    static constexpr Angle<deg> YAW2_OFFSET = -120.0f * deg; // 小yaw相对于大yaw居中时的绝对角度
     static constexpr Angle<deg> YAW2_MIN = 0.0f * deg; // 小yaw最小角度
     static constexpr Angle<deg> YAW2_MAX = 0.0f * deg; // 小yaw最大角度
     // pitch
@@ -38,28 +39,35 @@ private:
     DM4310 m_pitch;
 
     bool is_enable = false; // 云台使能标志
-    mode_e mode = ECD_MODE; // 云台模式
-    Unit<rpm> chassis_vr; // yaw速度前馈（小陀螺模式需要）
-
-    Unit<deg_s> yaw_speed, pitch_speed;
+    mode_e mode = IMU_MODE; // 云台模式
+    UnitFloat<rpm> chassis_vr; // yaw速度前馈（小陀螺模式需要）
 
     BSP::Dwt dwt; // 维护dt
 
     void setCurrentAsTarget();
 
-    void addAngle(Angle<deg> pitch, Angle<deg> yaw);
+    void addAngle(const Angle<deg>& pitch, const Angle<deg>& yaw);
 
     void forwardCalc();
 
-    void inverseCalc();
+    void backwardCalc();
 
 public:
+    // 总yaw
+    struct {
+        struct {
+            Angle<deg> ref, measure;
+        } relative, imu;
+    } yaw;
+
+    // 大小yaw分配
     struct {
         struct {
             Angle<deg> ref, measure;
         } absolute, relative;
     } yaw1, yaw2;
 
+    // pitch
     struct {
         struct {
             Angle<deg> ref, measure;
@@ -70,11 +78,8 @@ public:
         } imu;
     } pitch;
 
-    struct {
-        struct {
-            Angle<deg> ref, measure;
-        } relative, imu;
-    } yaw;
+    // 云台运动速度
+    UnitFloat<deg_s> yaw_speed, pitch_speed;
 
     Gimbal(const IMU& imu, PID::param_t* yaw1_pid_param, PID::param_t* yaw2_pid_param, PID::param_t* pitch_pid_param);
 
@@ -84,11 +89,11 @@ public:
 
     void SetMode(mode_e mode);
 
-    void SetAngle(Angle<deg> yaw, Angle<deg> pitch);
+    void SetAngle(const Angle<>& yaw, const Angle<>& pitch);
 
-    void SetSpeed(Unit<deg_s> yaw_speed, Unit<deg_s> pitch_speed);
+    void SetSpeed(const UnitFloat<>& yaw_speed, const UnitFloat<>& pitch_speed);
 
-    void SetChassisVR(Unit<rpm> chassis_vr);
+    void SetChassisVR(UnitFloat<> chassis_vr);
 
     void Update();
 };

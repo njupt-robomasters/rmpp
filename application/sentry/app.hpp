@@ -39,12 +39,13 @@ public:
 class AppParams {
 public:
     // 底盘速度参数
-    Unit<m_s> vxy_max = 2.0f * m_s; // 前后左右平移速度
-    Unit<rpm> vr_max = 60.0f * rpm; // 旋转角速度
+    UnitFloat<m_s> vxy_max = 2.0f * m_s; // 前后左右平移速度
+    UnitFloat<rpm> vr_max = 60.0f * rpm; // 旋转角速度
+    UnitFloat<m_ss> axy = 2.0f * m_ss;
 
     // 云台速度参数
-    Unit<deg_s> yaw_max_speed = 240.0f * deg_s;
-    Unit<deg_s> pitch_max_speed = 240.0f * deg_s;
+    UnitFloat<deg_s> yaw_max_speed = 240.0f * deg_s;
+    UnitFloat<deg_s> pitch_max_speed = 240.0f * deg_s;
 
     // 键鼠参数
     float mouse_x_max = 100.0f;

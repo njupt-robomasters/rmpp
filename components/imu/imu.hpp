@@ -20,9 +20,9 @@ public:
 private:
     // IMU加热
     class Temperature_Control {
-        static constexpr Unit<C> ref = 40.0f;
-        Unit<C> measure;
-        Unit<percentage> power;
+        static constexpr UnitFloat<C> ref = 40.0f;
+        UnitFloat<C> measure;
+        UnitFloat<percentage> power;
 
         PID::param_t pid_param = {.kp = 0.5, .ki = 0.01, .max_i = 0.4, .max_out = 1};
         PID pid;
@@ -58,7 +58,7 @@ private:
 public:
     // 欧拉角
     Angle<deg> yaw, pitch, roll;
-    Unit<deg> yaw_total_angle;
+    UnitFloat<deg> yaw_total_angle;
 
     // 四元数
     float q[4]{};

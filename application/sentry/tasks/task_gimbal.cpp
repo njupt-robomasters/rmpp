@@ -1,7 +1,8 @@
 #include "app.hpp"
+#include "utils.hpp"
 
-static float yaw_speed_rc, pitch_speed_rc;
-static float yaw_speed_video, pitch_speed_video;
+static UnitFloat<deg_s> yaw_speed_rc, pitch_speed_rc;
+static UnitFloat<deg_s> yaw_speed_video, pitch_speed_video;
 
 // 解析遥控器操作
 static void handle_rc() {
@@ -48,8 +49,8 @@ extern "C" void task_gimbal_entry(const void* argument) {
         handle_video(); // 解析图传链路键盘鼠
 
         // 合并遥控器和键盘控制
-        const float yaw_speed = std::clamp(yaw_speed_rc + yaw_speed_video, -app_params.yaw_max_speed, +app_params.yaw_max_speed);
-        const float pitch_speed = std::clamp(pitch_speed_rc + pitch_speed_video, -app_params.pitch_max_speed, +app_params.pitch_max_speed);
+        const UnitFloat<deg_s> yaw_speed = clamp(yaw_speed_rc + yaw_speed_video, -app_params.yaw_max_speed, app_params.yaw_max_speed);
+        const UnitFloat<deg_s> pitch_speed = clamp(pitch_speed_rc + pitch_speed_video, -app_params.pitch_max_speed, app_params.pitch_max_speed);
         gimbal.SetSpeed(yaw_speed, pitch_speed);
 
         gimbal.Update();

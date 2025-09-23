@@ -16,7 +16,7 @@ void N630::SetEnable(const bool is_enable) {
     this->is_enable = is_enable;
 }
 
-void N630::SetSpeed(const Unit<rpm> speed) {
+void N630::SetSpeed(const UnitFloat<rpm> speed) {
     this->speed = speed;
 }
 

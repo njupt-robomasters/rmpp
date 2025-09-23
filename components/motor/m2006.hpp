@@ -10,7 +10,7 @@ public:
     void Update();
 
 private:
-    static constexpr Unit<A> CURRENT_MAX = 10.0f;
+    static constexpr UnitFloat<A> CURRENT_MAX = 10.0f;
     static constexpr int16_t CURRENT_CMD_MAX = 10000;
     static constexpr float REDUCTION = 36.0f;
 };

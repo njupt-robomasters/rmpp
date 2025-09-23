@@ -25,7 +25,7 @@ void Gimbal::setCurrentAsTarget() {
     }
 }
 
-void Gimbal::addAngle(const Angle<deg> yaw, const Angle<deg> pitch) {
+void Gimbal::addAngle(const Angle<deg>& yaw, const Angle<deg>& pitch) {
     if (mode == ECD_MODE) {
         this->yaw.relative.ref = this->yaw.relative.ref + yaw;
         this->pitch.relative.ref = this->pitch.relative.ref + pitch;
@@ -35,24 +35,8 @@ void Gimbal::addAngle(const Angle<deg> yaw, const Angle<deg> pitch) {
     }
 }
 
+
 void Gimbal::forwardCalc() {
-    // absolute，从电机读取
-    yaw1.absolute.measure = m_yaw1.angle.measure;
-    yaw2.absolute.measure = m_yaw2.angle.measure;
-    pitch.absolute.measure = m_pitch.angle.measure;
-
-    // relative
-    yaw1.relative.measure = m_yaw1.angle.measure - YAW1_OFFSET;
-    yaw2.relative.measure = m_yaw2.angle.measure - YAW2_OFFSET;
-    yaw.relative.measure = yaw1.relative.measure + yaw2.relative.measure;
-    pitch.relative.measure = m_pitch.angle.measure - PITCH_OFFSET;
-
-    // imu
-    yaw.imu.measure = imu.yaw;
-    pitch.imu.measure = imu.pitch;
-}
-
-void Gimbal::inverseCalc() {
     // 用于参考系转换
     const Angle yaw_imu_minus_relative = yaw.imu.measure - yaw.relative.measure;
     const Angle pitch_imu_minus_relative = pitch.imu.measure - pitch.relative.measure;
@@ -89,8 +73,25 @@ void Gimbal::inverseCalc() {
 
     // 应用到电机
     m_pitch.SetAngle(pitch.absolute.ref);
-    m_yaw1.SetAngle(yaw1.absolute.ref, Unit<deg_s>(chassis_vr));
+    m_yaw1.SetAngle(yaw1.absolute.ref, UnitFloat<deg_s>(chassis_vr));
     m_yaw2.SetAngle(yaw2.absolute.ref);
+}
+
+void Gimbal::backwardCalc() {
+    // absolute，从电机读取
+    yaw1.absolute.measure = m_yaw1.angle.measure;
+    yaw2.absolute.measure = m_yaw2.angle.measure;
+    pitch.absolute.measure = m_pitch.angle.measure;
+
+    // relative
+    yaw1.relative.measure = m_yaw1.angle.measure - YAW1_OFFSET;
+    yaw2.relative.measure = m_yaw2.angle.measure - YAW2_OFFSET;
+    yaw.relative.measure = yaw1.relative.measure + yaw2.relative.measure;
+    pitch.relative.measure = m_pitch.angle.measure - PITCH_OFFSET;
+
+    // imu
+    yaw.imu.measure = imu.yaw;
+    pitch.imu.measure = imu.pitch;
 }
 
 void Gimbal::WaitReady() {
@@ -117,7 +118,7 @@ void Gimbal::SetMode(const mode_e mode) {
     setCurrentAsTarget();
 }
 
-void Gimbal::SetAngle(const Angle<deg> yaw, const Angle<deg> pitch) {
+void Gimbal::SetAngle(const Angle<>& yaw, const Angle<>& pitch) {
     if (mode == ECD_MODE) {
         this->yaw.relative.ref = yaw;
         this->pitch.relative.ref = pitch;
@@ -127,12 +128,12 @@ void Gimbal::SetAngle(const Angle<deg> yaw, const Angle<deg> pitch) {
     }
 }
 
-void Gimbal::SetSpeed(const Unit<deg_s> yaw_speed, const Unit<deg_s> pitch_speed) {
+void Gimbal::SetSpeed(const UnitFloat<>& yaw_speed, const UnitFloat<>& pitch_speed) {
     this->yaw_speed = yaw_speed;
     this->pitch_speed = pitch_speed;
 }
 
-void Gimbal::SetChassisVR(const Unit<rpm> chassis_vr) {
+void Gimbal::SetChassisVR(const UnitFloat<> chassis_vr) {
     this->chassis_vr = chassis_vr;
 }
 
@@ -144,8 +145,8 @@ void Gimbal::Update() {
         addAngle(yaw_add, pitch_add);
     }
 
+    backwardCalc();
     forwardCalc();
-    inverseCalc();
 
     m_pitch.Update();
     m_yaw1.Update();

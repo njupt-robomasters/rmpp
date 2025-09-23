@@ -11,20 +11,20 @@ class Chassis {
     friend void task_can_entry(const void* argument);
 
 private:
+    // 底盘参数
+    static constexpr UnitFloat<m> WHEEL_RADIUS = 0.0525f * m; // 底盘半径
+    static constexpr UnitFloat<m> CHASSIS_RADIUS = 0.21492f * m; // 轮子半径
+
     // 舵电机偏移
     static constexpr Angle<deg> SERVO1_OFFSET = -136.0f * deg;
     static constexpr Angle<deg> SERVO2_OFFSET = -102.0f * deg;
 
-    // 底盘参数
-    static constexpr Unit<m> WHEEL_RADIUS = 0.0525f * m; // 底盘半径
-    static constexpr Unit<m> CHASSIS_RADIUS = 0.21492f * m; // 轮子半径
-
     // 最小转舵速度
-    static constexpr Unit<m_s> MIN_V = 1e-2f;
+    static constexpr UnitFloat<m_s> MIN_V = 1e-2f;
 
     // 电机对象
-    M6020 m6020_1, m6020_2; // 舵电机
-    M3508 m3508_1, m3508_2; // 轮电机
+    M6020 m_servo1, m_servo2; // 舵电机
+    M3508 m_wheel1, m_wheel2; // 轮电机
 
     // 底盘使能标志
     bool is_enable = false;
@@ -32,43 +32,35 @@ private:
     // 云台yaw方向
     Angle<deg> gimbal_yaw;
 
-    // 底盘功率控制
-    struct {
-        Unit<W> estimate = 0; // 当前功率估计
-        Unit<W> limit = 120;
-        float current_ratio = 1; // 电流衰减系数
-    } power;
-
     void forwardCalc();
 
-    void inverseCalc();
+    void backwardCalc();
 
     void estimatePower();
 
     void calcCurrentRatio();
 
 public:
+    // 底盘速度
     // vx 前后速度，前为正
     // vy 左右速度，左为正
     // vz 旋转线速度，逆时针为正
     // vr 旋转角速度，逆时针为正
     struct {
         struct {
-            Unit<m_s> ref, measure;
+            UnitFloat<m_s> ref, measure;
         } chassis, gimbal;
     } vx, vy;
-
     struct {
-        Unit<m_s> ref, measure;
+        UnitFloat<m_s> ref, measure;
     } vz;
-
     struct {
-        Unit<rpm> ref, measure;
+        UnitFloat<rpm> ref, measure;
     } vr;
 
     // 轮子线速度
     struct {
-        Unit<m_s> ref, measure;
+        UnitFloat<m_s> ref, measure;
     } v1, v2;
 
     // 舵轮角度
@@ -78,15 +70,22 @@ public:
         } relative, absolute;
     } s1, s2;
 
-    Chassis(PID::param_t* m6020_pid_param, PID::param_t* m3508_pid_param);
+    // 底盘功率控制
+    struct {
+        UnitFloat<W> estimate = 0; // 当前功率估计
+        UnitFloat<W> limit = 120;
+        float current_ratio = 1; // 电流衰减系数
+    } power;
+
+    Chassis(PID::param_t* servo_pid_param, PID::param_t* wheel_pid_param);
 
     void SetEnable(bool is_enable);
 
-    void SetGimbalYaw(Angle<deg> gimbal_yaw);
+    void SetGimbalYaw(const Angle<>& gimbal_yaw);
 
-    void SetSpeed(const Unit<m_s>& vx, const Unit<m_s>& vy, const Unit<rpm>& vr);
+    void SetSpeed(const UnitFloat<>& vx, const UnitFloat<>& vy, const UnitFloat<>& vr);
 
-    void SetPowerLimit(const Unit<W>& power);
+    void SetPowerLimit(const UnitFloat<>& power);
 
     void Update();
 };

@@ -30,7 +30,7 @@ private:
 public:
     // 力矩
     struct {
-        Unit<A> ref, measure;
+        UnitFloat<A> ref, measure;
         int16_t raw = 0; // 电流原始值【-2048~2048对应-16.5A~16.5A】
     } current;
 
@@ -42,12 +42,12 @@ public:
 
     // 转速
     struct {
-        Unit<deg_s> ref, measure;
+        UnitFloat<deg_s> ref, measure;
         int16_t raw = 0; // 转速原始值【单位：deg/s】
     } speed;
 
-    Unit<C> temperate_motor; // 电机温度
-    Unit<Hz> can_feedback_freq; // CAN反馈报文频率
+    UnitFloat<C> temperate_motor; // 电机温度
+    UnitFloat<Hz> can_feedback_freq; // CAN反馈报文频率
 
     MF9025(uint8_t can_port, uint8_t motor_id);
 
@@ -59,7 +59,7 @@ public:
 
     void SetEnable(bool is_enable);
 
-    void SetAngle(Angle<deg> angle, Unit<deg_s> speed = 0);
+    void SetAngle(Angle<deg> angle, UnitFloat<deg_s> speed = 0);
 
     void Update();
 };

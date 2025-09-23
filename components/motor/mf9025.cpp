@@ -81,7 +81,7 @@ void MF9025::SetEnable(const bool is_enable) {
     current.ref = 0;
 }
 
-void MF9025::SetAngle(const Angle<deg> angle, const Unit<deg_s> speed) {
+void MF9025::SetAngle(const Angle<deg> angle, const UnitFloat<deg_s> speed) {
     this->angle.ref = angle;
     this->speed.ref = speed;
 }

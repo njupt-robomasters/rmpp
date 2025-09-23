@@ -22,7 +22,7 @@ private:
 
     bool is_enable = false;
 
-    Unit<rpm> speed;
+    UnitFloat<rpm> speed;
 
     void makeCANData(uint8_t buffer[4], float value, float scale);
 
@@ -31,7 +31,7 @@ public:
 
     void SetEnable(bool is_enable);
 
-    void SetSpeed(Unit<rpm> speed);
+    void SetSpeed(UnitFloat<rpm> speed);
 
     void Update();
 };

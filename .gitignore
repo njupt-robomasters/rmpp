@@ -1,6 +1,6 @@
-/.idea
-/cmake-build-debug
-/.cproject
-/.mxproject
-/.project
-/Infantry.jdebug.user
+.idea
+.vscode
+cmake-build-debug
+.cproject
+.mxproject
+.project

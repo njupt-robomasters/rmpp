@@ -21,6 +21,9 @@ void DJ6::callback(const uint8_t data[], const uint16_t size) {
         yaw = -get_stick(raw.CH4); // 左手水平
         left_switch = get_switch(raw.CH6); // 左拨杆 CH6
         right_switch = get_switch(raw.CH7); // 右拨杆 CH7
+    } else {
+        x = y = pitch = yaw = 0;
+        left_switch = right_switch = ERR;
     }
 }
 

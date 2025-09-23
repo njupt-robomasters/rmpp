@@ -18,7 +18,7 @@ public:
     float EstimatePower();
 
 private:
-    static constexpr Unit<A> CURRENT_MAX = 20.0f;
+    static constexpr UnitFloat<A> CURRENT_MAX = 20.0f;
     static constexpr int16_t CURRENT_CMD_MAX = 16384;
     static constexpr float REDUCTION = 3591.0f / 187.0f;
 };

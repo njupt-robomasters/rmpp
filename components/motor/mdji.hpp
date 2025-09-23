@@ -13,11 +13,11 @@ private:
     // CAN通信参数
     const uint8_t can_port; // CAN接口
     const uint32_t feedback_can_id; // CAN反馈报文ID
-    const Unit<A> current_max; // 最大电流
+    const UnitFloat<A> current_max; // 最大电流
     const uint16_t current_cmd_max; // CAN通信最大电流对应的值
 
-    float reduction = 1.0f; // 电机减速比
     bool is_invert = false; // 电机反转标志
+    float reduction = 1.0f; // 电机减速比
     float current_ratio = 1.0f; // 用于功率控制
 
     BSP::Dwt dwt; // 维护dt
@@ -33,7 +33,7 @@ protected:
 public:
     // 电流
     struct {
-        Unit<A> ref, measure, measure_no_lfp;
+        UnitFloat<A> ref, measure, measure_no_lfp;
         int16_t raw = 0; // 电流原始值
     } current;
 
@@ -45,16 +45,16 @@ public:
 
     // 转速
     struct {
-        Unit<rpm> ref, measure, measure_no_lfp; // 输出轴转速
+        UnitFloat<rpm> ref, measure, measure_no_lfp; // 输出轴转速
         int16_t raw = 0; // 电机侧转速原始值【单位：rpm】
     } speed;
 
     // 其他
-    Unit<C> temperate_motor; // 电机温度
-    Unit<Hz> can_feedback_freq; // CAN反馈报文频率
+    UnitFloat<C> temperate_motor; // 电机温度
+    UnitFloat<Hz> can_feedback_freq; // CAN反馈报文频率
 
     MDJI(uint8_t can_port, uint32_t feedback_can_id,
-         Unit<A> current_max, uint16_t current_cmd_max, float reduction);
+         UnitFloat<A> current_max, uint16_t current_cmd_max, float reduction);
 
     void SetReduction(float reduction);
 
@@ -70,7 +70,7 @@ public:
 
     void SetAngle(Angle<deg> angle);
 
-    void SetSpeed(Unit<rpm> speed);
+    void SetSpeed(UnitFloat<rpm> speed);
 
     int16_t GetCurrentCMD() const;
 };
