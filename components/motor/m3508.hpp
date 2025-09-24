@@ -1,7 +1,6 @@
 #pragma once
 
 #include "mdji.hpp"
-#include "pid.hpp"
 
 class M3508 : public MDJI {
 public:
@@ -18,7 +17,7 @@ public:
     float EstimatePower();
 
 private:
-    static constexpr UnitFloat<A> CURRENT_MAX = 20.0f;
+    static constexpr UnitFloat<A> CURRENT_MAX = 20.0f * A;
     static constexpr int16_t CURRENT_CMD_MAX = 16384;
     static constexpr float REDUCTION = 3591.0f / 187.0f;
 };

@@ -1,5 +1,4 @@
 #include <pid.hpp>
-#include <cmath>
 #include "utils.hpp"
 
 #define kp (param->kp)
@@ -10,6 +9,28 @@
 #define max_out (param->max_out)
 
 PID::PID(param_t* param) : param(param) {}
+
+void PID::calcPositionCommon() {
+    // 积分限幅
+    // 情况一：总输出饱和，且I输出呈累计趋势 -> 阻止I继续累积
+    if (fabsf(p_out + i_out + d_out) >= max_out) {
+        if (err * i_out > 0) { // 积分呈累积趋势
+            di = 0;
+        }
+    }
+    // 情况二：I输出超过设定最大值 -> 对I输出钳位
+    i_out += di;
+    i_out = clamp(i_out, max_i);
+
+    out_without_ff = p_out + i_out + d_out;
+    out = out_without_ff + ff;
+
+    // 输出限幅
+    out = clamp(out, max_out);
+
+    last_err = err; // 用于下一次求d输出
+}
+
 
 void PID::SetParam(param_t* param) {
     this->param = param;
@@ -96,25 +117,4 @@ void PID::Clear() {
     di = 0;
 
     dwt.Clear();
-}
-
-void PID::calcPositionCommon() {
-    // 积分限幅
-    // 情况一：总输出饱和，且I输出呈累计趋势 -> 阻止I继续累积
-    if (fabsf(p_out + i_out + d_out) >= max_out) {
-        if (err * i_out > 0) { // 积分呈累积趋势
-            di = 0;
-        }
-    }
-    // 情况二：I输出超过设定最大值 -> 对I输出钳位
-    i_out += di;
-    i_out = clamp(i_out, max_i);
-
-    out_without_ff = p_out + i_out + d_out;
-    out = out_without_ff + ff;
-
-    // 输出限幅
-    out = clamp(out, max_out);
-
-    last_err = err; // 用于下一次求d输出
 }

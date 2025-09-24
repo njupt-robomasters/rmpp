@@ -6,7 +6,7 @@
 
 class IMU {
 public:
-    // 陀螺仪安装方向
+    // 陀螺仪安装方向参数
     struct dir_t {
         float yaw, pitch, roll; // 单位：角度
     };
@@ -20,11 +20,12 @@ public:
 private:
     // IMU加热
     class Temperature_Control {
-        static constexpr UnitFloat<C> ref = 40.0f;
+    private:
+        static constexpr UnitFloat<C> ref = 40.0f * C; // 目标温度
         UnitFloat<C> measure;
         UnitFloat<percentage> power;
 
-        PID::param_t pid_param = {.kp = 0.5, .ki = 0.01, .max_i = 0.4, .max_out = 1};
+        PID::param_t pid_param = {.kp = 0.5f, .ki = 0.01f, .max_i = 0.4f, .max_out = 1.0f};
         PID pid;
 
     public:
@@ -32,12 +33,12 @@ private:
         void Update();
     } temperature_control{};
 
-    dir_t param;
+    dir_t dir;
     calib_t calib;
 
     volatile bool is_ready = false;
 
-    BSP::Dwt dwt; // 维护dt
+    BSP::Dwt dwt; // 用于计算dt
 
     // bmi088原始数据
     float gyro[3]{}; // 角速度

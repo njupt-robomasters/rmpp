@@ -1,5 +1,4 @@
 #include "imu.hpp"
-#include "bsp.hpp"
 #include "bmi088.h"
 #include "QuaternionEKF.h"
 
@@ -14,7 +13,7 @@ void IMU::Temperature_Control::Update() {
     BSP::IMUHeat::SetPower(power);
 }
 
-IMU::IMU(const dir_t& param, const calib_t& calib) : param(param), calib(calib) {}
+IMU::IMU(const dir_t& param, const calib_t& calib) : dir(param), calib(calib) {}
 
 void IMU::Init() {
     IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0);
@@ -40,10 +39,11 @@ void IMU::WaitReady() {
 }
 
 void IMU::Update() {
+    // 计算dt
     const float dt = dwt.GetDT();
 
+    // 读取bmi088数据
     BMI088_Read(&BMI088);
-
     accel[X] = BMI088.Accel[X];
     accel[Y] = BMI088.Accel[Y];
     accel[Z] = BMI088.Accel[Z];
@@ -51,15 +51,18 @@ void IMU::Update() {
     gyro[Y] = BMI088.Gyro[Y];
     gyro[Z] = BMI088.Gyro[Z];
 
-    // 用于修正安装误差
-    DIR_Correction(param, gyro, accel);
+    // 修正安装误差
+    DIR_Correction(dir, gyro, accel);
 
-    // 核心函数,EKF更新四元数
-    IMU_QuaternionEKF_Update(gyro[X], gyro[Y], gyro[Z], accel[X],
-                             accel[Y], accel[Z], dt);
+    // 核心函数，EKF更新四元数
+    IMU_QuaternionEKF_Update(gyro[X], gyro[Y], gyro[Z],
+                             accel[X], accel[Y], accel[Z],
+                             dt);
 
+    // 获取四元数
     memcpy(q, QEKF_INS.q, sizeof(QEKF_INS.q));
 
+    // 获取欧拉角
     yaw = QEKF_INS.Yaw * deg;
     pitch = QEKF_INS.Pitch * deg;
     roll = QEKF_INS.Roll * deg;

@@ -53,6 +53,7 @@ extern "C" void task_chassis_entry(const void* argument) {
         // 合并遥控器和键盘控制
         vx.sum = clamp(vx.rc + vx.referee, app_params.vxy_max);
         vy.sum = clamp(vy.rc + vy.referee, app_params.vxy_max);
+        vr.sum = clamp(vr.rc + vr.referee, app_params.vr_max);
         chassis.SetSpeed(vx.sum, vy.sum, vr.sum);
 
         // 检查遥控器断联

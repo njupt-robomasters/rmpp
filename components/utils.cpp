@@ -1,5 +1,4 @@
 #include "utils.hpp"
-#include "arm_math.h"
 #include <algorithm>
 
 float solve_alpha(const float fc, const float fs) {

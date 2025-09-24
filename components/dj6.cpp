@@ -1,11 +1,14 @@
 #include "DJ6.hpp"
 #include <cmath>
 #include "bsp.hpp"
+#include "utils.hpp"
 
 DJ6::DJ6() {
-    BSP::UART_RC::RegisterCallback(std::bind(&DJ6::callback, this,
-                                             std::placeholders::_1,
-                                             std::placeholders::_2));
+    auto callback = std::bind(&DJ6::callback,
+                              this,
+                              std::placeholders::_1,
+                              std::placeholders::_2);
+    BSP::UART_RC::RegisterCallback(callback);
 }
 
 void DJ6::callback(const uint8_t data[], const uint16_t size) {
@@ -51,10 +54,10 @@ void DJ6::parseSBUS(const uint8_t* data) {
     }
 }
 
-// 遥杆值归一化到 -1~0~1
+// 获取遥杆值，归一化到±1
 float DJ6::get_stick(const uint16_t val) {
     float result = ((float)val - 1024.0f) / STICK_MAX;
-    result = std::clamp(result, -1.0f, 1.0f);
+    result = clamp(result, 1.0f);
     if (fabsf(result) < STICK_DEADLINE) result = 0;
     return result;
 }

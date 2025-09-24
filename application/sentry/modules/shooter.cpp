@@ -17,13 +17,9 @@ Shooter::Shooter(PID::param_t* shoot_pid_param) :
 void Shooter::forwardCalc() {
     if (is_prepare_shoot) {
         const UnitFloat<rpm> n630_speed = bullet_speed.ref / WHEEL_RADIUS;
-        n630_1.SetEnable(true);
-        n630_2.SetEnable(true);
         n630_1.SetSpeed(n630_speed);
         n630_2.SetSpeed(n630_speed);
     } else {
-        n630_1.SetEnable(false);
-        n630_2.SetEnable(false);
         n630_1.SetSpeed(0);
         n630_2.SetSpeed(0);
     }
@@ -53,11 +49,11 @@ void Shooter::SetEnable(const bool is_enable) {
     n630_2.SetEnable(is_enable);
 }
 
-void Shooter::SetBulletSpeed(const UnitFloat<m_s> bullet_speed) {
+void Shooter::SetBulletSpeed(const UnitFloat<>& bullet_speed) {
     this->bullet_speed.ref = bullet_speed;
 }
 
-void Shooter::SetShootFreq(const UnitFloat<Hz> shoot_freq) {
+void Shooter::SetShootFreq(const UnitFloat<>& shoot_freq) {
     this->shoot_freq.ref = shoot_freq;
 }
 

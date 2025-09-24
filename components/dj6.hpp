@@ -12,11 +12,9 @@ public:
     };
 
 private:
-    // 摇杆读数范围
     static constexpr int STICK_MAX = 660; // 摇杆最大值，超过此值钳位
     static constexpr float STICK_DEADLINE = 0.01f; // 摇杆死区，小于此值认为是0
-
-    static constexpr int SBUS_FRAME_SIZE = 25; // DBUS帧长度
+    static constexpr int SBUS_FRAME_SIZE = 25; // SBUS帧长度
 
     struct {
         bool is_connected = false; // 是否连接上遥控器

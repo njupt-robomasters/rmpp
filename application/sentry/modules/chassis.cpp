@@ -1,5 +1,4 @@
 #include "chassis.hpp"
-#include "app.hpp"
 #include "utils.hpp"
 
 Chassis::Chassis(PID::param_t* servo_pid_param, PID::param_t* wheel_pid_param) :

@@ -41,9 +41,9 @@ public:
 
     void SetEnable(bool is_enable);
 
-    void SetBulletSpeed(UnitFloat<m_s> bullet_speed);
+    void SetBulletSpeed(const UnitFloat<>& bullet_speed);
 
-    void SetShootFreq(UnitFloat<Hz> shoot_freq);
+    void SetShootFreq(const UnitFloat<>& shoot_freq);
 
     void SetPrepareShoot(bool is_prepare_shoot);
 

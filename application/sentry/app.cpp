@@ -7,7 +7,7 @@ DJ6 dj6;
 Referee referee;
 Chassis chassis(&module_params.servo_pid_param, &module_params.wheel_pid_param);
 Gimbal gimbal(imu, &module_params.yaw1_pid_param, &module_params.yaw2_pid_param, &module_params.pitch_pid_param);
-Shooter shooter(&module_params.m2006_pid_param);
+Shooter shooter(&module_params.shoot_pid_param);
 
 extern "C" void app_init() {
     BSP::Init();

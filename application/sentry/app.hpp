@@ -12,7 +12,7 @@
 #include "dj6.hpp"
 #include "referee.hpp"
 
-// module
+// modules
 #include "modules/chassis.hpp"
 #include "modules/gimbal.hpp"
 #include "modules/shooter.hpp"
@@ -52,10 +52,9 @@ public:
     };
 
     // 发射机构PID参数
-    PID::param_t m2006_pid_param = {
-        .kp = UnitFloat<A_rpm>(0.17f * A_rpm),
-        .ki = UnitFloat<A_rpm>(0.67f * A_rpm),
-        .max_i = UnitFloat<A>(5.0f * A),
+    PID::param_t shoot_pid_param = {
+        .kp = UnitFloat<A_rpm>(0.5f * A_rpm),
+        .kd = UnitFloat<A_rpm>(0.005f * A_rpm),
         .max_out = UnitFloat<A>(10.0f * A)
     };
 };

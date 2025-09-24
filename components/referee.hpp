@@ -4,6 +4,8 @@
 
 class Referee {
 private:
+    void callback(const uint8_t data[], uint16_t size);
+
     void parsePacket(const uint8_t* packet, uint16_t packetSize);
 
     unsigned char Get_CRC8_Check_Sum(const uint8_t* pchMessage, unsigned int dwLength, unsigned char ucCRC8);
@@ -110,6 +112,4 @@ public:
     bool z = false, x = false, c = false, v = false, b = false;
 
     Referee();
-
-    void callback(const uint8_t data[], uint16_t size);
 };

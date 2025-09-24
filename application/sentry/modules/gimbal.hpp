@@ -46,7 +46,7 @@ private:
 
     void setCurrentAsTarget();
 
-    void addAngle(const Angle<deg>& pitch, const Angle<deg>& yaw);
+    void addAngle(const Angle<>& yaw, const Angle<>& pitch);
 
     void forwardCalc();
 
@@ -93,7 +93,7 @@ public:
 
     void SetSpeed(const UnitFloat<>& yaw_speed, const UnitFloat<>& pitch_speed);
 
-    void SetChassisVR(UnitFloat<> chassis_vr);
+    void SetChassisVR(const UnitFloat<>& chassis_vr);
 
     void Update();
 };

@@ -44,7 +44,7 @@ void N630::SetSpeed(const UnitFloat<>& speed) {
 }
 
 void N630::Update() {
-    if (this->is_enable) {
+    if (this->is_enable && speed.ref != 0) {
         uint8_t buffer[8];
         const float erpm = speed.ref.get(rpm) * POLES / 2;;
         makeCANData(buffer, erpm, 1);

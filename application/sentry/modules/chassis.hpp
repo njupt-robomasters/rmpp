@@ -16,11 +16,11 @@ private:
     static constexpr UnitFloat<m> CHASSIS_RADIUS = 0.21492f * m; // 轮子半径
 
     // 舵电机偏移
-    static constexpr Angle<deg> SERVO1_OFFSET = -136.0f * deg;
-    static constexpr Angle<deg> SERVO2_OFFSET = -102.0f * deg;
+    static constexpr Angle<deg> SERVO1_OFFSET = -134.82f * deg;
+    static constexpr Angle<deg> SERVO2_OFFSET = -77.65f * deg;
 
     // 最小转舵速度
-    static constexpr UnitFloat<m_s> MIN_V = 1e-2f;
+    static constexpr UnitFloat<m_s> MIN_V = 1e-2f * m_s;
 
     // 电机对象
     M6020 m_servo1, m_servo2; // 舵电机

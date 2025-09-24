@@ -25,7 +25,7 @@ void Gimbal::setCurrentAsTarget() {
     }
 }
 
-void Gimbal::addAngle(const Angle<deg>& yaw, const Angle<deg>& pitch) {
+void Gimbal::addAngle(const Angle<>& yaw, const Angle<>& pitch) {
     if (mode == ECD_MODE) {
         this->yaw.relative.ref = this->yaw.relative.ref + yaw;
         this->pitch.relative.ref = this->pitch.relative.ref + pitch;
@@ -133,7 +133,7 @@ void Gimbal::SetSpeed(const UnitFloat<>& yaw_speed, const UnitFloat<>& pitch_spe
     this->pitch_speed = pitch_speed;
 }
 
-void Gimbal::SetChassisVR(const UnitFloat<> chassis_vr) {
+void Gimbal::SetChassisVR(const UnitFloat<>& chassis_vr) {
     this->chassis_vr = chassis_vr;
 }
 

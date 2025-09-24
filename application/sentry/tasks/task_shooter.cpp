@@ -39,6 +39,10 @@ void handle_referee() {
             shooter.SetShoot(false);
         }
     }
+
+    if (referee.mouse_right_button_down) { // 鼠标右键关摩擦轮
+        shooter.SetPrepareShoot(false);
+    }
 }
 
 extern "C" void task_shooter_entry(const void* argument) {

@@ -1,7 +1,6 @@
 #pragma once
 
-#include <bsp.hpp>
-
+#include "bsp.hpp"
 #include "unit.hpp"
 
 class PID {
@@ -19,10 +18,9 @@ private:
     float err = 0; // 误差值 err = ref - measure
     float p_out = 0, i_out = 0, d_out = 0, out_without_ff = 0; // PID输出分量
     float last_err = 0, last2_err = 0;
-
     float di = 0; // 当前时刻的i增量
 
-    BSP::Dwt dwt; // 维护dt
+    BSP::Dwt dwt; // 用于计算dt
 
     void calcPositionCommon();
 

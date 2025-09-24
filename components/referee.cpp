@@ -3,11 +3,37 @@
 #include "bsp.hpp"
 
 Referee::Referee() {
-    BSP::UART_Video::RegisterCallback(std::bind(&Referee::callback, this,
-                                             std::placeholders::_1,
-                                             std::placeholders::_2));
+    auto callback = std::bind(&Referee::callback,
+                              this,
+                              std::placeholders::_1,
+                              std::placeholders::_2);
+    BSP::UART_Video::RegisterCallback(callback);
 }
 
+void Referee::callback(const uint8_t data[], const uint16_t size) {
+    if (size < 10) //太短
+        return;
+    for (int i = 0; i < size; i++) {
+        if (data[i] == 0xA5) // 寻找帧头
+        {
+            if (size - i < 5) //剩下数据的不足以解析包头
+            {
+                return;
+            }
+            uint16_t data_length = (data[i + 2] << 8) | data[i + 1];
+            uint16_t total_packet_size = 5 + data_length + 2; // frame_header(5) + data_length + frame_tail(CRC16, 2)
+
+            if (size - i < total_packet_size) {
+                // 数据不足，无法解析完整包
+                return;
+            }
+
+            // 调用解析函数
+            parsePacket(&data[i], total_packet_size);
+            i += total_packet_size - 1; // 跳过已处理的数据
+        }
+    }
+}
 
 void Referee::parsePacket(const uint8_t* packet, uint16_t packetSize) {
     if (packet[0] != 0xA5) {
@@ -182,31 +208,6 @@ void Referee::parsePacket(const uint8_t* packet, uint16_t packetSize) {
 
     default:
         break;
-    }
-}
-
-void Referee::callback(const uint8_t data[], const uint16_t size) {
-    if (size < 10) //太短
-        return;
-    for (int i = 0; i < size; i++) {
-        if (data[i] == 0xA5) // 寻找帧头
-        {
-            if (size - i < 5) //剩下数据的不足以解析包头
-            {
-                return;
-            }
-            uint16_t data_length = (data[i + 2] << 8) | data[i + 1];
-            uint16_t total_packet_size = 5 + data_length + 2; // frame_header(5) + data_length + frame_tail(CRC16, 2)
-
-            if (size - i < total_packet_size) {
-                // 数据不足，无法解析完整包
-                return;
-            }
-
-            // 调用解析函数
-            parsePacket(&data[i], total_packet_size);
-            i += total_packet_size - 1; // 跳过已处理的数据
-        }
     }
 }
 
