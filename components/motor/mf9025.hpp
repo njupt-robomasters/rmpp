@@ -59,7 +59,7 @@ public:
 
     void SetEnable(bool is_enable);
 
-    void SetAngle(Angle<deg> angle, UnitFloat<deg_s> speed = 0);
+    void SetAngle(Angle<> angle, UnitFloat<> speed = 0);
 
     void Update();
 };

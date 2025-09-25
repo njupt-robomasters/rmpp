@@ -37,7 +37,7 @@ void PID::SetParam(param_t* param) {
 }
 
 // 经典pid
-float PID::CalcPosition(const float err) {
+float PID::CalcMIT(const float err) {
     if (this->param == nullptr) {
         return 0;
     }
@@ -57,14 +57,14 @@ float PID::CalcPosition(const float err) {
 }
 
 // mit控制模式
-float PID::CalcPosition(const float err, const float derr) {
+float PID::CalcMIT(const float err, const float derr) {
     if (this->param == nullptr) {
         return 0;
     }
 
     this->err = err;
 
-    float dt = dwt.GetDT();
+    const float dt = dwt.GetDT();
 
     // 基础PID计算
     p_out = kp * err;
@@ -84,7 +84,7 @@ float PID::CalcIncrement(const float err) {
 
     this->err = err;
 
-    float dt = dwt.GetDT();
+    const float dt = dwt.GetDT();
 
     p_out = kp * (err - last_err);
     i_out = ki * err;

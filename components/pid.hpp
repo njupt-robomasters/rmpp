@@ -33,9 +33,9 @@ public:
 
     void SetParam(param_t* param);
 
-    float CalcPosition(float err);
+    float CalcMIT(float err);
 
-    float CalcPosition(float err, float derr);
+    float CalcMIT(float err, float derr);
 
     float CalcIncrement(float err);
 

@@ -31,6 +31,8 @@ static void handle_referee() {
 
 extern "C" void task_gimbal_entry(const void* argument) {
     gimbal.WaitReady();
+    imu.WaitReady();
+    BSP::OS::Delay(100); // 等待IMU稳定
     while (true) {
         handle_rc(); // 解析遥控器
         handle_referee(); // 解析图传链路键盘鼠

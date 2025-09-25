@@ -1,7 +1,6 @@
 #pragma once
 
 #include "mdji.hpp"
-#include "pid.hpp"
 
 class M2006 : public MDJI {
 public:
@@ -10,7 +9,7 @@ public:
     void Update();
 
 private:
-    static constexpr UnitFloat<A> CURRENT_MAX = 10.0f;
+    static constexpr UnitFloat<A> CURRENT_MAX = 10.0f * A;
     static constexpr int16_t CURRENT_CMD_MAX = 10000;
     static constexpr float REDUCTION = 36.0f;
 };

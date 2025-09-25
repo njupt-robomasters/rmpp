@@ -12,10 +12,14 @@ Gimbal::Gimbal(const IMU& imu, PID::param_t* yaw1_pid_param, PID::param_t* yaw2_
 
     // 反转电机
     m_pitch.SetInvert(true);
+
+    // 小yaw禁用圆周误差计算
+    m_yaw2.SetCircular(false, YAW2_OFFSET);
 }
 
 // 设置当前位置为目标位置
 void Gimbal::setCurrentAsTarget() {
+    backwardCalc(); // 从电机读取数据
     if (mode == ECD_MODE) {
         yaw.relative.ref = yaw.relative.measure;
         pitch.relative.ref = pitch.relative.measure;
@@ -35,7 +39,6 @@ void Gimbal::addAngle(const Angle<>& yaw, const Angle<>& pitch) {
     }
 }
 
-
 void Gimbal::forwardCalc() {
     // 用于参考系转换
     const Angle yaw_imu_minus_relative = yaw.imu.measure - yaw.relative.measure;
@@ -53,27 +56,30 @@ void Gimbal::forwardCalc() {
 
     // 分配大小yaw
     yaw1.relative.ref = yaw.relative.ref;
-    // yaw2.relative.ref = yaw.relative.ref - yaw1.relative.measure;
-    yaw2.relative.ref = 0; // 暂时锁定小yaw
+    yaw2.relative.ref = yaw.relative.ref - yaw1.relative.measure;
+
+    // 小yaw软件限位（在relative上操作）
+    if (yaw2.relative.ref < Angle(YAW2_MIN - YAW2_OFFSET))
+        yaw2.relative.ref = YAW2_MIN - YAW2_OFFSET;
+    if (yaw2.relative.ref > Angle(YAW2_MAX - YAW2_OFFSET))
+        yaw2.relative.ref = YAW2_MAX - YAW2_OFFSET;
+
+    // pitch软件限位（在relative上操作）
+    if (pitch.relative.ref < Angle(PITCH_MIN - PITCH_OFFSET))
+        pitch.relative.ref = PITCH_MIN - PITCH_OFFSET;
+    if (pitch.relative.ref > Angle(PITCH_MAX - PITCH_OFFSET))
+        pitch.relative.ref = PITCH_MAX - PITCH_OFFSET;
+    // 传递限位到imu参考系
+    pitch.imu.ref = pitch.relative.ref + pitch_imu_minus_relative;
 
     // absolute
     yaw1.absolute.ref = yaw1.relative.ref + YAW1_OFFSET;
     yaw2.absolute.ref = yaw2.relative.ref + YAW2_OFFSET;
     pitch.absolute.ref = pitch.relative.ref + PITCH_OFFSET;
 
-    // pitch软件限位
-    Angle angle_err;
-    angle_err = pitch.absolute.ref - PITCH_MIN;
-    if (angle_err < 0) pitch.absolute.ref = PITCH_MIN;
-    angle_err = pitch.absolute.ref - PITCH_MAX;
-    if (angle_err > 0) pitch.absolute.ref = PITCH_MAX;
-    // 传递限位
-    pitch.relative.ref = pitch.absolute.ref - PITCH_OFFSET;
-    pitch.imu.ref = pitch.relative.ref + pitch_imu_minus_relative;
-
     // 应用到电机
     m_pitch.SetAngle(pitch.absolute.ref);
-    m_yaw1.SetAngle(yaw1.absolute.ref, UnitFloat<deg_s>(chassis_vr));
+    m_yaw1.SetAngle(yaw1.absolute.ref, chassis_vr);
     m_yaw2.SetAngle(yaw2.absolute.ref);
 }
 

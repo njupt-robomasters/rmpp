@@ -9,7 +9,7 @@ static constexpr auto Z = 2;
 void IMU::Temperature_Control::Update() {
     measure = BMI088.Temperature;
     const float temperature_err = ref - measure;
-    power = pid.CalcPosition(temperature_err);
+    power = pid.CalcMIT(temperature_err);
     BSP::IMUHeat::SetPower(power);
 }
 

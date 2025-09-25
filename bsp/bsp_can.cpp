@@ -1,4 +1,7 @@
 #include "bsp_can.hpp"
+
+#include <system_error>
+
 #include "can.h"
 
 using namespace BSP;

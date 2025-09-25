@@ -161,12 +161,12 @@ public:
 
     template <const Unit& U>
     constexpr bool operator<(const UnitFloat<U>& other) const {
-        return float(*this) < float(other);
+        return (float)(*this) < (float)other;
     }
 
     template <const Unit& U>
     constexpr bool operator>(const UnitFloat<U>& other) const {
-        return float(*this) > float(other);
+        return (float)(*this) > (float)other;
     }
 
     constexpr float get(const Unit& unit) {

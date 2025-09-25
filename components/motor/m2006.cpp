@@ -7,6 +7,6 @@ M2006::M2006(uint8_t can_port, uint32_t feedback_can_id) :
 void M2006::Update() {
     if (is_enable) {
         const float speed_err = speed.ref - speed.measure;
-        current.ref = pid.CalcPosition(speed_err);
+        current.ref = pid.CalcMIT(speed_err);
     }
 }

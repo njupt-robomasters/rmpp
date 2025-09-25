@@ -1,5 +1,10 @@
 #include "dm4310.hpp"
 
+#include "app.hpp"
+#include "app.hpp"
+#include "app.hpp"
+#include "app.hpp"
+
 DM4310::DM4310(uint8_t can_port, uint32_t master_id, uint32_t slave_id) :
     can_port(can_port), master_id(master_id), slave_id(slave_id) {
     BSP::CAN::RegisterCallback(std::bind(&DM4310::callback, this,
@@ -80,7 +85,7 @@ void DM4310::SetEnable(const bool is_enable) {
     torque.ref = 0;
 }
 
-void DM4310::SetAngle(const Angle<deg> angle, const UnitFloat<deg_s> speed) {
+void DM4310::SetAngle(Angle<> angle, UnitFloat<> speed) {
     this->angle.ref = angle;
     this->speed.ref = speed;
 }
@@ -89,7 +94,7 @@ void DM4310::Update() {
     if (is_enable) {
         const Angle angle_err = angle.ref - angle.measure;
         const float speed_err = speed.ref - speed.measure;
-        torque.ref = pid.CalcPosition(angle_err, speed_err);
+        torque.ref = pid.CalcMIT(angle_err, speed_err);
         sendCANCmd();
     } else {
         sendCANDisable();

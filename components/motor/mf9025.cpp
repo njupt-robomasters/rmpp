@@ -1,4 +1,9 @@
 #include "mf9025.hpp"
+
+#include "app.hpp"
+#include "app.hpp"
+#include "app.hpp"
+#include "app.hpp"
 #include "bsp.hpp"
 
 MF9025::MF9025(const uint8_t can_port, const uint8_t motor_id) :
@@ -81,7 +86,7 @@ void MF9025::SetEnable(const bool is_enable) {
     current.ref = 0;
 }
 
-void MF9025::SetAngle(const Angle<deg> angle, const UnitFloat<deg_s> speed) {
+void MF9025::SetAngle(Angle<> angle, UnitFloat<> speed) {
     this->angle.ref = angle;
     this->speed.ref = speed;
 }
@@ -91,7 +96,7 @@ void MF9025::Update() {
     if (is_enable) {
         const Angle angle_err = angle.ref - angle.measure;
         const float speed_err = speed.ref - speed.measure;
-        current.ref = pid.CalcPosition(angle_err, speed_err);
+        current.ref = pid.CalcMIT(angle_err, speed_err);
         sendCANCmd();
     } else {
         if (can_cmd_cnt % 10 == 0) {

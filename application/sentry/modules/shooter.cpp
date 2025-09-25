@@ -6,8 +6,8 @@ Shooter::Shooter(PID::param_t* shoot_pid_param) :
     n630_2(2, 98) {
     // 设置电机反转
     m_shoot.SetInvert(true),
-        // 设置电机PID参数
-        m_shoot.SetPIDParam(shoot_pid_param);
+    // 设置电机PID参数
+    m_shoot.SetPIDParam(shoot_pid_param);
     // 设置默认弹速
     SetBulletSpeed(24.0f);
     // 设置默认弹频
