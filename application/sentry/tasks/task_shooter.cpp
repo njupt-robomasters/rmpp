@@ -46,8 +46,8 @@ void handle_referee() {
 }
 
 extern "C" void task_shooter_entry(const void* argument) {
-    shooter.SetBulletSpeed(24.0f);
-    shooter.SetShootFreq(10.0f);
+    shooter.SetBulletSpeed(18.0f);
+    shooter.SetShootFreq(5.0f);
     while (true) {
         handle_rc(); // 解析遥控器
         handle_referee(); // 解析图传链路键盘鼠
