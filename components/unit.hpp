@@ -109,6 +109,12 @@ public:
         return *this;
     }
 
+    // -=运算
+    constexpr UnitFloat& operator-=(const float other) {
+        m_value -= other / m_scale;
+        return *this;
+    }
+
     // 转换到float
     constexpr operator float() const {
         return m_value * m_scale;

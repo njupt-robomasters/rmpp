@@ -13,12 +13,13 @@ struct {
 static void handle_rc() {
     vx.rc = dj6.x * app_params.vxy_max;
     vy.rc = dj6.y * app_params.vxy_max;
+    vr.rc = dj6.yaw * app_params.vr_max;
 
-    if (dj6.right_switch == DJ6::DOWN) { // DOWN：测试小陀螺
-        vr.rc = app_params.vr_max;
-    } else {
-        vr.rc = 0;
-    }
+    // if (dj6.right_switch == DJ6::DOWN) { // DOWN：测试小陀螺
+    //     vr.rc = app_params.vr_max;
+    // } else {
+    //     vr.rc = 0;
+    // }
 }
 
 // 解析键盘操作
@@ -28,22 +29,26 @@ static void handle_referee() {
 
     // 前进后退
     if (referee.w) {
-        vx.referee = vx.referee + app_params.axy * dt;
+        vx.referee += app_params.axy * dt;
     } else if (referee.s) {
-        vx.referee = vx.referee - app_params.axy * dt;
+        vx.referee -= app_params.axy * dt;
     } else {
         vx.referee = 0;
     }
     vx.referee = clamp(vx.referee, app_params.vxy_max);
+
     // 左右平移
     if (referee.a) {
-        vy.referee = vy.referee + app_params.axy * dt;
+        vy.referee += app_params.axy * dt;
     } else if (referee.d) {
-        vy.referee = vy.referee - app_params.axy * dt;
+        vy.referee -= app_params.axy * dt;
     } else {
         vy.referee = 0;
     }
     vy.referee = clamp(vy.referee, app_params.vxy_max);
+
+    // 底盘旋转
+    vr.referee = -referee.mouse_x / app_params.mouse_x_max * app_params.vr_max;
 }
 
 extern "C" void task_chassis_entry(const void* argument) {

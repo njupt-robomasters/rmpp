@@ -7,7 +7,7 @@ struct {
 
 // 解析遥控器操作
 static void handle_rc() {
-    yaw_speed.rc = dj6.yaw * app_params.yaw_max_speed;
+    // yaw_speed.rc = dj6.yaw * app_params.yaw_max_speed;
     pitch_speed.rc = dj6.pitch * app_params.pitch_max_speed;
 
     switch (dj6.right_switch) {
@@ -25,7 +25,7 @@ static void handle_rc() {
 
 // 解析鼠标操作
 static void handle_referee() {
-    yaw_speed.referee = -referee.mouse_x / app_params.mouse_x_max * app_params.yaw_max_speed;
+    // yaw_speed.referee = -referee.mouse_x / app_params.mouse_x_max * app_params.yaw_max_speed;
     pitch_speed.referee = -referee.mouse_y / app_params.mouse_y_max * app_params.pitch_max_speed;
 }
 

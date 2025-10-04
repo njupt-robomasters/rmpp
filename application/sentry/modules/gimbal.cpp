@@ -154,6 +154,8 @@ void Gimbal::Update() {
     backwardCalc();
     forwardCalc();
 
+    m_yaw1.SetEnable(false); // 临时屏蔽大yaw
+
     m_pitch.Update();
     m_yaw1.Update();
     m_yaw2.Update();

@@ -21,11 +21,11 @@ public:
 private:
     // 电机偏移参数
     // 大yaw
-    static constexpr Angle<deg> YAW1_OFFSET = -54.0f * deg; // 大yaw与前进方向重合时的绝对角度
+    static constexpr Angle<deg> YAW1_OFFSET = -39.0f * deg; // 大yaw与前进方向重合时的绝对角度
     // 小yaw
     static constexpr Angle<deg> YAW2_OFFSET = -120.0f * deg; // 小yaw相对于大yaw居中时的绝对角度
-    static constexpr Angle<deg> YAW2_MIN = 150.0f * deg; // 小yaw最右角度
-    static constexpr Angle<deg> YAW2_MAX = -30.0f * deg; // 小yaw最左角度
+    static constexpr Angle<deg> YAW2_MIN = 120.0f * deg; // 小yaw最右角度
+    static constexpr Angle<deg> YAW2_MAX = 0.0f * deg; // 小yaw最左角度
     // pitch
     static constexpr Angle<deg> PITCH_OFFSET = 160.0f * deg; // pitch水平时的绝对角度
     static constexpr Angle<deg> PITCH_MIN = 130.0f * deg; // pitch最小绝对角度

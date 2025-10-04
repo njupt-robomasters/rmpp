@@ -41,8 +41,8 @@ public:
         .max_out = UnitFloat<A>(10.0f * A)
     };
     PID::param_t yaw2_pid_param = {
-        .kp = UnitFloat<A_deg>(1.0f * A_deg),
-        .kd = UnitFloat<A_deg>(0.023f * A_deg),
+        .kp = UnitFloat<A_deg>(0.8f * A_deg),
+        .kd = UnitFloat<A_deg>(0.02f * A_deg),
         .max_out = UnitFloat<A>(3.0f * A)
     };
     PID::param_t pitch_pid_param = {
