@@ -110,7 +110,8 @@ void MF9025::Update() {
 void MF9025::sendCANCmd() {
     if (can_cmd_cnt % 100 == 0) { // 每100次调用重新发送使能
         sendCANEnable();
-    } else if (can_cmd_cnt % 10 == 0) {
+    }
+    if (can_cmd_cnt % 10 == 0) {
         int16_t current_cmd;
         if (!is_invert) {
             current_cmd = (int16_t)(current.ref / 16.5f * 2048.0f);

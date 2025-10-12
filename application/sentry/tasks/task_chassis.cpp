@@ -13,7 +13,7 @@ struct {
 static void handle_rc() {
     vx.rc = dj6.x * app_params.vxy_max;
     vy.rc = dj6.y * app_params.vxy_max;
-    vr.rc = dj6.yaw * app_params.vr_max;
+    // vr.rc = dj6.yaw * app_params.vr_max;
 
     // if (dj6.right_switch == DJ6::DOWN) { // DOWN：测试小陀螺
     //     vr.rc = app_params.vr_max;
