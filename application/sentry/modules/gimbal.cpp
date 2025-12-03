@@ -1,109 +1,33 @@
-#include "gimbal.hpp"
+#include "Gimbal.hpp"
 
 Gimbal::Gimbal(const IMU& imu, PID::param_t* yaw1_pid_param, PID::param_t* yaw2_pid_param, PID::param_t* pitch_pid_param) :
-    imu(imu),
+    Gimbal_Template(imu),
     m_yaw1(1, 0x01),
     m_yaw2(1, 0x205),
     m_pitch(2, 0x00, 0x01) {
-    // 设置PID参数
-    m_yaw1.SetPIDParam(yaw1_pid_param);
-    m_yaw2.SetPIDParam(yaw2_pid_param);
-    m_pitch.SetPIDParam(pitch_pid_param);
+    // 设置电机PID参数
+    m_yaw1.SetPIDParam(Motor::CURRENT_MODE, yaw1_pid_param);  // 大yaw
+    m_yaw2.SetPIDParam(Motor::CURRENT_MODE, yaw2_pid_param);  // 小yaw
+    m_pitch.SetPIDParam(Motor::TORQUE_MODE, pitch_pid_param); // pitch
 
-    // 反转电机
-    m_pitch.SetInvert(true);
+    // 设置电机偏移
+    m_yaw1.SetOffset(YAW1_OFFSET);   // 大yaw
+    m_yaw2.SetOffset(YAW2_OFFSET);   // 小yaw
+    m_pitch.SetOffset(PITCH_OFFSET); // pitch
 
-    // 小yaw禁用圆周误差计算
-    m_yaw2.SetCircular(false, YAW2_OFFSET);
+    // 设置电机正方向
+    m_yaw1.SetInvert(false); // 大yaw
+    m_yaw2.SetInvert(false); // 小yaw
+    m_pitch.SetInvert(true); // pitch
+
+    // 设置电机限位
+    m_yaw1.SetLimit(false);                        // 大yaw，无限位
+    m_yaw2.SetLimit(false, YAW2_MIN, YAW2_MAX);    // 小yaw
+    m_pitch.SetLimit(false, PITCH_MIN, PITCH_MAX); // pitch
 }
 
-// 设置当前位置为目标位置
-void Gimbal::setCurrentAsTarget() {
-    backwardCalc(); // 从电机读取数据
-    if (mode == ECD_MODE) {
-        yaw.relative.ref = yaw.relative.measure;
-        pitch.relative.ref = pitch.relative.measure;
-    } else if (mode == IMU_MODE) {
-        yaw.imu.ref = yaw.imu.measure;
-        pitch.imu.ref = pitch.imu.measure;
-    }
-}
-
-void Gimbal::addAngle(const Angle<>& yaw, const Angle<>& pitch) {
-    if (mode == ECD_MODE) {
-        this->yaw.relative.ref = this->yaw.relative.ref + yaw;
-        this->pitch.relative.ref = this->pitch.relative.ref + pitch;
-    } else if (mode == IMU_MODE) {
-        this->yaw.imu.ref = this->yaw.imu.ref + yaw;
-        this->pitch.imu.ref = this->pitch.imu.ref + pitch;
-    }
-}
-
-void Gimbal::forwardCalc() {
-    // 用于参考系转换
-    const Angle yaw_imu_minus_relative = yaw.imu.measure - yaw.relative.measure;
-    const Angle pitch_imu_minus_relative = pitch.imu.measure - pitch.relative.measure;
-
-    if (mode == ECD_MODE) {
-        // 换算到imu参考系
-        yaw.imu.ref = yaw.relative.ref + yaw_imu_minus_relative;
-        pitch.imu.ref = pitch.relative.ref + pitch_imu_minus_relative;
-    } else if (mode == IMU_MODE) {
-        // 换算到relative参考系
-        yaw.relative.ref = yaw.imu.ref - yaw_imu_minus_relative;
-        pitch.relative.ref = pitch.imu.ref - pitch_imu_minus_relative;
-    }
-
-    // 分配大小yaw
-    yaw1.relative.ref = yaw.relative.ref;
-    yaw2.relative.ref = yaw.relative.ref - yaw1.relative.measure;
-
-    // 小yaw软件限位（在relative上操作）
-    if (yaw2.relative.ref < Angle(YAW2_MIN - YAW2_OFFSET))
-        yaw2.relative.ref = YAW2_MIN - YAW2_OFFSET;
-    if (yaw2.relative.ref > Angle(YAW2_MAX - YAW2_OFFSET))
-        yaw2.relative.ref = YAW2_MAX - YAW2_OFFSET;
-
-    // pitch软件限位（在relative上操作）
-    if (pitch.relative.ref < Angle(PITCH_MIN - PITCH_OFFSET))
-        pitch.relative.ref = PITCH_MIN - PITCH_OFFSET;
-    if (pitch.relative.ref > Angle(PITCH_MAX - PITCH_OFFSET))
-        pitch.relative.ref = PITCH_MAX - PITCH_OFFSET;
-    // 传递限位到imu参考系
-    pitch.imu.ref = pitch.relative.ref + pitch_imu_minus_relative;
-
-    // absolute
-    yaw1.absolute.ref = yaw1.relative.ref + YAW1_OFFSET;
-    yaw2.absolute.ref = yaw2.relative.ref + YAW2_OFFSET;
-    pitch.absolute.ref = pitch.relative.ref + PITCH_OFFSET;
-
-    // 应用到电机
-    m_pitch.SetAngle(pitch.absolute.ref);
-    m_yaw1.SetAngle(yaw1.absolute.ref, chassis_vr);
-    m_yaw2.SetAngle(yaw2.absolute.ref);
-}
-
-void Gimbal::backwardCalc() {
-    // absolute，从电机读取
-    yaw1.absolute.measure = m_yaw1.angle.measure;
-    yaw2.absolute.measure = m_yaw2.angle.measure;
-    pitch.absolute.measure = m_pitch.angle.measure;
-
-    // relative
-    yaw1.relative.measure = m_yaw1.angle.measure - YAW1_OFFSET;
-    yaw2.relative.measure = m_yaw2.angle.measure - YAW2_OFFSET;
-    yaw.relative.measure = yaw1.relative.measure + yaw2.relative.measure;
-    pitch.relative.measure = m_pitch.angle.measure - PITCH_OFFSET;
-
-    // imu
-    yaw.imu.measure = imu.yaw;
-    pitch.imu.measure = imu.pitch;
-}
-
-void Gimbal::WaitReady() {
-    m_yaw1.WaitReady();
-    m_yaw2.WaitReady();
-    m_pitch.WaitReady();
+bool Gimbal::IsReady() {
+    return m_yaw1.is_ready && m_yaw2.is_ready && m_pitch.is_ready;
 }
 
 void Gimbal::SetEnable(const bool is_enable) {
@@ -117,44 +41,63 @@ void Gimbal::SetEnable(const bool is_enable) {
     setCurrentAsTarget();
 }
 
-void Gimbal::SetMode(const mode_e mode) {
-    if (this->mode == mode) return;
-    this->mode = mode;
-
-    setCurrentAsTarget();
-}
-
-void Gimbal::SetAngle(const Angle<>& yaw, const Angle<>& pitch) {
-    if (mode == ECD_MODE) {
-        this->yaw.relative.ref = yaw;
-        this->pitch.relative.ref = pitch;
-    } else if (mode == IMU_MODE) {
-        this->yaw.imu.ref = yaw;
-        this->pitch.imu.ref = pitch;
-    }
-}
-
-void Gimbal::SetSpeed(const UnitFloat<>& yaw_speed, const UnitFloat<>& pitch_speed) {
-    this->yaw_speed = yaw_speed;
-    this->pitch_speed = pitch_speed;
-}
-
-void Gimbal::SetChassisVR(const UnitFloat<>& chassis_vr) {
-    this->chassis_vr = chassis_vr;
-}
-
-void Gimbal::Update() {
+void Gimbal::OnLoop() {
     const float dt = dwt.GetDT();
+
     if (is_enable) {
-        const Angle<deg> yaw_add = yaw_speed * dt;
-        const Angle<deg> pitch_add = pitch_speed * dt;
-        addAngle(yaw_add, pitch_add);
+        updateMotion(dt);
     }
 
     backwardCalc();
     forwardCalc();
 
-    m_pitch.Update();
-    m_yaw1.Update();
-    m_yaw2.Update();
+    m_pitch.OnLoop();
+    m_yaw1.OnLoop();
+    m_yaw2.OnLoop();
+}
+
+void Gimbal::forwardCalc() {
+    // 用于参考系转换
+    const Angle yaw_imu_minus_ecd = yaw.imu.measure - yaw.ecd.measure;
+    const Angle pitch_imu_minus_ecd = pitch.imu.measure - pitch.ecd.measure;
+
+    if (mode == ECD_MODE) {
+        // 换算到imu参考系
+        yaw.imu.ref = yaw.ecd.ref + yaw_imu_minus_ecd;
+        pitch.imu.ref = pitch.ecd.ref + pitch_imu_minus_ecd;
+    } else if (mode == IMU_MODE) {
+        // 换算到ecd参考系
+        yaw.ecd.ref = yaw.imu.ref - yaw_imu_minus_ecd;
+        pitch.ecd.ref = pitch.imu.ref - pitch_imu_minus_ecd;
+    }
+
+    // 分配大小yaw
+    yaw1.ref = yaw.ecd.ref;                // 大yaw直接设置为目标值
+    yaw2.ref = yaw.ecd.ref - yaw1.measure; // 大yaw未转到目标，小yaw来补偿
+
+    // 设置电机角度
+    m_yaw1.SetAngle(yaw1.ref, -chassis_vr); // 同时设置前馈（前馈与底盘速度方向相反，因为云台期望静止）
+    m_yaw2.SetAngle(yaw2.ref);              // yaw2有限位，如果触发限位，函数内部会修改传入的角度
+    m_pitch.SetAngle(pitch.ecd.ref);        // pitch有限位，如果触发限位，函数内部会修改传入的角度
+
+    // 传递软件限位
+    yaw.ecd.ref = yaw1.ref + yaw2.ref; // 小yaw达到限位后，会传递到总yaw，阻止总yaw角度进一步增大
+    // 传递到imu参考系
+    yaw.imu.ref = yaw.ecd.ref + yaw_imu_minus_ecd;
+    pitch.imu.ref = pitch.ecd.ref + pitch_imu_minus_ecd;
+}
+
+// 电机角度 -> 云台姿态
+void Gimbal::backwardCalc() {
+    // 从电机读取
+    yaw1.measure = m_yaw1.angle.measure;
+    yaw2.measure = m_yaw2.angle.measure;
+    pitch.ecd.measure = m_pitch.angle.measure;
+
+    // 合并大小yaw
+    yaw.ecd.measure = yaw1.measure + yaw2.measure;
+
+    // 读取imu
+    yaw.imu.measure = imu.yaw;
+    pitch.imu.measure = imu.pitch;
 }

@@ -5,8 +5,8 @@
 namespace BSP {
     class OS {
     public:
-        static void Create(const char* name, os_pthread thread, osPriority priority, uint32_t stacksz);
+        static void TaskCreate(osThreadFunc_t func, const char* name, uint32_t stack_bytes, osPriority_t priority);
 
-        static void Delay(uint32_t millisec);
+        static void Delay(uint32_t ms);
     };
 }

@@ -1,76 +1,88 @@
 #pragma once
 
-#include "bsp.hpp"
-#include "unit.hpp"
 #include "pid.hpp"
 
 class IMU {
 public:
+    static constexpr auto X = 0;
+    static constexpr auto Y = 1;
+    static constexpr auto Z = 2;
+
     // 陀螺仪安装方向参数
     struct dir_t {
-        float yaw, pitch, roll; // 单位：角度
-    };
+        Angle<deg> yaw, pitch, roll;
+    } dir;
 
     // 陀螺仪校准参数
     struct calib_t {
         float gx_offset = 0, gy_offset = 0, gz_offset = 0;
         float g_norm = 1;
-    };
+    } calib;
 
-private:
-    // IMU加热
-    class Temperature_Control {
-    private:
-        static constexpr UnitFloat<C> ref = 40.0f * C; // 目标温度
-        UnitFloat<C> measure;
-        UnitFloat<percentage> power;
+    bool is_ready = false;
 
-        PID::param_t pid_param = {.kp = 0.5f, .ki = 0.01f, .max_i = 0.4f, .max_out = 1.0f};
-        PID pid;
-
-    public:
-        Temperature_Control() : pid(&pid_param) {}
-        void Update();
-    } temperature_control{};
-
-    dir_t dir;
-    calib_t calib;
-
-    volatile bool is_ready = false;
-
-    BSP::Dwt dwt; // 用于计算dt
-
-    // bmi088原始数据
-    float gyro[3]{}; // 角速度
+    // 陀螺仪原始数据
+    float gyro[3]{};  // 角速度
     float accel[3]{}; // 加速度
-
-    static void DIR_Correction(const dir_t& dir, float gyro[3], float accel[3]);
-
-    static void BodyFrameToEarthFrame(const float vecBF[3], float vecEF[3], const float q[4]);
-
-    static void EarthFrameToBodyFrame(const float vecEF[3], float vecBF[3], const float q[4]);
-
-    static void QuaternionToEularAngle(const float q[4], float& yaw, float& pitch, float& roll);
-
-    static void EularAngleToQuaternion(float yaw, float pitch, float roll, float q[4]);
-
-    static void QuaternionUpdate(float q[], float gx, float gy, float gz, float dt);
-
-public:
-    // 欧拉角
-    Angle<deg> yaw, pitch, roll;
-    UnitFloat<deg> yaw_total_angle;
 
     // 四元数
     float q[4]{};
 
-    IMU(const dir_t& param, const calib_t& calib);
+    // 欧拉角
+    Angle<deg> yaw, pitch, roll;
+    UnitFloat<deg> yaw_total_angle;
 
-    void Init();
+    BSP::Dwt dwt; // 用于计算dt
 
+    IMU(const dir_t& dir, const calib_t& calib);
+
+    // 初始化陀螺仪
+    static void Init();
+
+    // 校准陀螺仪
     void Calibrate();
 
-    void WaitReady();
+    // 需要在循环中调用
+    void OnLoop();
 
-    void Update();
+    // 安装方向修正
+    static void DIR_Correction(const dir_t& dir, float gyro[3], float accel[3]);
+
+    // 欧拉角转四元数
+    static void EularAngleToQuaternion(const Angle<>& yaw, const Angle<>& pitch, const Angle<>& roll, float q[4]);
+
+    // 四元数转欧拉角
+    static std::tuple<Angle<>, Angle<>, Angle<>> QuaternionToEularAngle(const float q[4]);
+
+    // 机体坐标系 -> 世界坐标系
+    static void BodyFrameToEarthFrame(const float vecBF[3], float vecEF[3], const float q[4]);
+
+    // 世界坐标系 -> 机体坐标系
+    static void EarthFrameToBodyFrame(const float vecEF[3], float vecBF[3], const float q[4]);
+
+    // 更新四元数
+    static void QuaternionUpdate(float q[], float gx, float gy, float gz, float dt);
+
+private:
+    // IMU加热
+    class Temperature_Control {
+    public:
+        Temperature_Control() : pid(&pid_param) {}
+
+        // 需要在循环中调用
+        void OnLoop();
+
+    private:
+        static constexpr UnitFloat<C> ref = 45.0f * C; // 目标温度
+        UnitFloat<C> measure;
+        UnitFloat<pct> power;
+
+        PID::param_t pid_param = {
+            .kp = 50.0f * pct_C,
+            .ki = 5.0f * pct_C,
+            .max_i = 20.0f * pct_C,
+            .max_out = 100.0f * pct_C
+        };
+        PID pid;
+    } temperature_control{};
 };

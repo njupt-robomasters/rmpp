@@ -4,7 +4,7 @@
 #include "pid.hpp"
 #include "unit.hpp"
 
-class Chassis {
+class Chassis_Template {
 public:
     struct {
         // vx 左右平移速度【单位：m/s】
@@ -22,7 +22,7 @@ public:
         } wheel;
     } ref{}, measure{};
 
-    explicit Chassis(PID::param_t &wheel_pid_param);
+    explicit Chassis_Template(PID::param_t &wheel_pid_param);
 
     void ParseCAN(uint32_t id, uint8_t data[8]);
 

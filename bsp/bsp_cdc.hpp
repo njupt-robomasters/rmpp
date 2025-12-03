@@ -1,8 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <vector>
-#include <can.h>
 
 namespace BSP {
     class CDC {
@@ -15,6 +15,8 @@ namespace BSP {
     public:
         static void Init();
 
+        static bool IsConnect();
+
         static void Transmit(uint8_t data[], uint16_t size);
 
         static void printf(const char* format, ...);
@@ -23,6 +25,4 @@ namespace BSP {
 
         static void InvokeCallback(const uint8_t data[], uint32_t size);
     };
-
-    extern CDC cdc;
 }

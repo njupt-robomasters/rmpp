@@ -23,7 +23,7 @@ void OnProjectLoad (void) {
   // Dialog-generated settings
   //
   Project.SetDevice ("Cortex-M4");
-  Project.SetHostIF ("USB", "1040849617");
+  Project.SetHostIF ("USB", "1046446857");
   Project.SetTargetIF ("SWD");
   Project.SetTIFSpeed ("4 MHz");
   Project.AddPathSubstitute ("E:/workspace/rm/code/sentry", "$(ProjectDir)");

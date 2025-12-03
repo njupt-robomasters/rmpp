@@ -1,5 +1,4 @@
 #include <pid.hpp>
-#include "utils.hpp"
 
 #define kp (param->kp)
 #define ki (param->ki)
@@ -7,114 +6,141 @@
 #define ff (param->ff)
 #define max_i (param->max_i)
 #define max_out (param->max_out)
+#define fc (param->fc)
 
 PID::PID(param_t* param) : param(param) {}
-
-void PID::calcPositionCommon() {
-    // 积分限幅
-    // 情况一：总输出饱和，且I输出呈累计趋势 -> 阻止I继续累积
-    if (fabsf(p_out + i_out + d_out) >= max_out) {
-        if (err * i_out > 0) { // 积分呈累积趋势
-            di = 0;
-        }
-    }
-    // 情况二：I输出超过设定最大值 -> 对I输出钳位
-    i_out += di;
-    i_out = clamp(i_out, max_i);
-
-    out_without_ff = p_out + i_out + d_out;
-    out = out_without_ff + ff;
-
-    // 输出限幅
-    out = clamp(out, max_out);
-
-    last_err = err; // 用于下一次求d输出
-}
-
 
 void PID::SetParam(param_t* param) {
     this->param = param;
 }
 
-// 经典pid
-float PID::CalcMIT(const float err) {
+UnitFloat<> PID::CalcPosition(const UnitFloat<>& err) {
     if (this->param == nullptr) {
-        return 0;
+        return 0 * default_unit;
     }
 
-    this->err = err;
+    // 计算dt
+    const float dt = dwt.GetDT();
 
-    float dt = dwt.GetDT();
+    // 输入滤波
+    this->err = lowpassFilter(this->err, err, fc, dt);
 
     // 基础PID计算
     p_out = kp * err;
     di = ki * err * dt;
     d_out = kd * (err - last_err) / dt;
 
-    calcPositionCommon();
+    // 积分限幅
+    // 情况一：总输出饱和，且I输出呈累计趋势 -> 阻止I继续累积
+    if (unit::abs(p_out + i_out + d_out) >= max_out) {
+        if (di * i_out > 0) { // 积分呈累积趋势
+            di = 0 * default_unit;
+        }
+    }
+    // 情况二：I输出超过设定最大值 -> 对I输出钳位
+    i_out += di;
+    i_out = unit::clamp(i_out, max_i);
+
+    // 输出和限幅
+    out = p_out + i_out + d_out + ff;
+    out = unit::clamp(out, max_out);
+
+    last_err = err;
 
     return out;
 }
 
-// mit控制模式
-float PID::CalcMIT(const float err, const float derr) {
+UnitFloat<> PID::CalcPosition(const UnitFloat<>& err, const UnitFloat<>& derr) {
     if (this->param == nullptr) {
-        return 0;
+        return 0 * default_unit;
     }
 
-    this->err = err;
-
+    // 计算dt
     const float dt = dwt.GetDT();
+
+    // 输入滤波
+    this->err = lowpassFilter(this->err, err, fc, dt);
 
     // 基础PID计算
     p_out = kp * err;
     di = ki * err * dt;
     d_out = kd * derr;
 
-    calcPositionCommon();
+    // 积分限幅
+    // 情况一：总输出饱和，且I输出呈累计趋势 -> 阻止I继续累积
+    if (unit::abs(p_out + i_out + d_out) >= max_out) {
+        if (di * i_out > 0) { // 积分呈累积趋势
+            di = 0 * default_unit;
+        }
+    }
+    // 情况二：I输出超过设定最大值 -> 对I输出钳位
+    i_out += di;
+    i_out = unit::clamp(i_out, max_i);
+
+    // 输出和限幅
+    out = p_out + i_out + d_out + ff;
+    out = unit::clamp(out, max_out);
+
+    last_err = err;
 
     return out;
 }
 
 // 增量式pid
-float PID::CalcIncrement(const float err) {
+UnitFloat<> PID::CalcIncrement(const UnitFloat<>& err) {
     if (this->param == nullptr) {
-        return 0;
+        return 0 * default_unit;
     }
 
-    this->err = err;
-
+    // 计算dt
     const float dt = dwt.GetDT();
 
+    // 输入滤波
+    this->err = lowpassFilter(this->err, err, fc, dt);
+
+    // 基础PID计算
     p_out = kp * (err - last_err);
     i_out = ki * err;
-    d_out = kd * (err - 2 * last_err + last2_err);
+    d_out = kd * (err - 2 * last_err + last_err2);
 
     // 积分限幅：总输出饱和，且I输出呈累计趋势 -> 阻止I继续累积
-    if (fabsf(out + (p_out + i_out + d_out) * dt) >= max_out) {
+    if (unit::abs(out + (p_out + i_out + d_out) * dt) >= max_out) {
         if (err * i_out > 0) { // 积分呈累积趋势
-            i_out = 0;
+            di = 0 * default_unit;
         }
     }
 
-    out_without_ff += (p_out + i_out + d_out) * dt;
-    out = out_without_ff + ff;
+    // 输出和限幅
+    out = (p_out + i_out + d_out) * dt;
+    out = unit::clamp(out, max_out);
 
-    // 输出限幅
-    out = clamp(out, max_out);
-
-    last2_err = last_err;
+    last_err2 = last_err;
     last_err = err;
 
     return out;
 }
 
 void PID::Clear() {
-    err = 0;
-    p_out = 0, i_out = 0, d_out = 0, out_without_ff = 0;
-    last_err = 0;
-    last2_err = 0;
-    di = 0;
-
+    err = last_err = last_err2 = 0 * default_unit;
+    di = 0 * default_unit;
+    out = p_out = i_out = d_out = 0 * default_unit;
     dwt.Clear();
+}
+
+#undef kp
+#undef ki
+#undef kd
+#undef ff
+#undef max_i
+#undef max_out
+#undef fc
+
+UnitFloat<> PID::lowpassFilter(const UnitFloat<>& pre, const UnitFloat<>& next, const UnitFloat<>& fc, const float dt) {
+    if (fc == 0) { // fc==0，禁用滤波
+        return next;
+    }
+    const float fs = 1 / dt;
+    const float alpha = 2 * PI * fc.toFloat() / (fs + 2 * PI * fc.toFloat());
+    const UnitFloat out = pre * (1 - alpha) + next * alpha;
+    return out;
 }

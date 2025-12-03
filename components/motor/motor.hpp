@@ -1,0 +1,91 @@
+#pragma once
+
+#include "pid.hpp"
+
+class Motor {
+public:
+    volatile bool is_ready = false; // 电机就绪标志，收到CAN反馈报文后置为true
+    bool is_enable = false;         // 电机使能标志
+
+    // 电机本体参数
+    float reduction = 1.0f;           // 电机减速比
+    UnitFloat<Nm_A> Kt = 1.0f * Nm_A; // 力矩系数
+
+    // 电机安装参数
+    bool is_invert = false;          // 电机反转标志
+    Angle<deg> offset;               // 电机角度偏移量（如果是限位模式，需要是电机运动范围的中心位置）
+    bool is_limit = false;           // false-圆周模式，true-限位模式
+    Angle<deg> limit_min, limit_max; // min-右限位（负值），max-左限位（正值），相对于offset的角度
+
+    // 电机闭环模式
+    enum closed_loop_mode_e {
+        SPEED_MODE, // 速度模式
+        ANGLE_MODE, // 角度模式
+    } closed_loop_mode = SPEED_MODE;
+
+    // PID输出类型
+    enum pid_output_type_e {
+        CURRENT_MODE, // 电流模式
+        TORQUE_MODE,  // 扭矩模式
+    } pid_output_type = CURRENT_MODE;
+
+    // 电流
+    struct {
+        UnitFloat<A> ref, measure, absolute; // absolute为电机反转处理前的值
+    } current;
+
+    // 扭矩
+    struct {
+        UnitFloat<Nm> ref, measure, absolute; // absolute为电机反转处理前的值
+    } torque;
+
+    // 转速
+    struct {
+        UnitFloat<rpm> ref, measure, absolute; // absolute为电机反转处理前的值
+    } speed;
+
+    // 角度（减速比!=1时，自动执行软件多圈记数）
+    struct {
+        Angle<deg> ref, measure, absolute, last_absolute; // absolute为电机反转、安装偏移处理前的值
+    } angle;
+
+    // 用于记录CAN回调频率
+    BSP::Dwt dwt;
+
+    // PID控制器
+    PID pid;
+
+    // 设置电机使能/失能
+    void SetEnable(bool is_enable);
+
+    // 电机本体设置
+    void SetReduction(float reduction); // 设置电机减速比
+    void SetKt(const UnitFloat<>& Kt);  // 设置电机扭矩系数
+
+    // 电机安装参数
+    void SetInvert(bool is_invert);                                                                                         // 设置电机反转
+    void SetOffset(const Angle<>& offset);                                                                                  // 设置电机安装偏移
+    void SetLimit(bool is_limit, const Angle<>& limit_min = 0 * default_unit, const Angle<>& limit_max = 0 * default_unit); // 设置电机限位
+
+    // 设置PID参数
+    void SetPIDParam(pid_output_type_e pid_output_type, PID::param_t* pid_param);
+
+    // 设置电流
+    void SetCurrent(const UnitFloat<>& current);
+
+    // 设置扭矩
+    void SetTorque(const UnitFloat<>& torque);
+
+    // 设置速度
+    void SetSpeed(const UnitFloat<>& speed);
+
+    // 设置角度
+    void SetAngle(Angle<>&& angle, const UnitFloat<>& speed_ff = 0 * default_unit); // &&为广义引用，达到限位会修改传入的值
+
+    // 需要在循环中调用，子类重写后要调用
+    void OnLoop();
+
+protected:
+    // CAN接收回调，子类重写后要调用
+    void callback();
+};

@@ -6,6 +6,6 @@ void BSP::Init() {
     Dwt::Init();
     IMUHeat::Init();
     LED::Init();
-    UART_RC::Init();
-    UART_Video::Init();
+    UART3::Init();
+    UART6::Init();
 }

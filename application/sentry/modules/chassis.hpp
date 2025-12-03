@@ -1,62 +1,25 @@
 #pragma once
 
-#include "unit.hpp"
-#include "pid.hpp"
-#include "m6020.hpp"
-#include "m3508.hpp"
+#include "template/chassis.hpp"
+#include "motor/m6020.hpp"
+#include "motor/m3508.hpp"
 
-extern "C" void task_can_entry(const void* argument);
-
-class Chassis {
-    friend void task_can_entry(const void* argument);
-
-private:
+class Chassis : public Chassis_Template {
+public:
     // 底盘参数
-    static constexpr UnitFloat<m> WHEEL_RADIUS = 0.0525f * m; // 底盘半径
-    static constexpr UnitFloat<m> CHASSIS_RADIUS = 0.21492f * m; // 轮子半径
+    static constexpr UnitFloat WHEEL_RADIUS = 5.25f * cm;     // 底盘半径
+    static constexpr UnitFloat CHASSIS_RADIUS = 21.492f * cm; // 轮子半径
 
     // 舵电机偏移
-    static constexpr Angle<deg> SERVO1_OFFSET = -134.82f * deg;
-    static constexpr Angle<deg> SERVO2_OFFSET = -77.65f * deg;
+    static constexpr Angle SERVO1_OFFSET = -134.82f * deg;
+    static constexpr Angle SERVO2_OFFSET = -77.65f * deg;
 
     // 最小转舵速度
-    static constexpr UnitFloat<m_s> MIN_V = 1e-2f * m_s;
+    static constexpr UnitFloat MIN_V = 0.01f * m_s;
 
-    // 电机对象
-    M6020 m_servo1, m_servo2; // 舵电机
-    M3508 m_wheel1, m_wheel2; // 轮电机
-
-    // 底盘使能标志
-    bool is_enable = false;
-
-    // 云台yaw方向
-    Angle<deg> gimbal_yaw;
-
-    void forwardCalc();
-
-    void backwardCalc();
-
-    void estimatePower();
-
-    void calcCurrentRatio();
-
-public:
-    // 底盘速度
-    // vx 前后速度，前为正
-    // vy 左右速度，左为正
-    // vz 旋转线速度，逆时针为正
-    // vr 旋转角速度，逆时针为正
-    struct {
-        struct {
-            UnitFloat<m_s> ref, measure;
-        } chassis, gimbal;
-    } vx, vy;
-    struct {
-        UnitFloat<m_s> ref, measure;
-    } vz;
-    struct {
-        UnitFloat<rpm> ref, measure;
-    } vr;
+    // 用于功率控制
+    static constexpr float R = 0.194f / 2; // 相电阻（两相电阻/2）
+    static constexpr float Kt = 0.55f;     // 输出轴力矩常数
 
     // 轮子线速度
     struct {
@@ -65,27 +28,28 @@ public:
 
     // 舵轮角度
     struct {
-        struct {
-            Angle<deg> measure, ref;
-        } relative, absolute;
+        Angle<deg> measure, ref;
     } s1, s2;
 
-    // 底盘功率控制
-    struct {
-        UnitFloat<W> estimate = 0; // 当前功率估计
-        UnitFloat<W> limit = 120;
-        float current_ratio = 1; // 电流衰减系数
-    } power;
+    // 电机对象
+    M6020 m_servo1, m_servo2; // 舵电机
+    M3508 m_wheel1, m_wheel2; // 轮电机
 
     Chassis(PID::param_t* servo_pid_param, PID::param_t* wheel_pid_param);
 
-    void SetEnable(bool is_enable);
+    // 底盘使能/失能
+    void SetEnable(bool is_enable) override;
 
-    void SetGimbalYaw(const Angle<>& gimbal_yaw);
+    // 需要在循环汇总调用
+    void OnLoop() override;
 
-    void SetSpeed(const UnitFloat<>& vx, const UnitFloat<>& vy, const UnitFloat<>& vr);
+private:
+    // 车体速度 -> 轮子速度
+    void forwardCalc() override;
 
-    void SetPowerLimit(const UnitFloat<>& power);
+    // 轮子速度 -> 车体速度
+    void backwardCalc() override;
 
-    void Update();
+    // 功率控制
+    void powerControl() override;
 };

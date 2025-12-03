@@ -5,10 +5,16 @@
 
 using namespace BSP;
 
+extern USBD_HandleTypeDef hUsbDeviceFS;
+
 std::vector<CDC::CallbackFunc>* CDC::callbacks;
 
 void CDC::Init() {
     MX_USB_DEVICE_Init();
+}
+
+bool CDC::IsConnect() {
+    return hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED;
 }
 
 void CDC::Transmit(uint8_t data[], const uint16_t size) {

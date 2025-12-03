@@ -1,6 +1,8 @@
 #include "app.hpp"
 
-extern "C" void task_can_entry(const void* argument) {
+#define private public
+
+extern "C" void task_can_entry(void* argument) {
     while (true) {
         // 底盘
         const int16_t cmd7 = chassis.m_servo1.GetCurrentCMD(); // ID：7

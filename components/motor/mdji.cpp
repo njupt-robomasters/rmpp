@@ -1,11 +1,10 @@
 #include "mdji.hpp"
 #include "bsp.hpp"
-#include "utils.hpp"
 
-MDJI::MDJI(uint8_t can_port, uint32_t feedback_can_id,
-           UnitFloat<A> current_max, uint16_t current_cmd_max, float reduction) :
+MDJI::MDJI(const uint8_t can_port, const uint32_t feedback_can_id,
+           const UnitFloat<>& current_max, const uint16_t current_cmd_max) :
     can_port(can_port), feedback_can_id(feedback_can_id),
-    current_max(current_max), current_cmd_max(current_cmd_max), reduction(reduction) {
+    current_max(current_max), current_cmd_max(current_cmd_max) {
     BSP::CAN::RegisterCallback(std::bind(&MDJI::callback, this,
                                          std::placeholders::_1,
                                          std::placeholders::_2,
@@ -13,95 +12,32 @@ MDJI::MDJI(uint8_t can_port, uint32_t feedback_can_id,
                                          std::placeholders::_4));
 }
 
+int16_t MDJI::GetCurrentCMD() const {
+    int16_t current_cmd;
+    if (!is_invert) {
+        current_cmd = (int16_t)((current.ref / current_max).toFloat(A) * (float)current_cmd_max);
+    } else {
+        current_cmd = (int16_t)((-current.ref / current_max).toFloat(A) * (float)current_cmd_max);
+    }
+    return current_cmd;
+}
+
 void MDJI::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
     if (port != can_port) return;
     if (id != feedback_can_id) return;
     if (dlc != 8) return;
 
-    // 维护dt
-    const float dt = dwt.GetDT();
-
-    // 记录CAN反馈报文频率
-    can_feedback_freq = 1 / dt;
-
     // 解析CAN报文
-    if (!is_invert) {
-        angle.raw = (uint16_t)(data[0] << 8 | data[1]);
-        speed.raw = (int16_t)(data[2] << 8 | data[3]);
-        current.raw = (int16_t)(data[4] << 8 | data[5]);
-        temperate_motor = data[6];
-    } else {
-        angle.raw = 8191 - (uint16_t)(data[0] << 8 | data[1]);
-        speed.raw = -(int16_t)(data[2] << 8 | data[3]);
-        current.raw = -(int16_t)(data[4] << 8 | data[5]);
-        temperate_motor = data[6];
-    }
+    const auto angle_u16 = (uint16_t)((data[0] << 8) | data[1]);
+    const auto speed_i16 = (int16_t)((data[2] << 8) | data[3]);
+    const auto current_i16 = (int16_t)((data[4] << 8) | data[5]);
+    temperature_motor = data[6] * C;
 
-    // 转换为标准单位
-    // 电流
-    current.measure_no_lfp = (float)current.raw / (float)current_cmd_max * current_max;
-    // 低通滤波
-    const float alpha1 = solve_alpha(CURRENT_LPF_FREQ, 1 / dt);
-    current.measure = lowpass_filter(current.measure, current.measure_no_lfp, alpha1);
+    // 单位标准化
+    current.absolute = (float)current_i16 / (float)current_cmd_max * current_max;
+    speed.absolute = (float)speed_i16 / reduction * rpm;
+    angle.absolute = (float)angle_u16 / 8192.0f * rev;
 
-    // 角度
-    angle.measure = (float)angle.raw / 8192.0f * 360.0f * deg;
-
-    // 转速
-    speed.measure_no_lfp = (float)speed.raw * rpm / reduction;
-    // 低通滤波
-    const float alpha2 = solve_alpha(SPEED_LPF_FREQ, 1 / dt);
-    speed.measure = lowpass_filter(speed.measure, speed.measure_no_lfp, alpha2);
-
-    // 电机就绪标识
-    is_ready = true;
-}
-
-void MDJI::SetReduction(const float reduction) {
-    this->reduction = reduction;
-}
-
-void MDJI::SetInvert(const bool is_invert) {
-    this->is_invert = is_invert;
-}
-
-void MDJI::SetCurrentRatio(const float current_ratio) {
-    this->current_ratio = current_ratio;
-}
-
-void MDJI::SetPIDParam(PID::param_t* pid_param) {
-    pid.SetParam(pid_param);
-}
-
-void MDJI::WaitReady() {
-    this->is_ready = false;
-    while (this->is_ready == false) {
-        BSP::OS::Delay(1);
-    }
-}
-
-void MDJI::SetEnable(const bool is_enable) {
-    if (this->is_enable == is_enable) return;
-    this->is_enable = is_enable;
-
-    pid.Clear();
-    current.ref = 0;
-}
-
-void MDJI::SetAngle(const Angle<deg> angle) {
-    this->angle.ref = angle;
-}
-
-void MDJI::SetSpeed(const UnitFloat<rpm> speed) {
-    this->speed.ref = speed;
-}
-
-int16_t MDJI::GetCurrentCMD() const {
-    int16_t current_cmd;
-    if (!is_invert) {
-        current_cmd = (int16_t)(current.ref * current_ratio / current_max * (float)current_cmd_max);
-    } else {
-        current_cmd = (int16_t)(-current.ref * current_ratio / current_max * (float)current_cmd_max);
-    }
-    return current_cmd;
+    // 调用父类公共回调函数
+    Motor::callback();
 }

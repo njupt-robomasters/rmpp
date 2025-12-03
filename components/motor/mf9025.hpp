@@ -1,65 +1,37 @@
 #pragma once
 
-#include "pid.hpp"
-#include "unit.hpp"
+#include "motor.hpp"
 
-class MF9025 {
-private:
+class MF9025 : public Motor {
+public:
+    static constexpr UnitFloat Kt = 0.32f * Nm_A;
+
     // CAN通信参数
     const uint8_t can_port;
     const uint8_t motor_id; // 控制报文和反馈报文均为0x140+motor_id
 
-    bool is_invert = false; // 电机反转标志
-    volatile bool is_ready = false; // 电机就绪标志，收到CAN反馈报文后置为true
-    bool is_enable = false; // 电机使能标志
-
-    PID pid;
-    BSP::Dwt dwt; // 维护dt
-    uint32_t can_cmd_cnt = 0; // 用于定期发送使能命令
-
-    void callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dlc);
-
-    void sendCANEnable();
-
-    void sendCANDisable();
-
-    void sendCANReadState();
-
-    void sendCANCmd();
-
-public:
-    // 力矩
-    struct {
-        UnitFloat<A> ref, measure;
-        int16_t raw = 0; // 电流原始值【-2048~2048对应-16.5A~16.5A】
-    } current;
-
-    // 角度
-    struct {
-        Angle<deg> ref, measure;
-        uint16_t raw = 0; // 角度原始值【0~65535】
-    } angle;
-
-    // 转速
-    struct {
-        UnitFloat<deg_s> ref, measure;
-        int16_t raw = 0; // 转速原始值【单位：deg/s】
-    } speed;
-
-    UnitFloat<C> temperate_motor; // 电机温度
-    UnitFloat<Hz> can_feedback_freq; // CAN反馈报文频率
+    UnitFloat<C> temperature_motor; // 电机温度
 
     MF9025(uint8_t can_port, uint8_t motor_id);
 
-    void SetInvert(bool is_invert);
+    // 需要在循环中调用
+    void OnLoop();
 
-    void SetPIDParam(PID::param_t* pid_param);
+private:
+    uint32_t send_cnt = 0; // 用于定期发送使能命令
 
-    void WaitReady();
+    // CAN回调函数
+    void callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dlc);
 
-    void SetEnable(bool is_enable);
+    // 发送电机使能
+    void sendEnable() const;
 
-    void SetAngle(Angle<> angle, UnitFloat<> speed = 0);
+    // 发送电机失能
+    void sendDisable() const;
 
-    void Update();
+    // 触发状态读取
+    void sendReadState() const;
+
+    // 发送电流
+    void sendCurrent() const;
 };

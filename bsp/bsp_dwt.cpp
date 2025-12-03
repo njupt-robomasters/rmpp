@@ -17,50 +17,54 @@ void Dwt::Init() {
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 }
 
-void Dwt::Update() {
+void Dwt::onLoop() {
     const uint32_t now_tick32 = DWT->CYCCNT;
     tick64 += now_tick32 - tick32;
     tick32 = now_tick32;
 }
 
 float Dwt::GetTime() {
-    Update();
-    const float second = (float)tick64 / (float)SystemCoreClock;
-    return second;
+    onLoop();
+    const float seconds = (float)tick64 / (float)SystemCoreClock;
+    return seconds;
 }
 
-void Dwt::Delay(const float second) {
+void Dwt::Delay(const float seconds) {
     const uint32_t start_tick = DWT->CYCCNT;
-    Update();
-    const auto need_ticks = (uint32_t)(second * (float)SystemCoreClock);
+    onLoop();
+    const auto need_ticks = (uint32_t)(seconds * (float)SystemCoreClock);
     while (DWT->CYCCNT - start_tick < need_ticks) {}
 }
 
 float Dwt::GetDT() {
-    Update();
-    if (tick == 0) { // 第一次固定返回0.001
-        tick = DWT->CYCCNT;
+    onLoop();
+    if (last_tick == 0) { // 第一次固定返回0.001
+        last_tick = DWT->CYCCNT;
         return 0.001f;
     }
     const uint32_t now_tick = DWT->CYCCNT;
-    dt = (float)(now_tick - tick) / (float)SystemCoreClock;
-    tick = now_tick;
+    dt = (float)(now_tick - last_tick) / (float)SystemCoreClock;
+    freq = 1 / dt;
+    last_tick = now_tick;
     return dt;
 }
 
-void Dwt::Clear() {
-    tick = 0;
+void Dwt::Update() {
+    GetDT();
 }
 
-float BSP_DWT_GetDT(uint32_t* tick) {
-    Dwt::Update();
-    if (*tick == 0) { // 第一次固定返回0.001
-        *tick = DWT->CYCCNT;
+void Dwt::Clear() {
+    last_tick = 0;
+}
+
+float BSP_DWT_GetDT(uint32_t* last_tick) {
+    if (*last_tick == 0) { // 第一次固定返回0.001
+        *last_tick = DWT->CYCCNT;
         return 0.001f;
     }
     const uint32_t now_tick = DWT->CYCCNT;
-    const float dt = (float)(now_tick - *tick) / (float)SystemCoreClock;
-    *tick = now_tick;
+    const float dt = (float)(now_tick - *last_tick) / (float)SystemCoreClock;
+    *last_tick = now_tick;
     return dt;
 }
 
@@ -68,6 +72,6 @@ float BSP_DWT_GetTime() {
     return Dwt::GetTime();
 }
 
-void BSP_DWT_Delay(const float second) {
-    Dwt::Delay(second);
+void BSP_DWT_Delay(const float seconds) {
+    Dwt::Delay(seconds);
 }

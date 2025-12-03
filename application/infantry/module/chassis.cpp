@@ -1,13 +1,13 @@
 #include "chassis.hpp"
 #include "bsp_can.h"
 
-Chassis::Chassis(PID::param_t &wheel_pid_param): m1(wheel_pid_param),
+Chassis_Template::Chassis_Template(PID::param_t &wheel_pid_param): m1(wheel_pid_param),
                                                  m2(wheel_pid_param),
                                                  m3(wheel_pid_param),
                                                  m4(wheel_pid_param) {
 }
 
-void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
+void Chassis_Template::ParseCAN(const uint32_t id, uint8_t data[8]) {
     if (id == 0x201)
         m1.ParseCAN(data);
     if (id == 0x202)
@@ -21,7 +21,7 @@ void Chassis::ParseCAN(const uint32_t id, uint8_t data[8]) {
     estimatePower(); // 底盘功率估算
 }
 
-void Chassis::SetEnable(const bool is_enable) {
+void Chassis_Template::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable)
         return;
 
@@ -34,21 +34,21 @@ void Chassis::SetEnable(const bool is_enable) {
     m4.SetEnable(is_enable);
 }
 
-void Chassis::SetSpeed(const float vx, const float vy, const float vr_rpm) {
+void Chassis_Template::SetSpeed(const float vx, const float vy, const float vr_rpm) {
     ref.gimbal.vx = vx;
     ref.gimbal.vy = vy;
     ref.gimbal.vr.rpm = vr_rpm;
 }
 
-void Chassis::SetGimbalAngle_RefByChassis(const Angle &gimbal_angle_refBy_chassis) {
+void Chassis_Template::SetGimbalAngle_RefByChassis(const Angle &gimbal_angle_refBy_chassis) {
     this->gimbal_angle_refBy_chassis = gimbal_angle_refBy_chassis;
 }
 
-void Chassis::SetPowerLimit(const float power) {
+void Chassis_Template::SetPowerLimit(const float power) {
     power_limit = power;
 }
 
-void Chassis::Update() {
+void Chassis_Template::Update() {
     if (is_enable) {
         // 运动学正解
         forwardCalc();
@@ -68,7 +68,7 @@ void Chassis::Update() {
 }
 
 // 运动学正解
-void Chassis::forwardCalc() {
+void Chassis_Template::forwardCalc() {
     ref.gimbal.vz = ref.gimbal.vr.tps * CHASSIS_PERIMETER; // 底盘旋转角速度【圈/s】 -> 底盘旋转线速度【m/s】
 
     // 1. vxyzr 云台坐标系->底盘坐标系
@@ -102,7 +102,7 @@ void Chassis::forwardCalc() {
 }
 
 // 运动学逆解
-void Chassis::inverseCalc() {
+void Chassis_Template::inverseCalc() {
     // 1. 读取电机转速
     const Speed speed1 = m1.measure.speed;
     const Speed speed2 = m2.measure.speed;
@@ -132,7 +132,7 @@ void Chassis::inverseCalc() {
     measure.gimbal.vr = ref.chassis.vr;
 }
 
-void Chassis::estimatePower() {
+void Chassis_Template::estimatePower() {
     const float power1 = m1.EstimatePower();
     const float power2 = m2.EstimatePower();
     const float power3 = m3.EstimatePower();
@@ -140,7 +140,7 @@ void Chassis::estimatePower() {
     power_estimate = power1 + power2 + power3 + power4;
 }
 
-void Chassis::calcCurrentRatio() {
+void Chassis_Template::calcCurrentRatio() {
     // Mw + I^2*R = P
     // kIw + I^2*R = P
     // M_PER_I * xI * w + (xI)^2 * R = P
@@ -168,7 +168,7 @@ void Chassis::calcCurrentRatio() {
     current_ratio = clamp(current_ratio, 0, 1);
 }
 
-void Chassis::sendCurrentCmd() const {
+void Chassis_Template::sendCurrentCmd() const {
     const int16_t m3508_1_cmd = m1.GetCurrentCMD() * current_ratio;
     const int16_t m3508_2_cmd = m2.GetCurrentCMD() * current_ratio;
     const int16_t m3508_3_cmd = m3.GetCurrentCMD() * current_ratio;

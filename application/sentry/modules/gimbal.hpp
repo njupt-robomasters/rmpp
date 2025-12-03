@@ -1,99 +1,49 @@
 #pragma once
 
-#include "unit.hpp"
-#include "pid.hpp"
-#include "imu.hpp"
-#include "mf9025.hpp"
-#include "m6020.hpp"
-#include "dm4310.hpp"
+#include "template/gimbal.hpp"
+#include "motor/mf9025.hpp"
+#include "motor/m6020.hpp"
+#include "motor/dm4310.hpp"
 
-extern "C" void task_can_entry(const void* argument);
-
-class Gimbal {
-    friend void task_can_entry(const void* argument);
-
+class Gimbal : public Gimbal_Template {
 public:
-    enum mode_e {
-        ECD_MODE,
-        IMU_MODE
-    };
-
-private:
     // 电机偏移参数
     // 大yaw
-    static constexpr Angle<deg> YAW1_OFFSET = -3.0f * deg; // 大yaw与前进方向重合时的绝对角度
+    static constexpr Angle YAW1_OFFSET = -3.0f * deg; // 大yaw与前进方向重合时的绝对角度
     // 小yaw
-    static constexpr Angle<deg> YAW2_OFFSET = -120.0f * deg; // 小yaw相对于大yaw居中时的绝对角度
-    static constexpr Angle<deg> YAW2_MIN = 120.0f * deg; // 小yaw最右角度
-    static constexpr Angle<deg> YAW2_MAX = 0.0f * deg; // 小yaw最左角度
+    static constexpr Angle YAW2_OFFSET = -120.0f * deg; // 小yaw相对于大yaw居中时的绝对角度
+    static constexpr Angle YAW2_MIN = -120.0f * deg;    // 小yaw最右相对角度
+    static constexpr Angle YAW2_MAX = 120.0f * deg;     // 小yaw最左相对角度
     // pitch
-    static constexpr Angle<deg> PITCH_OFFSET = 160.0f * deg; // pitch水平时的绝对角度
-    static constexpr Angle<deg> PITCH_MIN = 130.0f * deg; // pitch最小绝对角度
-    static constexpr Angle<deg> PITCH_MAX = -175.0f * deg; // pitch最大绝对角度
+    static constexpr Angle PITCH_OFFSET = 160.0f * deg; // pitch水平时的绝对角度
+    static constexpr Angle PITCH_MIN = -30.0f * deg;    // pitch最低相对角度
+    static constexpr Angle PITCH_MAX = 25.0f * deg;     // pitch最高相对角度
 
-    const IMU& imu; // 对陀螺仪的引用，用于云台IMU闭环模式
+    // 大小yaw分配
+    struct {
+        Angle<deg> ref, measure;
+    } yaw1, yaw2; // yaw1为大yaw，yaw2为小yaw
 
     // 电机对象
     MF9025 m_yaw1;
     M6020 m_yaw2;
     DM4310 m_pitch;
 
-    bool is_enable = false; // 云台使能标志
-    mode_e mode = IMU_MODE; // 云台模式
-    UnitFloat<rpm> chassis_vr; // yaw速度前馈（小陀螺模式需要）
-
-    BSP::Dwt dwt; // 维护dt
-
-    void setCurrentAsTarget();
-
-    void addAngle(const Angle<>& yaw, const Angle<>& pitch);
-
-    void forwardCalc();
-
-    void backwardCalc();
-
-public:
-    // 总yaw
-    struct {
-        struct {
-            Angle<deg> ref, measure;
-        } relative, imu;
-    } yaw;
-
-    // 大小yaw分配
-    struct {
-        struct {
-            Angle<deg> ref, measure;
-        } absolute, relative;
-    } yaw1, yaw2;
-
-    // pitch
-    struct {
-        struct {
-            Angle<deg> ref, measure;
-        } absolute, relative;
-
-        struct {
-            Angle<deg> ref, measure;
-        } imu;
-    } pitch;
-
-    // 云台运动速度
-    UnitFloat<deg_s> yaw_speed, pitch_speed;
-
     Gimbal(const IMU& imu, PID::param_t* yaw1_pid_param, PID::param_t* yaw2_pid_param, PID::param_t* pitch_pid_param);
 
-    void WaitReady();
+    // 云台电机是否都上线
+    bool IsReady() override;
 
-    void SetEnable(bool is_enable);
+    // 云台使能/失能
+    void SetEnable(bool is_enable) override;
 
-    void SetMode(mode_e mode);
+    // 需要在循环中调用
+    void OnLoop() override;
 
-    void SetAngle(const Angle<>& yaw, const Angle<>& pitch);
+private:
+    // 云台姿态 -> 电机角度
+    void forwardCalc() override;
 
-    void SetSpeed(const UnitFloat<>& yaw_speed, const UnitFloat<>& pitch_speed);
-
-    void SetChassisVR(const UnitFloat<>& chassis_vr);
-
-    void Update();
+    // 电机角度 -> 云台姿态
+    void backwardCalc() override;
 };

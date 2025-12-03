@@ -1,32 +1,33 @@
 #include "app.hpp"
 
-ModuleParams module_params;
-AppParams app_params;
-IMU imu(module_params.imu_dir, module_params.imu_calib);
+Parameter param;
+Config cfg;
+Variable var;
+
 DJ6 dj6;
-Referee referee;
-Chassis chassis(&module_params.servo_pid_param, &module_params.wheel_pid_param);
-Gimbal gimbal(imu, &module_params.yaw1_pid_param, &module_params.yaw2_pid_param, &module_params.pitch_pid_param);
-Shooter shooter(&module_params.shoot_pid_param);
+IMU imu(param.imu.dir, param.imu.calib);
+Chassis chassis(&param.chassis.servo_pid_param, &param.chassis.wheel_pid_param);
+Gimbal gimbal(imu, &param.gimbal.yaw1_pid_param, &param.gimbal.yaw2_pid_param, &param.gimbal.pitch_pid_param);
+Shooter shooter(&param.shooter.shoot_pid_param);
 
 extern "C" void app_init() {
     BSP::Init();
 
-    extern void task_led_entry(const void* argument);
-    BSP::OS::Create("task_led", task_led_entry, osPriorityIdle, 128);
+    extern void task_led_entry(void* argument);
+    BSP::OS::TaskCreate(task_led_entry, "task_led", 1024, osPriorityIdle);
 
-    extern void task_imu_entry(const void* argument);
-    BSP::OS::Create("task_imu", task_imu_entry, osPriorityRealtime, 128);
+    extern void task_imu_entry(void* argument);
+    BSP::OS::TaskCreate(task_imu_entry, "task_imu", 1024, osPriorityRealtime);
 
-    extern void task_can_entry(const void* argument);
-    BSP::OS::Create("task_can", task_can_entry, osPriorityHigh, 128);
+    extern void task_can_entry(void* argument);
+    BSP::OS::TaskCreate(task_can_entry, "task_can", 1024, osPriorityHigh);
 
-    extern void task_chassis_entry(const void* argument);
-    BSP::OS::Create("task_chassis", task_chassis_entry, osPriorityNormal, 128);
+    extern void task_chassis_entry(void* argument);
+    BSP::OS::TaskCreate(task_chassis_entry, "task_chassis", 1024, osPriorityNormal);
 
-    extern void task_gimbal_entry(const void* argument);
-    BSP::OS::Create("task_gimbal", task_gimbal_entry, osPriorityNormal, 128);
+    extern void task_gimbal_entry(void* argument);
+    BSP::OS::TaskCreate(task_gimbal_entry, "task_gimbal", 1024, osPriorityNormal);
 
-    extern void task_shooter_entry(const void* argument);
-    BSP::OS::Create("task_shooter", task_shooter_entry, osPriorityNormal, 128);
+    extern void task_shooter_entry(void* argument);
+    BSP::OS::TaskCreate(task_shooter_entry, "task_shooter", 1024, osPriorityNormal);
 }
