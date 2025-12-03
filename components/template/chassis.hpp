@@ -46,7 +46,7 @@ public:
     // 底盘使能/失能
     virtual void SetEnable(bool is_enable) = 0;
 
-    // 需要在循环汇总调用
+    // 需要在循环中调用
     virtual void OnLoop() = 0;
 
 protected:

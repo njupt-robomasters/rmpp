@@ -5,7 +5,7 @@ Shooter::Shooter(PID::param_t* shoot_pid_param) :
     n630_1(2, 96),
     n630_2(2, 98) {
     // 设置拨弹电机PID参数
-    m_shoot.SetPIDParam(Motor::CURRENT_MODE, shoot_pid_param);
+    m_shoot.SetPIDParam(Motor::PID_OUTPUT_CURRENT, shoot_pid_param);
 
     // 设置波弹电机方向
     m_shoot.SetInvert(true);

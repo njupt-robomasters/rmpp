@@ -53,12 +53,12 @@ void Motor::SetTorque(const UnitFloat<>& torque) {
 }
 
 void Motor::SetSpeed(const UnitFloat<>& speed) {
-    this->closed_loop_mode = SPEED_MODE;
+    this->control_mode = SPEED_MODE;
     this->speed.ref = speed;
 }
 
 void Motor::SetAngle(Angle<>&& angle, const UnitFloat<>& speed_ff) {
-    this->closed_loop_mode = ANGLE_MODE;
+    this->control_mode = ANGLE_MODE;
 
     // 软件限位
     if (is_limit) {
@@ -77,25 +77,25 @@ void Motor::SetAngle(Angle<>&& angle, const UnitFloat<>& speed_ff) {
 
 void Motor::OnLoop() {
     if (is_enable) {
-        if (closed_loop_mode == SPEED_MODE) { // 速度模式
+        if (control_mode == SPEED_MODE) { // 速度模式
             const UnitFloat speed_err = speed.ref - speed.measure;
-            current.ref = torque.ref = pid.CalcIncrement(speed_err); // 速度模式使用增量PID（todo: 是否能改成位置PID）
-        } else if (closed_loop_mode == ANGLE_MODE) {                 // 角度模式
-            if (is_limit) {                                          // 限位模式
+            current.ref = torque.ref = pid.Calculate(speed_err);
+        } else if (control_mode == ANGLE_MODE) { // 角度模式
+            if (is_limit) {                      // 限位模式
                 const UnitFloat angle_err = angle.ref - angle.measure;
                 const UnitFloat speed_err = speed.ref - speed.measure;
-                if (pid_output_type == CURRENT_MODE) {
-                    SetCurrent(pid.CalcPosition(angle_err, speed_err));
-                } else if (pid_output_type == TORQUE_MODE) {
-                    SetTorque(pid.CalcPosition(angle_err, speed_err));
+                if (pid_output_type == PID_OUTPUT_CURRENT) {
+                    SetCurrent(pid.Calculate(angle_err, speed_err));
+                } else if (pid_output_type == PID_OUTPUT_TORQUE) {
+                    SetTorque(pid.Calculate(angle_err, speed_err));
                 }
             } else { // 圆周模式
                 const Angle angle_err = angle.ref - angle.measure;
                 const UnitFloat speed_err = speed.ref - speed.measure;
-                if (pid_output_type == CURRENT_MODE) {
-                    SetCurrent(pid.CalcPosition(angle_err, speed_err));
-                } else if (pid_output_type == TORQUE_MODE) {
-                    SetTorque(pid.CalcPosition(angle_err, speed_err));
+                if (pid_output_type == PID_OUTPUT_CURRENT) {
+                    SetCurrent(pid.Calculate(angle_err, speed_err));
+                } else if (pid_output_type == PID_OUTPUT_TORQUE) {
+                    SetTorque(pid.Calculate(angle_err, speed_err));
                 }
             }
         }

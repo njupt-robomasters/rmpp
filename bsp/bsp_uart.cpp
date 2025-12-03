@@ -1,6 +1,5 @@
 #include "bsp_uart.hpp"
 #include "usart.h"
-#include <iostream>
 
 using namespace BSP;
 

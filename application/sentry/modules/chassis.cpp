@@ -8,10 +8,10 @@ Chassis::Chassis(PID::param_t* servo_pid_param, PID::param_t* wheel_pid_param) :
     m_wheel1(1, 0x201),
     m_wheel2(1, 0x202) {
     // 设置电机PID参数
-    m_servo1.SetPIDParam(Motor::CURRENT_MODE, servo_pid_param);
-    m_servo2.SetPIDParam(Motor::CURRENT_MODE, servo_pid_param);
-    m_wheel1.SetPIDParam(Motor::CURRENT_MODE, wheel_pid_param);
-    m_wheel2.SetPIDParam(Motor::CURRENT_MODE, wheel_pid_param);
+    m_servo1.SetPIDParam(Motor::PID_OUTPUT_CURRENT, servo_pid_param);
+    m_servo2.SetPIDParam(Motor::PID_OUTPUT_CURRENT, servo_pid_param);
+    m_wheel1.SetPIDParam(Motor::PID_OUTPUT_CURRENT, wheel_pid_param);
+    m_wheel2.SetPIDParam(Motor::PID_OUTPUT_CURRENT, wheel_pid_param);
 
     // 设置电机减速比
     m_wheel1.SetReduction(14.0f);

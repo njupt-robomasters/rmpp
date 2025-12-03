@@ -178,6 +178,6 @@ void IMU::QuaternionUpdate(float q[4], float gx, float gy, float gz, const float
 void IMU::Temperature_Control::OnLoop() {
     measure = BMI088.Temperature * C;
     const UnitFloat temperature_err = ref - measure;
-    power = pid.CalcPosition(temperature_err);
+    power = pid.Calculate(temperature_err);
     BSP::IMUHeat::SetPower(power.toFloat());
 }

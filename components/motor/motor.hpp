@@ -18,16 +18,17 @@ public:
     Angle<deg> limit_min, limit_max; // min-右限位（负值），max-左限位（正值），相对于offset的角度
 
     // 电机闭环模式
-    enum closed_loop_mode_e {
+    enum control_mode_e {
+        OPEN_LOOP_MODE,
         SPEED_MODE, // 速度模式
         ANGLE_MODE, // 角度模式
-    } closed_loop_mode = SPEED_MODE;
+    } control_mode = OPEN_LOOP_MODE;
 
     // PID输出类型
     enum pid_output_type_e {
-        CURRENT_MODE, // 电流模式
-        TORQUE_MODE,  // 扭矩模式
-    } pid_output_type = CURRENT_MODE;
+        PID_OUTPUT_CURRENT, // 电流模式
+        PID_OUTPUT_TORQUE,  // 扭矩模式
+    } pid_output_type = PID_OUTPUT_CURRENT;
 
     // 电流
     struct {

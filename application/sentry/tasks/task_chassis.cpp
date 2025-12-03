@@ -23,9 +23,9 @@ extern "C" void task_chassis_entry(void* argument) {
         }
 
         handle_rc();
-        var.vx.sum = clamp(var.vx.rc + var.vx.referee, cfg.vxy_max);
-        var.vy.sum = clamp(var.vy.rc + var.vy.referee, cfg.vxy_max);
-        var.vr.sum = clamp(var.vr.rc + var.vr.referee, cfg.vr_max);
+        var.vx.sum = unit::clamp(var.vx.rc + var.vx.referee, cfg.vxy_max);
+        var.vy.sum = unit::clamp(var.vy.rc + var.vy.referee, cfg.vxy_max);
+        var.vr.sum = unit::clamp(var.vr.rc + var.vr.referee, cfg.vr_max);
         chassis.SetSpeed(var.vx.sum, var.vy.sum, var.vr.sum);
 
         chassis.SetGimbalYaw(gimbal.yaw.ecd.measure); // 设置云台方向

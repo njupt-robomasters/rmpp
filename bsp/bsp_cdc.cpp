@@ -47,6 +47,7 @@ void CDC::InvokeCallback(const uint8_t data[], const uint32_t size) {
     }
 }
 
+// 这个函数要放到 USB_DEVICE/App/usbd_cdc_if.c 的 CDC_Receive_FS 函数的结尾调用
 extern "C" void BSP_CDC_Callback_ForHAL(const uint8_t data[], const uint32_t size) {
     CDC::InvokeCallback(data, size);
 }

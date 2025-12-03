@@ -22,13 +22,15 @@ struct Parameter {
     // 底盘PID参数
     struct {
         PID::param_t servo_pid_param = {
-            .kp = 0.6f * A_deg,
+            .mode = PID::POSITION_MODE,
+            .kp = 0.6f * A_deg, // 5deg时拉满输出
             .max_out = 3.0f * A,
             .fc = 30.0f * Hz
         };
         PID::param_t wheel_pid_param = {
-            .kp = 167.0f * A_rpm,
-            .ki = 0.83f * A_rpm,
+            .mode = PID::INCREMENT_MODE,
+            .kp = 0.167f * A_rpm, // 120rpm时拉满输出
+            .ki = 0.83f * A_rpm,  // 0.4rev时拉满输出
             .max_out = 20.0f * A,
             .fc = 30.0f * Hz
         };
@@ -37,19 +39,22 @@ struct Parameter {
     // 云台PID参数
     struct {
         PID::param_t yaw1_pid_param = {
-            .kp = 0.35f * A_deg,
-            .kd = 0.052f * A_deg,
+            .mode = PID::POSITION_MODE,
+            .kp = 0.35f * A_deg,  // 28.57deg时拉满输出
+            .kd = 0.052f * A_deg, // 192deg/s时拉满输出
             .max_out = 10.0f * A
         };
         PID::param_t yaw2_pid_param = {
-            .kp = 0.8f * A_deg,
-            .kd = 0.02f * A_deg,
+            .mode = PID::POSITION_MODE,
+            .kp = 0.8f * A_deg,  // 3.75deg时拉满输出
+            .kd = 0.02f * A_deg, // 150deg/s时拉满输出
             .max_out = 3.0f * A,
             .fc = 30.0f * Hz
         };
         PID::param_t pitch_pid_param = {
-            .kp = 0.25f * Nm_deg,
-            .kd = 0.012f * Nm_deg,
+            .mode = PID::POSITION_MODE,
+            .kp = 0.25f * Nm_deg,  // 12deg时拉满输出
+            .kd = 0.012f * Nm_deg, // 250deg/s时拉满输出
             .max_out = 3.0f * Nm
         };
     } gimbal;
@@ -57,8 +62,9 @@ struct Parameter {
     // 发射机构PID参数
     struct {
         PID::param_t shoot_pid_param = {
-            .kp = 0.5f * A_rpm,
-            .kd = 0.005f * A_rpm,
+            .mode = PID::POSITION_MODE,
+            .kp = 0.5f * A_rpm,   // 20deg/s时拉满输出
+            .kd = 0.005f * A_rpm, // 2000deg/s^2时拉满输出
             .max_out = 10.0f * A,
             .fc = 30.0f * Hz
         };

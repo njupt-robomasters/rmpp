@@ -41,8 +41,8 @@ extern "C" void task_gimbal_entry(void* argument) {
         }
 
         handle_rc();
-        var.yaw_speed.sum = clamp(var.yaw_speed.rc + var.yaw_speed.referee, cfg.yaw_max_speed);
-        var.pitch_speed.sum = clamp(var.pitch_speed.rc + var.pitch_speed.referee, cfg.pitch_max_speed);
+        var.yaw_speed.sum = unit::clamp(var.yaw_speed.rc + var.yaw_speed.referee, cfg.yaw_max_speed);
+        var.pitch_speed.sum = unit::clamp(var.pitch_speed.rc + var.pitch_speed.referee, cfg.pitch_max_speed);
         gimbal.SetSpeed(var.yaw_speed.sum, var.pitch_speed.sum);
 
         gimbal.SetChassisVR(chassis.vr.measure); // 设置小陀螺前馈

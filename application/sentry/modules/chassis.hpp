@@ -7,8 +7,8 @@
 class Chassis : public Chassis_Template {
 public:
     // 底盘参数
-    static constexpr UnitFloat WHEEL_RADIUS = 5.25f * cm;     // 底盘半径
-    static constexpr UnitFloat CHASSIS_RADIUS = 21.492f * cm; // 轮子半径
+    static constexpr UnitFloat CHASSIS_RADIUS = 21.492f * cm; // 底盘半径
+    static constexpr UnitFloat WHEEL_RADIUS = 5.25f * cm;     // 轮子半径
 
     // 舵电机偏移
     static constexpr Angle SERVO1_OFFSET = -134.82f * deg;
@@ -40,7 +40,7 @@ public:
     // 底盘使能/失能
     void SetEnable(bool is_enable) override;
 
-    // 需要在循环汇总调用
+    // 需要在循环中调用
     void OnLoop() override;
 
 private:

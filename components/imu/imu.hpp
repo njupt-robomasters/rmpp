@@ -80,8 +80,8 @@ private:
         PID::param_t pid_param = {
             .kp = 50.0f * pct_C,
             .ki = 5.0f * pct_C,
-            .max_i = 20.0f * pct_C,
-            .max_out = 100.0f * pct_C
+            .max_i = 20.0f * pct,
+            .max_out = 100.0f * pct
         };
         PID pid;
     } temperature_control{};

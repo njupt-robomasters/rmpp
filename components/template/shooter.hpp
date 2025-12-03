@@ -26,7 +26,7 @@ public:
     // 设置弹速
     void SetBulletSpeed(const UnitFloat<>& bullet_speed);
 
-    // 设置单频
+    // 设置射频
     void SetShootFreq(const UnitFloat<>& shoot_freq);
 
     // 设置摩擦轮

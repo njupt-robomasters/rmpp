@@ -1,11 +1,18 @@
 #pragma once
 
+#include <optional>
 #include "bsp.hpp"
 #include "unit/include_me.hpp"
 
 class PID {
 public:
+    enum mode_e {
+        POSITION_MODE,
+        INCREMENT_MODE, // 增量式PID模式下，积分限幅、前馈、derr无效
+    };
+
     struct param_t {
+        mode_e mode;
         UnitFloat<> kp, ki, kd; // p、i、d三参数
         UnitFloat<> ff;         // 前馈
         UnitFloat<> max_i;      // 积分限幅
@@ -27,18 +34,17 @@ public:
 
     void SetParam(param_t* param);
 
-    // 经典PID
-    UnitFloat<> CalcPosition(const UnitFloat<>& err);
-
-    // MIT控制模式
-    UnitFloat<> CalcPosition(const UnitFloat<>& err, const UnitFloat<>& derr);
-
-    // 增量PID
-    UnitFloat<> CalcIncrement(const UnitFloat<>& err);
+    UnitFloat<> Calculate(const UnitFloat<>& err, std::optional<UnitFloat<>> derr = std::nullopt);
 
     void Clear();
 
 private:
     // 低通滤波
     static UnitFloat<> lowpassFilter(const UnitFloat<>& pre, const UnitFloat<>& next, const UnitFloat<>& fc, float dt);
+
+    // 经典PID
+    void calcPosition(const UnitFloat<>& err, const std::optional<UnitFloat<>>& derr = std::nullopt);
+
+    // 增量PID
+    void calcIncrement(const UnitFloat<>& err);
 };

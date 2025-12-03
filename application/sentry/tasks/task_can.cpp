@@ -1,7 +1,5 @@
 #include "app.hpp"
 
-#define private public
-
 extern "C" void task_can_entry(void* argument) {
     while (true) {
         // 底盘
