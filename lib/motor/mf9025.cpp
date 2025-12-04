@@ -33,7 +33,7 @@ void MF9025::OnLoop() {
 
 void MF9025::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
     if (port != can_port) return;
-    if (id != 0x140 + motor_id) return;
+    if (id != 0x140u + motor_id) return;
     if (dlc != 8) return;
 
     if (data[0] != 0x9C && data[0] != 0xA1) return;

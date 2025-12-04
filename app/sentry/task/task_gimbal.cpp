@@ -6,15 +6,17 @@ static void handle_rc() {
     var.pitch_speed.rc = dj6.pitch * cfg.pitch_max_speed;
 
     switch (dj6.right_switch) {
-    case DJ6::UP:
-        gimbal.SetMode(Gimbal::ECD_MODE);
-        break;
-    case DJ6::MID:
-        gimbal.SetMode(Gimbal::IMU_MODE);
-        break;
-    case DJ6::DOWN:
-        gimbal.SetMode(Gimbal::IMU_MODE);
-        break;
+        case DJ6::ERR:
+            break;
+        case DJ6::UP:
+            gimbal.SetMode(Gimbal::ECD_MODE);
+            break;
+        case DJ6::MID:
+            gimbal.SetMode(Gimbal::IMU_MODE);
+            break;
+        case DJ6::DOWN:
+            gimbal.SetMode(Gimbal::IMU_MODE);
+            break;
     }
 }
 

@@ -3,6 +3,10 @@
 // 解析遥控器控制
 void handle_rc() {
     switch (dj6.left_switch) {
+        case DJ6::ERR:
+            shooter.SetPrepareShoot(false);
+            shooter.SetShoot(false);
+            break;
         case DJ6::UP:
             shooter.SetPrepareShoot(false);
             shooter.SetShoot(false);

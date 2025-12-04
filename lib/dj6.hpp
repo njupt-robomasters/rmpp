@@ -1,34 +1,9 @@
 #pragma once
 
 #include "bsp/bsp.hpp"
+#include "watch/timeout_watch.hpp"
 
 class DJ6 {
-private:
-    // 用于断联检测
-    template <typename T>
-    class Wrapper {
-    public:
-        Wrapper(T value, DJ6* parent) : value(value), parent(parent) {}
-
-        // 取值运算
-        operator T() const {
-            if (BSP::Dwt::GetTime() - parent->last_receive_time > TIMEOUT) {
-                parent->resetData();
-            }
-            return value;
-        }
-
-        // 赋值运算
-        Wrapper& operator=(const T& value) {
-            this->value = value;
-            return *this;
-        }
-
-    private:
-        T value;
-        DJ6* parent; // 保存父类指针
-    };
-
 public:
     static constexpr float STICK_DEADLINE = 0.01f; // 摇杆死区，小于此值认为是0
     static constexpr float TIMEOUT = 0.1f;         // 断联检测超时时间
@@ -62,9 +37,9 @@ public:
 
     float last_receive_time = 0;
 
-    bool is_connected = false;
-    Wrapper<float> x, y, pitch, yaw;
-    Wrapper<switch_e> left_switch, right_switch;
+    TimeoutWatch<bool> is_connected;
+    TimeoutWatch<float> x, y, pitch, yaw;
+    TimeoutWatch<switch_e> left_switch, right_switch;
 
     DJ6();
 

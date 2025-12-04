@@ -3,8 +3,9 @@
 #include <cmath>
 #include "bsp/bsp.hpp"
 
-DJ6::DJ6() : x(0, this), y(0, this), pitch(0, this), yaw(0, this),
-             left_switch(ERR, this), right_switch(ERR, this) {
+DJ6::DJ6() : is_connected(TIMEOUT, false),
+             x(TIMEOUT, 0), y(TIMEOUT, 0), pitch(TIMEOUT, 0), yaw(TIMEOUT, 0),
+             left_switch(TIMEOUT, ERR), right_switch(TIMEOUT, ERR) {
     auto callback = std::bind(&DJ6::callback,
                               this,
                               std::placeholders::_1,
@@ -18,7 +19,7 @@ void DJ6::callback(const uint8_t data[], const uint16_t size) {
     parseSBUS(data);
 
     is_connected = raw.is_connected;
-    if (is_connected) {
+    if (is_connected.value()) {
         last_receive_time = BSP::Dwt::GetTime();
         y = -getStick(raw.CH1);            // 右手水平
         x = getStick(raw.CH2);             // 右手垂直
