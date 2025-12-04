@@ -1,16 +1,16 @@
 #pragma once
 
 // bsp
-#include "bsp.hpp"
+#include "bsp/bsp.hpp"
 
 // components
 #include "dj6.hpp"
 #include "imu/imu.hpp"
 
 // modules
-#include "modules/chassis.hpp"
-#include "modules/gimbal.hpp"
-#include "modules/shooter.hpp"
+#include "module/chassis.hpp"
+#include "module/gimbal.hpp"
+#include "module/shooter.hpp"
 
 struct Parameter {
     // IMU参数

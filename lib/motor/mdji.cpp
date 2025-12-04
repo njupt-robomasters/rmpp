@@ -1,5 +1,5 @@
 #include "mdji.hpp"
-#include "bsp.hpp"
+#include "bsp/bsp.hpp"
 
 MDJI::MDJI(const uint8_t can_port, const uint32_t feedback_can_id,
            const UnitFloat<>& current_max, const uint16_t current_cmd_max) :

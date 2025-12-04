@@ -106,8 +106,8 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
-  extern void app_init();
-  app_init();
+    extern void app_init();
+    app_init();
   /* USER CODE END 2 */
 
   /* Init scheduler */

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bsp.hpp"
+#include "bsp/bsp.hpp"
 
 class DJ6 {
 private:

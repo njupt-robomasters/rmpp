@@ -1,6 +1,6 @@
 #include "imu.hpp"
 #include <tuple>
-#include "bsp.hpp"
+#include "bsp/bsp.hpp"
 #include "bmi088/bmi088.h"
 #include "ekf/QuaternionEKF.h"
 

@@ -2,7 +2,7 @@
 
 #include "bmi088_reg.h"
 #include "bmi088_middleware.h"
-#include "bsp_dwt.h"
+#include "bsp/bsp_dwt.h"
 #include <math.h>
 
 #include "cmsis_os.h"

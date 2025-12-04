@@ -1,7 +1,7 @@
 #include "DJ6.hpp"
 #include <algorithm>
 #include <cmath>
-#include "bsp.hpp"
+#include "bsp/bsp.hpp"
 
 DJ6::DJ6() : x(0, this), y(0, this), pitch(0, this), yaw(0, this),
              left_switch(ERR, this), right_switch(ERR, this) {
