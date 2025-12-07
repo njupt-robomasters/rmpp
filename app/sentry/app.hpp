@@ -23,16 +23,16 @@ struct Parameter {
     struct {
         PID::param_t servo_pid_param = {
             .mode = PID::POSITION_MODE,
-            .kp = 0.6f * A_deg, // 5deg时拉满输出
-            .max_out = 3.0f * A,
-            .fc = 30.0f * Hz
+            .kp = (3 * A) / (5.0f * deg),
+            .max_out = 3 * A,
+            .fc = 30 * Hz
         };
         PID::param_t wheel_pid_param = {
             .mode = PID::INCREMENT_MODE,
-            .kp = 0.167f * A_rpm, // 120rpm时拉满输出
-            .ki = 0.83f * A_rpm,  // 0.4rev时拉满输出
-            .max_out = 20.0f * A,
-            .fc = 30.0f * Hz
+            .kp = (20 * A) / (120.0f * rpm),
+            .ki = (20 * A) / (0.4f * rev),
+            .max_out = 20 * A,
+            .fc = 30 * Hz
         };
     } chassis;
 
@@ -40,22 +40,22 @@ struct Parameter {
     struct {
         PID::param_t yaw1_pid_param = {
             .mode = PID::POSITION_MODE,
-            .kp = 0.35f * A_deg,  // 28.57deg时拉满输出
-            .kd = 0.052f * A_deg, // 192deg/s时拉满输出
-            .max_out = 10.0f * A
+            .kp = (10 * A) / (30.0f * A_deg),
+            .kd = (10 * A) / (192.0f * deg_s),
+            .max_out = 10 * A
         };
         PID::param_t yaw2_pid_param = {
             .mode = PID::POSITION_MODE,
-            .kp = 0.8f * A_deg,  // 3.75deg时拉满输出
-            .kd = 0.02f * A_deg, // 150deg/s时拉满输出
-            .max_out = 3.0f * A,
-            .fc = 30.0f * Hz
+            .kp = (3 * A) / (3.75f * deg),
+            .kd = (3 * A) / (150.0f * deg_s),
+            .max_out = 3 * A,
+            .fc = 30 * Hz
         };
         PID::param_t pitch_pid_param = {
             .mode = PID::POSITION_MODE,
-            .kp = 0.25f * Nm_deg,  // 12deg时拉满输出
-            .kd = 0.012f * Nm_deg, // 250deg/s时拉满输出
-            .max_out = 3.0f * Nm
+            .kp = (3 * Nm) / (12.0f * deg),
+            .kd = (3 * Nm) / (250.0f * deg_s),
+            .max_out = 3 * Nm
         };
     } gimbal;
 
@@ -63,10 +63,10 @@ struct Parameter {
     struct {
         PID::param_t shoot_pid_param = {
             .mode = PID::POSITION_MODE,
-            .kp = 0.5f * A_rpm,   // 20deg/s时拉满输出
-            .kd = 0.005f * A_rpm, // 2000deg/s^2时拉满输出
-            .max_out = 10.0f * A,
-            .fc = 30.0f * Hz
+            .kp = (10 * A) / (20.0f * deg_s),
+            .kd = (10 * A) / (2000.0f * deg_ss),
+            .max_out = 10 * A,
+            .fc = 30 * Hz
         };
     } shooter;
 };

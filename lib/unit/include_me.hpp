@@ -38,14 +38,15 @@ inline constexpr Unit C("℃", 1.0f);    // 摄氏度
 // 速度
 inline constexpr Unit m_s = m / s;
 
-// 加速度
-inline constexpr Unit m_ss = m / s / s;
-
 // 角速度
 inline constexpr Unit rad_s = rad / s;
 inline constexpr Unit deg_s = deg / s;
 inline constexpr Unit rpm("rpm", rev.m_scale / min.m_scale);
 inline constexpr Unit rps("rps", rev.m_scale / s.m_scale);
+
+// 加速度
+inline constexpr Unit m_ss = m / s / s;
+inline constexpr Unit deg_ss = deg / s / s;
 
 // pid单位
 inline constexpr Unit A_deg = A / deg;

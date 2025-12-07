@@ -2,8 +2,8 @@
 
 Gimbal::Gimbal(const IMU& imu, PID::param_t* yaw1_pid_param, PID::param_t* yaw2_pid_param, PID::param_t* pitch_pid_param) :
     Gimbal_Template(imu),
-    m_yaw1(1, 0x01),
-    m_yaw2(1, 0x205),
+    m_yaw1(1, 1),
+    m_yaw2(1, 1),
     m_pitch(2, 0x00, 0x01) {
     // 设置电机PID参数
     m_yaw1.SetPIDParam(Motor::PID_OUTPUT_CURRENT, yaw1_pid_param);  // 大yaw
@@ -37,8 +37,6 @@ void Gimbal::SetEnable(const bool is_enable) {
     m_yaw1.SetEnable(is_enable);
     m_yaw2.SetEnable(is_enable);
     m_pitch.SetEnable(is_enable);
-
-    setCurrentAsTarget();
 }
 
 void Gimbal::OnLoop() {

@@ -3,10 +3,7 @@
 Gimbal_Template::Gimbal_Template(const IMU& imu) : imu(imu) {}
 
 void Gimbal_Template::SetMode(const mode_e mode) {
-    if (this->mode == mode) return;
     this->mode = mode;
-
-    setCurrentAsTarget();
 }
 
 void Gimbal_Template::SetAngle(const Angle<>& yaw, const Angle<>& pitch) {
@@ -26,17 +23,6 @@ void Gimbal_Template::SetSpeed(const UnitFloat<>& yaw_speed, const UnitFloat<>& 
 
 void Gimbal_Template::SetChassisVR(const UnitFloat<>& chassis_vr) {
     this->chassis_vr = chassis_vr;
-}
-
-void Gimbal_Template::setCurrentAsTarget() {
-    backwardCalc(); // 从电机读取数据
-    if (mode == ECD_MODE) {
-        yaw.ecd.ref = yaw.ecd.measure;
-        pitch.ecd.ref = pitch.ecd.measure;
-    } else if (mode == IMU_MODE) {
-        yaw.imu.ref = yaw.imu.measure;
-        pitch.imu.ref = pitch.imu.measure;
-    }
 }
 
 void Gimbal_Template::updateMotion(const float dt) {

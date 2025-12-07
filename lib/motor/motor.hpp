@@ -4,8 +4,8 @@
 
 class Motor {
 public:
-    volatile bool is_ready = false; // 电机就绪标志，收到CAN反馈报文后置为true
-    bool is_enable = false;         // 电机使能标志
+    bool is_ready = false;  // 电机就绪标志，收到CAN反馈报文后置为true
+    bool is_enable = false; // 电机使能标志
 
     // 电机本体参数
     float reduction = 1.0f;           // 电机减速比
@@ -65,7 +65,7 @@ public:
 
     // 电机安装参数
     void SetInvert(bool is_invert);                                                                                         // 设置电机反转
-    void SetOffset(const Angle<>& offset);                                                                                  // 设置电机安装偏移
+    void SetOffset(const Angle<>& offset);                                                                                  // 设置电机安装偏移，限位模式下必须是电机运动范围中心位置
     void SetLimit(bool is_limit, const Angle<>& limit_min = 0 * default_unit, const Angle<>& limit_max = 0 * default_unit); // 设置电机限位
 
     // 设置PID参数
@@ -89,4 +89,7 @@ public:
 protected:
     // CAN接收回调，子类重写后要调用
     void callback();
+
+private:
+    bool is_ready_last = false; // 用于 SetAngle
 };

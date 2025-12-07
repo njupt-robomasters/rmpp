@@ -55,9 +55,6 @@ protected:
     // 对陀螺仪的引用，用于云台IMU闭环模式
     const IMU& imu;
 
-    // 设置当前位置为目标位置
-    void setCurrentAsTarget();
-
     // 更新云台转动，通过dt不断计算角度增量
     void updateMotion(float dt);
 

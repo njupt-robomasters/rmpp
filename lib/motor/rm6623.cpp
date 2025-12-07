@@ -35,7 +35,7 @@ void RM6623::callback(const uint8_t port, const uint32_t id, const uint8_t data[
     // 解析CAN报文
     const auto angle_u16 = (uint16_t)((data[0] << 8) | data[1]);
     const auto current_measure_i16 = (int16_t)((data[2] << 8) | data[3]);
-    const auto current_ref_i16 = (int16_t)((data[4] << 8) | data[5]);
+    // const auto current_ref_i16 = (int16_t)((data[4] << 8) | data[5]);
 
     // 单位标准化
     current.raw = (float)current_measure_i16 / 1000.0f * A;

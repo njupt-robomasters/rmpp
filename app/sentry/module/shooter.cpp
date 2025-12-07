@@ -1,7 +1,7 @@
 #include "shooter.hpp"
 
 Shooter::Shooter(PID::param_t* shoot_pid_param) :
-    m_shoot(1, 0x206),
+    m_shoot(1, 6),
     n630_1(2, 96),
     n630_2(2, 98) {
     // 设置拨弹电机PID参数

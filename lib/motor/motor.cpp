@@ -1,18 +1,7 @@
 #include "motor.hpp"
 
 void Motor::SetEnable(const bool is_enable) {
-    if (this->is_enable == is_enable) return; // 防止重复设置
     this->is_enable = is_enable;
-
-    if (!is_enable) { // 失能
-        current.ref = 0 * default_unit;
-        torque.ref = 0 * default_unit;
-        speed.ref = 0 * default_unit;
-        angle.ref = 0 * default_unit;
-        pid.Clear(); // 失能清空PID，调试时候能看到PID输出为0
-    } else {         // 使能
-        pid.Clear(); // 使能先清空PID，因为失能期间可能会积累较大的dt
-    }
 }
 
 void Motor::SetReduction(const float reduction) {
@@ -60,6 +49,12 @@ void Motor::SetSpeed(const UnitFloat<>& speed) {
 void Motor::SetAngle(Angle<>&& angle, const UnitFloat<>& speed_ff) {
     this->control_mode = ANGLE_MODE;
 
+    // 电机上线后第一次设置角度，角度设置为当前位置（防止电机一下子飞起来）
+    if (is_ready && !is_ready_last) {
+        angle = this->angle.ref = this->angle.measure;
+    }
+    is_ready_last = is_ready;
+
     // 软件限位
     if (is_limit) {
         if (angle < limit_min) {
@@ -76,7 +71,7 @@ void Motor::SetAngle(Angle<>&& angle, const UnitFloat<>& speed_ff) {
 }
 
 void Motor::OnLoop() {
-    if (is_enable) {
+    if (is_enable && is_ready) {
         if (control_mode == SPEED_MODE) { // 速度模式
             const UnitFloat speed_err = speed.ref - speed.measure;
             current.ref = torque.ref = pid.Calculate(speed_err);
@@ -99,6 +94,12 @@ void Motor::OnLoop() {
                 }
             }
         }
+    } else {
+        pid.Clear(); // 清空PID
+        current.ref = 0 * default_unit;
+        torque.ref = 0 * default_unit;
+        speed.ref = 0 * default_unit;
+        angle.ref = 0 * default_unit;
     }
 }
 
