@@ -5,8 +5,8 @@
 
 class DJ6 {
 public:
-    static constexpr float STICK_DEADLINE = 0.01f; // 摇杆死区，小于此值认为是0
     static constexpr float TIMEOUT = 0.1f;         // 断联检测超时时间
+    static constexpr float STICK_DEADLINE = 0.01f; // 摇杆死区，小于此值认为是0
 
     enum switch_e {
         ERR,

@@ -1,5 +1,7 @@
 #include "motor.hpp"
 
+Motor::Motor() : is_ready(CAN_FEEDBACK_TIMEOUT, false) {}
+
 void Motor::SetEnable(const bool is_enable) {
     this->is_enable = is_enable;
 }

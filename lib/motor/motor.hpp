@@ -1,10 +1,13 @@
 #pragma once
 
 #include "pid.hpp"
+#include "watch/timeout_watch.hpp"
 
 class Motor {
 public:
-    bool is_ready = false;  // 电机就绪标志，收到CAN反馈报文后置为true
+    static constexpr float CAN_FEEDBACK_TIMEOUT = 0.01f;
+
+    TimeoutWatch<bool> is_ready;  // 电机就绪标志，收到CAN反馈报文后置为true
     bool is_enable = false; // 电机使能标志
 
     // 电机本体参数
@@ -55,6 +58,8 @@ public:
 
     // PID控制器
     PID pid;
+
+    Motor();
 
     // 设置电机使能/失能
     void SetEnable(bool is_enable);
