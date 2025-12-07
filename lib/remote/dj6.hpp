@@ -1,19 +1,11 @@
 #pragma once
 
-#include "bsp/bsp.hpp"
 #include "watch/timeout_watch.hpp"
 
 class DJ6 {
 public:
     static constexpr float TIMEOUT = 0.1f;         // 断联检测超时时间
     static constexpr float STICK_DEADLINE = 0.01f; // 摇杆死区，小于此值认为是0
-
-    enum switch_e {
-        ERR,
-        DOWN,
-        MID,
-        UP
-    };
 
     struct {
         bool is_connected = false; // 是否连接上遥控器
@@ -35,11 +27,15 @@ public:
         uint16_t CH16 = 1024;
     } raw;
 
-    float last_receive_time = 0;
+    enum switch_e {
+        DOWN,
+        MID,
+        UP
+    };
 
     TimeoutWatch<bool> is_connected;
-    TimeoutWatch<float> x, y, pitch, yaw;
-    TimeoutWatch<switch_e> left_switch, right_switch;
+    float x = 0, y = 0, pitch = 0, yaw = 0;
+    switch_e switch_left = UP, switch_right = UP;
 
     DJ6();
 
@@ -55,7 +51,4 @@ private:
 
     // 解析拨杆值
     static switch_e getSwitch(uint16_t value);
-
-    // 复位所有摇杆、拨杆值
-    void resetData();
 };

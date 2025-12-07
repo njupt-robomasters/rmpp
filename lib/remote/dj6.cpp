@@ -1,11 +1,9 @@
-#include "DJ6.hpp"
+#include "dj6.hpp"
 #include <algorithm>
 #include <cmath>
 #include "bsp/bsp.hpp"
 
-DJ6::DJ6() : is_connected(TIMEOUT, false),
-             x(TIMEOUT, 0), y(TIMEOUT, 0), pitch(TIMEOUT, 0), yaw(TIMEOUT, 0),
-             left_switch(TIMEOUT, ERR), right_switch(TIMEOUT, ERR) {
+DJ6::DJ6() : is_connected(TIMEOUT, false) {
     auto callback = std::bind(&DJ6::callback,
                               this,
                               std::placeholders::_1,
@@ -18,18 +16,17 @@ void DJ6::callback(const uint8_t data[], const uint16_t size) {
 
     parseSBUS(data);
 
-    is_connected = raw.is_connected;
-    if (is_connected.value()) {
-        last_receive_time = BSP::Dwt::GetTime();
-        y = -getStick(raw.CH1);            // 右手水平
-        x = getStick(raw.CH2);             // 右手垂直
-        pitch = getStick(raw.CH3);         // 左手垂直
-        yaw = -getStick(raw.CH4);          // 左手水平
-        left_switch = getSwitch(raw.CH6);  // 左拨杆 CH6
-        right_switch = getSwitch(raw.CH7); // 右拨杆 CH7
+    if (raw.is_connected) {
+        is_connected = true;
+        pitch = getStick(raw.CH1);         // 右手垂直
+        yaw = -getStick(raw.CH2);          // 右手水平
+        y = -getStick(raw.CH3);            // 左手水平
+        x = getStick(raw.CH4);             // 左手垂直
+        switch_left = getSwitch(raw.CH6);  // 左拨杆 CH6
+        switch_right = getSwitch(raw.CH7); // 右拨杆 CH7
     } else {
+        is_connected = false;
         x = y = pitch = yaw = 0;
-        left_switch = right_switch = ERR;
     }
 }
 
@@ -58,10 +55,10 @@ void DJ6::parseSBUS(const uint8_t* data) {
 }
 
 float DJ6::getStick(const uint16_t value) {
-    float result = ((float)value - 1024.0f) / 660.0f;
-    result = std::clamp(result, -1.0f, 1.0f);
-    if (fabsf(result) < STICK_DEADLINE) result = 0;
-    return result;
+    float ret = ((float)value - 1024.0f) / 660.0f;
+    ret = std::clamp(ret, -1.0f, 1.0f);
+    if (std::abs(ret) < STICK_DEADLINE) ret = 0;
+    return ret;
 }
 
 DJ6::switch_e DJ6::getSwitch(const uint16_t value) {
@@ -72,10 +69,4 @@ DJ6::switch_e DJ6::getSwitch(const uint16_t value) {
     } else {
         return UP;
     }
-}
-
-void DJ6::resetData() {
-    is_connected = false;
-    x = y = pitch = yaw = 0;
-    left_switch = right_switch = ERR;
 }

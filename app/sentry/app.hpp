@@ -4,7 +4,8 @@
 #include "bsp/bsp.hpp"
 
 // components
-#include "dj6.hpp"
+#include "remote/dj6.hpp"
+#include "remote/vt13.hpp"
 #include "imu/imu.hpp"
 
 // modules
@@ -84,11 +85,11 @@ struct Config {
 
 struct Variable {
     struct {
-        UnitFloat<m_s> rc, referee, nav, sum;
+        UnitFloat<m_s> rc, vt13, client, nav, sum;
     } vx, vy, vr;
 
     struct {
-        UnitFloat<deg_s> rc, referee, nav, sum;
+        UnitFloat<deg_s> rc, vt13, client, nav, sum;
     } yaw_speed, pitch_speed;
 };
 
@@ -97,6 +98,7 @@ extern Config cfg;
 extern Variable var;
 
 extern DJ6 dj6;
+extern VT13 vt13;
 extern IMU imu;
 extern Chassis chassis;
 extern Gimbal gimbal;

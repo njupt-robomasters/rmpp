@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pid.hpp"
+#include "controller/pid.hpp"
 #include "watch/timeout_watch.hpp"
 
 class Motor {
