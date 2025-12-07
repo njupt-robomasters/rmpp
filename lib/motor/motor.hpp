@@ -7,8 +7,8 @@ class Motor {
 public:
     static constexpr float CAN_FEEDBACK_TIMEOUT = 0.01f;
 
-    TimeoutWatch<bool> is_ready;  // 电机就绪标志，收到CAN反馈报文后置为true
-    bool is_enable = false; // 电机使能标志
+    TimeoutWatch<bool> is_ready; // 电机就绪标志，收到CAN反馈报文后置为true
+    bool is_enable = false;      // 电机使能标志
 
     // 电机本体参数
     float reduction = 1.0f;           // 电机减速比

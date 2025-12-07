@@ -86,7 +86,7 @@ namespace unit {
         }
 
         constexpr UnitFloat operator*(const float value) const { // 乘法比例运算
-            UnitFloat ret = *this; // 返回值和当前同单位
+            UnitFloat ret = *this;                               // 返回值和当前同单位
             ret.m_value *= value;
             return ret;
         }
@@ -112,7 +112,7 @@ namespace unit {
         }
 
         constexpr UnitFloat operator/(const float value) const { // 除法比例运算
-            UnitFloat ret = *this; // 返回值和当前同单位
+            UnitFloat ret = *this;                               // 返回值和当前同单位
             ret.m_value /= value;
             return ret;
         }

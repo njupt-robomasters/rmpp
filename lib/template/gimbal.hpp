@@ -42,9 +42,6 @@ public:
     // 设置底盘旋转速度，用于yaw轴前馈
     void SetChassisVR(const UnitFloat<>& chassis_vr);
 
-    // 云台电机是否都上线
-    virtual bool IsReady() = 0;
-
     // 云台使能/失能
     virtual void SetEnable(bool is_enable) = 0;
 

@@ -54,7 +54,12 @@ void PID::calcPosition(const UnitFloat<>& err, const std::optional<UnitFloat<>>&
     // 积分限幅
     // 情况一：总输出饱和，且I输出呈累计趋势 -> 阻止I继续累积
     if (unit::abs(p_out + i_out + d_out) >= max_out) {
-        if (di * i_out > 0) { // 积分呈累积趋势
+        if (di* i_out
+        
+        >
+        0
+        )
+        { // 积分呈累积趋势
             di = 0 * default_unit;
         }
     }

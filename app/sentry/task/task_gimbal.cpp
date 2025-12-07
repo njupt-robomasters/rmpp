@@ -21,11 +21,6 @@ static void handle_rc() {
 }
 
 extern "C" void task_gimbal_entry(void* argument) {
-    // 等待云台电机上线
-    while (!gimbal.IsReady()) {
-        BSP::OS::Delay(1);
-    }
-
     // 等待IMU上线
     while (!imu.is_ready) {
         BSP::OS::Delay(1);

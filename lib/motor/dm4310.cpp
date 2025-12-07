@@ -74,9 +74,9 @@ void DM4310::sendDisable() const {
 void DM4310::sendMIT() const {
     uint16_t p_des = 0; // 位置给定
     uint16_t v_des = 0; // 速度给定
-    uint16_t Kp = 0; // 位置比例系数
-    uint16_t Kd = 0; // 位置微分系数
-    uint16_t t_ff; // 转矩给定值
+    uint16_t Kp = 0;    // 位置比例系数
+    uint16_t Kd = 0;    // 位置微分系数
+    uint16_t t_ff;      // 转矩给定值
     if (!is_invert) {
         t_ff = float_to_uint(torque.ref.toFloat(Nm), -T_MAX, T_MAX, 12);
     } else {

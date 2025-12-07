@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-float BSP_DWT_GetDT(uint32_t* last_tick);
+float BSP_DWT_GetDT(uint32_t * last_tick);
 
 float BSP_DWT_GetTime();
 

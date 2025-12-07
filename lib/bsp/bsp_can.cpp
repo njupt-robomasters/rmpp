@@ -75,7 +75,6 @@ void CAN::InvokeCallback(const uint8_t port, const uint32_t id, const uint8_t da
     }
 }
 
-
 /********************* 以下为HAL库回调函数 ********************/
 
 extern "C" void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {

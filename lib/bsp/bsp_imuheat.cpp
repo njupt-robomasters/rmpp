@@ -6,8 +6,8 @@
 
 using namespace BSP;
 
-static constexpr uint16_t PSC = 168-1;
-static constexpr uint16_t ARR = 1000-1;
+static constexpr uint16_t PSC = 168 - 1;
+static constexpr uint16_t ARR = 1000 - 1;
 
 void IMUHeat::Init() {
     __HAL_TIM_SET_PRESCALER(&htim10, PSC);

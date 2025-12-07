@@ -31,9 +31,6 @@ public:
 
     Gimbal(const IMU& imu, PID::param_t* yaw1_pid_param, PID::param_t* yaw2_pid_param, PID::param_t* pitch_pid_param);
 
-    // 云台电机是否都上线
-    bool IsReady() override;
-
     // 云台使能/失能
     void SetEnable(bool is_enable) override;
 

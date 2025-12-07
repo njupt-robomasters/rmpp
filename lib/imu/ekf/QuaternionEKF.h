@@ -31,7 +31,7 @@ typedef struct {
     uint64_t ErrorCount;
     uint64_t UpdateCount;
 
-    float q[4]; // 四元数估计值
+    float q[4];        // 四元数估计值
     float GyroBias[3]; // 陀螺仪零偏估计值
 
     float Gyro[3];
@@ -52,13 +52,13 @@ typedef struct {
 
     float Q1; // 四元数更新过程噪声
     float Q2; // 陀螺仪零偏过程噪声
-    float R; // 加速度计量测噪声
+    float R;  // 加速度计量测噪声
 
     float dt; // 姿态更新周期
     mat ChiSquare;
-    float ChiSquare_Data[1]; // 卡方检验检测函数
+    float ChiSquare_Data[1];      // 卡方检验检测函数
     float ChiSquareTestThreshold; // 卡方检验阈值
-    float lambda; // 渐消因子
+    float lambda;                 // 渐消因子
 
     int16_t YawRoundCount;
 

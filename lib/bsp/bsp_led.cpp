@@ -7,7 +7,7 @@
 using namespace BSP;
 
 static constexpr uint16_t PSC = 0;
-static constexpr uint16_t ARR = 65535-1;
+static constexpr uint16_t ARR = 65535 - 1;
 
 void LED::Init() {
     __HAL_TIM_SET_PRESCALER(&htim5, PSC);
@@ -22,9 +22,9 @@ void LED::SetRGB(float red, float green, float blue) {
     green = std::clamp(green, 0.0f, 1.0f);
     blue = std::clamp(blue, 0.0f, 1.0f);
 
-    const uint16_t red_ccr = (uint16_t)((ARR+1) * red);
-    const uint16_t green_ccr = (uint16_t)((ARR+1) * green);
-    const uint16_t blue_ccr = (uint16_t)((ARR+1) * blue);
+    const uint16_t red_ccr = (uint16_t)((ARR + 1) * red);
+    const uint16_t green_ccr = (uint16_t)((ARR + 1) * green);
+    const uint16_t blue_ccr = (uint16_t)((ARR + 1) * blue);
 
     __HAL_TIM_SetCompare(&htim5, TIM_CHANNEL_1, blue_ccr);
     __HAL_TIM_SetCompare(&htim5, TIM_CHANNEL_2, green_ccr);

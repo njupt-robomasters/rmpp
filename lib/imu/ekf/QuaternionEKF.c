@@ -38,13 +38,13 @@ float IMU_QuaternionEKF_H[18];
 
 static float invSqrt(float x);
 
-static void IMU_QuaternionEKF_Observe(KalmanFilter_t *kf);
+static void IMU_QuaternionEKF_Observe(KalmanFilter_t * kf);
 
-static void IMU_QuaternionEKF_F_Linearization_P_Fading(KalmanFilter_t *kf);
+static void IMU_QuaternionEKF_F_Linearization_P_Fading(KalmanFilter_t * kf);
 
-static void IMU_QuaternionEKF_SetH(KalmanFilter_t *kf);
+static void IMU_QuaternionEKF_SetH(KalmanFilter_t * kf);
 
-static void IMU_QuaternionEKF_xhatUpdate(KalmanFilter_t *kf);
+static void IMU_QuaternionEKF_xhatUpdate(KalmanFilter_t * kf);
 
 /**
  * @brief Quaternion EKF initialization and some reference value
@@ -71,7 +71,7 @@ void IMU_QuaternionEKF_Init(float process_noise1, float process_noise2, float me
 
     // 初始化矩阵维度信息
     Kalman_Filter_Init(&QEKF_INS.IMU_QuaternionEKF, 6, 0, 3);
-    Matrix_Init(&QEKF_INS.ChiSquare, 1, 1, (float *) QEKF_INS.ChiSquare_Data);
+    Matrix_Init(&QEKF_INS.ChiSquare, 1, 1, (float*)QEKF_INS.ChiSquare_Data);
 
     // 姿态初始化
     QEKF_INS.IMU_QuaternionEKF.xhat_data[0] = 1;
@@ -154,11 +154,11 @@ void IMU_QuaternionEKF_Update(float gx, float gy, float gz, float ax, float ay, 
         QEKF_INS.Accel[2] = az;
     }
     QEKF_INS.Accel[0] = QEKF_INS.Accel[0] * QEKF_INS.accLPFcoef / (QEKF_INS.dt + QEKF_INS.accLPFcoef) + ax * QEKF_INS.dt
-                        / (QEKF_INS.dt + QEKF_INS.accLPFcoef);
+        / (QEKF_INS.dt + QEKF_INS.accLPFcoef);
     QEKF_INS.Accel[1] = QEKF_INS.Accel[1] * QEKF_INS.accLPFcoef / (QEKF_INS.dt + QEKF_INS.accLPFcoef) + ay * QEKF_INS.dt
-                        / (QEKF_INS.dt + QEKF_INS.accLPFcoef);
+        / (QEKF_INS.dt + QEKF_INS.accLPFcoef);
     QEKF_INS.Accel[2] = QEKF_INS.Accel[2] * QEKF_INS.accLPFcoef / (QEKF_INS.dt + QEKF_INS.accLPFcoef) + az * QEKF_INS.dt
-                        / (QEKF_INS.dt + QEKF_INS.accLPFcoef);
+        / (QEKF_INS.dt + QEKF_INS.accLPFcoef);
 
     // set z,单位化重力加速度向量
     accelInvNorm = invSqrt(
@@ -170,8 +170,8 @@ void IMU_QuaternionEKF_Update(float gx, float gy, float gz, float ax, float ay, 
 
     // get body state
     QEKF_INS.gyro_norm = 1.0f / invSqrt(QEKF_INS.Gyro[0] * QEKF_INS.Gyro[0] +
-                                        QEKF_INS.Gyro[1] * QEKF_INS.Gyro[1] +
-                                        QEKF_INS.Gyro[2] * QEKF_INS.Gyro[2]);
+        QEKF_INS.Gyro[1] * QEKF_INS.Gyro[1] +
+        QEKF_INS.Gyro[2] * QEKF_INS.Gyro[2]);
     QEKF_INS.accl_norm = 1.0f / accelInvNorm;
 
     // 如果角速度小于阈值且加速度处于设定范围内,认为运动稳定,加速度可以用于修正角速度
@@ -208,10 +208,10 @@ void IMU_QuaternionEKF_Update(float gx, float gy, float gz, float ax, float ay, 
     // 利用四元数反解欧拉角
     QEKF_INS.Yaw = atan2f(2.0f * (QEKF_INS.q[0] * QEKF_INS.q[3] + QEKF_INS.q[1] * QEKF_INS.q[2]),
                           2.0f * (QEKF_INS.q[0] * QEKF_INS.q[0] + QEKF_INS.q[1] * QEKF_INS.q[1]) - 1.0f) *
-                   57.295779513f;
+        57.295779513f;
     QEKF_INS.Pitch = atan2f(2.0f * (QEKF_INS.q[0] * QEKF_INS.q[1] + QEKF_INS.q[2] * QEKF_INS.q[3]),
                             2.0f * (QEKF_INS.q[0] * QEKF_INS.q[0] + QEKF_INS.q[3] * QEKF_INS.q[3]) - 1.0f) *
-                     57.295779513f;
+        57.295779513f;
     QEKF_INS.Roll = asinf(-2.0f * (QEKF_INS.q[1] * QEKF_INS.q[3] - QEKF_INS.q[0] * QEKF_INS.q[2])) * 57.295779513f;
 
     // get Yaw total, yaw数据可能会超过360,处理一下方便其他功能使用(如小陀螺)
@@ -231,7 +231,7 @@ void IMU_QuaternionEKF_Update(float gx, float gy, float gz, float ax, float ay, 
  *
  * @param kf
  */
-static void IMU_QuaternionEKF_F_Linearization_P_Fading(KalmanFilter_t *kf) {
+static void IMU_QuaternionEKF_F_Linearization_P_Fading(KalmanFilter_t* kf) {
     static float q0, q1, q2, q3;
     static float qInvNorm;
 
@@ -284,7 +284,7 @@ static void IMU_QuaternionEKF_F_Linearization_P_Fading(KalmanFilter_t *kf) {
  *
  * @param kf
  */
-static void IMU_QuaternionEKF_SetH(KalmanFilter_t *kf) {
+static void IMU_QuaternionEKF_SetH(KalmanFilter_t* kf) {
     static float doubleq0, doubleq1, doubleq2, doubleq3;
     /* H
      0     1     2     3     4     5
@@ -323,7 +323,7 @@ static void IMU_QuaternionEKF_SetH(KalmanFilter_t *kf) {
  *
  * @param kf
  */
-static void IMU_QuaternionEKF_xhatUpdate(KalmanFilter_t *kf) {
+static void IMU_QuaternionEKF_xhatUpdate(KalmanFilter_t* kf) {
     static float q0, q1, q2, q3;
 
     kf->MatStatus = Matrix_Transpose(&kf->H, &kf->HT); // z|x => x|z
@@ -336,7 +336,7 @@ static void IMU_QuaternionEKF_xhatUpdate(KalmanFilter_t *kf) {
     kf->S.numRows = kf->R.numRows;
     kf->S.numCols = kf->R.numCols;
     kf->MatStatus = Matrix_Add(&kf->temp_matrix1, &kf->R, &kf->S); // S = H P'(k) HT + R
-    kf->MatStatus = Matrix_Inverse(&kf->S, &kf->temp_matrix1); // temp_matrix1 = inv(H·P'(k)·HT + R)
+    kf->MatStatus = Matrix_Inverse(&kf->S, &kf->temp_matrix1);     // temp_matrix1 = inv(H·P'(k)·HT + R)
 
     q0 = kf->xhatminus_data[0];
     q1 = kf->xhatminus_data[1];
@@ -399,7 +399,7 @@ static void IMU_QuaternionEKF_xhatUpdate(KalmanFilter_t *kf) {
         // scale adaptive,rk越小则增益越大,否则更相信预测值
         if (QEKF_INS.ChiSquare_Data[0] > 0.1f * QEKF_INS.ChiSquareTestThreshold && QEKF_INS.ConvergeFlag) {
             QEKF_INS.AdaptiveGainScale = (QEKF_INS.ChiSquareTestThreshold - QEKF_INS.ChiSquare_Data[0]) / (
-                                             0.9f * QEKF_INS.ChiSquareTestThreshold);
+                0.9f * QEKF_INS.ChiSquareTestThreshold);
         } else {
             QEKF_INS.AdaptiveGainScale = 1;
         }
@@ -450,7 +450,7 @@ static void IMU_QuaternionEKF_xhatUpdate(KalmanFilter_t *kf) {
  *
  * @param kf kf类型定义
  */
-static void IMU_QuaternionEKF_Observe(KalmanFilter_t *kf) {
+static void IMU_QuaternionEKF_Observe(KalmanFilter_t* kf) {
     memcpy(IMU_QuaternionEKF_P, kf->P_data, sizeof(IMU_QuaternionEKF_P));
     memcpy(IMU_QuaternionEKF_K, kf->K_data, sizeof(IMU_QuaternionEKF_K));
     memcpy(IMU_QuaternionEKF_H, kf->H_data, sizeof(IMU_QuaternionEKF_H));
@@ -465,9 +465,9 @@ static void IMU_QuaternionEKF_Observe(KalmanFilter_t *kf) {
 static float invSqrt(float x) {
     float halfx = 0.5f * x;
     float y = x;
-    long i = *(long *) &y;
+    long i = *(long*)&y;
     i = 0x5f375a86 - (i >> 1);
-    y = *(float *) &i;
+    y = *(float*)&i;
     y = y * (1.5f - (halfx * y * y));
     return y;
 }

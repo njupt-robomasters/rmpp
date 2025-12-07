@@ -26,10 +26,6 @@ Gimbal::Gimbal(const IMU& imu, PID::param_t* yaw1_pid_param, PID::param_t* yaw2_
     m_pitch.SetLimit(false, PITCH_MIN, PITCH_MAX); // pitch
 }
 
-bool Gimbal::IsReady() {
-    return m_yaw1.is_ready && m_yaw2.is_ready && m_pitch.is_ready;
-}
-
 void Gimbal::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable) return;
     this->is_enable = is_enable;
