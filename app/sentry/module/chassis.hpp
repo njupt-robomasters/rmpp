@@ -1,7 +1,7 @@
 #pragma once
 
 #include "template/chassis.hpp"
-#include "motor/m6020.hpp"
+#include "motor/gm6020.hpp"
 #include "motor/m3508.hpp"
 
 class Chassis : public Chassis_Template {
@@ -32,7 +32,7 @@ public:
     } s1, s2;
 
     // 电机对象
-    M6020 m_servo1, m_servo2; // 舵电机
+    GM6020 m_servo1, m_servo2; // 舵电机
     M3508 m_wheel1, m_wheel2; // 轮电机
 
     Chassis(PID::param_t* servo_pid_param, PID::param_t* wheel_pid_param);

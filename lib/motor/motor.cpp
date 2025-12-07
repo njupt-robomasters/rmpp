@@ -105,21 +105,21 @@ void Motor::OnLoop() {
 void Motor::callback() {
     // 电机反向修正
     if (!is_invert) {
-        current.measure = current.absolute;
-        torque.measure = torque.absolute;
-        speed.measure = speed.absolute;
-        angle.measure = angle.absolute;
+        current.measure = current.raw;
+        torque.measure = torque.raw;
+        speed.measure = speed.raw;
+        angle.measure = angle.raw;
     } else {
-        current.measure = -current.absolute;
-        torque.measure = -torque.absolute;
-        speed.measure = -speed.absolute;
-        angle.measure = -angle.absolute;
+        current.measure = -current.raw;
+        torque.measure = -torque.raw;
+        speed.measure = -speed.raw;
+        angle.measure = -angle.raw;
     }
 
     // 软件多圈计数
     if (reduction != 1.0f) { // 减速比!=1时，自动执行软件多圈记数
-        angle.measure += Angle(angle.absolute - angle.last_absolute) / reduction;
-        angle.last_absolute = angle.absolute;
+        angle.measure += Angle(angle.raw - angle.last_raw) / reduction;
+        angle.last_raw = angle.raw;
     }
 
     // 电机角度偏移修正

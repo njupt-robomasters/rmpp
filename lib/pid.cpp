@@ -15,10 +15,17 @@ void PID::SetParam(param_t* param) {
 }
 
 UnitFloat<> PID::Calculate(const UnitFloat<>& err, std::optional<UnitFloat<>> derr) {
+    // PID参数未设置时，返回0
     if (param == nullptr) {
         return 0 * default_unit;
     }
 
+    // max_i未设置时，自动设置为max_out
+    if (max_i == 0) {
+        max_i = max_out;
+    }
+
+    // 位置PID or 增量PID
     if (param->mode == POSITION_MODE) {
         calcPosition(err, derr);
     } else if (param->mode == INCREMENT_MODE) {

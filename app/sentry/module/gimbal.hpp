@@ -2,7 +2,7 @@
 
 #include "template/gimbal.hpp"
 #include "motor/mf9025.hpp"
-#include "motor/m6020.hpp"
+#include "motor/gm6020.hpp"
 #include "motor/dm4310.hpp"
 
 class Gimbal : public Gimbal_Template {
@@ -26,7 +26,7 @@ public:
 
     // 电机对象
     MF9025 m_yaw1;
-    M6020 m_yaw2;
+    GM6020 m_yaw2;
     DM4310 m_pitch;
 
     Gimbal(const IMU& imu, PID::param_t* yaw1_pid_param, PID::param_t* yaw2_pid_param, PID::param_t* pitch_pid_param);

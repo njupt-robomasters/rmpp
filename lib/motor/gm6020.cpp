@@ -1,23 +1,23 @@
-#include "m2006.hpp"
+#include "gm6020.hpp"
 
-M2006::M2006(const uint8_t can_port, const uint8_t motor_id) :
+GM6020::GM6020(const uint8_t can_port, const uint8_t motor_id) :
     can_port(can_port), motor_id(motor_id),
-    control_can_id(motor_id <= 4 ? 0x200 : 0x1FF), feedback_can_id(0x200 + motor_id) {
+    control_can_id(motor_id <= 4 ? 0x1FF : 0x2FF), feedback_can_id(0x204 + motor_id) {
     SetReduction(REDUCTION);
     SetKt(Kt);
 }
 
-int16_t M2006::GetCurrentCmd() const {
+int16_t GM6020::GetVoltageCmd() const {
     int16_t current_cmd;
     if (!is_invert) {
-        current_cmd = (int16_t)(current.ref.toFloat(A) / MAX_CURRENT.toFloat(A) * (float)MAX_CURRENT_CMD);
+        current_cmd = (int16_t)(current.ref.toFloat(A) / MAX_CU0RRENT.toFloat(A) * (float)MAX_VOLTAGE_CMD);
     } else {
-        current_cmd = (int16_t)(-current.ref.toFloat(A) / MAX_CURRENT.toFloat(A) * (float)MAX_CURRENT_CMD);
+        current_cmd = (int16_t)(-current.ref.toFloat(A) / MAX_CU0RRENT.toFloat(A) * (float)MAX_VOLTAGE_CMD);
     }
     return current_cmd;
 }
 
-void M2006::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
+void GM6020::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
     if (port != can_port) return;
     if (id != feedback_can_id) return;
     if (dlc != 8) return;
@@ -28,7 +28,7 @@ void M2006::callback(const uint8_t port, const uint32_t id, const uint8_t data[8
     const auto current_i16 = (int16_t)((data[4] << 8) | data[5]);
 
     // 单位标准化
-    current.raw = (float)current_i16 / (float)MAX_CURRENT_CMD * MAX_CURRENT;
+    current.raw = (float)current_i16 / (float)MAX_VOLTAGE_CMD * MAX_CU0RRENT;
     speed.raw = (float)speed_i16 / reduction * rpm;
     angle.raw = (float)angle_u16 / 8192.0f * rev;
 

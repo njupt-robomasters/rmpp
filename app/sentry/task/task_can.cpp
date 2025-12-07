@@ -3,16 +3,16 @@
 extern "C" void task_can_entry(void* argument) {
     while (true) {
         // 底盘
-        const int16_t cmd7 = chassis.m_servo1.GetCurrentCMD(); // ID：7
-        const int16_t cmd8 = chassis.m_servo2.GetCurrentCMD(); // ID：8
-        const int16_t cmd1 = chassis.m_wheel1.GetCurrentCMD(); // ID：1
-        const int16_t cmd2 = chassis.m_wheel2.GetCurrentCMD(); // ID：2
+        const int16_t cmd7 = chassis.m_servo1.GetVoltageCmd();
+        const int16_t cmd8 = chassis.m_servo2.GetVoltageCmd();
+        const int16_t cmd1 = chassis.m_wheel1.GetCurrentCmd();
+        const int16_t cmd2 = chassis.m_wheel2.GetCurrentCmd();
 
         // 云台
-        const int16_t cmd5 = gimbal.m_yaw2.GetCurrentCMD(); // ID：5
+        const int16_t cmd5 = gimbal.m_yaw2.GetVoltageCmd();
 
         // 发射机构
-        const int16_t cmd6 = shooter.m_shoot.GetCurrentCMD(); // ID：6
+        const int16_t cmd6 = shooter.m_shoot.GetCurrentCmd();
 
         uint8_t data[8];
 

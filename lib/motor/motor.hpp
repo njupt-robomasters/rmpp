@@ -32,22 +32,22 @@ public:
 
     // 电流
     struct {
-        UnitFloat<A> ref, measure, absolute; // absolute为电机反转处理前的值
+        UnitFloat<A> ref, measure, raw; // raw为电机反转处理前的值
     } current;
 
     // 扭矩
     struct {
-        UnitFloat<Nm> ref, measure, absolute; // absolute为电机反转处理前的值
+        UnitFloat<Nm> ref, measure, raw; // raw为电机反转处理前的值
     } torque;
 
     // 转速
     struct {
-        UnitFloat<rpm> ref, measure, absolute; // absolute为电机反转处理前的值
+        UnitFloat<rpm> ref, measure, raw; // raw为电机反转处理前的值
     } speed;
 
     // 角度（减速比!=1时，自动执行软件多圈记数）
     struct {
-        Angle<deg> ref, measure, absolute, last_absolute; // absolute为电机反转、安装偏移处理前的值
+        Angle<deg> ref, measure, raw, last_raw; // raw为电机反转、安装偏移处理前的值
     } angle;
 
     // 用于记录CAN回调频率
