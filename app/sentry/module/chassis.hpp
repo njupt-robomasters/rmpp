@@ -17,10 +17,6 @@ public:
     // 最小转舵速度
     static constexpr UnitFloat MIN_V = 0.01f * m_s;
 
-    // 用于功率控制
-    static constexpr float R = 0.194f / 2; // 相电阻（两相电阻/2）
-    static constexpr float Kt = 0.55f;     // 输出轴力矩常数
-
     // 轮子线速度
     struct {
         UnitFloat<m_s> ref, measure;

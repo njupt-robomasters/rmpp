@@ -5,6 +5,7 @@
 class DM4310 : public Motor {
 public:
     static constexpr UnitFloat Kt = 1.2f * Nm_A;
+    static constexpr float R = 0.65f / 2; // 相电阻（两相电阻/2）
 
     // CAN通信参数
     const uint8_t can_port;

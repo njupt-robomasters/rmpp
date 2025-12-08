@@ -23,9 +23,9 @@ void Dwt::onLoop() {
     tick32 = now_tick32;
 }
 
-float Dwt::GetTime() {
+double Dwt::GetTime() {
     onLoop();
-    const float seconds = (float)tick64 / (float)SystemCoreClock;
+    const double seconds = (double)tick64 / (double)SystemCoreClock;
     return seconds;
 }
 
@@ -68,7 +68,7 @@ float BSP_DWT_GetDT(uint32_t* last_tick) {
     return dt;
 }
 
-float BSP_DWT_GetTime() {
+double BSP_DWT_GetTime() {
     return Dwt::GetTime();
 }
 

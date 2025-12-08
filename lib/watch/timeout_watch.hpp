@@ -8,7 +8,7 @@ public:
     TimeoutWatch(const float timeout, T timeout_value) : timeout(timeout), timeout_value(timeout_value), m_value(timeout_value) {}
 
     T value() {
-        if (BSP::Dwt::GetTime() - m_last_time > timeout) {
+        if (BSP::Dwt::GetTime() - m_last_time_f64 > timeout) {
             m_value = timeout_value;
         }
         return m_value;
@@ -20,15 +20,15 @@ public:
     }
 
     // 赋值运算
-    TimeoutWatch& operator=(const T& m_value) {
-        this->m_value = m_value;
-        this->m_last_time = BSP::Dwt::GetTime();
+    TimeoutWatch& operator=(const T& value) {
+        m_value = value;
+        m_last_time_f64 = BSP::Dwt::GetTime();
         return *this;
     }
 
     TimeoutWatch& operator=(const TimeoutWatch& other) {
-        this->m_value = other.m_value;
-        this->m_last_time = BSP::Dwt::GetTime();
+        m_value = other.m_value;
+        m_last_time_f64 = BSP::Dwt::GetTime();
         return *this;
     }
 
@@ -37,5 +37,5 @@ private:
     const T timeout_value;
 
     T m_value;
-    float m_last_time = 0;
+    double m_last_time_f64 = 0;
 };

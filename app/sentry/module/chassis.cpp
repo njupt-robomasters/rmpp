@@ -123,12 +123,12 @@ void Chassis::powerControl() {
     // c = -P
 
     UnitFloat a;
-    a += unit::square(m_wheel1.current.ref) * R;
-    a += unit::square(m_wheel2.current.ref) * R;
+    a += 3 * unit::square(m_wheel1.current.ref) * M3508::R;
+    a += 3 * unit::square(m_wheel2.current.ref) * M3508::R;
 
     UnitFloat b;
-    b += Kt * m_wheel1.current.ref * m_wheel1.speed.measure;
-    b += Kt * m_wheel2.current.ref * m_wheel2.speed.measure;
+    b += M3508::Kt * m_wheel1.current.ref * m_wheel1.speed.measure;
+    b += M3508::Kt * m_wheel2.current.ref * m_wheel2.speed.measure;
 
     const UnitFloat c = -power_limit;
 
@@ -143,7 +143,7 @@ void Chassis::powerControl() {
     m_wheel2.SetCurrentRatio(current_ratio);
 
     // 估算底盘当前功率，用于调试
-    const UnitFloat power1 = unit::square(m_wheel1.current.ref) * R + Kt * m_wheel1.current.ref * m_wheel1.speed.measure;
-    const UnitFloat power2 = unit::square(m_wheel2.current.ref) * R + Kt * m_wheel2.current.ref * m_wheel2.speed.measure;
+    const UnitFloat power1 = 3 * unit::square(m_wheel1.current.ref) * M3508::R + M3508::Kt * m_wheel1.current.ref * m_wheel1.speed.measure;
+    const UnitFloat power2 = 3 * unit::square(m_wheel2.current.ref) * M3508::R + M3508::Kt * m_wheel2.current.ref * m_wheel2.speed.measure;
     power_estimate = power1 + power2;
 }

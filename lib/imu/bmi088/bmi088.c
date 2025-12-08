@@ -1,11 +1,9 @@
 #include "bmi088.h"
 
+#include <math.h>
 #include "bmi088_reg.h"
 #include "bmi088_middleware.h"
 #include "bsp/bsp_dwt.h"
-#include <math.h>
-
-#include "cmsis_os.h"
 
 float BMI088_ACCEL_SEN = BMI088_ACCEL_6G_SEN;
 float BMI088_GYRO_SEN = BMI088_GYRO_2000_SEN;
@@ -115,10 +113,10 @@ static void BMI088_read_muli_reg(uint8_t reg, uint8_t* buf, uint8_t len) {
 void BMI088_Init(SPI_HandleTypeDef* bmi088_SPI) {
     BMI088_SPI = bmi088_SPI;
     while (bmi088_accel_init() != BMI088_NO_ERROR) {
-        osDelay(1);
+        HAL_Delay(1);
     }
     while (bmi088_gyro_init() != BMI088_NO_ERROR) {
-        osDelay(1);
+        HAL_Delay(1);
     }
     BMI088.GyroOffset[0] = 0;
     BMI088.GyroOffset[1] = 0;
@@ -141,7 +139,7 @@ void BMI088_SetCalibrateParam(float GxOFFSET, float GyOFFSET, float GzOFFSET, fl
 void BMI088_Calibrate() {
     IMU_Data_t* bmi088 = &BMI088;
 
-    static float startTime;
+    static double startTime;
     static uint16_t CaliTimes = 6000; // 需要足够多的数据才能得到有效陀螺仪零偏校准结果
     uint8_t buf[8] = {0, 0, 0, 0, 0, 0};
     int16_t bmi088_raw_temp;

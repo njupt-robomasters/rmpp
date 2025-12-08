@@ -11,6 +11,12 @@ using unit::Angle;
 using unit::default_unit;
 
 // 简单单位
+// 时间
+inline constexpr Unit s("s", 1.0f);
+inline constexpr Unit min("min", 60.0f);
+inline constexpr Unit ms("ms", 0.001f);
+inline constexpr Unit us("us", 1.0e-6f);
+
 // 长度
 inline constexpr Unit m("m", 1.0f);
 inline constexpr Unit cm("cm", 0.01f);
@@ -20,11 +26,6 @@ inline constexpr Unit mm("mm", 0.001f);
 inline constexpr Unit rad("rad", 1.0f);        // 弧度
 inline constexpr Unit deg("deg", PI / 180.0f); // 角度
 inline constexpr Unit rev("rev", 2 * PI);      // 圈
-
-// 时间
-inline constexpr Unit s("s", 1.0f);
-inline constexpr Unit ms("ms", 0.001f);
-inline constexpr Unit min("min", 60.0f);
 
 inline constexpr Unit V("V", 1.0f);    // 电压
 inline constexpr Unit A("A", 1.0f);    // 电流
@@ -41,8 +42,8 @@ inline constexpr Unit m_s = m / s;
 // 角速度
 inline constexpr Unit rad_s = rad / s;
 inline constexpr Unit deg_s = deg / s;
-inline constexpr Unit rpm("rpm", rev.m_scale / min.m_scale);
-inline constexpr Unit rps("rps", rev.m_scale / s.m_scale);
+inline constexpr Unit rpm("rpm", (rev / min).m_scale);
+inline constexpr Unit rps("rps", (rev / s).m_scale);
 
 // 加速度
 inline constexpr Unit m_ss = m / s / s;

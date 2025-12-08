@@ -12,7 +12,7 @@ extern "C" {
 
 float BSP_DWT_GetDT(uint32_t * last_tick);
 
-float BSP_DWT_GetTime();
+double BSP_DWT_GetTime();
 
 void BSP_DWT_Delay(float seconds);
 
@@ -37,7 +37,7 @@ namespace BSP {
 
         static void Init();
 
-        static float GetTime();
+        static double GetTime();
 
         static void Delay(float seconds);
 

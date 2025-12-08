@@ -1,5 +1,4 @@
 #include "bsp_uart.hpp"
-#include "usart.h"
 
 using namespace BSP;
 

@@ -2,8 +2,7 @@
 
 #include <functional>
 #include <vector>
-
-#include <usart.h>
+#include "usart.h"
 
 namespace BSP {
     template <typename T>
@@ -36,6 +35,7 @@ namespace BSP {
         }
     };
 
+    // 遥控器串口
     class UART3 : public UART<UART3> {
         friend class UART;
 
@@ -47,6 +47,7 @@ namespace BSP {
         static uint8_t rxbuf[RXBUF_SIZE];
     };
 
+    // 裁判系统图传串口
     class UART6 : public UART<UART6> {
         friend class UART;
 

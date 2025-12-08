@@ -1,6 +1,5 @@
 #pragma once
 
-#include "crc16.hpp"
 #include "watch/timeout_watch.hpp"
 
 class VT13 {

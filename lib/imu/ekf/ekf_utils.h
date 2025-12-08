@@ -1,9 +1,9 @@
 #pragma once
 
 #include <stdint.h>
-#include "cmsis_os.h"
+#include <stdlib.h>
 
-#define user_malloc pvPortMalloc
+#define user_malloc malloc
 
 /* boolean type definitions */
 #ifndef TRUE

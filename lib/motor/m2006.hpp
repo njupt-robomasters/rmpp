@@ -8,6 +8,7 @@ public:
     static constexpr uint16_t MAX_CURRENT_CMD = 10000;
     static constexpr float REDUCTION = 36.0f;
     static constexpr UnitFloat Kt = 0.3f * Nm_A;
+    static constexpr float R = 0.461f / 2; // 相电阻（两相电阻/2）
 
     // CAN通信参数
     const uint16_t can_port;

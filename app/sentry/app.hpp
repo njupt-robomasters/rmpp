@@ -3,12 +3,13 @@
 // bsp
 #include "bsp/bsp.hpp"
 
-// components
+// lib
+#include "scheduler.hpp"
 #include "remote/dj6.hpp"
 #include "remote/vt13.hpp"
 #include "imu/imu.hpp"
 
-// modules
+// module
 #include "module/chassis.hpp"
 #include "module/gimbal.hpp"
 #include "module/shooter.hpp"
@@ -97,6 +98,7 @@ extern Parameter param;
 extern Config cfg;
 extern Variable var;
 
+extern Scheduler scheduler;
 extern DJ6 dj6;
 extern VT13 vt13;
 extern IMU imu;

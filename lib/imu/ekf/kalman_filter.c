@@ -127,9 +127,7 @@
  */
 
 #include "kalman_filter.h"
-
 #include "ekf_utils.h"
-#include "cmsis_os.h"
 
 uint16_t sizeof_float, sizeof_double;
 

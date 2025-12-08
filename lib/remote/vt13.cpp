@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include "bsp/bsp.hpp"
+#include "crc16.hpp"
 
 VT13::VT13() : is_connected(TIMEOUT, false) {
     auto callback = std::bind(&VT13::callback,

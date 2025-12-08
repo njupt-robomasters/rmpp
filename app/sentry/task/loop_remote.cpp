@@ -65,20 +65,16 @@ static void handle_client() {
 
 static void handle_nav() {}
 
-extern "C" void task_remote_entry(void* argument) {
-    while (true) {
-        handle_rc();
-        handle_vt13();
-        handle_client();
-        handle_nav();
+void loop_remote() {
+    handle_rc();
+    handle_vt13();
+    handle_client();
+    handle_nav();
 
-        var.vx.sum = unit::clamp(var.vx.rc + var.vx.vt13 + var.vx.client + var.vx.nav, cfg.vxy_max);
-        var.vy.sum = unit::clamp(var.vy.rc + var.vy.vt13 + var.vy.client + var.vy.nav, cfg.vxy_max);
-        var.vr.sum = unit::clamp(var.vr.rc + var.vr.vt13 + var.vr.client + var.vr.nav, cfg.vr_max);
+    var.vx.sum = unit::clamp(var.vx.rc + var.vx.vt13 + var.vx.client + var.vx.nav, cfg.vxy_max);
+    var.vy.sum = unit::clamp(var.vy.rc + var.vy.vt13 + var.vy.client + var.vy.nav, cfg.vxy_max);
+    var.vr.sum = unit::clamp(var.vr.rc + var.vr.vt13 + var.vr.client + var.vr.nav, cfg.vr_max);
 
-        var.pitch_speed.sum = unit::clamp(var.pitch_speed.rc + var.pitch_speed.vt13 + var.pitch_speed.client + var.pitch_speed.nav, cfg.pitch_max_speed);
-        var.yaw_speed.sum = unit::clamp(var.yaw_speed.rc + var.yaw_speed.vt13 + var.yaw_speed.client + var.yaw_speed.nav, cfg.yaw_max_speed);
-
-        BSP::OS::Delay(1);
-    }
+    var.pitch_speed.sum = unit::clamp(var.pitch_speed.rc + var.pitch_speed.vt13 + var.pitch_speed.client + var.pitch_speed.nav, cfg.pitch_max_speed);
+    var.yaw_speed.sum = unit::clamp(var.yaw_speed.rc + var.yaw_speed.vt13 + var.yaw_speed.client + var.yaw_speed.nav, cfg.yaw_max_speed);
 }
