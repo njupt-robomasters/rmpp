@@ -7,10 +7,6 @@ public:
     static constexpr UnitFloat Kt = 1.2f * Nm_A;
     static constexpr float R = 0.65f / 2; // 相电阻（两相电阻/2）
 
-    // CAN通信参数
-    const uint8_t can_port;
-    const uint32_t master_id, slave_id;
-
     enum err_code_e {
         NONE      = 0x00,
         OVP       = 0x08, // 超压
@@ -22,7 +18,7 @@ public:
         OVERLOAD  = 0x0E  // 过载
     };
 
-    // 从CAN读取的电机额外信息
+    // 从CAN读取的额外信息
     err_code_e err_code = NONE;   // 错误代码
     UnitFloat<C> temperate_mos;   // MOS温度
     UnitFloat<C> temperate_motor; // 电机温度
@@ -38,6 +34,10 @@ private:
     constexpr static float KP_MAX = 500.0f;
     constexpr static float KD_MAX = 5.0f;
     constexpr static float T_MAX = 10.0f;
+
+    // CAN通信参数
+    const uint8_t can_port;
+    const uint32_t master_id, slave_id;
 
     // 用于定期发送使能命令
     uint32_t send_cnt = 0;

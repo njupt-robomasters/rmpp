@@ -6,10 +6,6 @@ class MF9025 : public Motor {
 public:
     static constexpr UnitFloat Kt = 0.32f * Nm_A;
 
-    // CAN通信参数
-    const uint8_t can_port;
-    const uint8_t motor_id; // 控制报文和反馈报文均为0x140+motor_id
-
     UnitFloat<C> temperature_motor; // 电机温度
 
     MF9025(uint8_t can_port, uint8_t motor_id);
@@ -18,6 +14,10 @@ public:
     void OnLoop();
 
 private:
+    // CAN通信参数
+    const uint8_t can_port;
+    const uint8_t motor_id; // 控制报文和反馈报文均为0x140+motor_id
+
     uint32_t send_cnt = 0; // 用于定期发送使能命令
 
     // CAN回调函数

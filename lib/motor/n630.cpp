@@ -14,7 +14,7 @@ void N630::SetEnable(const bool is_enable) {
     this->is_enable = is_enable;
 }
 
-void N630::SetBrakeMode(brake_mode_e brake_mode) {
+void N630::SetBrakeMode(const brake_mode_e brake_mode) {
     this->brake_mode = brake_mode;
 }
 

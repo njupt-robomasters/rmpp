@@ -11,15 +11,13 @@ public:
     // 陀螺仪安装方向参数
     struct dir_t {
         Angle<deg> yaw, pitch, roll;
-    } dir;
+    };
 
     // 陀螺仪校准参数
     struct calib_t {
         float gx_offset = 0, gy_offset = 0, gz_offset = 0;
         float g_norm = 1;
-    } calib;
-
-    bool is_ready = false;
+    };
 
     // 陀螺仪原始数据
     float gyro[3]{};  // 角速度
@@ -31,8 +29,6 @@ public:
     // 欧拉角
     Angle<deg> yaw, pitch, roll;
     UnitFloat<deg> yaw_total_angle;
-
-    BSP::Dwt dwt; // 用于计算dt
 
     IMU(const dir_t& dir, const calib_t& calib);
 
@@ -85,4 +81,9 @@ private:
         };
         PID pid;
     } temperature_control{};
+
+    dir_t dir;
+    calib_t calib;
+
+    BSP::Dwt dwt; // 用于计算dt
 };

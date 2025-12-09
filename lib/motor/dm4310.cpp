@@ -7,6 +7,7 @@ DM4310::DM4310(const uint8_t can_port, const uint32_t master_id, const uint32_t 
                                          std::placeholders::_2,
                                          std::placeholders::_3,
                                          std::placeholders::_4));
+    SetReduction(1.0f);
     SetKt(Kt);
 }
 

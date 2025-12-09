@@ -88,5 +88,5 @@ void VT13::resetData() {
     // 键鼠操作
     mouse_x = mouse_y = mouse_z = 0;
     mouse_left = mouse_right = mouse_middle = false;
-    memset(&key, 0, sizeof(key));
+    key = {};
 }

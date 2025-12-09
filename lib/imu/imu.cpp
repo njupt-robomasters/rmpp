@@ -55,8 +55,6 @@ void IMU::OnLoop() {
 
     // imu加热
     temperature_control.OnLoop();
-
-    is_ready = true;
 }
 
 // 安装方向修正

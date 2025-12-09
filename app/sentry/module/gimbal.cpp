@@ -6,9 +6,9 @@ Gimbal::Gimbal(const IMU& imu, PID::param_t* yaw1_pid_param, PID::param_t* yaw2_
     m_yaw2(1, 1),
     m_pitch(2, 0x00, 0x01) {
     // 设置电机PID参数
-    m_yaw1.SetPIDParam(Motor::PID_OUTPUT_CURRENT, yaw1_pid_param);  // 大yaw
-    m_yaw2.SetPIDParam(Motor::PID_OUTPUT_CURRENT, yaw2_pid_param);  // 小yaw
-    m_pitch.SetPIDParam(Motor::PID_OUTPUT_TORQUE, pitch_pid_param); // pitch
+    m_yaw1.SetPID(Motor::ANGLE_MODE, Motor::CURRENT_TYPE, yaw1_pid_param);  // 大yaw
+    m_yaw2.SetPID(Motor::ANGLE_MODE, Motor::CURRENT_TYPE, yaw2_pid_param);  // 小yaw
+    m_pitch.SetPID(Motor::ANGLE_MODE, Motor::TORQUE_TYPE, pitch_pid_param); // pitch
 
     // 设置电机偏移
     m_yaw1.SetOffset(YAW1_OFFSET);   // 大yaw

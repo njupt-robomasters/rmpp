@@ -1,8 +1,8 @@
 #pragma once
 
 #include <optional>
-#include "../bsp/bsp.hpp"
-#include "../unit/include_me.hpp"
+#include "bsp/bsp.hpp"
+#include "unit/include_me.hpp"
 
 class PID {
 public:
@@ -20,13 +20,7 @@ public:
         UnitFloat<> fc;         // 输入低通截止频率
     };
 
-    param_t* param = nullptr; // PID参数
-
-    UnitFloat<> err, last_err, last_err2; // 误差值 err = ref - measure
-    UnitFloat<> di;                       // 当前时刻的i增量
-    UnitFloat<> out, p_out, i_out, d_out; // pid输出
-
-    BSP::Dwt dwt; // 用于计算dt
+    UnitFloat<> out;
 
     PID() = default;
 
@@ -39,6 +33,13 @@ public:
     void Clear();
 
 private:
+    param_t* param = nullptr; // PID参数
+
+    UnitFloat<> err, last_err, last_err2; // 误差值 err = ref - measure
+    UnitFloat<> p_out, i_out, d_out;      // pid输出
+
+    BSP::Dwt dwt; // 用于计算dt
+
     // 低通滤波
     static UnitFloat<> lowpassFilter(const UnitFloat<>& pre, const UnitFloat<>& next, const UnitFloat<>& fc, float dt);
 

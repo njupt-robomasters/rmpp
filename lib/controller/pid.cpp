@@ -44,7 +44,7 @@ void PID::calcPosition(const UnitFloat<>& err, const std::optional<UnitFloat<>>&
 
     // 基础PID计算
     p_out = kp * err;
-    di = ki * err * dt;
+    UnitFloat<> di = ki * err * dt;
     if (derr.has_value()) {
         d_out = kd * derr.value();
     } else {
@@ -53,13 +53,8 @@ void PID::calcPosition(const UnitFloat<>& err, const std::optional<UnitFloat<>>&
 
     // 积分限幅
     // 情况一：总输出饱和，且I输出呈累计趋势 -> 阻止I继续累积
-    if (unit::abs(p_out + i_out + d_out) >= max_out) {
-        if (di* i_out
-        
-        >
-        0
-        )
-        { // 积分呈累积趋势
+    if (unit::abs(out) >= max_out) {
+        if (di * i_out > 0) { // 积分呈累积趋势
             di = 0 * default_unit;
         }
     }
@@ -101,7 +96,6 @@ void PID::calcIncrement(const UnitFloat<>& err) {
 
 void PID::Clear() {
     err = last_err = last_err2 = 0 * default_unit;
-    di = 0 * default_unit;
     out = p_out = i_out = d_out = 0 * default_unit;
     dwt.Clear();
 }

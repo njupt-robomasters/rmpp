@@ -3,7 +3,7 @@
 GM6020::GM6020(const uint8_t can_port, const uint8_t motor_id) :
     can_port(can_port), motor_id(motor_id),
     control_can_id(motor_id <= 4 ? 0x1FF : 0x2FF), feedback_can_id(0x204 + motor_id) {
-    SetReduction(REDUCTION);
+    SetReduction(1.0f);
     SetKt(Kt);
 }
 

@@ -4,6 +4,22 @@
 
 class DJ6 {
 public:
+    enum switch_e {
+        ERR,
+        DOWN,
+        MID,
+        UP
+    };
+
+    bool is_connected = false;
+    float x = 0, y = 0, pitch = 0, yaw = 0;
+    switch_e switch_left = ERR, switch_right = ERR;
+
+    DJ6();
+
+    void OnLoop();
+
+private:
     static constexpr float TIMEOUT = 0.1f;         // 断联检测超时时间
     static constexpr float STICK_DEADLINE = 0.01f; // 摇杆死区，小于此值认为是0
 
@@ -27,25 +43,8 @@ public:
         uint16_t CH16 = 1024;
     } raw;
 
-    enum switch_e {
-        ERR,
-        DOWN,
-        MID,
-        UP
-    };
+    BSP::Dwt dwt; // 用于断联超时检测
 
-    bool is_connected = false;
-    float x = 0, y = 0, pitch = 0, yaw = 0;
-    switch_e switch_left = ERR, switch_right = ERR;
-
-    // 用于断联超时检测
-    BSP::Dwt dwt;
-
-    DJ6();
-
-    void OnLoop();
-
-private:
     // 串口接收回调
     void callback(const uint8_t data[], uint16_t size);
 

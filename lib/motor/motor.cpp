@@ -30,8 +30,9 @@ void Motor::SetCanSendFreq(const UnitFloat<>& can_send_freq) {
     this->can_send_freq = can_send_freq;
 }
 
-void Motor::SetPIDParam(pid_output_type_e pid_output_type, PID::param_t* pid_param) {
-    this->pid_output_type = pid_output_type;
+void Motor::SetPID(const pid_mode_e pid_mode, const pid_type_e pid_type, PID::param_t* pid_param) {
+    this->pid_mode = pid_mode;
+    this->pid_type = pid_type;
     pid.SetParam(pid_param);
 }
 
@@ -46,13 +47,10 @@ void Motor::SetTorque(const UnitFloat<>& torque) {
 }
 
 void Motor::SetSpeed(const UnitFloat<>& speed) {
-    this->control_mode = SPEED_MODE;
     this->speed.ref = speed;
 }
 
 void Motor::SetAngle(Angle<>&& angle, const UnitFloat<>& speed_ff) {
-    this->control_mode = ANGLE_MODE;
-
     // 电机上线后第一次设置角度，角度设置为当前位置（防止电机一下子飞起来）
     if (is_online && !is_online_last) {
         angle = this->angle.ref = this->angle.measure;
@@ -80,24 +78,24 @@ void Motor::OnLoop() {
     }
 
     if (is_enable && is_online) {
-        if (control_mode == SPEED_MODE) { // 速度模式
+        if (pid_mode == SPEED_MODE) { // 速度模式
             const UnitFloat speed_err = speed.ref - speed.measure;
             current.ref = torque.ref = pid.Calculate(speed_err);
-        } else if (control_mode == ANGLE_MODE) { // 角度模式
+        } else if (pid_mode == ANGLE_MODE) { // 角度模式
             if (is_limit) {                      // 限位模式
                 const UnitFloat angle_err = angle.ref - angle.measure;
                 const UnitFloat speed_err = speed.ref - speed.measure;
-                if (pid_output_type == PID_OUTPUT_CURRENT) {
+                if (pid_type == CURRENT_TYPE) {
                     SetCurrent(pid.Calculate(angle_err, speed_err));
-                } else if (pid_output_type == PID_OUTPUT_TORQUE) {
+                } else if (pid_type == TORQUE_TYPE) {
                     SetTorque(pid.Calculate(angle_err, speed_err));
                 }
             } else { // 圆周模式
                 const Angle angle_err = angle.ref - angle.measure;
                 const UnitFloat speed_err = speed.ref - speed.measure;
-                if (pid_output_type == PID_OUTPUT_CURRENT) {
+                if (pid_type == CURRENT_TYPE) {
                     SetCurrent(pid.Calculate(angle_err, speed_err));
-                } else if (pid_output_type == PID_OUTPUT_TORQUE) {
+                } else if (pid_type == TORQUE_TYPE) {
                     SetTorque(pid.Calculate(angle_err, speed_err));
                 }
             }
