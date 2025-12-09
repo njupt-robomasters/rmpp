@@ -4,8 +4,10 @@
 #include "bsp/bsp.hpp"
 
 // lib
-#include "remote/dj6.hpp"
-#include "remote/vt13.hpp"
+#include "template/led.hpp"
+#include "rc/dj6.hpp"
+#include "referee/vt13.hpp"
+#include "referee/referee.hpp"
 #include "imu/imu.hpp"
 
 // module
@@ -97,8 +99,10 @@ extern Parameter param;
 extern Config cfg;
 extern Variable var;
 
+extern LED led;
 extern DJ6 dj6;
 extern VT13 vt13;
+extern Referee referee;
 extern IMU imu;
 extern Chassis chassis;
 extern Gimbal gimbal;

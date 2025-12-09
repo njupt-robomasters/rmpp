@@ -2,11 +2,10 @@
 #include <algorithm>
 
 DJ6::DJ6() {
-    auto callback = std::bind(&DJ6::callback,
-                              this,
-                              std::placeholders::_1,
-                              std::placeholders::_2);
-    BSP::UART3::RegisterCallback(callback);
+    BSP::UART3::RegisterCallback(std::bind(&DJ6::callback,
+                                           this,
+                                           std::placeholders::_1,
+                                           std::placeholders::_2));
 }
 
 void DJ6::OnLoop() {

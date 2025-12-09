@@ -1,14 +1,13 @@
 #include "vt13.hpp"
 #include <cstring>
 #include <algorithm>
-#include "crc16.hpp"
+#include "crc.hpp"
 
 VT13::VT13() {
-    auto callback = std::bind(&VT13::callback,
-                              this,
-                              std::placeholders::_1,
-                              std::placeholders::_2);
-    BSP::UART3::RegisterCallback(callback);
+    BSP::UART6::RegisterCallback(std::bind(&VT13::callback,
+                                           this,
+                                           std::placeholders::_1,
+                                           std::placeholders::_2));
 }
 
 void VT13::OnLoop() {

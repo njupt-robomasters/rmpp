@@ -4,19 +4,16 @@ Parameter param;
 Config cfg;
 Variable var;
 
+LED led;
 DJ6 dj6;
 VT13 vt13;
+Referee referee;
 IMU imu(param.imu.dir, param.imu.calib);
 Chassis chassis(&param.chassis.servo_pid_param, &param.chassis.wheel_pid_param);
 Gimbal gimbal(imu, &param.gimbal.yaw1_pid_param, &param.gimbal.yaw2_pid_param, &param.gimbal.pitch_pid_param);
 Shooter shooter(&param.shooter.shoot_pid_param);
 
-extern void loop_led();
-extern void loop_remote();
-extern void loop_imu();
-extern void loop_chassis();
-extern void loop_gimbal();
-extern void loop_shooter();
+extern void loop_control();
 extern void loop_can();
 
 void setup() {
@@ -24,15 +21,22 @@ void setup() {
 
     imu.Init();
     // imu.Calibrate();
+
+    shooter.SetBulletSpeed(18.0f * m_s); // 设置弹速
+    shooter.SetShootFreq(5.0f * Hz); // 设置弹频
 }
 
 void loop() {
-    loop_led();
-    loop_remote();
-    loop_imu();
-    loop_chassis();
-    loop_gimbal();
-    loop_shooter();
+    loop_control();
+
+    led.OnLoop();
+    dj6.OnLoop();
+    vt13.OnLoop();
+    referee.OnLoop();
+    imu.OnLoop();
+    chassis.OnLoop();
+    gimbal.OnLoop();
+
     loop_can();
 }
 
