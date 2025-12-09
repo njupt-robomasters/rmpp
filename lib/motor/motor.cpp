@@ -1,7 +1,5 @@
 #include "motor.hpp"
 
-Motor::Motor() : is_ready(CAN_FEEDBACK_TIMEOUT, false) {}
-
 void Motor::SetEnable(const bool is_enable) {
     this->is_enable = is_enable;
 }
@@ -28,6 +26,10 @@ void Motor::SetLimit(const bool is_limit, const Angle<>& limit_min, const Angle<
     this->limit_max = limit_max;
 }
 
+void Motor::SetCanSendFreq(const UnitFloat<>& can_send_freq) {
+    this->can_send_freq = can_send_freq;
+}
+
 void Motor::SetPIDParam(pid_output_type_e pid_output_type, PID::param_t* pid_param) {
     this->pid_output_type = pid_output_type;
     pid.SetParam(pid_param);
@@ -52,10 +54,10 @@ void Motor::SetAngle(Angle<>&& angle, const UnitFloat<>& speed_ff) {
     this->control_mode = ANGLE_MODE;
 
     // 电机上线后第一次设置角度，角度设置为当前位置（防止电机一下子飞起来）
-    if (is_ready && !is_ready_last) {
+    if (is_online && !is_online_last) {
         angle = this->angle.ref = this->angle.measure;
     }
-    is_ready_last = is_ready;
+    is_online_last = is_online;
 
     // 软件限位
     if (is_limit) {
@@ -73,7 +75,11 @@ void Motor::SetAngle(Angle<>&& angle, const UnitFloat<>& speed_ff) {
 }
 
 void Motor::OnLoop() {
-    if (is_enable && is_ready) {
+    if (dwt1.GetDT() > TIMEOUT) {
+        is_online = false;
+    }
+
+    if (is_enable && is_online) {
         if (control_mode == SPEED_MODE) { // 速度模式
             const UnitFloat speed_err = speed.ref - speed.measure;
             current.ref = torque.ref = pid.Calculate(speed_err);
@@ -128,9 +134,6 @@ void Motor::callback() {
     // 电机角度偏移修正
     angle.measure -= offset;
 
-    // 电机就绪标识
-    is_ready = true;
-
-    // 记录CAN回调频率
-    dwt.GetDT();
+    dwt1.UpdateDT();
+    is_online = true;
 }

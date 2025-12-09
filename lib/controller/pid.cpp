@@ -37,7 +37,7 @@ UnitFloat<> PID::Calculate(const UnitFloat<>& err, std::optional<UnitFloat<>> de
 
 void PID::calcPosition(const UnitFloat<>& err, const std::optional<UnitFloat<>>& derr) {
     // 计算dt
-    const float dt = dwt.GetDT();
+    const float dt = dwt.UpdateDT();
 
     // 输入滤波
     this->err = lowpassFilter(this->err, err, fc, dt);
@@ -76,7 +76,7 @@ void PID::calcPosition(const UnitFloat<>& err, const std::optional<UnitFloat<>>&
 
 void PID::calcIncrement(const UnitFloat<>& err) {
     // 计算dt
-    const float dt = dwt.GetDT();
+    const float dt = dwt.UpdateDT();
 
     // 输入滤波
     this->err = lowpassFilter(this->err, err, fc, dt);

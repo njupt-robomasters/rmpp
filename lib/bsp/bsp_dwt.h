@@ -41,9 +41,9 @@ namespace BSP {
 
         static void Delay(float seconds);
 
-        float GetDT();
+        float GetDT() const;
 
-        void Update();
+        float UpdateDT();
 
         void Clear();
     };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "watch/timeout_watch.hpp"
+#include "bsp/bsp.hpp"
 
 class VT13 {
 public:
@@ -32,21 +32,20 @@ public:
     } raw{};
 
     enum mode_e {
+        ERR,
         C,
         N,
         S
     };
 
-    VT13();
+    bool is_connected = false;
 
-    TimeoutWatch<bool> is_connected;
+    // 遥控器操作
+    float x = 0, y = 0, pitch = 0, yaw = 0, wheel = 0;
+    mode_e mode = ERR;
+    bool pause = false, trigger = false, fn_left = false, fn_right = false;
 
-    float x = 0, y = 0, pitch = 0, yaw = 0;
-    mode_e mode = C;
-    bool pause = false;
-    bool fn_left = false, fn_right = false;
-    float wheel = 0;
-
+    // 键鼠操作
     float mouse_x = 0, mouse_y = 0, mouse_z = 0;
     bool mouse_left = false, mouse_right = false, mouse_middle = false;
 
@@ -59,10 +58,19 @@ public:
         bool v = false, b = false;
     } key;
 
+    // 用于断联超时检测
+    BSP::Dwt dwt;
+
+    VT13();
+
+    void OnLoop();
+
 private:
     // 串口接收回调
     void callback(const uint8_t data[], uint16_t size);
 
     // 解析遥杆值，归一化到±1
     static float getStick(uint16_t value);
+
+    void resetData();
 };

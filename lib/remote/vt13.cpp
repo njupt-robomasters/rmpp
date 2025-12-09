@@ -1,16 +1,20 @@
 #include "vt13.hpp"
 #include <cstring>
 #include <algorithm>
-#include <cmath>
-#include "bsp/bsp.hpp"
 #include "crc16.hpp"
 
-VT13::VT13() : is_connected(TIMEOUT, false) {
+VT13::VT13() {
     auto callback = std::bind(&VT13::callback,
                               this,
                               std::placeholders::_1,
                               std::placeholders::_2);
     BSP::UART3::RegisterCallback(callback);
+}
+
+void VT13::OnLoop() {
+    if (dwt.GetDT() > TIMEOUT) {
+        resetData();
+    }
 }
 
 void VT13::callback(const uint8_t data[], const uint16_t size) {
@@ -24,20 +28,22 @@ void VT13::callback(const uint8_t data[], const uint16_t size) {
     const uint16_t crc16 = (data[sizeof(raw) - 2] << 8) | data[sizeof(raw) - 1];
     if (!CRC16::Verify(data, sizeof(raw) - 2, crc16)) return;
 
-    memcpy(&raw, data, sizeof(raw));
+    std::memcpy(&raw, data, sizeof(raw));
 
+    dwt.UpdateDT();
     is_connected = true;
 
-    pitch = getStick(raw.ch_0); // 右手垂直
-    yaw = -getStick(raw.ch_1);  // 右手水平
-    y = -getStick(raw.ch_2);    // 左手水平
-    x = getStick(raw.ch_3);     // 左手垂直
+    pitch = getStick(raw.ch_0);  // 右手垂直
+    yaw = -getStick(raw.ch_1);   // 右手水平
+    y = -getStick(raw.ch_2);     // 左手水平
+    x = getStick(raw.ch_3);      // 左手垂直
+    wheel = getStick(raw.wheel); // 拨轮
 
     mode = mode_e(raw.mode_sw);
     pause = raw.pause;
+    trigger = raw.trigger;
     fn_left = raw.fn_1;
     fn_right = raw.fn_2;
-    wheel = getStick(raw.wheel);
 
     mouse_x = (float)raw.mouse_x / 32768.0f;
     mouse_y = (float)raw.mouse_y / 32768.0f;
@@ -69,4 +75,18 @@ float VT13::getStick(const uint16_t value) {
     ret = std::clamp(ret, -1.0f, 1.0f);
     if (std::abs(ret) < STICK_DEADLINE) ret = 0;
     return ret;
+}
+
+void VT13::resetData() {
+    is_connected = false;
+
+    // 遥控器操作
+    x = y = pitch = yaw = wheel = 0;
+    mode = ERR;
+    pause = trigger = fn_left = fn_right = false;
+
+    // 键鼠操作
+    mouse_x = mouse_y = mouse_z = 0;
+    mouse_left = mouse_right = mouse_middle = false;
+    memset(&key, 0, sizeof(key));
 }

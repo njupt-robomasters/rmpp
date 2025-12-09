@@ -12,15 +12,18 @@ DM4310::DM4310(const uint8_t can_port, const uint32_t master_id, const uint32_t 
 
 void DM4310::OnLoop() {
     Motor::OnLoop();
-    send_cnt++;
-    if (is_enable) {
-        if (send_cnt % 100 == 0) { // 每100次调用重新发送使能
-            sendEnable();
+
+    if (dwt2.GetDT() >= 1 / can_send_freq.toFloat(Hz)) {
+        send_cnt++;
+        if (is_enable && is_online) {
+            if (send_cnt % 100 == 0) { // 每100次调用重新发送使能
+                sendEnable();
+            } else {
+                sendMIT();
+            }
         } else {
-            sendMIT();
+            sendDisable();
         }
-    } else {
-        sendDisable();
     }
 }
 

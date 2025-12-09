@@ -1,14 +1,13 @@
 #pragma once
 
 #include "controller/pid.hpp"
-#include "watch/timeout_watch.hpp"
 
 class Motor {
 public:
-    static constexpr float CAN_FEEDBACK_TIMEOUT = 0.01f;
+    static constexpr float TIMEOUT = 0.01f;
 
-    TimeoutWatch<bool> is_ready; // 电机就绪标志，收到CAN反馈报文后置为true
-    bool is_enable = false;      // 电机使能标志
+    bool is_online = false; // 电机在线标识
+    bool is_enable = false; // 电机使能标志
 
     // 电机本体参数
     float reduction = 1.0f;           // 电机减速比
@@ -53,13 +52,14 @@ public:
         Angle<deg> ref, measure, raw, last_raw; // raw为电机反转、安装偏移处理前的值
     } angle;
 
-    // 用于记录CAN回调频率
-    BSP::Dwt dwt;
+    BSP::Dwt dwt1; // 用于记录CAN回调频率、电机掉线检测
+    BSP::Dwt dwt2; // 用于控制CAN报文发送频率
+
+    // CAN报文发送频率
+    UnitFloat<Hz> can_send_freq = 1000.0f * Hz;
 
     // PID控制器
     PID pid;
-
-    Motor();
 
     // 设置电机使能/失能
     void SetEnable(bool is_enable);
@@ -72,6 +72,8 @@ public:
     void SetInvert(bool is_invert);                                                                                         // 设置电机反转
     void SetOffset(const Angle<>& offset);                                                                                  // 设置电机安装偏移，限位模式下必须是电机运动范围中心位置
     void SetLimit(bool is_limit, const Angle<>& limit_min = 0 * default_unit, const Angle<>& limit_max = 0 * default_unit); // 设置电机限位
+
+    void SetCanSendFreq(const UnitFloat<>& can_send_freq);
 
     // 设置PID参数
     void SetPIDParam(pid_output_type_e pid_output_type, PID::param_t* pid_param);
@@ -96,5 +98,5 @@ protected:
     void callback();
 
 private:
-    bool is_ready_last = false; // 用于 SetAngle
+    bool is_online_last = false; // 用于 SetAngle
 };

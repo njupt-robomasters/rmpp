@@ -1,6 +1,6 @@
 #pragma once
 
-#include "watch/timeout_watch.hpp"
+#include "bsp/bsp.hpp"
 
 class DJ6 {
 public:
@@ -28,16 +28,22 @@ public:
     } raw;
 
     enum switch_e {
+        ERR,
         DOWN,
         MID,
         UP
     };
 
-    TimeoutWatch<bool> is_connected;
+    bool is_connected = false;
     float x = 0, y = 0, pitch = 0, yaw = 0;
-    switch_e switch_left = UP, switch_right = UP;
+    switch_e switch_left = ERR, switch_right = ERR;
+
+    // 用于断联超时检测
+    BSP::Dwt dwt;
 
     DJ6();
+
+    void OnLoop();
 
 private:
     // 串口接收回调
@@ -51,4 +57,6 @@ private:
 
     // 解析拨杆值
     static switch_e getSwitch(uint16_t value);
+
+    void resetData();
 };

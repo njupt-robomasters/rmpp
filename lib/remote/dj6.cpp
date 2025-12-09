@@ -1,14 +1,18 @@
 #include "dj6.hpp"
 #include <algorithm>
-#include <cmath>
-#include "bsp/bsp.hpp"
 
-DJ6::DJ6() : is_connected(TIMEOUT, false) {
+DJ6::DJ6() {
     auto callback = std::bind(&DJ6::callback,
                               this,
                               std::placeholders::_1,
                               std::placeholders::_2);
     BSP::UART3::RegisterCallback(callback);
+}
+
+void DJ6::OnLoop() {
+    if (dwt.GetDT() > TIMEOUT) {
+        resetData();
+    }
 }
 
 void DJ6::callback(const uint8_t data[], const uint16_t size) {
@@ -17,6 +21,7 @@ void DJ6::callback(const uint8_t data[], const uint16_t size) {
     parseSBUS(data);
 
     if (raw.is_connected) {
+        dwt.UpdateDT();
         is_connected = true;
         pitch = getStick(raw.CH1);         // 右手垂直
         yaw = -getStick(raw.CH2);          // 右手水平
@@ -25,8 +30,7 @@ void DJ6::callback(const uint8_t data[], const uint16_t size) {
         switch_left = getSwitch(raw.CH6);  // 左拨杆 CH6
         switch_right = getSwitch(raw.CH7); // 右拨杆 CH7
     } else {
-        is_connected = false;
-        x = y = pitch = yaw = 0;
+        resetData();
     }
 }
 
@@ -69,4 +73,10 @@ DJ6::switch_e DJ6::getSwitch(const uint16_t value) {
     } else {
         return UP;
     }
+}
+
+void DJ6::resetData() {
+    is_connected = false;
+    x = y = pitch = yaw = 0;
+    switch_left = switch_right = ERR;
 }

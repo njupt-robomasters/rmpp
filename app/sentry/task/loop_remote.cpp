@@ -1,17 +1,17 @@
 #include "app.hpp"
 
 static void handle_rc() {
-    if (dj6.is_connected) {
-        var.vx.rc = dj6.x * cfg.vxy_max;
-        var.vy.rc = dj6.y * cfg.vxy_max;
-        var.yaw_speed.rc = dj6.yaw * cfg.yaw_max_speed;
-        var.pitch_speed.rc = dj6.pitch * cfg.pitch_max_speed;
-    } else {
-        var.vx.rc = var.vy.rc = var.yaw_speed.rc = var.pitch_speed.rc = 0 * default_unit;
-    }
+    var.vx.rc = dj6.x * cfg.vxy_max;
+    var.vy.rc = dj6.y * cfg.vxy_max;
+    var.yaw_speed.rc = dj6.yaw * cfg.yaw_max_speed;
+    var.pitch_speed.rc = dj6.pitch * cfg.pitch_max_speed;
 
     // 左拨杆：发射结构
     switch (dj6.switch_left) {
+        case DJ6::ERR:
+            shooter.SetPrepareShoot(false);
+            shooter.SetShoot(false);
+            break;
         case DJ6::UP:
             shooter.SetPrepareShoot(false);
             shooter.SetShoot(false);
@@ -28,6 +28,9 @@ static void handle_rc() {
 
     // 右拨杆：云台模式、测试小陀螺
     switch (dj6.switch_right) {
+        case DJ6::ERR:
+            var.vr.rc = 0 * default_unit;
+            break;
         case DJ6::UP:
             gimbal.SetMode(Gimbal::ECD_MODE);
             var.vr.rc = 0 * default_unit;
@@ -44,30 +47,26 @@ static void handle_rc() {
 }
 
 static void handle_vt13() {
-    if (vt13.is_connected) {
-        var.vx.vt13 = vt13.x * cfg.vxy_max;
-        var.vy.vt13 = vt13.y * cfg.vxy_max;
-        var.yaw_speed.vt13 = vt13.yaw * cfg.yaw_max_speed;
-        var.pitch_speed.vt13 = vt13.pitch * cfg.pitch_max_speed;
-    } else {
-        var.vx.vt13 = var.vy.vt13 = var.yaw_speed.vt13 = var.pitch_speed.vt13 = 0 * default_unit;
-    }
+    var.vx.vt13 = vt13.x * cfg.vxy_max;
+    var.vy.vt13 = vt13.y * cfg.vxy_max;
+    var.yaw_speed.vt13 = vt13.yaw * cfg.yaw_max_speed;
+    var.pitch_speed.vt13 = vt13.pitch * cfg.pitch_max_speed;
 }
 
 static void handle_client() {
-    if (vt13.is_connected) {
-        var.yaw_speed.client = -vt13.mouse_x * cfg.yaw_max_speed;
-        var.pitch_speed.client = -vt13.mouse_y * cfg.pitch_max_speed;
-    } else {
-        var.vx.client = var.vy.client = var.yaw_speed.client = var.pitch_speed.client = 0 * default_unit;
-    }
+    var.yaw_speed.client = -vt13.mouse_x * cfg.yaw_max_speed;
+    var.pitch_speed.client = -vt13.mouse_y * cfg.pitch_max_speed;
 }
 
 static void handle_nav() {}
 
 void loop_remote() {
+    dj6.OnLoop();
     handle_rc();
+
+    vt13.OnLoop();
     handle_vt13();
+
     handle_client();
     handle_nav();
 

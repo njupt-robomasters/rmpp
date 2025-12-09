@@ -13,20 +13,21 @@ MF9025::MF9025(const uint8_t can_port, const uint8_t motor_id) :
 void MF9025::OnLoop() {
     Motor::OnLoop();
 
-    // 发送CAN报文
-    send_cnt++;
-    if (is_enable) {
-        if (send_cnt % 100 == 0) { // 每100次调用重新发送使能
-            sendEnable();
+    if (dwt2.GetDT() >= 1 / can_send_freq.toFloat(Hz)) {
+        send_cnt++;
+        if (is_enable && is_online) {
+            if (send_cnt % 100 == 0) { // 每100次调用重新发送使能
+                sendEnable();
+            } else {
+                sendCurrent();
+            }
         } else {
-            sendCurrent();
-        }
-    } else {
-        // 失能，交替发送使能和读取CAN状态
-        if (send_cnt % 2 == 0) {
-            sendDisable();
-        } else if (send_cnt % 2 == 1) {
-            sendReadState();
+            // 失能，交替发送使能和读取CAN状态
+            if (send_cnt % 2 == 0) {
+                sendDisable();
+            } else if (send_cnt % 2 == 1) {
+                sendReadState();
+            }
         }
     }
 }

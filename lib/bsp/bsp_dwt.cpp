@@ -36,7 +36,14 @@ void Dwt::Delay(const float seconds) {
     while (DWT->CYCCNT - start_tick < need_ticks) {}
 }
 
-float Dwt::GetDT() {
+float Dwt::GetDT() const {
+    onLoop();
+    const uint32_t now_tick = DWT->CYCCNT;
+    const float dt = (float)(now_tick - last_tick) / (float)SystemCoreClock;
+    return dt;
+}
+
+float Dwt::UpdateDT() {
     onLoop();
     if (last_tick == 0) { // 第一次固定返回0.001
         last_tick = DWT->CYCCNT;
@@ -47,10 +54,6 @@ float Dwt::GetDT() {
     freq = 1 / dt;
     last_tick = now_tick;
     return dt;
-}
-
-void Dwt::Update() {
-    GetDT();
 }
 
 void Dwt::Clear() {

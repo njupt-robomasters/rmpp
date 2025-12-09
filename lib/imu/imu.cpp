@@ -25,7 +25,7 @@ void IMU::Calibrate() {
 
 void IMU::OnLoop() {
     // 计算dt
-    const float dt = dwt.GetDT();
+    const float dt = dwt.UpdateDT();
 
     // 读取bmi088数据
     BMI088_Read(&BMI088);
