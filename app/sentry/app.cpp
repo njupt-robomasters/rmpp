@@ -1,43 +1,88 @@
-#include "app.hpp"
+#include "config.hpp"
 
-Parameter param;
-Config cfg;
-Variable var;
+// bsp
+#include "bsp/bsp.hpp"
+
+// lib
+#include "template/led.hpp"
+#include "rc/dj6.hpp"
+#include "referee/vt13.hpp"
+#include "referee/referee.hpp"
+#include "imu/imu.hpp"
+#include "template/control.hpp"
+
+// app
+#include "chassis.hpp"
+#include "gimbal.hpp"
+#include "shooter.hpp"
 
 LED led;
+// 控制器
 DJ6 dj6;
 VT13 vt13;
 Referee referee;
-IMU imu(param.imu.dir, param.imu.calib);
-Chassis chassis(&param.chassis.servo_pid_param, &param.chassis.wheel_pid_param);
-Gimbal gimbal(imu, &param.gimbal.yaw1_pid_param, &param.gimbal.yaw2_pid_param, &param.gimbal.pitch_pid_param);
-Shooter shooter(&param.shooter.shoot_pid_param);
+NUC nuc;
+// 传感器
+IMU imu(config.imu.dir, config.imu.calib);
+// 执行器
+Chassis chassis(&config.chassis.servo_pid_param, &config.chassis.wheel_pid_param);
+Gimbal gimbal(imu, &config.gimbal.yaw1_pid_param, &config.gimbal.yaw2_pid_param, &config.gimbal.pitch_pid_param);
+Shooter shooter(&config.shooter.shoot_pid_param);
 
-extern void loop_control();
-extern void loop_can();
+Control control(config.speed,
+                dj6, vt13, referee, nuc, // 控制器
+                imu,                     // 传感器
+                chassis, gimbal, shooter // 执行器
+);
+
+void handle_can() {
+    // 底盘
+    const int16_t cmd7 = chassis.m_servo1.GetVoltageCmd();
+    const int16_t cmd8 = chassis.m_servo2.GetVoltageCmd();
+    const int16_t cmd1 = chassis.m_wheel1.GetCurrentCmd();
+    const int16_t cmd2 = chassis.m_wheel2.GetCurrentCmd();
+
+    // 云台
+    const int16_t cmd5 = gimbal.m_yaw2.GetVoltageCmd();
+
+    // 发射机构
+    const int16_t cmd6 = shooter.m_shoot.GetCurrentCmd();
+
+    uint8_t data[8];
+
+    data[0] = cmd1 >> 8;
+    data[1] = cmd1;
+    data[2] = cmd2 >> 8;
+    data[3] = cmd2;
+    data[4] = 0;
+    data[5] = 0;
+    data[6] = 0;
+    data[7] = 0;
+    BSP::CAN::TransmitStd(1, 0x200, data);
+
+    data[0] = cmd5 >> 8;
+    data[1] = cmd5;
+    data[2] = cmd6 >> 8;
+    data[3] = cmd6;
+    data[4] = cmd7 >> 8;
+    data[5] = cmd7;
+    data[6] = cmd8 >> 8;
+    data[7] = cmd8;
+    BSP::CAN::TransmitStd(1, 0x1FF, data);
+}
 
 void setup() {
     BSP::Init();
 
     imu.Init();
     // imu.Calibrate();
-
-    shooter.SetBulletSpeed(18.0f * m_s); // 设置弹速
-    shooter.SetShootFreq(5.0f * Hz); // 设置弹频
 }
 
 void loop() {
-    loop_control();
-
     led.OnLoop();
-    dj6.OnLoop();
-    vt13.OnLoop();
-    referee.OnLoop();
-    imu.OnLoop();
-    chassis.OnLoop();
-    gimbal.OnLoop();
+    control.OnLoop();
 
-    loop_can();
+    handle_can();
 }
 
 extern "C" void app_main() {

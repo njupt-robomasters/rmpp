@@ -1,21 +1,21 @@
 #pragma once
 
-// bsp
-#include "bsp/bsp.hpp"
-
-// lib
-#include "template/led.hpp"
-#include "rc/dj6.hpp"
-#include "referee/vt13.hpp"
-#include "referee/referee.hpp"
+#include "template/control.hpp"
 #include "imu/imu.hpp"
+#include "controller/pid.hpp"
 
-// module
-#include "module/chassis.hpp"
-#include "module/gimbal.hpp"
-#include "module/shooter.hpp"
+inline struct {
+    Control::speed_t speed = {
+        // 底盘速度参数
+        .vxy_max = 2.0f * m_s,
+        .vr_max = 60.0f * rpm,
+        .axy = 2.0f * m_ss,
 
-struct Parameter {
+        // 云台速度参数
+        .yaw_max = 180.0f * deg_s,
+        .pitch_max = 180.0f * deg_s,
+    };
+
     // IMU参数
     struct {
         IMU::dir_t dir = {.yaw = 90 * deg, .pitch = 0 * deg, .roll = 0 * deg};
@@ -72,38 +72,4 @@ struct Parameter {
             .fc = 30 * Hz
         };
     } shooter;
-};
-
-struct Config {
-    // 底盘速度参数
-    UnitFloat<m_s> vxy_max = 2.0f * m_s; // 前后左右平移速度
-    UnitFloat<rpm> vr_max = 60.0f * rpm; // 旋转角速度
-    UnitFloat<m_ss> axy = 2.0f * m_ss;
-
-    // 云台速度参数
-    UnitFloat<deg_s> yaw_max_speed = 180.0f * deg_s;
-    UnitFloat<deg_s> pitch_max_speed = 180.0f * deg_s;
-};
-
-struct Variable {
-    struct {
-        UnitFloat<m_s> rc, vt13, client, nav, sum;
-    } vx, vy, vr;
-
-    struct {
-        UnitFloat<deg_s> rc, vt13, client, nav, sum;
-    } yaw_speed, pitch_speed;
-};
-
-extern Parameter param;
-extern Config cfg;
-extern Variable var;
-
-extern LED led;
-extern DJ6 dj6;
-extern VT13 vt13;
-extern Referee referee;
-extern IMU imu;
-extern Chassis chassis;
-extern Gimbal gimbal;
-extern Shooter shooter;
+} config;

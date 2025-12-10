@@ -1,4 +1,4 @@
-#include "Gimbal.hpp"
+#include "gimbal.hpp"
 
 Gimbal::Gimbal(const IMU& imu, PID::param_t* yaw1_pid_param, PID::param_t* yaw2_pid_param, PID::param_t* pitch_pid_param) :
     Gimbal_Template(imu),
