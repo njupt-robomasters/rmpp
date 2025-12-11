@@ -6,11 +6,11 @@
 
 IMU::IMU(const dir_t& dir, const calib_t& calib) : dir(dir), calib(calib) {
     IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0);
-    BMI088_SetCalibrateParam(calib.gx_offset, calib.gy_offset, calib.gz_offset, calib.g_norm);
 }
 
 void IMU::Init() {
     BMI088_Init(&hspi1);
+    BMI088_SetCalibrateParam(calib.gx_offset, calib.gy_offset, calib.gz_offset, calib.g_norm);
 }
 
 void IMU::Calibrate() {

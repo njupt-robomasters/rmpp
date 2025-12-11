@@ -33,7 +33,7 @@ public:
     IMU(const dir_t& dir, const calib_t& calib);
 
     // 初始化陀螺仪
-    static void Init();
+    void Init();
 
     // 校准陀螺仪
     void Calibrate();
