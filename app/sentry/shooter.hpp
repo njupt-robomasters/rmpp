@@ -1,6 +1,6 @@
 #pragma once
 
-#include "template/shooter.hpp"
+#include "app/shooter.hpp"
 #include "motor/m2006.hpp"
 #include "motor/n630.hpp"
 

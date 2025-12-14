@@ -10,9 +10,9 @@
 #include "imu/imu.hpp"
 
 // 执行器
-#include "template/chassis.hpp"
-#include "template/gimbal.hpp"
-#include "template/shooter.hpp"
+#include "app/chassis.hpp"
+#include "app/gimbal.hpp"
+#include "app/shooter.hpp"
 
 class Control {
 public:

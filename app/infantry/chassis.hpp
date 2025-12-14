@@ -1,6 +1,6 @@
 #pragma once
 
-#include "template/chassis.hpp"
+#include "app/chassis.hpp"
 #include "motor/m3508.hpp"
 
 class Chassis : public Chassis_Template {

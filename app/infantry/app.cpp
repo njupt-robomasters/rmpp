@@ -4,12 +4,12 @@
 #include "bsp/bsp.hpp"
 
 // lib
-#include "template/led.hpp"
+#include "app/led.hpp"
 #include "rc/dj6.hpp"
 #include "rc/vt13.hpp"
 #include "referee/referee.hpp"
 #include "imu/imu.hpp"
-#include "template/control.hpp"
+#include "app/control.hpp"
 
 // app
 #include "chassis.hpp"

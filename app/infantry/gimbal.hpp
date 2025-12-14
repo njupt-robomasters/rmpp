@@ -1,6 +1,6 @@
 #pragma once
 
-#include "template/gimbal.hpp"
+#include "app/gimbal.hpp"
 #include "motor/gm6020.hpp"
 #include "motor/dm4310.hpp"
 

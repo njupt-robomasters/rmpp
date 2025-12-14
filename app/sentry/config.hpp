@@ -1,6 +1,6 @@
 #pragma once
 
-#include "template/control.hpp"
+#include "app/control.hpp"
 #include "imu/imu.hpp"
 #include "controller/pid.hpp"
 
