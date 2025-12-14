@@ -13,7 +13,7 @@ public:
     M2006 m_shoot;
     N630 n630_1, n630_2;
 
-    Shooter(PID::param_t* shoot_pid_param);
+    Shooter(PID::param_t* shoot_pid);
 
     void SetEnable(bool is_enable) override;
 

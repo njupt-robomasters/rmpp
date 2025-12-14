@@ -1,6 +1,7 @@
 #include "chassis.hpp"
 
-const float sqrt2div2 = std::sqrt(2.0f) / 2.0f;
+static const float sqrt2 = std::sqrt(2.0f);
+static const float sqrt2div2 = std::sqrt(2.0f) / 2.0f;
 
 Chassis::Chassis(PID::param_t* wheel_pid) :
     m_wheel1(1, 1),
@@ -49,10 +50,10 @@ void Chassis::forwardCalc() {
     vz.ref = vr.ref * CHASSIS_RADIUS;
 
     // 2. 运动学正解
-    v1.ref = +sqrt2div2 * vx.chassis.ref - sqrt2div2 * vy.chassis.ref - vz.ref;
-    v2.ref = +sqrt2div2 * vx.chassis.ref + sqrt2div2 * vy.chassis.ref - vz.ref;
-    v3.ref = -sqrt2div2 * vx.chassis.ref + sqrt2div2 * vy.chassis.ref + vz.ref;
-    v4.ref = -sqrt2div2 * vx.chassis.ref - sqrt2div2 * vy.chassis.ref + vz.ref;
+    v1.ref = -sqrt2div2 * vx.chassis.ref + sqrt2div2 * vy.chassis.ref + vz.ref;
+    v2.ref = -sqrt2div2 * vx.chassis.ref - sqrt2div2 * vy.chassis.ref + vz.ref;
+    v3.ref = +sqrt2div2 * vx.chassis.ref - sqrt2div2 * vy.chassis.ref + vz.ref;
+    v4.ref = +sqrt2div2 * vx.chassis.ref + sqrt2div2 * vy.chassis.ref + vz.ref;
 
     // 3. 设置电机转速
     m_wheel1.SetSpeed(v1.ref / WHEEL_RADIUS);
@@ -69,9 +70,9 @@ void Chassis::backwardCalc() {
     v4.measure = m_wheel4.speed.measure * WHEEL_RADIUS;
 
     // 2. 运动学逆解
-    vx.chassis.measure = sqrtf(2) * (+v1.measure + v2.measure - v3.measure - v4.measure) / 4.0f;
-    vy.chassis.measure = sqrtf(2) * (-v1.measure + v2.measure + v3.measure - v4.measure) / 4.0f;
-    vz.measure = -(v1.measure + v2.measure + v3.measure + v4.measure) / 4.0f;
+    vx.chassis.measure = sqrt2 * (-v1.measure - v2.measure + v3.measure + v4.measure) / 4.0f;
+    vy.chassis.measure = sqrt2 * (+v1.measure - v2.measure - v3.measure + v4.measure) / 4.0f;
+    vz.measure = (v1.measure + v2.measure + v3.measure + v4.measure) / 4.0f;
     vr.measure = vz.measure / CHASSIS_RADIUS;
 
     // 3. 转换到云台参考系

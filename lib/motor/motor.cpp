@@ -80,7 +80,11 @@ void Motor::OnLoop() {
     if (is_online && is_enable) {
         if (pid_mode == SPEED_MODE) { // 速度模式
             const UnitFloat speed_err = speed.ref - speed.measure;
-            current.ref = torque.ref = pid.Calculate(speed_err);
+            if (pid_type == CURRENT_TYPE) {
+                SetCurrent(pid.Calculate(speed_err));
+            } else if (pid_type == TORQUE_TYPE) {
+                SetTorque(pid.Calculate(speed_err));
+            }
         } else if (pid_mode == ANGLE_MODE) { // 角度模式
             if (is_limit) {                  // 限位模式
                 const UnitFloat angle_err = angle.ref - angle.measure;

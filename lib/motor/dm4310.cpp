@@ -44,9 +44,10 @@ void DM4310::callback(const uint8_t port, const uint32_t id, const uint8_t data[
     temperate_motor = data[7] * C;
 
     // 单位标准化
-    angle.raw = uint_to_float(angle_u16, -P_MAX, P_MAX, 16) * rad;
-    speed.raw = uint_to_float(speed_u16, -V_MAX, V_MAX, 12) * rad_s;
+    current.raw = torque.raw / Kt;
     torque.raw = uint_to_float(torque_u16, -T_MAX, T_MAX, 12) * Nm;
+    speed.raw = uint_to_float(speed_u16, -V_MAX, V_MAX, 12) * rad_s;
+    angle.raw = uint_to_float(angle_u16, -P_MAX, P_MAX, 16) * rad;
 
     // 调用父类公共回调函数
     Motor::callback();

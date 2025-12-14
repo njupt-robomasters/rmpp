@@ -33,6 +33,7 @@ void GM6020::callback(const uint8_t port, const uint32_t id, const uint8_t data[
 
     // 单位标准化
     current.raw = (float)current_i16 / (float)MAX_VOLTAGE_CMD * MAX_CU0RRENT;
+    torque.raw = current.raw * Kt;
     speed.raw = (float)speed_i16 / reduction * rpm;
     angle.raw = (float)angle_u16 / 8192.0f * rev;
 

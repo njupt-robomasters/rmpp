@@ -4,8 +4,8 @@ void Shooter_Template::SetBulletSpeed(const UnitFloat<>& bullet_speed) {
     this->bullet_speed.ref = bullet_speed;
 }
 
-void Shooter_Template::SetShootFreq(const UnitFloat<>& shoot_freq) {
-    this->shoot_freq.ref = shoot_freq;
+void Shooter_Template::SetBulletFreq(const UnitFloat<>& bullet_freq) {
+    this->bullet_freq.ref = bullet_freq;
 }
 
 void Shooter_Template::SetPrepareShoot(const bool is_prepare_shoot) {

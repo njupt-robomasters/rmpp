@@ -18,7 +18,7 @@ public:
     GM6020 m_yaw;
     DM4310 m_pitch;
 
-    Gimbal(const IMU& imu, PID::param_t* yaw_pid_param, PID::param_t* pitch_pid_param);
+    Gimbal(const IMU& imu, PID::param_t* yaw_pid, PID::param_t* pitch_pid);
 
     // 云台使能/失能
     void SetEnable(bool is_enable) override;

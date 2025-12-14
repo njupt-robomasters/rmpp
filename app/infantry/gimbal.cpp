@@ -1,20 +1,20 @@
 #include "gimbal.hpp"
 
-Gimbal::Gimbal(const IMU& imu, PID::param_t* yaw_pid_param, PID::param_t* pitch_pid_param) :
+Gimbal::Gimbal(const IMU& imu, PID::param_t* yaw_pid, PID::param_t* pitch_pid) :
     Gimbal_Template(imu),
     m_yaw(1, 1),
     m_pitch(2, 0x10, 0x11) {
     // 设置电机PID参数
-    m_yaw.SetPID(Motor::ANGLE_MODE, Motor::CURRENT_TYPE, yaw_pid_param);    // yaw
-    m_pitch.SetPID(Motor::ANGLE_MODE, Motor::TORQUE_TYPE, pitch_pid_param); // pitch
-
-    // 设置电机偏移
-    m_yaw.SetOffset(YAW_OFFSET);     // yaw
-    m_pitch.SetOffset(PITCH_OFFSET); // pitch
+    m_yaw.SetPID(Motor::ANGLE_MODE, Motor::CURRENT_TYPE, yaw_pid);    // yaw
+    m_pitch.SetPID(Motor::ANGLE_MODE, Motor::TORQUE_TYPE, pitch_pid); // pitch
 
     // 设置电机正方向
     m_yaw.SetInvert(false);   // yaw
     m_pitch.SetInvert(false); // pitch
+
+    // 设置电机偏移
+    m_yaw.SetOffset(YAW_OFFSET);     // yaw
+    m_pitch.SetOffset(PITCH_OFFSET); // pitch
 
     // 设置电机限位
     m_yaw.SetLimit(false);                        // yaw

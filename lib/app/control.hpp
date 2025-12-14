@@ -36,6 +36,8 @@ public:
         imu(imu),
         chassis(chassis), gimbal(gimbal), shooter(shooter) {}
 
+    void SetEnable(bool is_enable);
+
     void OnLoop();
 
 private:
@@ -65,8 +67,6 @@ private:
     Chassis_Template& chassis;
     Gimbal_Template& gimbal;
     Shooter_Template& shooter;
-
-    void setEnable(bool is_enable);
 
     // 控制器
     void handle_disconnect();

@@ -17,7 +17,7 @@ void Control::OnLoop() {
     handle_shooter();
 }
 
-void Control::setEnable(const bool is_enable) {
+void Control::SetEnable(const bool is_enable) {
     chassis.SetEnable(is_enable);
     gimbal.SetEnable(is_enable);
     shooter.SetEnable(is_enable);
@@ -28,22 +28,22 @@ void Control::handle_disconnect() {
     if (vt13.is_connected) {
         switch (vt13.mode) {
             case VT13::C:
-                setEnable(false);
+                SetEnable(false);
                 break;
             case VT13::N:
-                setEnable(true);
+                SetEnable(true);
                 break;
             case VT13::S:
-                setEnable(true);
+                SetEnable(true);
                 break;
             case VT13::ERR:
-                setEnable(false);
+                SetEnable(false);
                 break;
         }
     } else if (dj6.is_connected) {
-        setEnable(true);
+        SetEnable(true);
     } else {
-        setEnable(false);
+        SetEnable(false);
     }
 }
 
@@ -54,42 +54,51 @@ void Control::handle_dj6() {
     pitch_speed.rc = dj6.pitch * speed.pitch_max;
 
     // 左拨杆：发射结构
-    switch (dj6.switch_left) {
-        case DJ6::ERR:
-            shooter.SetPrepareShoot(false);
-            shooter.SetShoot(false);
-            break;
-        case DJ6::UP:
-            shooter.SetPrepareShoot(false);
-            shooter.SetShoot(false);
-            break;
-        case DJ6::MID:
-            shooter.SetPrepareShoot(true);
-            shooter.SetShoot(false);
-            break;
-        case DJ6::DOWN:
-            shooter.SetPrepareShoot(true);
-            shooter.SetShoot(true);
-            break;
+    static DJ6::switch_e switch_left_last = DJ6::ERR;
+    if (switch_left_last != dj6.switch_left) { // 状态改变才处理
+        if (switch_left_last != DJ6::ERR) {    // 刚连上不算
+            switch (dj6.switch_left) {
+                case DJ6::ERR:
+                    break;
+                case DJ6::UP:
+                    shooter.SetPrepareShoot(false);
+                    shooter.SetShoot(false);
+                    break;
+                case DJ6::MID:
+                    shooter.SetPrepareShoot(true);
+                    shooter.SetShoot(false);
+                    break;
+                case DJ6::DOWN:
+                    shooter.SetPrepareShoot(true);
+                    shooter.SetShoot(true);
+                    break;
+            }
+        }
+        switch_left_last = dj6.switch_left;
     }
 
     // 右拨杆：云台模式、测试小陀螺
-    switch (dj6.switch_right) {
-        case DJ6::ERR:
-            vr.rc = 0 * default_unit;
-            break;
-        case DJ6::UP:
-            gimbal.SetMode(Gimbal_Template::ECD_MODE);
-            vr.rc = 0 * default_unit;
-            break;
-        case DJ6::MID:
-            gimbal.SetMode(Gimbal_Template::IMU_MODE);
-            vr.rc = 0 * default_unit;
-            break;
-        case DJ6::DOWN:
-            gimbal.SetMode(Gimbal_Template::IMU_MODE);
-            vr.rc = speed.vr_max;
-            break;
+    static DJ6::switch_e switch_right_last = DJ6::ERR;
+    if (switch_right_last != dj6.switch_right) { // 状态改变才处理
+        switch (dj6.switch_right) {
+            case DJ6::ERR:
+                break;
+            case DJ6::UP:
+                gimbal.SetMode(Gimbal_Template::ECD_MODE);
+                vr.rc = 0 * default_unit;
+                break;
+            case DJ6::MID:
+                gimbal.SetMode(Gimbal_Template::IMU_MODE);
+                vr.rc = 0 * default_unit;
+                break;
+            case DJ6::DOWN:
+                gimbal.SetMode(Gimbal_Template::IMU_MODE);
+                if (switch_right_last != DJ6::ERR) { // 刚连上不算
+                    vr.rc = speed.vr_max;
+                }
+                break;
+        }
+        switch_right_last = dj6.switch_right;
     }
 
     dj6.OnLoop();
@@ -102,6 +111,50 @@ void Control::handle_vt13() {
     vr.vt13 = -vt13.wheel * speed.vr_max;
     yaw_speed.vt13 = vt13.yaw * speed.yaw_max;
     pitch_speed.vt13 = vt13.pitch * speed.pitch_max;
+
+    // 左fn键 -> ECD模式
+    static bool fn_left_last = false;
+    if (vt13.fn_left && fn_left_last != vt13.fn_left) { // 按下
+        gimbal.SetMode(Gimbal_Template::ECD_MODE);
+    }
+    fn_left_last = vt13.fn_left;
+
+    // 右fn键 -> ECD模式
+    static bool fn_right_last = false;
+    if (vt13.fn_right && fn_right_last != vt13.fn_right) { // 按下
+        gimbal.SetMode(Gimbal_Template::IMU_MODE);
+    }
+    fn_right_last = vt13.fn_right;
+
+    // S挡开摩擦轮
+    static VT13::mode_e mode_last = VT13::mode_e::ERR;
+    if (mode_last != vt13.mode) {     // 状态改变才处理
+        if (mode_last != VT13::ERR) { // 刚连上不算
+            switch (vt13.mode) {
+                case VT13::ERR:
+                    break;
+                case VT13::C:
+                    shooter.SetPrepareShoot(false);
+                    break;
+                case VT13::N:
+                    shooter.SetPrepareShoot(false);
+                    break;
+                case VT13::S:
+                    shooter.SetPrepareShoot(true);
+                    break;
+            }
+        }
+        mode_last = vt13.mode;
+    }
+
+    // 扳机键射击
+    static bool trigger_last = false;
+    if (trigger_last != vt13.trigger) { // 状态改变才处理
+        if (shooter.is_prepare_shoot) {
+            shooter.SetShoot(vt13.trigger);
+        }
+    }
+    trigger_last = vt13.trigger;
 
     // 客户端键鼠
     yaw_speed.client = -vt13.mouse_yaw * speed.yaw_max;
@@ -149,7 +202,7 @@ void Control::handle_gimbal() {
 
 void Control::handle_shooter() {
     shooter.SetBulletSpeed(18.0f * m_s); // 设置弹速
-    shooter.SetShootFreq(5.0f * Hz);     // 设置弹频
+    shooter.SetBulletFreq(5.0f * Hz);     // 设置弹频
 
     shooter.OnLoop();
 }

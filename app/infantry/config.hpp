@@ -52,9 +52,8 @@ inline struct {
     struct {
         PID::param_t shoot_pid = {
             .mode = PID::POSITION_MODE,
-            .kp = (10 * A) / (20.0f * deg_s),
-            .kd = (10 * A) / (2000.0f * deg_ss),
-            .max_out = 0 * A,
+            .kp = (10 * A) / (20.0f * rpm),
+            .max_out = 10 * A,
         };
     } shooter;
 } config;

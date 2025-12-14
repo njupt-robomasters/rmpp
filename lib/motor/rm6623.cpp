@@ -8,6 +8,7 @@ RM6623::RM6623(const uint8_t can_port, const uint8_t motor_id) :
         this->callback(port, id, data, dlc);
     };
     BSP::CAN::RegisterCallback(callback);
+    SetKt(Kt);
 }
 
 int16_t RM6623::GetCurrentCmd() const {
@@ -38,6 +39,7 @@ void RM6623::callback(const uint8_t port, const uint32_t id, const uint8_t data[
 
     // 单位标准化
     current.raw = (float)current_measure_i16 / 1000.0f * A;
+    torque.raw = current.raw * Kt;
     angle.raw = (float)angle_u16 / 8192.0f * rev;
 
     // 调用父类公共回调函数

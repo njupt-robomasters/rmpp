@@ -46,6 +46,7 @@ void MF9025::callback(const uint8_t port, const uint32_t id, const uint8_t data[
 
     // 单位标准化
     current.raw = (float)current_i16 / 2048.0f * 16.5f * A;
+    torque.raw = current.raw * Kt;
     angle.raw = (float)angle_u16 / 65535.0f * rev;
     speed.raw = speed_i16 * deg_s;
 

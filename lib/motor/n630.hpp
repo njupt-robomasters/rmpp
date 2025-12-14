@@ -4,7 +4,8 @@
 
 class N630 {
 public:
-    static constexpr uint8_t POLE_PAIR = 7; // 电机极对数
+    static constexpr uint8_t POLE_PAIR = 7;                           // 电机极对数
+    static constexpr UnitFloat<m_s> MIN_RPM = 3000 * rpm / POLE_PAIR; // AUTO_BRAKE模式下释放刹车的转速
 
     enum brake_mode_e {
         NO_BRAKE,
@@ -12,15 +13,8 @@ public:
         AUTO_BRAKE
     };
 
-    // CAN通信参数
-    const uint8_t can_port;
-    const uint32_t n630_id;
-
     // 使能标志
     bool is_enable = false;
-
-    // 刹车模式
-    brake_mode_e brake_mode = NO_BRAKE;
 
     // status 1
     struct {
@@ -37,7 +31,7 @@ public:
     UnitFloat<deg> pid_pos;
 
     // status 5
-    UnitFloat<> tachometer; // todo: 转速计的是单位是什么
+    UnitFloat<rev> tachometer; // 圈数计
     UnitFloat<V> voltage_in;
 
     N630(uint8_t can_port, uint32_t n630_id);
@@ -75,6 +69,13 @@ private:
         CAN_PACKET_STATUS_5 = 27,
         CAN_PACKET_STATUS_6 = 58
     };
+
+    // CAN通信参数
+    const uint8_t can_port;
+    const uint32_t n630_id;
+
+    // 刹车模式
+    brake_mode_e brake_mode = AUTO_BRAKE;
 
     // CAN接收回调
     void callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dlc);

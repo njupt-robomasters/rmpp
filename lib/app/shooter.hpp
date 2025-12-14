@@ -21,13 +21,13 @@ public:
     // 射频
     struct {
         UnitFloat<Hz> ref, measure;
-    } shoot_freq;
+    } bullet_freq;
 
     // 设置弹速
     void SetBulletSpeed(const UnitFloat<>& bullet_speed);
 
     // 设置射频
-    void SetShootFreq(const UnitFloat<>& shoot_freq);
+    void SetBulletFreq(const UnitFloat<>& bullet_freq);
 
     // 设置摩擦轮
     void SetPrepareShoot(bool is_prepare_shoot);
