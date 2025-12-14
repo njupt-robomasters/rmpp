@@ -5,10 +5,10 @@
 class DJ6 {
 public:
     enum switch_e {
-        ERR,
         DOWN,
         MID,
-        UP
+        UP,
+        ERR
     };
 
     bool is_connected = false;

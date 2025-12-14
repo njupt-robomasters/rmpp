@@ -4,16 +4,15 @@
 #include "crc.hpp"
 
 Referee::Referee() : can_parser(this), uart_parser(this) {
-    BSP::CAN::RegisterCallback(std::bind(&Referee::can_callback,
-                                         this,
-                                         std::placeholders::_1,
-                                         std::placeholders::_2,
-                                         std::placeholders::_3,
-                                         std::placeholders::_4));
-    BSP::UART6::RegisterCallback(std::bind(&Referee::uart_callback,
-                                           this,
-                                           std::placeholders::_1,
-                                           std::placeholders::_2));
+    auto can_callback = [this](const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
+        this->can_callback(port, id, data, dlc);
+    };
+    BSP::CAN::RegisterCallback(can_callback);
+
+    auto uart_callback = [this](const uint8_t data[], const uint16_t size) {
+        this->uart_callback(data, size);
+    };
+    BSP::UART6::RegisterCallback(uart_callback);
 }
 
 void Referee::OnLoop() {

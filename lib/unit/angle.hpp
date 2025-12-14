@@ -11,6 +11,9 @@ namespace unit {
         // 无参构造，使用父类构造函数
         constexpr Angle() : UnitFloat<T>() {}
 
+        // 指定unit构造，使用父类构造函数
+        constexpr Angle(const Unit& unit) : UnitFloat<T>(unit) {}
+
         // 从另一个实例构造
         template <const Unit&T2>
         constexpr Angle(const UnitFloat<T2>& other) : UnitFloat<T>(other) {
@@ -83,28 +86,28 @@ namespace unit {
 
     // sin
     constexpr UnitFloat<> sin(const Angle<>& angle) {
-        UnitFloat ret; // 返回值无单位
+        UnitFloat ret(default_unit); // 返回值无单位
         ret.m_value = std::sin(angle.toFloat());
         return ret;
     }
 
     // cos
     constexpr UnitFloat<> cos(const Angle<>& angle) {
-        UnitFloat ret; // 返回值无单位
+        UnitFloat ret(default_unit); // 返回值无单位
         ret.m_value = std::cos(angle.toFloat());
         return ret;
     }
 
     // tan
     constexpr UnitFloat<> tan(const Angle<>& angle) {
-        UnitFloat ret; // 返回值无单位
+        UnitFloat ret(default_unit); // 返回值无单位
         ret.m_value = std::tan(angle.toFloat());
         return ret;
     }
 
     // atan2
     constexpr Angle<> atan2(const UnitFloat<>& y, const UnitFloat<>& x) {
-        Angle ret; // 返回值无单位
+        Angle ret(default_unit); // 返回值无单位
         ret.m_value = std::atan2(y.toFloat(), x.toFloat());
         return ret;
     }

@@ -3,6 +3,8 @@
 #include <functional>
 #include <vector>
 #include "usart.h"
+#include "bsp/bsp_dwt.h"
+#include "unit/include_me.hpp"
 
 namespace BSP {
     template <typename T>
@@ -27,11 +29,14 @@ namespace BSP {
         }
 
         static void InvokeCallback(uint16_t size) {
+            const float interval_time = T::dwt.UpdateDT();
             if (T::callbacks) {
                 for (const auto& callback : *T::callbacks) {
                     callback(T::rxbuf, size);
                 }
             }
+            const float running_time = T::dwt.GetDT();
+            T::cpu_usage = running_time / interval_time * ratio;
         }
     };
 
@@ -39,17 +44,25 @@ namespace BSP {
     class UART3 : public UART<UART3> {
         friend class UART;
 
+    public:
+        static UnitFloat<pct> cpu_usage;
+
     private:
         static constexpr UART_HandleTypeDef* huart = &huart3;
         static constexpr uint8_t RXBUF_SIZE = 50;
 
         static std::vector<CallbackFunc>* callbacks; // 保存注册的回调函数
         static uint8_t rxbuf[RXBUF_SIZE];
+
+        static Dwt dwt;
     };
 
     // 裁判系统图传串口
     class UART6 : public UART<UART6> {
         friend class UART;
+
+    public:
+        static UnitFloat<pct> cpu_usage;
 
     private:
         static constexpr UART_HandleTypeDef* huart = &huart6;
@@ -57,5 +70,7 @@ namespace BSP {
 
         static std::vector<CallbackFunc>* callbacks; // 保存注册的回调函数
         static uint8_t rxbuf[RXBUF_SIZE];
+
+        static Dwt dwt;
     };
 }

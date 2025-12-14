@@ -4,12 +4,12 @@
 #include "bsp/bsp.hpp"
 
 // lib
-#include "template/led.hpp"
-#include "rc/dj6.hpp"
-#include "referee/vt13.hpp"
-#include "referee/referee.hpp"
+#include "rc/vt13.hpp"
 #include "imu/imu.hpp"
+#include "rc/dj6.hpp"
+#include "referee/referee.hpp"
 #include "template/control.hpp"
+#include "template/led.hpp"
 
 // app
 #include "chassis.hpp"
@@ -39,7 +39,7 @@ void handle_can() {
     // 底盘
     const int16_t cmd7 = chassis.m_servo1.GetVoltageCmd();
     const int16_t cmd8 = chassis.m_servo2.GetVoltageCmd();
-    const int16_t cmd1 = chassis.m_wheel1.GetCurrentCmd();
+    const int16_t cmd1 = chassis.m1.GetCurrentCmd();
     const int16_t cmd2 = chassis.m_wheel2.GetCurrentCmd();
 
     // 云台

@@ -68,7 +68,7 @@ public:
     void SetSpeed(const UnitFloat<>& speed);
 
     // 设置角度
-    void SetAngle(Angle<>&& angle, const UnitFloat<>& speed_ff = 0 * default_unit); // &&为广义引用，达到限位会修改传入的值
+    void SetAngle(const Angle<>& angle, const UnitFloat<>& speed_ff = 0 * default_unit); // &&为广义引用，达到限位会修改传入的值
 
     // 需要在循环中调用，子类重写后要调用
     void OnLoop();
@@ -94,13 +94,11 @@ protected:
     // CAN发送频率
     UnitFloat<Hz> can_send_freq = 1000.0f * Hz;
 
-    BSP::Dwt dwt2; // 用于控制CAN报文发送频率
+    BSP::Dwt dwt_can_send_freq; // 用于控制CAN报文发送频率
 
     // CAN接收回调，子类重写后要调用
     void callback();
 
 private:
-    BSP::Dwt dwt1; // 用于电机掉线检测，也可以参考CAN接收频率
-
-    bool is_online_last = false; // 用于SetAngle
+    BSP::Dwt dwt_online; // 用于电机掉线检测，也可以参考CAN接收频率
 };

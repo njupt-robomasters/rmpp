@@ -2,10 +2,10 @@
 #include <algorithm>
 
 DJ6::DJ6() {
-    BSP::UART3::RegisterCallback(std::bind(&DJ6::callback,
-                                           this,
-                                           std::placeholders::_1,
-                                           std::placeholders::_2));
+    auto callback = [this](const uint8_t data[], const uint16_t size) {
+        this->callback(data, size);
+    };
+    BSP::UART3::RegisterCallback(callback);
 }
 
 void DJ6::OnLoop() {
@@ -22,10 +22,10 @@ void DJ6::callback(const uint8_t data[], const uint16_t size) {
     if (raw.is_connected) {
         dwt.UpdateDT();
         is_connected = true;
-        pitch = getStick(raw.CH1);         // 右手垂直
-        yaw = -getStick(raw.CH2);          // 右手水平
-        y = -getStick(raw.CH3);            // 左手水平
-        x = getStick(raw.CH4);             // 左手垂直
+        y = -getStick(raw.CH1);            // 右手水平
+        x = getStick(raw.CH2);             // 右手垂直
+        pitch = getStick(raw.CH3);         // 左手垂直
+        yaw = -getStick(raw.CH4);          // 左手水平
         switch_left = getSwitch(raw.CH6);  // 左拨杆 CH6
         switch_right = getSwitch(raw.CH7); // 右拨杆 CH7
     } else {

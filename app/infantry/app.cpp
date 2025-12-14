@@ -6,7 +6,7 @@
 // lib
 #include "template/led.hpp"
 #include "rc/dj6.hpp"
-#include "referee/vt13.hpp"
+#include "rc/vt13.hpp"
 #include "referee/referee.hpp"
 #include "imu/imu.hpp"
 #include "template/control.hpp"
@@ -25,9 +25,9 @@ NUC nuc;
 // 传感器
 IMU imu(config.imu.dir, config.imu.calib);
 // 执行器
-Chassis chassis( &config.chassis.wheel_pid_param);
-Gimbal gimbal(imu, &config.gimbal.yaw_pid_param, &config.gimbal.pitch_pid_param);
-Shooter shooter(&config.shooter.shoot_pid_param);
+Chassis chassis( &config.chassis.wheel_pid);
+Gimbal gimbal(imu, &config.gimbal.yaw_pid, &config.gimbal.pitch_pid);
+Shooter shooter(&config.shooter.shoot_pid);
 
 Control control(config.speed,
                 dj6, vt13, referee, nuc, // 控制器
@@ -58,8 +58,8 @@ void handle_can() {
     data[7] = cmd4;
     BSP::CAN::TransmitStd(1, 0x200, data);
 
-    data[0] = 0;
-    data[1] = 0;
+    data[0] = cmd5 >> 8;
+    data[1] = cmd5;
     data[2] = 0;
     data[3] = 0;
     data[4] = cmd7 >> 8;
@@ -83,14 +83,18 @@ void loop() {
     handle_can();
 }
 
+static BSP::Dwt dwt;
+static UnitFloat<pct> cpu_usage;
+
 extern "C" void app_main() {
     setup();
 
-    BSP::Dwt dwt;
     while (true) {
         if (dwt.GetDT() >= 0.001f) {
-            dwt.UpdateDT();
+            const float interval_time = dwt.UpdateDT();
             loop();
+            const float running_time = dwt.GetDT();
+            cpu_usage = running_time / interval_time * ratio;
         }
     }
 }

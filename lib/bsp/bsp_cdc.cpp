@@ -8,6 +8,8 @@ using namespace BSP;
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
 std::vector<CDC::CallbackFunc>* CDC::callbacks;
+Dwt CDC::dwt;
+UnitFloat<pct> CDC::cpu_usage;
 
 void CDC::Init() {
     MX_USB_DEVICE_Init();
@@ -40,11 +42,14 @@ void CDC::RegisterCallback(const CallbackFunc& callback) {
 }
 
 void CDC::InvokeCallback(const uint8_t data[], const uint32_t size) {
+    const float interval_time = dwt.UpdateDT();
     if (callbacks) {
         for (const auto& callback : *callbacks) {
             callback(data, size);
         }
     }
+    const float running_time = dwt.GetDT();
+    cpu_usage = running_time / interval_time * ratio;
 }
 
 // 这个函数要放到 USB_DEVICE/App/usbd_cdc_if.c 的 CDC_Receive_FS 函数的结尾调用

@@ -25,14 +25,17 @@ void Gimbal_Template::SetChassisVR(const UnitFloat<>& chassis_vr) {
     this->chassis_vr = chassis_vr;
 }
 
-void Gimbal_Template::updateMotion(const float dt) {
-    const Angle yaw_delta = yaw_speed * dt;
-    const Angle pitch_delta = pitch_speed * dt;
-    if (mode == ECD_MODE) {
-        yaw.ecd.ref += yaw_delta;
-        pitch.ecd.ref += pitch_delta;
-    } else if (mode == IMU_MODE) {
-        yaw.imu.ref += yaw_delta;
-        pitch.imu.ref += pitch_delta;
+void Gimbal_Template::updateMotion() {
+    const float dt = dwt_motion.UpdateDT();
+    if (is_enable) {
+        const Angle yaw_delta = yaw_speed * dt;
+        const Angle pitch_delta = pitch_speed * dt;
+        if (mode == ECD_MODE) {
+            yaw.ecd.ref += yaw_delta;
+            pitch.ecd.ref += pitch_delta;
+        } else if (mode == IMU_MODE) {
+            yaw.imu.ref += yaw_delta;
+            pitch.imu.ref += pitch_delta;
+        }
     }
 }

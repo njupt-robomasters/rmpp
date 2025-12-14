@@ -2,16 +2,16 @@
 
 const float sqrt2div2 = std::sqrt(2.0f) / 2.0f;
 
-Chassis::Chassis( PID::param_t* wheel_pid_param) :
+Chassis::Chassis(PID::param_t* wheel_pid) :
     m_wheel1(1, 1),
     m_wheel2(1, 2),
     m_wheel3(1, 3),
-    m_wheel4(1, 4){
+    m_wheel4(1, 4) {
     // 设置电机PID参数
-    m_wheel1.SetPID(Motor::SPEED_MODE, Motor::CURRENT_TYPE, wheel_pid_param);
-    m_wheel2.SetPID(Motor::SPEED_MODE, Motor::CURRENT_TYPE, wheel_pid_param);
-    m_wheel3.SetPID(Motor::SPEED_MODE, Motor::CURRENT_TYPE, wheel_pid_param);
-    m_wheel4.SetPID(Motor::SPEED_MODE, Motor::CURRENT_TYPE, wheel_pid_param);
+    m_wheel1.SetPID(Motor::SPEED_MODE, Motor::CURRENT_TYPE, wheel_pid);
+    m_wheel2.SetPID(Motor::SPEED_MODE, Motor::CURRENT_TYPE, wheel_pid);
+    m_wheel3.SetPID(Motor::SPEED_MODE, Motor::CURRENT_TYPE, wheel_pid);
+    m_wheel4.SetPID(Motor::SPEED_MODE, Motor::CURRENT_TYPE, wheel_pid);
 
     // 设置电机减速比
     m_wheel1.SetReduction(14.0f);
@@ -49,10 +49,11 @@ void Chassis::forwardCalc() {
     vz.ref = vr.ref * CHASSIS_RADIUS;
 
     // 2. 运动学正解
-    v1.ref =  +sqrt2div2 * vx.chassis.ref - sqrt2div2 * vy.chassis.ref - vz.ref;
-    v2.ref =  +sqrt2div2 * vx.chassis.ref + sqrt2div2 * vy.chassis.ref - vz.ref;
-    v3.ref =  -sqrt2div2 * vx.chassis.ref + sqrt2div2 * vy.chassis.ref + vz.ref;
-    v4.ref =  -sqrt2div2 * vx.chassis.ref - sqrt2div2 * vy.chassis.ref + vz.ref;
+    v1.ref = +sqrt2div2 * vx.chassis.ref - sqrt2div2 * vy.chassis.ref - vz.ref;
+    v2.ref = +sqrt2div2 * vx.chassis.ref + sqrt2div2 * vy.chassis.ref - vz.ref;
+    v3.ref = -sqrt2div2 * vx.chassis.ref + sqrt2div2 * vy.chassis.ref + vz.ref;
+    v4.ref = -sqrt2div2 * vx.chassis.ref - sqrt2div2 * vy.chassis.ref + vz.ref;
+
     // 3. 设置电机转速
     m_wheel1.SetSpeed(v1.ref / WHEEL_RADIUS);
     m_wheel2.SetSpeed(v2.ref / WHEEL_RADIUS);
@@ -61,22 +62,22 @@ void Chassis::forwardCalc() {
 }
 
 void Chassis::backwardCalc() {
-    //1.读取电机转速
+    // 1.读取电机转速
     v1.measure = m_wheel1.speed.measure * WHEEL_RADIUS;
     v2.measure = m_wheel2.speed.measure * WHEEL_RADIUS;
     v3.measure = m_wheel3.speed.measure * WHEEL_RADIUS;
     v4.measure = m_wheel4.speed.measure * WHEEL_RADIUS;
-    //2. 运动学逆解
-    vx.chassis.measure = sqrtf(2)*(+v1.measure + v2.measure - v3.measure - v4.measure) / 4.0f;
-    vy.chassis.measure = sqrtf(2)*(-v1.measure + v2.measure + v3.measure - v4.measure) / 4.0f;
-    vz.measure = -(v1.measure + v2.measure + v3.measure + v4.measure) / 4.0f;
 
+    // 2. 运动学逆解
+    vx.chassis.measure = sqrtf(2) * (+v1.measure + v2.measure - v3.measure - v4.measure) / 4.0f;
+    vy.chassis.measure = sqrtf(2) * (-v1.measure + v2.measure + v3.measure - v4.measure) / 4.0f;
+    vz.measure = -(v1.measure + v2.measure + v3.measure + v4.measure) / 4.0f;
     vr.measure = vz.measure / CHASSIS_RADIUS;
+
     // 3. 转换到云台参考系
-    std::tie(vx.gimbal.measure, vy.gimbal.measure) = rotate(vx.gimbal.measure, vy.gimbal.measure, -gimbal_yaw);
+    std::tie(vx.gimbal.measure, vy.gimbal.measure) = rotate(vx.chassis.measure, vy.chassis.measure, -gimbal_yaw);
 }
 
-// 计算电流衰减系数，需要在电机PID计算后调用
 void Chassis::powerControl() {
     // M*w + I^2*R = P
     // kt*I*w + I^2*R = P

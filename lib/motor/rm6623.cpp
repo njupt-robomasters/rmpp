@@ -4,11 +4,10 @@ RM6623::RM6623(const uint8_t can_port, const uint8_t motor_id) :
     can_port(can_port), motor_id(motor_id),
     control_can_id(motor_id <= 3 ? 0x1FF : 0x2FF),
     feedback_can_id(0x205 + motor_id) {
-    BSP::CAN::RegisterCallback(std::bind(&RM6623::callback, this,
-                                         std::placeholders::_1,
-                                         std::placeholders::_2,
-                                         std::placeholders::_3,
-                                         std::placeholders::_4));
+    auto callback = [this](const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
+        this->callback(port, id, data, dlc);
+    };
+    BSP::CAN::RegisterCallback(callback);
 }
 
 int16_t RM6623::GetCurrentCmd() const {

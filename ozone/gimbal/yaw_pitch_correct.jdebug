@@ -23,18 +23,16 @@ void OnProjectLoad (void) {
   // Dialog-generated settings
   //
   Project.SetDevice ("Cortex-M4");
-  Project.SetHostIF ("USB", "1040849617");
+  Project.SetHostIF ("USB", "1043843174");
   Project.SetTargetIF ("SWD");
   Project.SetTIFSpeed ("4 MHz");
-  Project.AddPathSubstitute ("E:/workspace/rm/code/sentry", "$(ProjectDir)");
-  Project.AddPathSubstitute ("e:/workspace/rm/code/sentry", "$(ProjectDir)");
+  Project.AddPathSubstitute ("../../", "$(ProjectDir)");
   Project.AddSvdFile ("$(InstallDir)/Config/CPU/Cortex-M4F.svd");
   Project.AddSvdFile ("$(InstallDir)/Config/Peripherals/STM32F407IG.svd");
   //
   // User settings
   //
-  File.Open ("$(ProjectDir)/../../cmake-build-debug/robomaster.elf");
-  Project.SetOSPlugin ("FreeRTOSPlugin");
+  File.Open ("../../build/Debug/njupt_framework.elf");
 }
 
 /*********************************************************************

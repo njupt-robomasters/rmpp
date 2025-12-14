@@ -5,16 +5,16 @@ const float sqrt2div2 = std::sqrt(2.0f) / 2.0f;
 Chassis::Chassis(PID::param_t* servo_pid_param, PID::param_t* wheel_pid_param) :
     m_servo1(1, 3),
     m_servo2(1, 4),
-    m_wheel1(1, 1),
+    m1(1, 1),
     m_wheel2(1, 2) {
     // 设置电机PID参数
     m_servo1.SetPID(Motor::ANGLE_MODE, Motor::CURRENT_TYPE, servo_pid_param);
     m_servo2.SetPID(Motor::ANGLE_MODE, Motor::CURRENT_TYPE, servo_pid_param);
-    m_wheel1.SetPID(Motor::SPEED_MODE, Motor::CURRENT_TYPE, wheel_pid_param);
+    m1.SetPID(Motor::SPEED_MODE, Motor::CURRENT_TYPE, wheel_pid_param);
     m_wheel2.SetPID(Motor::SPEED_MODE, Motor::CURRENT_TYPE, wheel_pid_param);
 
     // 设置电机减速比
-    m_wheel1.SetReduction(14.0f);
+    m1.SetReduction(14.0f);
     m_wheel2.SetReduction(14.0f);
 
     // 设置电机正方向
@@ -31,7 +31,7 @@ void Chassis::SetEnable(const bool is_enable) {
     this->is_enable = is_enable;
     m_servo1.SetEnable(is_enable);
     m_servo2.SetEnable(is_enable);
-    m_wheel1.SetEnable(is_enable);
+    m1.SetEnable(is_enable);
     m_wheel2.SetEnable(is_enable);
 }
 
@@ -43,7 +43,7 @@ void Chassis::OnLoop() {
     // 电机PID计算
     m_servo1.OnLoop();
     m_servo2.OnLoop();
-    m_wheel1.OnLoop();
+    m1.OnLoop();
     m_wheel2.OnLoop();
 
     // 功率控制
@@ -87,7 +87,7 @@ void Chassis::forwardCalc() {
     // 4. 设置电机转速
     m_servo1.SetAngle(s1.ref);
     m_servo2.SetAngle(s2.ref);
-    m_wheel1.SetSpeed(v1.ref / WHEEL_RADIUS);
+    m1.SetSpeed(v1.ref / WHEEL_RADIUS);
     m_wheel2.SetSpeed(v2.ref / WHEEL_RADIUS);
 }
 
@@ -123,11 +123,11 @@ void Chassis::powerControl() {
     // c = -P
 
     UnitFloat a;
-    a += 3 * unit::square(m_wheel1.current.ref) * M3508::R;
+    a += 3 * unit::square(m1.current.ref) * M3508::R;
     a += 3 * unit::square(m_wheel2.current.ref) * M3508::R;
 
     UnitFloat b;
-    b += M3508::Kt * m_wheel1.current.ref * m_wheel1.speed.measure;
+    b += M3508::Kt * m1.current.ref * m1.speed.measure;
     b += M3508::Kt * m_wheel2.current.ref * m_wheel2.speed.measure;
 
     const UnitFloat c = -power_limit;
@@ -139,11 +139,11 @@ void Chassis::powerControl() {
     current_ratio = unit::clamp(current_ratio, 0.0f * default_unit, 1.0f * default_unit);
 
     // 设置电机电流衰减
-    m_wheel1.SetCurrentRatio(current_ratio);
+    m1.SetCurrentRatio(current_ratio);
     m_wheel2.SetCurrentRatio(current_ratio);
 
     // 估算底盘当前功率，用于调试
-    const UnitFloat power1 = 3 * unit::square(m_wheel1.current.ref) * M3508::R + M3508::Kt * m_wheel1.current.ref * m_wheel1.speed.measure;
+    const UnitFloat power1 = 3 * unit::square(m1.current.ref) * M3508::R + M3508::Kt * m1.current.ref * m1.speed.measure;
     const UnitFloat power2 = 3 * unit::square(m_wheel2.current.ref) * M3508::R + M3508::Kt * m_wheel2.current.ref * m_wheel2.speed.measure;
     power_estimate = power1 + power2;
 }

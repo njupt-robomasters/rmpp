@@ -3,22 +3,22 @@
 Gimbal::Gimbal(const IMU& imu, PID::param_t* yaw_pid_param, PID::param_t* pitch_pid_param) :
     Gimbal_Template(imu),
     m_yaw(1, 1),
-    m_pitch(2, 0x11, 0x10) {
+    m_pitch(2, 0x10, 0x11) {
     // 设置电机PID参数
-    m_yaw.SetPID(Motor::ANGLE_MODE, Motor::CURRENT_TYPE, yaw_pid_param);  // yaw
+    m_yaw.SetPID(Motor::ANGLE_MODE, Motor::CURRENT_TYPE, yaw_pid_param);    // yaw
     m_pitch.SetPID(Motor::ANGLE_MODE, Motor::TORQUE_TYPE, pitch_pid_param); // pitch
 
     // 设置电机偏移
-    m_yaw.SetOffset(YAW_OFFSET);   // 大yaw
+    m_yaw.SetOffset(YAW_OFFSET);     // yaw
     m_pitch.SetOffset(PITCH_OFFSET); // pitch
 
     // 设置电机正方向
-    m_yaw.SetInvert(false); // 大yaw
-    m_pitch.SetInvert(true); // pitch
+    m_yaw.SetInvert(false);   // yaw
+    m_pitch.SetInvert(false); // pitch
 
     // 设置电机限位
-    m_yaw.SetLimit(false);                        // yaw，无限位
-    m_pitch.SetLimit(false, PITCH_MIN, PITCH_MAX); // pitch
+    m_yaw.SetLimit(false);                        // yaw
+    m_pitch.SetLimit(true, PITCH_MIN, PITCH_MAX); // pitch
 }
 
 void Gimbal::SetEnable(const bool is_enable) {
@@ -27,21 +27,20 @@ void Gimbal::SetEnable(const bool is_enable) {
 
     m_yaw.SetEnable(is_enable);
     m_pitch.SetEnable(is_enable);
+
+    // 设置当前位置位目标位置
+    yaw.ecd.ref = m_yaw.angle.measure;
+    pitch.ecd.ref = m_pitch.angle.measure;
 }
 
 void Gimbal::OnLoop() {
-    const float dt = dwt.UpdateDT();
-
-    if (is_enable) {
-        updateMotion(dt);
-    }
+    updateMotion();
 
     backwardCalc();
     forwardCalc();
 
-    m_pitch.OnLoop();
     m_yaw.OnLoop();
-
+    m_pitch.OnLoop();
 }
 
 void Gimbal::forwardCalc() {
@@ -58,14 +57,14 @@ void Gimbal::forwardCalc() {
         yaw.ecd.ref = yaw.imu.ref - yaw_imu_minus_ecd;
         pitch.ecd.ref = pitch.imu.ref - pitch_imu_minus_ecd;
     }
-    // 分配大小yaw
-    yaw_6020.ref = yaw.ecd.ref;                // yaw直接设置为目标值
+
     // 设置电机角度
-    m_yaw.SetAngle(yaw_6020.ref, -chassis_vr); // 同时设置前馈（前馈与底盘速度方向相反，因为云台期望静止）
-    m_pitch.SetAngle(pitch.ecd.ref);        // pitch有限位，如果触发限位，函数内部会修改传入的角度
+    m_yaw.SetAngle(yaw.ecd.ref, -chassis_vr); // 同时设置前馈（前馈与底盘速度方向相反，因为云台期望静止）
+    m_pitch.SetAngle(pitch.ecd.ref);
+
     // 传递软件限位
-    yaw.ecd.ref = yaw_6020.ref; // 小yaw达到限位后，会传递到总yaw，阻止总yaw角度进一步增大
-    // 传递到imu参考系
+    yaw.ecd.ref = m_yaw.angle.ref;
+    pitch.ecd.ref = m_pitch.angle.ref;
     yaw.imu.ref = yaw.ecd.ref + yaw_imu_minus_ecd;
     pitch.imu.ref = pitch.ecd.ref + pitch_imu_minus_ecd;
 }
@@ -73,10 +72,9 @@ void Gimbal::forwardCalc() {
 // 电机角度 -> 云台姿态
 void Gimbal::backwardCalc() {
     // 从电机读取
-    yaw_6020.measure = m_yaw.angle.measure;
+    yaw.ecd.measure = m_yaw.angle.measure;
     pitch.ecd.measure = m_pitch.angle.measure;
-    // 合并yaw
-    yaw.ecd.measure = yaw_6020.measure;
+
     // 读取imu
     yaw.imu.measure = imu.yaw;
     pitch.imu.measure = imu.pitch;

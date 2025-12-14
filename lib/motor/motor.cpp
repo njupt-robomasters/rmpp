@@ -50,39 +50,39 @@ void Motor::SetSpeed(const UnitFloat<>& speed) {
     this->speed.ref = speed;
 }
 
-void Motor::SetAngle(Angle<>&& angle, const UnitFloat<>& speed_ff) {
-    // 电机上线后第一次设置角度，角度设置为当前位置（防止电机一下子飞起来）
-    if (is_online && !is_online_last) {
-        angle = this->angle.ref = this->angle.measure;
+void Motor::SetAngle(const Angle<>& angle, const UnitFloat<>& speed_ff) {
+    // 电机掉线或失能，不断把目标角度设置为当前位置（防止电机一下子飞起来）
+    if (is_online == false || is_enable == false) {
+        this->angle.ref = this->angle.measure;
+    } else {
+        this->angle.ref = angle;
     }
-    is_online_last = is_online;
 
     // 软件限位
     if (is_limit) {
-        if (angle < limit_min) {
-            angle = limit_min; // 达到限位会修改传入的值
+        if (this->angle.ref < limit_min) {
+            this->angle.ref = limit_min;
         }
-        if (angle > limit_max) {
-            angle = limit_max;
+        if (this->angle.ref > limit_max) {
+            this->angle.ref = limit_max;
         }
     }
-    this->angle.ref = angle;
 
     // 速度前馈，用于小陀螺
     this->speed.ref = speed_ff;
 }
 
 void Motor::OnLoop() {
-    if (dwt1.GetDT() > TIMEOUT) {
+    if (dwt_online.GetDT() > TIMEOUT) {
         is_online = false;
     }
 
-    if (is_enable && is_online) {
+    if (is_online && is_enable) {
         if (pid_mode == SPEED_MODE) { // 速度模式
             const UnitFloat speed_err = speed.ref - speed.measure;
             current.ref = torque.ref = pid.Calculate(speed_err);
         } else if (pid_mode == ANGLE_MODE) { // 角度模式
-            if (is_limit) {                      // 限位模式
+            if (is_limit) {                  // 限位模式
                 const UnitFloat angle_err = angle.ref - angle.measure;
                 const UnitFloat speed_err = speed.ref - speed.measure;
                 if (pid_type == CURRENT_TYPE) {
@@ -110,17 +110,17 @@ void Motor::OnLoop() {
 }
 
 void Motor::callback() {
-    // 电机反向修正
+    // 电机修正
     if (!is_invert) {
         current.measure = current.raw;
         torque.measure = torque.raw;
         speed.measure = speed.raw;
-        angle.measure = angle.raw;
+        angle.measure = angle.raw - offset;
     } else {
         current.measure = -current.raw;
         torque.measure = -torque.raw;
         speed.measure = -speed.raw;
-        angle.measure = -angle.raw;
+        angle.measure = -(angle.raw - offset);
     }
 
     // 软件多圈计数
@@ -129,9 +129,6 @@ void Motor::callback() {
         angle.last_raw = angle.raw;
     }
 
-    // 电机角度偏移修正
-    angle.measure -= offset;
-
-    dwt1.UpdateDT();
+    dwt_online.UpdateDT();
     is_online = true;
 }

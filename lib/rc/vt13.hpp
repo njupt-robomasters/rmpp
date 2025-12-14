@@ -5,10 +5,10 @@
 class VT13 {
 public:
     enum mode_e {
-        ERR,
         C,
         N,
-        S
+        S,
+        ERR,
     };
 
     bool is_connected = false;
@@ -19,7 +19,7 @@ public:
     bool pause = false, trigger = false, fn_left = false, fn_right = false;
 
     // 键鼠操作
-    float mouse_x = 0, mouse_y = 0, mouse_z = 0;
+    int16_t mouse_yaw = 0, mouse_pitch = 0, mouse_z = 0;
     bool mouse_left = false, mouse_right = false, mouse_middle = false;
 
     struct {
@@ -55,14 +55,19 @@ private:
         uint16_t wheel : 11; // 拨轮
         uint8_t trigger : 1; // 扳机键
 
+        uint8_t reserved_3bit : 3;
+
         int16_t mouse_x : 16;     // 鼠标X轴
         int16_t mouse_y : 16;     // 鼠标Y轴
         int16_t mouse_z : 16;     // 鼠标Z轴
         uint8_t mouse_left : 2;   // 鼠标左键
         uint8_t mouse_right : 2;  // 鼠标右键
         uint8_t mouse_middle : 2; // 鼠标中键
-        uint16_t key : 16;        // 键盘按键
-        uint16_t crc16 : 16;      // CRC校验，CRC-16/CCITT-FALSE多项式 P(x) = x^16 + x^12 + x^5 + 1（对应0x1021），初始值0xFFFF，无输入输出反转，无异或
+
+        uint8_t reserved_2bit : 2;
+
+        uint16_t key : 16;   // 键盘按键
+        uint16_t crc16 : 16; // CRC校验，CRC-16/CCITT-FALSE多项式 P(x) = x^16 + x^12 + x^5 + 1（对应0x1021），初始值0xFFFF，无输入输出反转，无异或
     } raw{};
 
     // 串口接收回调

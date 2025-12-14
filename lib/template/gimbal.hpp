@@ -26,7 +26,7 @@ public:
     // 云台运动速度
     UnitFloat<deg_s> yaw_speed, pitch_speed;
 
-    BSP::Dwt dwt; // 维护dt
+    BSP::Dwt dwt_motion; // 维护dt
 
     Gimbal_Template(const IMU& imu);
 
@@ -53,7 +53,7 @@ protected:
     const IMU& imu;
 
     // 更新云台转动，通过dt不断计算角度增量
-    void updateMotion(float dt);
+    void updateMotion();
 
     // 云台姿态 -> 电机角度
     virtual void forwardCalc() = 0;

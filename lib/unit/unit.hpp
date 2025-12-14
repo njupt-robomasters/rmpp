@@ -13,16 +13,16 @@ namespace unit {
         // 无参构造
         constexpr Unit() = default;
 
-        // 拷贝构造
-        constexpr Unit(const Unit& other) {
-            Unit::strncpy(m_str, other.m_str, MAX_STR_SIZE);
-            m_scale = other.m_scale;
-        }
-
         // 用str和scale构造
         constexpr Unit(const char* str, const float scale) {
             Unit::strncpy(m_str, str, MAX_STR_SIZE);
             m_scale = scale;
+        }
+
+        // 拷贝构造
+        constexpr Unit(const Unit& other) {
+            Unit::strncpy(m_str, other.m_str, MAX_STR_SIZE);
+            m_scale = other.m_scale;
         }
 
         // 赋值运算，优先用自己的单位，自己无单位时用对方的单位
@@ -145,9 +145,9 @@ namespace unit {
             }
 
             // 用空字符填充剩余位置
-            for (; i < size; i++) {
-                dest[i] = '\0';
-            }
+            // for (; i < size; i++) {
+            //     dest[i] = '\0';
+            // }
 
             return dest;
         }

@@ -2,18 +2,17 @@
 
 MF9025::MF9025(const uint8_t can_port, const uint8_t motor_id) :
     can_port(can_port), motor_id(motor_id) {
-    BSP::CAN::RegisterCallback(std::bind(&MF9025::callback, this,
-                                         std::placeholders::_1,
-                                         std::placeholders::_2,
-                                         std::placeholders::_3,
-                                         std::placeholders::_4));
+    auto callback = [this](const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
+        this->callback(port, id, data, dlc);
+    };
+    BSP::CAN::RegisterCallback(callback);
     SetKt(Kt);
 }
 
 void MF9025::OnLoop() {
     Motor::OnLoop();
 
-    if (dwt2.GetDT() >= 1 / can_send_freq.toFloat(Hz)) {
+    if (dwt_can_send_freq.GetDT() >= 1 / can_send_freq.toFloat(Hz)) {
         send_cnt++;
         if (is_enable && is_online) {
             if (send_cnt % 100 == 0) { // 每100次调用重新发送使能

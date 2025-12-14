@@ -2,6 +2,7 @@
 
 void Control::OnLoop() {
     // 控制器
+    handle_disconnect();
     handle_dj6();
     handle_vt13();
     handle_nuc();
@@ -16,18 +17,37 @@ void Control::OnLoop() {
     handle_shooter();
 }
 
-void Control::handle_dj6() {
-    // 检查遥控器断联
-    if (dj6.is_connected == false) {
-        chassis.SetEnable(false);
-        gimbal.SetEnable(false);
-        shooter.SetEnable(false);
-    } else {
-        chassis.SetEnable(false);
-        gimbal.SetEnable(true);
-        shooter.SetEnable(true);
-    }
+void Control::setEnable(const bool is_enable) {
+    chassis.SetEnable(is_enable);
+    gimbal.SetEnable(is_enable);
+    shooter.SetEnable(is_enable);
+}
 
+void Control::handle_disconnect() {
+    // 检查遥控器断联
+    if (vt13.is_connected) {
+        switch (vt13.mode) {
+            case VT13::C:
+                setEnable(false);
+                break;
+            case VT13::N:
+                setEnable(true);
+                break;
+            case VT13::S:
+                setEnable(true);
+                break;
+            case VT13::ERR:
+                setEnable(false);
+                break;
+        }
+    } else if (dj6.is_connected) {
+        setEnable(true);
+    } else {
+        setEnable(false);
+    }
+}
+
+void Control::handle_dj6() {
     vx.rc = dj6.x * speed.vxy_max;
     vy.rc = dj6.y * speed.vxy_max;
     yaw_speed.rc = dj6.yaw * speed.yaw_max;
@@ -79,12 +99,13 @@ void Control::handle_vt13() {
     // 遥控器
     vx.vt13 = vt13.x * speed.vxy_max;
     vy.vt13 = vt13.y * speed.vxy_max;
+    vr.vt13 = -vt13.wheel * speed.vr_max;
     yaw_speed.vt13 = vt13.yaw * speed.yaw_max;
     pitch_speed.vt13 = vt13.pitch * speed.pitch_max;
 
     // 客户端键鼠
-    yaw_speed.client = -vt13.mouse_x * speed.yaw_max;
-    pitch_speed.client = -vt13.mouse_y * speed.pitch_max;
+    yaw_speed.client = -vt13.mouse_yaw * speed.yaw_max;
+    pitch_speed.client = -vt13.mouse_pitch * speed.pitch_max;
 
     vt13.OnLoop();
 }

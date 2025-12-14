@@ -2,11 +2,10 @@
 
 DM4310::DM4310(const uint8_t can_port, const uint32_t master_id, const uint32_t slave_id) :
     can_port(can_port), master_id(master_id), slave_id(slave_id) {
-    BSP::CAN::RegisterCallback(std::bind(&DM4310::callback, this,
-                                         std::placeholders::_1,
-                                         std::placeholders::_2,
-                                         std::placeholders::_3,
-                                         std::placeholders::_4));
+    auto callback = [this](const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
+        this->callback(port, id, data, dlc);
+    };
+    BSP::CAN::RegisterCallback(callback);
     SetReduction(1.0f);
     SetKt(Kt);
 }
@@ -14,7 +13,7 @@ DM4310::DM4310(const uint8_t can_port, const uint32_t master_id, const uint32_t 
 void DM4310::OnLoop() {
     Motor::OnLoop();
 
-    if (dwt2.GetDT() >= 1 / can_send_freq.toFloat(Hz)) {
+    if (dwt_can_send_freq.GetDT() >= 1 / can_send_freq.toFloat(Hz)) {
         send_cnt++;
         if (is_enable && is_online) {
             if (send_cnt % 100 == 0) { // 每100次调用重新发送使能
@@ -45,9 +44,9 @@ void DM4310::callback(const uint8_t port, const uint32_t id, const uint8_t data[
     temperate_motor = data[7] * C;
 
     // 单位标准化
-    angle.measure = uint_to_float(angle_u16, -P_MAX, P_MAX, 16) * rad;
-    speed.measure = uint_to_float(speed_u16, -V_MAX, V_MAX, 12) * rad_s;
-    torque.measure = uint_to_float(torque_u16, -T_MAX, T_MAX, 12) * Nm;
+    angle.raw = uint_to_float(angle_u16, -P_MAX, P_MAX, 16) * rad;
+    speed.raw = uint_to_float(speed_u16, -V_MAX, V_MAX, 12) * rad_s;
+    torque.raw = uint_to_float(torque_u16, -T_MAX, T_MAX, 12) * Nm;
 
     // 调用父类公共回调函数
     Motor::callback();

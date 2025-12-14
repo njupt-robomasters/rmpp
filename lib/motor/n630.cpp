@@ -3,11 +3,10 @@
 
 N630::N630(const uint8_t can_port, const uint32_t n630_id) :
     can_port(can_port), n630_id(n630_id) {
-    BSP::CAN::RegisterCallback(std::bind(&N630::callback, this,
-                                         std::placeholders::_1,
-                                         std::placeholders::_2,
-                                         std::placeholders::_3,
-                                         std::placeholders::_4));
+    auto callback = [this](const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
+        this->callback(port, id, data, dlc);
+    };
+    BSP::CAN::RegisterCallback(callback);
 }
 
 void N630::SetEnable(const bool is_enable) {

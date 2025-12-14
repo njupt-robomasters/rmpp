@@ -97,7 +97,7 @@ void PID::calcIncrement(const UnitFloat<>& err) {
 void PID::Clear() {
     err = last_err = last_err2 = 0 * default_unit;
     out = p_out = i_out = d_out = 0 * default_unit;
-    dwt.Clear();
+    dwt.Reset();
 }
 
 #undef kp

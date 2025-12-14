@@ -4,6 +4,8 @@
 using namespace BSP;
 
 std::vector<CAN::CallbackFunc>* CAN::callbacks;
+Dwt CAN::dwt;
+UnitFloat<pct> CAN::cpu_usage;
 
 void CAN::Init() {
     CAN_FilterTypeDef can_filter_st;
@@ -68,11 +70,14 @@ void CAN::RegisterCallback(const CallbackFunc& callback) {
 }
 
 void CAN::InvokeCallback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
+    const float interval_time = dwt.UpdateDT();
     if (callbacks) {
         for (const auto& callback : *callbacks) {
             callback(port, id, data, dlc);
         }
     }
+    const float running_time = dwt.GetDT();
+    cpu_usage = running_time / interval_time * ratio;
 }
 
 /********************* 以下为HAL库回调函数 ********************/

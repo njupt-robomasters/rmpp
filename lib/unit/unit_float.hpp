@@ -13,6 +13,9 @@ namespace unit {
         // 无参构造
         constexpr UnitFloat() : m_unit(T) {}
 
+        // 指定unit构造
+        constexpr UnitFloat(const Unit& unit) : m_unit(unit) {}
+
         // 拷贝构造
         template <const Unit&T2>
         constexpr UnitFloat(const UnitFloat<T2>& other) : m_unit(T) {
@@ -43,7 +46,7 @@ namespace unit {
         // 四则运算，加
         template <const Unit&T2>
         constexpr UnitFloat operator+(const UnitFloat<T2>& other) const {
-            UnitFloat ret;
+            UnitFloat ret(default_unit);
             ret.m_unit = m_unit + other.m_unit;
             ret.m_value = toFloat(ret.m_unit) + other.toFloat(ret.m_unit);
             return ret;
@@ -58,7 +61,7 @@ namespace unit {
         // 四则运算，减
         template <const Unit&T2>
         constexpr UnitFloat operator-(const UnitFloat<T2>& other) const {
-            UnitFloat ret;
+            UnitFloat ret(default_unit);
             ret.m_unit = m_unit - other.m_unit;
             ret.m_value = toFloat(ret.m_unit) - other.toFloat(ret.m_unit);
             return ret;
@@ -73,7 +76,7 @@ namespace unit {
         // 四则运算，乘
         template <const Unit&T2>
         constexpr UnitFloat operator*(const UnitFloat<T2>& other) const {
-            UnitFloat ret;
+            UnitFloat ret(default_unit);
             ret.m_unit = m_unit * other.m_unit;
             ret.m_value = m_value * other.m_value;
             return ret;
@@ -202,7 +205,7 @@ namespace unit {
 
     // 后置实现 Unit * float，因为当时UnitFloat还未定义
     constexpr auto Unit::operator*(const float value) const {
-        UnitFloat ret;
+        UnitFloat ret(default_unit);
         ret.m_value = value;
         ret.m_unit = *this;
         return ret;
@@ -221,7 +224,7 @@ namespace unit {
 
     // float / UnitFloat
     constexpr UnitFloat<> operator/(const float value, const UnitFloat<>& unit_float) {
-        UnitFloat ret;
+        UnitFloat ret(default_unit);
         ret.m_unit = default_unit / unit_float.m_unit;
         ret.m_value = value / unit_float.m_value;
         return ret;
@@ -244,7 +247,7 @@ namespace unit {
 
     // 开方
     constexpr UnitFloat<> sqrt(const UnitFloat<>& x) {
-        UnitFloat ret; // 返回值无单位
+        UnitFloat ret(default_unit); // 返回值无单位
         ret.m_value = std::sqrt(x.toFloat());
         return ret;
     }

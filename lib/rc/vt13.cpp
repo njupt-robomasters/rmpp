@@ -1,13 +1,13 @@
 #include "vt13.hpp"
 #include <cstring>
 #include <algorithm>
-#include "crc.hpp"
+#include "referee/crc.hpp"
 
 VT13::VT13() {
-    BSP::UART6::RegisterCallback(std::bind(&VT13::callback,
-                                           this,
-                                           std::placeholders::_1,
-                                           std::placeholders::_2));
+    auto callback = [this](const uint8_t data[], const uint16_t size) {
+        this->callback(data, size);
+    };
+    BSP::UART6::RegisterCallback(callback);
 }
 
 void VT13::OnLoop() {
@@ -24,7 +24,7 @@ void VT13::callback(const uint8_t data[], const uint16_t size) {
     if (data[0] != 0xA9 || data[1] != 0x53) return;
 
     // CRC16校验
-    const uint16_t crc16 = (data[sizeof(raw) - 2] << 8) | data[sizeof(raw) - 1];
+    const uint16_t crc16 = data[sizeof(raw) - 2] | (data[sizeof(raw) - 1] << 8);
     if (!CRC16::Verify(data, sizeof(raw) - 2, crc16)) return;
 
     std::memcpy(&raw, data, sizeof(raw));
@@ -32,10 +32,10 @@ void VT13::callback(const uint8_t data[], const uint16_t size) {
     dwt.UpdateDT();
     is_connected = true;
 
-    pitch = getStick(raw.ch_0);  // 右手垂直
-    yaw = -getStick(raw.ch_1);   // 右手水平
-    y = -getStick(raw.ch_2);     // 左手水平
-    x = getStick(raw.ch_3);      // 左手垂直
+    y = -getStick(raw.ch_0);     // 右手水平
+    x = getStick(raw.ch_1);      // 右手垂直
+    pitch = getStick(raw.ch_2);  // 左手垂直
+    yaw = -getStick(raw.ch_3);   // 左手水平
     wheel = getStick(raw.wheel); // 拨轮
 
     mode = mode_e(raw.mode_sw);
@@ -44,9 +44,9 @@ void VT13::callback(const uint8_t data[], const uint16_t size) {
     fn_left = raw.fn_1;
     fn_right = raw.fn_2;
 
-    mouse_x = (float)raw.mouse_x / 32768.0f;
-    mouse_y = (float)raw.mouse_y / 32768.0f;
-    mouse_z = (float)raw.mouse_z / 32768.0f;
+    mouse_yaw = -raw.mouse_x;
+    mouse_pitch = raw.mouse_y;
+    mouse_z = raw.mouse_z;
     mouse_left = raw.mouse_left;
     mouse_right = raw.mouse_right;
     mouse_middle = raw.mouse_middle;
@@ -85,7 +85,7 @@ void VT13::resetData() {
     pause = trigger = fn_left = fn_right = false;
 
     // 键鼠操作
-    mouse_x = mouse_y = mouse_z = 0;
+    mouse_yaw = mouse_pitch = mouse_z = 0;
     mouse_left = mouse_right = mouse_middle = false;
     key = {};
 }

@@ -139,16 +139,16 @@ void BMI088_SetCalibrateParam(float GxOFFSET, float GyOFFSET, float GzOFFSET, fl
 void BMI088_Calibrate() {
     IMU_Data_t* bmi088 = &BMI088;
 
-    static double startTime;
     static uint16_t CaliTimes = 6000; // 需要足够多的数据才能得到有效陀螺仪零偏校准结果
     uint8_t buf[8] = {0, 0, 0, 0, 0, 0};
     int16_t bmi088_raw_temp;
     float gyroMax[3], gyroMin[3];
     float gNormTemp, gNormMax, gNormMin;
 
-    startTime = BSP_DWT_GetTime();
+    static uint32_t tick = 0;
+    BSP_DWT_UpdateDT(&tick);
     do {
-        if (BSP_DWT_GetTime() - startTime > 10) {
+        if (BSP_DWT_GetDT(tick) > 10) {
             // 校准超时
             bmi088->GyroOffset[0] = 0;
             bmi088->GyroOffset[1] = 0;

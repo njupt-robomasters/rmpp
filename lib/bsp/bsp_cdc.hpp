@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <functional>
 #include <vector>
+#include "bsp/bsp_dwt.h"
+#include "unit/include_me.hpp"
 
 namespace BSP {
     class CDC {
@@ -12,7 +14,11 @@ namespace BSP {
 
         static std::vector<CallbackFunc>* callbacks; // 保存注册的回调函数
 
+        static Dwt dwt;
+
     public:
+        static UnitFloat<pct> cpu_usage;
+
         static void Init();
 
         static bool IsConnect();

@@ -10,11 +10,11 @@
 extern "C" {
 #endif
 
-float BSP_DWT_GetDT(uint32_t * last_tick);
-
-double BSP_DWT_GetTime();
-
 void BSP_DWT_Delay(float seconds);
+
+float BSP_DWT_GetDT(uint32_t last_tick);
+
+float BSP_DWT_UpdateDT(uint32_t* last_tick);
 
 #ifdef __cplusplus
 }
@@ -24,12 +24,7 @@ void BSP_DWT_Delay(float seconds);
 namespace BSP {
     class Dwt {
     private:
-        static uint64_t tick64; // 3481.8年溢出
-        static uint32_t tick32; // 25.565秒溢出
-
         uint32_t last_tick = 0;
-
-        static void onLoop();
 
     public:
         float dt = 0;
@@ -37,15 +32,13 @@ namespace BSP {
 
         static void Init();
 
-        static double GetTime();
-
         static void Delay(float seconds);
 
         float GetDT() const;
 
         float UpdateDT();
 
-        void Clear();
+        void Reset();
     };
 }
 #endif

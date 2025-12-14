@@ -43,7 +43,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 )
 
 file(GLOB_RECURSE USER_SOURCES
-    "app/sentry/*.*"
+    "app/infantry/*.*"
     "lib/*.*"
 )
 

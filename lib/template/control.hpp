@@ -1,10 +1,10 @@
 #pragma once
 
 // 控制器
+#include "rc/vt13.hpp"
 #include "rc/dj6.hpp"
-#include "referee/vt13.hpp"
-#include "referee/referee.hpp"
 #include "rc/nuc.hpp"
+#include "referee/referee.hpp"
 
 // 传感器
 #include "imu/imu.hpp"
@@ -66,7 +66,10 @@ private:
     Gimbal_Template& gimbal;
     Shooter_Template& shooter;
 
+    void setEnable(bool is_enable);
+
     // 控制器
+    void handle_disconnect();
     void handle_dj6();
     void handle_vt13();
     void handle_nuc();

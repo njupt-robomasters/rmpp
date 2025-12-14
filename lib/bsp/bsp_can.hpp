@@ -1,8 +1,9 @@
 #pragma once
 
-#include <cstdint>
 #include <functional>
 #include <vector>
+#include "bsp/bsp_dwt.h"
+#include "unit/include_me.hpp"
 
 namespace BSP {
     class CAN {
@@ -11,7 +12,11 @@ namespace BSP {
 
         static std::vector<CallbackFunc>* callbacks; // 保存注册的回调函数
 
+        static Dwt dwt;
+
     public:
+        static UnitFloat<pct> cpu_usage;
+
         static void Init();
 
         static void TransmitStd(uint8_t port, uint32_t id, uint8_t data[8], uint8_t dlc = 8);

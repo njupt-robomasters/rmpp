@@ -36,7 +36,7 @@ void Gimbal::SetEnable(const bool is_enable) {
 }
 
 void Gimbal::OnLoop() {
-    const float dt = dwt.UpdateDT();
+    const float dt = dwt_motion.UpdateDT();
 
     if (is_enable) {
         updateMotion(dt);
