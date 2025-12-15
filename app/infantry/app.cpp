@@ -9,7 +9,7 @@
 #include "rc/vt13.hpp"
 #include "referee/referee.hpp"
 #include "imu/imu.hpp"
-#include "app/control.hpp"
+#include "app/robot.hpp"
 
 // app
 #include "chassis.hpp"
@@ -29,7 +29,7 @@ Chassis chassis( &config.chassis.wheel_pid);
 Gimbal gimbal(imu, &config.gimbal.yaw_pid, &config.gimbal.pitch_pid);
 Shooter shooter(&config.shooter.shoot_pid);
 
-Control control(config.speed,
+Robot control(config.speed,
                 dj6, vt13, referee, nuc, // 控制器
                 imu,                     // 传感器
                 chassis, gimbal, shooter // 执行器

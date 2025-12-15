@@ -14,7 +14,7 @@
 #include "app/gimbal.hpp"
 #include "app/shooter.hpp"
 
-class Control {
+class Robot {
 public:
     struct speed_t {
         // 底盘速度
@@ -27,7 +27,7 @@ public:
         UnitFloat<deg_s> pitch_max;
     };
 
-    Control(const speed_t& speed,
+    Robot(const speed_t& speed,
             DJ6& dj6, VT13& vt13, Referee& referee, NUC& nuc,
             IMU& imu,
             Chassis_Template& chassis, Gimbal_Template& gimbal, Shooter_Template& shooter) :

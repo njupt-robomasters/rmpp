@@ -1,5 +1,16 @@
 #include "shooter.hpp"
 
+void Shooter_Template::SetEnable(bool is_enable) {
+    if (this->is_enable == is_enable) return;
+    this->is_enable = is_enable;
+
+    // 失能复位摩擦轮和拨弹电机状态
+    if (!is_enable) {
+        is_prepare_shoot = false;
+        is_shoot = false;
+    }
+}
+
 void Shooter_Template::SetBulletSpeed(const UnitFloat<>& bullet_speed) {
     this->bullet_speed.ref = bullet_speed;
 }
@@ -17,4 +28,9 @@ void Shooter_Template::SetShoot(const bool is_shoot) {
     if (is_shoot) { // 如果开始拨弹，强制开启摩擦轮
         this->is_prepare_shoot = true;
     }
+}
+
+void Shooter_Template::OnLoop() {
+    backwardCalc();
+    forwardCalc();
 }

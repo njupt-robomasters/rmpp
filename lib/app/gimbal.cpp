@@ -2,6 +2,15 @@
 
 Gimbal_Template::Gimbal_Template(const IMU& imu) : imu(imu) {}
 
+void Gimbal_Template::SetEnable(const bool is_enable) {
+    if (this->is_enable == is_enable) return;
+    this->is_enable = is_enable;
+
+    // 设置当前位置位目标位置
+    yaw.ecd.ref = yaw.ecd.measure;
+    pitch.ecd.ref = pitch.ecd.measure;
+}
+
 void Gimbal_Template::SetMode(const mode_e mode) {
     this->mode = mode;
 }
@@ -23,6 +32,12 @@ void Gimbal_Template::SetSpeed(const UnitFloat<>& yaw_speed, const UnitFloat<>& 
 
 void Gimbal_Template::SetChassisVR(const UnitFloat<>& chassis_vr) {
     this->chassis_vr = chassis_vr;
+}
+
+void Gimbal_Template::OnLoop() {
+    updateMotion();
+    backwardCalc();
+    forwardCalc();
 }
 
 void Gimbal_Template::updateMotion() {

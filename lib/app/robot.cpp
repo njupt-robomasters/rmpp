@@ -1,6 +1,6 @@
-#include "control.hpp"
+#include "robot.hpp"
 
-void Control::OnLoop() {
+void Robot::OnLoop() {
     // 控制器
     handle_disconnect();
     handle_dj6();
@@ -17,13 +17,13 @@ void Control::OnLoop() {
     handle_shooter();
 }
 
-void Control::SetEnable(const bool is_enable) {
+void Robot::SetEnable(const bool is_enable) {
     chassis.SetEnable(is_enable);
     gimbal.SetEnable(is_enable);
     shooter.SetEnable(is_enable);
 }
 
-void Control::handle_disconnect() {
+void Robot::handle_disconnect() {
     // 检查遥控器断联
     if (vt13.is_connected) {
         switch (vt13.mode) {
@@ -47,7 +47,7 @@ void Control::handle_disconnect() {
     }
 }
 
-void Control::handle_dj6() {
+void Robot::handle_dj6() {
     vx.rc = dj6.x * speed.vxy_max;
     vy.rc = dj6.y * speed.vxy_max;
     yaw_speed.rc = dj6.yaw * speed.yaw_max;
@@ -104,7 +104,7 @@ void Control::handle_dj6() {
     dj6.OnLoop();
 }
 
-void Control::handle_vt13() {
+void Robot::handle_vt13() {
     // 遥控器
     vx.vt13 = vt13.x * speed.vxy_max;
     vy.vt13 = vt13.y * speed.vxy_max;
@@ -163,19 +163,19 @@ void Control::handle_vt13() {
     vt13.OnLoop();
 }
 
-void Control::handle_referee() {
+void Robot::handle_referee() {
     referee.OnLoop();
 }
 
-void Control::handle_nuc() {
+void Robot::handle_nuc() {
     nuc.OnLoop();
 }
 
-void Control::handle_imu() {
+void Robot::handle_imu() {
     imu.OnLoop();
 }
 
-void Control::handle_chassis() {
+void Robot::handle_chassis() {
     // 设置底盘速度
     vx.sum = unit::clamp(vx.rc + vx.vt13 + vx.client + vx.nav, speed.vxy_max);
     vy.sum = unit::clamp(vy.rc + vy.vt13 + vy.client + vy.nav, speed.vxy_max);
@@ -188,7 +188,7 @@ void Control::handle_chassis() {
     chassis.OnLoop();
 }
 
-void Control::handle_gimbal() {
+void Robot::handle_gimbal() {
     // 设置云台速度
     pitch_speed.sum = unit::clamp(pitch_speed.rc + pitch_speed.vt13 + pitch_speed.client + pitch_speed.nav, speed.pitch_max);
     yaw_speed.sum = unit::clamp(yaw_speed.rc + yaw_speed.vt13 + yaw_speed.client + yaw_speed.nav, speed.yaw_max);
@@ -200,7 +200,7 @@ void Control::handle_gimbal() {
     gimbal.OnLoop();
 }
 
-void Control::handle_shooter() {
+void Robot::handle_shooter() {
     shooter.SetBulletSpeed(18.0f * m_s); // 设置弹速
     shooter.SetBulletFreq(5.0f * Hz);     // 设置弹频
 

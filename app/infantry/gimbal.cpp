@@ -29,8 +29,8 @@ void Gimbal::SetEnable(const bool is_enable) {
     m_pitch.SetEnable(is_enable);
 
     // 设置当前位置位目标位置
-    yaw.ecd.ref = m_yaw.angle.measure;
-    pitch.ecd.ref = m_pitch.angle.measure;
+    yaw.ecd.ref = yaw.ecd.measure;
+    pitch.ecd.ref = pitch.ecd.measure;
 }
 
 void Gimbal::OnLoop() {

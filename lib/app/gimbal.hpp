@@ -26,27 +26,27 @@ public:
     // 云台运动速度
     UnitFloat<deg_s> yaw_speed, pitch_speed;
 
-    BSP::Dwt dwt_motion; // 维护dt
+    BSP::Dwt dwt_motion;
 
     Gimbal_Template(const IMU& imu);
+
+    // 云台使能/失能
+    virtual void SetEnable(bool is_enable);
 
     // 设置云台模式：编码器模式 / IMU模式
     void SetMode(mode_e mode);
 
-    // 设置角度
-    void SetAngle(const Angle<>& yaw, const Angle<>& pitch);
-
     // 设置速度
     void SetSpeed(const UnitFloat<>& yaw_speed, const UnitFloat<>& pitch_speed);
+
+    // 设置角度
+    void SetAngle(const Angle<>& yaw, const Angle<>& pitch);
 
     // 设置底盘旋转速度，用于yaw轴前馈
     void SetChassisVR(const UnitFloat<>& chassis_vr);
 
-    // 云台使能/失能
-    virtual void SetEnable(bool is_enable) = 0;
-
     // 需要在循环中调用
-    virtual void OnLoop() = 0;
+    virtual void OnLoop();
 
 protected:
     // 对陀螺仪的引用，用于云台IMU闭环模式

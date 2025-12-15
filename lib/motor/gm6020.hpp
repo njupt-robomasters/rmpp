@@ -4,7 +4,7 @@
 
 class GM6020 : public Motor {
 public:
-    static constexpr UnitFloat Kt = 0.3f * Nm_A;
+    static constexpr UnitFloat Kt = 0.741f * Nm_A;
     static constexpr float R = 1.8f / 2; // 相电阻（两相电阻/2）
 
     GM6020(uint8_t can_port, uint8_t motor_id);

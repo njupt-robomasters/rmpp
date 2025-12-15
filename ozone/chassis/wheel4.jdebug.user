@@ -1,0 +1,23 @@
+
+GraphedExpression="chassis.m_wheel1.speed.measure.m_value", Color=#a00909
+GraphedExpression="chassis.m_wheel2.speed.measure.m_value", Color=#09a01b
+GraphedExpression="chassis.m_wheel3.speed.measure.m_value", Color=#09a087
+GraphedExpression="chassis.m_wheel4.speed.measure.m_value", Color=#0984a0
+OpenDocument="main.c", FilePath="E:/workspace/rm/code/stm32/njupt_framework/Core/Src/main.c", Line=0
+OpenToolbar="Debug", Floating=0, x=0, y=0
+OpenWindow="Source Files", DockArea=LEFT, x=0, y=1, w=959, h=705, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=0, w=959, h=893, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1364, h=706, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=RIGHT, x=0, y=0, w=1364, h=892, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="784;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="1081;281", CodeGraphLegendShown=0, CodeGraphLegendPosition="1089;0"
+OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=3840, h=337, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+TableHeader="Source Files", SortCol="File", SortOrder="ASCENDING", VisibleCols=["File";"Status";"Size";"#Insts";"Path"], ColWidths=[350;116;100;116;1235]
+TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" chassis.m_wheel1.speed.measure.m_value";" chassis.m_wheel2.speed.measure.m_value";" chassis.m_wheel3.speed.measure.m_value";" chassis.m_wheel4.speed.measure.m_value"], ColWidths=[100;100;100;100;100;100]
+TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[540;100;105;157;144;144;149;171;171]
+TableHeader="Power Sampling", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
+TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Refresh"], ColWidths=[522;187;148;102]
+TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
+TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[26;26;26;29]
+WatchedExpression="chassis.m_wheel1.speed.measure.m_value", Window=Watched Data 1
+WatchedExpression="chassis.m_wheel2.speed.measure.m_value", Window=Watched Data 1
+WatchedExpression="chassis.m_wheel3.speed.measure.m_value", Window=Watched Data 1
+WatchedExpression="chassis.m_wheel4.speed.measure.m_value", Window=Watched Data 1

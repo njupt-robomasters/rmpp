@@ -34,20 +34,20 @@ public:
     UnitFloat<W> power_estimate;              // 当前功率估计
     UnitFloat<pct> current_ratio = 100 * pct; // 电流衰减系数
 
-    // 设置前进正方向（云台yaw角度）
-    void SetGimbalYaw(const Angle<>& gimbal_yaw);
+    // 底盘使能/失能
+    virtual void SetEnable(bool is_enable);
 
     // 设置速度
     void SetSpeed(const UnitFloat<>& vx, const UnitFloat<>& vy, const UnitFloat<>& vr);
 
+    // 设置前进正方向（云台yaw角度）
+    void SetGimbalYaw(const Angle<>& gimbal_yaw);
+
     // 设置功率限制
     void SetPowerLimit(const UnitFloat<>& power);
 
-    // 底盘使能/失能
-    virtual void SetEnable(bool is_enable) = 0;
-
     // 需要在循环中调用
-    virtual void OnLoop() = 0;
+    virtual void OnLoop();
 
 protected:
     // 车体速度 -> 轮子速度

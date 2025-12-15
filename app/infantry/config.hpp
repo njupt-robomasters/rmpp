@@ -1,11 +1,11 @@
 #pragma once
 
-#include "app/control.hpp"
+#include "app/robot.hpp"
 #include "imu/imu.hpp"
 #include "controller/pid.hpp"
 
 inline struct {
-    Control::speed_t speed = {
+    Robot::speed_t speed = {
         // 底盘速度参数
         .vxy_max = 2.0f * m_s,
         .vr_max = 60.0f * rpm,

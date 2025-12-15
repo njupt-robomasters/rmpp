@@ -8,7 +8,7 @@ class Gimbal : public Gimbal_Template {
 public:
     // 电机偏移参数
     // yaw
-    static constexpr Angle YAW_OFFSET = 93.38f * deg; // yaw与前进方向重合时的绝对角度
+    static constexpr Angle YAW_OFFSET = 100.0f * deg; // yaw与前进方向重合时的绝对角度
     // pitch
     static constexpr Angle PITCH_OFFSET = -65.0f * deg;                      // pitch水平时的绝对角度
     static constexpr Angle PITCH_MIN = (-75.0f + 5.0f) * deg - PITCH_OFFSET; // pitch最低相对角度

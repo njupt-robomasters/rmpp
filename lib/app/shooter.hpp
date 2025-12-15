@@ -23,6 +23,9 @@ public:
         UnitFloat<Hz> ref, measure;
     } bullet_freq;
 
+    // 设置发射结构使能/失能
+    virtual void SetEnable(bool is_enable);
+
     // 设置弹速
     void SetBulletSpeed(const UnitFloat<>& bullet_speed);
 
@@ -35,11 +38,8 @@ public:
     // 设置拨弹电机
     void SetShoot(bool is_shoot);
 
-    // 设置发射结构使能/失能
-    virtual void SetEnable(bool is_enable) = 0;
-
     // 需要在循环中调用
-    virtual void OnLoop() = 0;
+    virtual void OnLoop();
 
 private:
     virtual void forwardCalc() = 0;

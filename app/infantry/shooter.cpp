@@ -9,10 +9,11 @@ Shooter::Shooter(PID::param_t* shoot_pid) :
 }
 
 void Shooter::SetEnable(const bool is_enable) {
-    if (this->is_enable == is_enable) return; // 防止重复设置
+    if (this->is_enable == is_enable) return;
     this->is_enable = is_enable;
 
-    if (!is_enable) { // 失能复位摩擦轮和拨弹电机状态
+    // 失能复位摩擦轮和拨弹电机状态
+    if (!is_enable) {
         is_prepare_shoot = false;
         is_shoot = false;
     }

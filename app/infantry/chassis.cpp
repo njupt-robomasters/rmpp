@@ -20,7 +20,7 @@ Chassis::Chassis(PID::param_t* wheel_pid) :
 }
 
 void Chassis::SetEnable(const bool is_enable) {
-    if (this->is_enable == is_enable) return; // 防止重复设置
+    if (this->is_enable == is_enable) return;
     this->is_enable = is_enable;
     m_wheel1.SetEnable(is_enable);
     m_wheel2.SetEnable(is_enable);
