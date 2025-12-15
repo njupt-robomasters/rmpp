@@ -239,7 +239,7 @@ void Robot::handle_gimbal() {
 
 void Robot::handle_shooter() {
     shooter.SetBulletSpeed(24.0f * m_s); // 设置弹速
-    shooter.SetBulletFreq(15.0f * Hz);   // 设置弹频
+    shooter.SetBulletFreq(5.0f * Hz);   // 设置弹频
 
     shooter.OnLoop();
 }

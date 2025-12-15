@@ -19,6 +19,19 @@ Chassis::Chassis(PID::param_t* wheel_pid) :
     m_wheel2.SetReduction(14.0f);
     m_wheel3.SetReduction(14.0f);
     m_wheel4.SetReduction(14.0f);
+
+    // 设置电流力矩系数
+    constexpr UnitFloat Kt = 0.525f * Nm_A;
+    m_wheel1.SetKt(Kt);
+    m_wheel2.SetKt(Kt);
+    m_wheel3.SetKt(Kt);
+    m_wheel4.SetKt(Kt);
+
+    // 设置电机正方向
+    m_wheel1.SetInvert(false);
+    m_wheel2.SetInvert(false);
+    m_wheel3.SetInvert(false);
+    m_wheel4.SetInvert(false);
 }
 
 void Chassis::SetEnable(const bool is_enable) {
@@ -42,7 +55,7 @@ void Chassis::OnLoop() {
     m_wheel4.OnLoop();
 
     // 功率控制
-    // powerControl();
+    powerControl();
 }
 
 void Chassis::forwardCalc() {
@@ -91,16 +104,16 @@ void Chassis::powerControl() {
     // c = -P
 
     UnitFloat a;
-    a += 3 * unit::square(m_wheel1.current.ref) * M3508::R;
-    a += 3 * unit::square(m_wheel2.current.ref) * M3508::R;
-    a += 3 * unit::square(m_wheel3.current.ref) * M3508::R;
-    a += 3 * unit::square(m_wheel4.current.ref) * M3508::R;
+    a += 3 * unit::square(m_wheel1.current.ref) * m_wheel1.R;
+    a += 3 * unit::square(m_wheel2.current.ref) * m_wheel2.R;
+    a += 3 * unit::square(m_wheel3.current.ref) * m_wheel3.R;
+    a += 3 * unit::square(m_wheel4.current.ref) * m_wheel4.R;
 
     UnitFloat b;
-    b += M3508::Kt * m_wheel1.current.ref * m_wheel1.speed.measure;
-    b += M3508::Kt * m_wheel2.current.ref * m_wheel2.speed.measure;
-    b += M3508::Kt * m_wheel3.current.ref * m_wheel3.speed.measure;
-    b += M3508::Kt * m_wheel4.current.ref * m_wheel4.speed.measure;
+    b += m_wheel1.Kt * m_wheel1.current.ref * m_wheel1.speed.measure;
+    b += m_wheel2.Kt * m_wheel2.current.ref * m_wheel2.speed.measure;
+    b += m_wheel3.Kt * m_wheel3.current.ref * m_wheel3.speed.measure;
+    b += m_wheel4.Kt * m_wheel4.current.ref * m_wheel4.speed.measure;
 
     const UnitFloat c = -power_limit;
 
@@ -116,10 +129,9 @@ void Chassis::powerControl() {
     m_wheel3.SetCurrentRatio(current_ratio);
     m_wheel4.SetCurrentRatio(current_ratio);
 
-    // 估算底盘当前功率，用于调试
-    const UnitFloat power1 = 3 * unit::square(m_wheel1.current.ref) * M3508::R + M3508::Kt * m_wheel1.current.ref * m_wheel1.speed.measure;
-    const UnitFloat power2 = 3 * unit::square(m_wheel2.current.ref) * M3508::R + M3508::Kt * m_wheel2.current.ref * m_wheel2.speed.measure;
-    const UnitFloat power3 = 3 * unit::square(m_wheel3.current.ref) * M3508::R + M3508::Kt * m_wheel3.current.ref * m_wheel3.speed.measure;
-    const UnitFloat power4 = 3 * unit::square(m_wheel4.current.ref) * M3508::R + M3508::Kt * m_wheel4.current.ref * m_wheel4.speed.measure;
-    power_estimate = power1 + power2 + power3 + power4;
+    // 估算底盘当前功率
+    power_estimate = m_wheel1.power.estimate.total
+        + m_wheel2.power.estimate.total
+        + m_wheel3.power.estimate.total
+        + m_wheel4.power.estimate.total;
 }

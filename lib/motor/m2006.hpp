@@ -4,10 +4,6 @@
 
 class M2006 : public Motor {
 public:
-    static constexpr float REDUCTION = 36.0f;
-    static constexpr UnitFloat Kt = 0.3f * Nm_A;
-    static constexpr float R = 0.461f / 2; // 相电阻（两相电阻/2）
-
     M2006(uint8_t can_port, uint8_t motor_id);
 
     int16_t GetCurrentCmd() const;

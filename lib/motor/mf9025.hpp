@@ -4,8 +4,6 @@
 
 class MF9025 : public Motor {
 public:
-    static constexpr UnitFloat Kt = 0.32f * Nm_A;
-
     UnitFloat<C> temperature_motor; // 电机温度
 
     MF9025(uint8_t can_port, uint8_t motor_id);

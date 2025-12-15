@@ -6,8 +6,8 @@ DM4310::DM4310(const uint8_t can_port, const uint32_t master_id, const uint32_t 
         this->callback(port, id, data, dlc);
     };
     BSP::CAN::RegisterCallback(callback);
-    SetReduction(1.0f);
-    SetKt(Kt);
+    SetKt(1.2f * Nm_A);
+    SetR(0.65f / 2 * Ohm);
 }
 
 void DM4310::OnLoop() {

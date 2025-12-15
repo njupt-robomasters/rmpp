@@ -7,8 +7,9 @@ M3508::M3508(const uint8_t can_port, const uint8_t motor_id) :
         this->callback(port, id, data, dlc);
     };
     BSP::CAN::RegisterCallback(callback);
-    SetReduction(REDUCTION);
-    SetKt(Kt);
+    SetReduction(3591.0f / 187.0f);
+    SetKt(0.3f * Nm_A);
+    SetR(0.194f / 2 * Ohm);
 }
 
 void M3508::SetCurrentRatio(const UnitFloat<>& current_ratio) {

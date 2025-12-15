@@ -4,10 +4,6 @@
 
 class M3508 : public Motor {
 public:
-    static constexpr float REDUCTION = 3591.0f / 187.0f;
-    static constexpr UnitFloat Kt = 0.18f * Nm_A;
-    static constexpr float R = 0.194f / 2; // 相电阻（两相电阻/2）
-
     UnitFloat<C> temperature_motor; // 电机温度
 
     UnitFloat<pct> current_ratio = 100.0f * pct; // 电流衰减系数，用于功率控制

@@ -7,8 +7,9 @@ M2006::M2006(const uint8_t can_port, const uint8_t motor_id) :
         this->callback(port, id, data, dlc);
     };
     BSP::CAN::RegisterCallback(callback);
-    SetReduction(REDUCTION);
-    SetKt(Kt);
+    SetReduction(36.0f);
+    SetKt(0.18f * Nm_A);
+    SetR(0.461f / 2 * Ohm);
 }
 
 int16_t M2006::GetCurrentCmd() const {

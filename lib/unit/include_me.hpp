@@ -32,10 +32,11 @@ inline constexpr Unit ratio("ratio", 1.0f); // 比例
 inline constexpr Unit pct("%", 0.01f);      // 百分比
 
 // 物理
-inline constexpr Unit V("V", 1.0f);   // 电压
-inline constexpr Unit A("A", 1.0f);   // 电流
-inline constexpr Unit W("W", 1.0f);   // 功率
-inline constexpr Unit Nm("Nm", 1.0f); // 扭矩
+inline constexpr Unit V("V", 1.0f);     // 电压
+inline constexpr Unit A("A", 1.0f);     // 电流
+inline constexpr Unit W("W", 1.0f);     // 功率
+inline constexpr Unit Nm("Nm", 1.0f);   // 扭矩
+inline constexpr Unit Ohm("Ohm", 1.0f); // 电阻
 
 inline constexpr Unit Hz("Hz", 1.0f); // 频率
 inline constexpr Unit C("C", 1.0f);   // 摄氏度

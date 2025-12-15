@@ -12,6 +12,10 @@ void Motor::SetKt(const UnitFloat<>& Kt) {
     this->Kt = Kt;
 }
 
+void Motor::SetR(const UnitFloat<>& R) {
+    this->R = R;
+}
+
 void Motor::SetInvert(const bool is_invert) {
     this->is_invert = is_invert;
 }
@@ -114,6 +118,10 @@ void Motor::OnLoop() {
 }
 
 void Motor::callback() {
+    // 电机在线检测
+    is_online = true;
+    dwt_online.UpdateDT();;
+
     // 电机修正
     if (!is_invert) {
         current.measure = current.raw;
@@ -133,6 +141,8 @@ void Motor::callback() {
         angle.last_raw = angle.raw;
     }
 
-    dwt_online.UpdateDT();
-    is_online = true;
+    // 功率估计
+    power.estimate.heat = 3 * R * unit::square(current.measure);
+    power.estimate.mechanical = torque.measure * speed.measure;
+    power.estimate.total = power.estimate.heat + power.estimate.mechanical;
 }

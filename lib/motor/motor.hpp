@@ -17,6 +17,11 @@ public:
         TORQUE_TYPE,  // PID输出扭矩
     };
 
+    // 电机本体参数
+    float reduction = 1.0f;           // 减速比
+    UnitFloat<Nm_A> Kt = 1.0f * Nm_A; // 力矩系数
+    UnitFloat<Ohm> R = 0.0f * Ohm;    // 相电阻（两相间电阻/2）
+
     bool is_enable = false; // 电机使能标志
     bool is_online = false; // 电机在线标识
 
@@ -40,19 +45,28 @@ public:
         Angle<deg> ref, measure, raw, last_raw; // raw为电机反转、安装偏移处理前的值
     } angle;
 
+    // 功率
+    struct {
+        struct {
+            UnitFloat<W> heat, mechanical, total;
+        } estimate;           // 功率估计
+        UnitFloat<W> measure; // 真实功率
+    } power;
+
     // 设置电机使能/失能
     void SetEnable(bool is_enable);
 
     // 电机本体设置
     void SetReduction(float reduction); // 设置电机减速比
     void SetKt(const UnitFloat<>& Kt);  // 设置电机扭矩系数
+    void SetR(const UnitFloat<>& R);    // 设置电机相电阻（两相间电阻/2）
 
     // 电机安装参数
     void SetInvert(bool is_invert);                                                                                         // 设置电机反转
     void SetOffset(const Angle<>& offset);                                                                                  // 设置电机安装偏移，限位模式下必须是电机运动范围中心位置
     void SetLimit(bool is_limit, const Angle<>& limit_min = 0 * default_unit, const Angle<>& limit_max = 0 * default_unit); // 设置电机限位
 
-    // 设置PID
+    // 设置PID参数
     void SetPID(pid_mode_e pid_mode, pid_type_e pid_type, PID::param_t* pid_param);
 
     // 设置CAN发送频率
@@ -75,10 +89,6 @@ public:
 
 protected:
     static constexpr float TIMEOUT = 0.01f;
-
-    // 电机本体参数
-    float reduction = 1.0f;           // 电机减速比
-    UnitFloat<Nm_A> Kt = 1.0f * Nm_A; // 力矩系数
 
     // 电机安装参数
     bool is_invert = false;          // 电机反转标志

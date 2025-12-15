@@ -3,8 +3,6 @@
 
 class RM6623 : public Motor {
 public:
-    static constexpr UnitFloat Kt = 0.38f * Nm_A;
-
     RM6623(uint8_t can_port, uint8_t motor_id);
 
     int16_t GetCurrentCmd() const;

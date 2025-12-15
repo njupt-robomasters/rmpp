@@ -7,7 +7,6 @@ GM6020::GM6020(const uint8_t can_port, const uint8_t motor_id) :
         this->callback(port, id, data, dlc);
     };
     BSP::CAN::RegisterCallback(callback);
-    SetReduction(1.0f);
     SetKt(Kt);
 }
 

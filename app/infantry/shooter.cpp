@@ -6,6 +6,9 @@ Shooter::Shooter(PID::param_t* shoot_pid) :
     n630_2(2, 33) {
     // 设置电机PID参数
     m_shoot.SetPID(Motor::SPEED_MODE, Motor::CURRENT_TYPE, shoot_pid);
+
+    // 设置电机正方向
+    m_shoot.SetInvert(false);
 }
 
 void Shooter::SetEnable(const bool is_enable) {

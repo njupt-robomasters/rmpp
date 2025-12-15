@@ -4,9 +4,6 @@
 
 class DM4310 : public Motor {
 public:
-    static constexpr UnitFloat Kt = 1.2f * Nm_A;
-    static constexpr float R = 0.65f / 2; // 相电阻（两相电阻/2）
-
     enum err_code_e {
         NONE      = 0x00,
         OVP       = 0x08, // 超压

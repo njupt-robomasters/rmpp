@@ -1,8 +1,6 @@
 #pragma once
 
-#include "app/robot.hpp"
-#include "imu/imu.hpp"
-#include "controller/pid.hpp"
+#include "lib.hpp"
 
 inline struct {
     Robot::speed_t speed = {

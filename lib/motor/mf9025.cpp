@@ -6,7 +6,7 @@ MF9025::MF9025(const uint8_t can_port, const uint8_t motor_id) :
         this->callback(port, id, data, dlc);
     };
     BSP::CAN::RegisterCallback(callback);
-    SetKt(Kt);
+    SetKt(0.32f * Nm_A);
 }
 
 void MF9025::OnLoop() {

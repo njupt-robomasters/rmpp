@@ -1,15 +1,5 @@
 #include "config.hpp"
-
-// bsp
-#include "bsp/bsp.hpp"
-
-// lib
-#include "app/led.hpp"
-#include "rc/dj6.hpp"
-#include "rc/vt13.hpp"
-#include "referee/referee.hpp"
-#include "imu/imu.hpp"
-#include "app/robot.hpp"
+#include "lib.hpp"
 
 // app
 #include "chassis.hpp"
