@@ -36,7 +36,7 @@ private:
     param_t* param = nullptr; // PID参数
 
     UnitFloat<> err, last_err, last_err2; // 误差值 err = ref - measure
-    UnitFloat<> p_out, i_out, d_out;      // pid输出
+    UnitFloat<> p_out, i_out, d_out, out_no_filter;      // pid输出
 
     BSP::Dwt dwt; // 用于计算dt
 

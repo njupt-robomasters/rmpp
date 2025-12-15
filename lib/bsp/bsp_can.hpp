@@ -16,6 +16,7 @@ namespace BSP {
 
     public:
         static UnitFloat<pct> cpu_usage;
+        static uint32_t bus_off_cnt;
 
         static void Init();
 

@@ -7,7 +7,7 @@
 class Shooter : public Shooter_Template {
 public:
     static constexpr UnitFloat WHEEL_RADIUS = 3.0f * cm;
-    static constexpr float SHOOT_PRE_ROUND = 7.0f;
+    static constexpr float SHOOT_PRE_ROUND = 8.0f / 2.5f;
 
     // 电机对象
     M2006 m_shoot;

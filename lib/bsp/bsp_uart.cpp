@@ -2,15 +2,17 @@
 
 using namespace BSP;
 
+UnitFloat<pct> UART3::cpu_usage;
+uint32_t UART3::err_cnt = 0;
 std::vector<UART3::CallbackFunc>* UART3::callbacks;
 uint8_t UART3::rxbuf[RXBUF_SIZE];
 Dwt UART3::dwt;
-UnitFloat<pct> UART3::cpu_usage;
 
+UnitFloat<pct> UART6::cpu_usage;
+uint32_t UART6::err_cnt = 0;
 std::vector<UART6::CallbackFunc>* UART6::callbacks;
 uint8_t UART6::rxbuf[RXBUF_SIZE];
 Dwt UART6::dwt;
-UnitFloat<pct> UART6::cpu_usage;
 
 /********************* 以下为HAL库回调函数 ********************/
 
@@ -42,9 +44,11 @@ extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t S
 
 extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef* huart) {
     if (huart->Instance == USART3) { // 遥控器串口
+        UART3::err_cnt++;
         __HAL_UNLOCK(huart);
         UART3::Init();                      // 继续接收
     } else if (huart->Instance == USART6) { // 裁判系统图传串口
+        UART6::err_cnt++;
         __HAL_UNLOCK(huart);
         UART6::Init(); // 继续接收
     }

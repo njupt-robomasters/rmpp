@@ -36,9 +36,10 @@ inline struct {
     struct {
         PID::param_t yaw_pid = {
             .mode = PID::POSITION_MODE,
-            .kp = (3 * A) / (30.0f * deg),
-            .kd = (3 * A) / (500.0f * deg_s),
+            .kp = (3 * A) / (15.0f * deg),
+            .kd = (3 * A) / (300.0f * deg_s),
             .max_out = 3 * A,
+            .fc = 30 * Hz
         };
         PID::param_t pitch_pid = {
             .mode = PID::POSITION_MODE,

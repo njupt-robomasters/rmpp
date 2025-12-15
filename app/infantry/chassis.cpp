@@ -17,6 +17,8 @@ Chassis::Chassis(PID::param_t* wheel_pid) :
     // 设置电机减速比
     m_wheel1.SetReduction(14.0f);
     m_wheel2.SetReduction(14.0f);
+    m_wheel3.SetReduction(14.0f);
+    m_wheel4.SetReduction(14.0f);
 }
 
 void Chassis::SetEnable(const bool is_enable) {
@@ -40,7 +42,7 @@ void Chassis::OnLoop() {
     m_wheel4.OnLoop();
 
     // 功率控制
-    powerControl();
+    // powerControl();
 }
 
 void Chassis::forwardCalc() {

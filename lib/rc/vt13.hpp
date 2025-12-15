@@ -19,7 +19,8 @@ public:
     bool pause = false, trigger = false, fn_left = false, fn_right = false;
 
     // 键鼠操作
-    int16_t mouse_yaw = 0, mouse_pitch = 0, mouse_z = 0;
+    float mouse_yaw = 0, mouse_pitch = 0;
+    int16_t mouse_z = 0;
     bool mouse_left = false, mouse_right = false, mouse_middle = false;
 
     struct {
@@ -39,7 +40,8 @@ public:
 
 private:
     static constexpr float TIMEOUT = 0.1f;         // 断联检测超时时间
-    static constexpr float STICK_DEADLINE = 0.01f; // 摇杆死区，小于此值认为是0
+    static constexpr float STICK_DEADLINE = 0.05f; // 摇杆死区，小于此值认为是0
+    static constexpr float MOUSE_MAX = 2000.0f;
 
     struct __attribute__((packed)) {
         uint8_t sof_1 : 8;   // 0xA9

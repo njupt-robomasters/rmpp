@@ -74,8 +74,8 @@ void Robot::handle_dj6() {
                     break;
             }
         }
-        switch_left_last = dj6.switch_left;
     }
+    switch_left_last = dj6.switch_left;
 
     // 右拨杆：云台模式、测试小陀螺
     static DJ6::switch_e switch_right_last = DJ6::ERR;
@@ -98,14 +98,15 @@ void Robot::handle_dj6() {
                 }
                 break;
         }
-        switch_right_last = dj6.switch_right;
     }
+    switch_right_last = dj6.switch_right;
 
     dj6.OnLoop();
 }
 
 void Robot::handle_vt13() {
     // 遥控器
+    // 摇杆
     vx.vt13 = vt13.x * speed.vxy_max;
     vy.vt13 = vt13.y * speed.vxy_max;
     vr.vt13 = -vt13.wheel * speed.vr_max;
@@ -156,9 +157,45 @@ void Robot::handle_vt13() {
     }
     trigger_last = vt13.trigger;
 
-    // 客户端键鼠
-    yaw_speed.client = -vt13.mouse_yaw * speed.yaw_max;
-    pitch_speed.client = -vt13.mouse_pitch * speed.pitch_max;
+    // 客户端
+    // 鼠标控制云台
+    yaw_speed.client = vt13.mouse_yaw * speed.yaw_max;
+    pitch_speed.client = vt13.mouse_pitch * speed.pitch_max;
+
+    // 鼠标左键开火
+    static bool mouse_right_last = false;
+    if (mouse_right_last != vt13.mouse_right) {
+        shooter.SetShoot(vt13.mouse_right);
+    }
+    mouse_right_last = vt13.mouse_right;
+
+    // wsad控制底盘
+    // ws控制前后
+    static BSP::Dwt dwt;
+    const float dt = dwt.UpdateDT();
+    if (vt13.key.w) {
+        if (vx.client < 0) vx.client = 0 * default_unit;
+        vx.client += speed.vxy_max * dt;
+    } else if (vt13.key.s) {
+        if (vx.client > 0) vx.client = 0 * default_unit;
+        vx.client -= speed.vxy_max * dt;
+    } else {
+        if (vx.client > 0) vx.client -= speed.vxy_max * dt;
+        if (vx.client < 0) vx.client += speed.vxy_max * dt;
+    }
+    // ad控制水平
+    if (vt13.key.a) {
+        if (vy.client < 0) vy.client = 0 * default_unit;
+        vy.client += speed.vxy_max * dt;
+    } else if (vt13.key.d) {
+        if (vy.client > 0) vy.client = 0 * default_unit;
+        vy.client -= speed.vxy_max * dt;
+    } else {
+        if (vy.client > 0) vy.client -= speed.vxy_max * dt;
+        if (vy.client < 0) vy.client += speed.vxy_max * dt;
+    }
+
+    // todo: 鼠标滚轮和中键控制小陀螺
 
     vt13.OnLoop();
 }
@@ -201,8 +238,8 @@ void Robot::handle_gimbal() {
 }
 
 void Robot::handle_shooter() {
-    shooter.SetBulletSpeed(18.0f * m_s); // 设置弹速
-    shooter.SetBulletFreq(5.0f * Hz);     // 设置弹频
+    shooter.SetBulletSpeed(24.0f * m_s); // 设置弹速
+    shooter.SetBulletFreq(15.0f * Hz);   // 设置弹频
 
     shooter.OnLoop();
 }

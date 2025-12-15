@@ -46,14 +46,14 @@ namespace BSP {
 
     public:
         static UnitFloat<pct> cpu_usage;
+        static uint32_t err_cnt;
 
     private:
         static constexpr UART_HandleTypeDef* huart = &huart3;
-        static constexpr uint8_t RXBUF_SIZE = 50;
+        static constexpr uint8_t RXBUF_SIZE = 128;
 
         static std::vector<CallbackFunc>* callbacks; // 保存注册的回调函数
         static uint8_t rxbuf[RXBUF_SIZE];
-
         static Dwt dwt;
     };
 
@@ -63,6 +63,7 @@ namespace BSP {
 
     public:
         static UnitFloat<pct> cpu_usage;
+        static uint32_t err_cnt;
 
     private:
         static constexpr UART_HandleTypeDef* huart = &huart6;
@@ -70,7 +71,6 @@ namespace BSP {
 
         static std::vector<CallbackFunc>* callbacks; // 保存注册的回调函数
         static uint8_t rxbuf[RXBUF_SIZE];
-
         static Dwt dwt;
     };
 }

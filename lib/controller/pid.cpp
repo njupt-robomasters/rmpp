@@ -39,8 +39,7 @@ void PID::calcPosition(const UnitFloat<>& err, const std::optional<UnitFloat<>>&
     // 计算dt
     const float dt = dwt.UpdateDT();
 
-    // 输入滤波
-    this->err = lowpassFilter(this->err, err, fc, dt);
+    this->err = err;
 
     // 基础PID计算
     p_out = kp * err;
@@ -62,9 +61,12 @@ void PID::calcPosition(const UnitFloat<>& err, const std::optional<UnitFloat<>>&
     i_out += di;
     i_out = unit::clamp(i_out, max_i);
 
-    // 输出和限幅
-    out = p_out + i_out + d_out + ff;
-    out = unit::clamp(out, max_out);
+    // 输出限幅
+    out_no_filter = p_out + i_out + d_out + ff;
+    out_no_filter = unit::clamp(out_no_filter, max_out);
+
+    // 输出滤波
+    out = lowpassFilter(out, out_no_filter, fc, dt);
 
     last_err = err;
 }
@@ -73,8 +75,7 @@ void PID::calcIncrement(const UnitFloat<>& err) {
     // 计算dt
     const float dt = dwt.UpdateDT();
 
-    // 输入滤波
-    this->err = lowpassFilter(this->err, err, fc, dt);
+    this->err = err;
 
     // 基础PID计算
     p_out = kp * (err - last_err);
@@ -86,9 +87,12 @@ void PID::calcIncrement(const UnitFloat<>& err) {
         i_out = 0 * default_unit;
     }
 
-    // 输出和限幅
-    out += p_out + i_out + d_out;
-    out = unit::clamp(out, max_out);
+    // 输出限幅
+    out_no_filter += p_out + i_out + d_out;
+    out_no_filter = unit::clamp(out_no_filter, max_out);
+
+    // 输出滤波
+    out = lowpassFilter(out, out_no_filter, fc, dt);
 
     last_err2 = last_err;
     last_err = err;
@@ -96,7 +100,7 @@ void PID::calcIncrement(const UnitFloat<>& err) {
 
 void PID::Clear() {
     err = last_err = last_err2 = 0 * default_unit;
-    out = p_out = i_out = d_out = 0 * default_unit;
+    out = out_no_filter = p_out = i_out = d_out = 0 * default_unit;
     dwt.Reset();
 }
 
@@ -112,8 +116,8 @@ UnitFloat<> PID::lowpassFilter(const UnitFloat<>& pre, const UnitFloat<>& next, 
     if (fc == 0) { // fc==0，禁用滤波
         return next;
     }
-    const float fs = 1 / dt;
-    const float alpha = 2 * PI * fc.toFloat() / (fs + 2 * PI * fc.toFloat());
+    const float rc = 1 / (2 * PI * fc.toFloat());
+    const float alpha = dt / (rc + dt);
     const UnitFloat out = pre * (1 - alpha) + next * alpha;
     return out;
 }
