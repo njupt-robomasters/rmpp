@@ -48,10 +48,10 @@ void Robot::handle_disconnect() {
 }
 
 void Robot::handle_dj6() {
-    vx.rc = dj6.x * speed.vxy_max;
-    vy.rc = dj6.y * speed.vxy_max;
-    yaw_speed.rc = dj6.yaw * speed.yaw_max;
-    pitch_speed.rc = dj6.pitch * speed.pitch_max;
+    vx.rc = dj6.x * config.vxy_max;
+    vy.rc = dj6.y * config.vxy_max;
+    yaw_speed.rc = dj6.yaw * config.yaw_max;
+    pitch_speed.rc = dj6.pitch * config.pitch_max;
 
     // 左拨杆：发射结构
     static DJ6::switch_e switch_left_last = DJ6::ERR;
@@ -94,7 +94,7 @@ void Robot::handle_dj6() {
             case DJ6::DOWN:
                 gimbal.SetMode(Gimbal_Template::IMU_MODE);
                 if (switch_right_last != DJ6::ERR) { // 刚连上不算
-                    vr.rc = speed.vr_max;
+                    vr.rc = config.vr_max;
                 }
                 break;
         }
@@ -107,11 +107,11 @@ void Robot::handle_dj6() {
 void Robot::handle_vt13() {
     // 遥控器
     // 摇杆
-    vx.vt13 = vt13.x * speed.vxy_max;
-    vy.vt13 = vt13.y * speed.vxy_max;
-    vr.vt13 = -vt13.wheel * speed.vr_max;
-    yaw_speed.vt13 = vt13.yaw * speed.yaw_max;
-    pitch_speed.vt13 = vt13.pitch * speed.pitch_max;
+    vx.vt13 = vt13.x * config.vxy_max;
+    vy.vt13 = vt13.y * config.vxy_max;
+    vr.vt13 = -vt13.wheel * config.vr_max;
+    yaw_speed.vt13 = vt13.yaw * config.yaw_max;
+    pitch_speed.vt13 = vt13.pitch * config.pitch_max;
 
     // 左fn键 -> ECD模式
     static bool fn_left_last = false;
@@ -159,15 +159,15 @@ void Robot::handle_vt13() {
 
     // 客户端
     // 鼠标控制云台
-    yaw_speed.client = vt13.mouse_yaw * speed.yaw_max;
-    pitch_speed.client = vt13.mouse_pitch * speed.pitch_max;
+    yaw_speed.client = vt13.mouse_yaw * config.yaw_max;
+    pitch_speed.client = vt13.mouse_pitch * config.pitch_max;
 
     // 鼠标左键开火
-    static bool mouse_right_last = false;
-    if (mouse_right_last != vt13.mouse_right) {
-        shooter.SetShoot(vt13.mouse_right);
+    static bool mouse_left_last = false;
+    if (mouse_left_last != vt13.mouse_left) { // 状态改变才处理
+        shooter.SetShoot(vt13.mouse_left);
     }
-    mouse_right_last = vt13.mouse_right;
+    mouse_left_last = vt13.mouse_left;
 
     // wsad控制底盘
     // ws控制前后
@@ -175,24 +175,40 @@ void Robot::handle_vt13() {
     const float dt = dwt.UpdateDT();
     if (vt13.key.w) {
         if (vx.client < 0) vx.client = 0 * default_unit;
-        vx.client += speed.vxy_max * dt;
+        vx.client += config.axy * dt;
+        vx.client = unit::clamp(vx.client, config.vxy_max);
     } else if (vt13.key.s) {
         if (vx.client > 0) vx.client = 0 * default_unit;
-        vx.client -= speed.vxy_max * dt;
+        vx.client -= config.axy * dt;
+        vx.client = unit::clamp(vx.client, config.vxy_max);
     } else {
-        if (vx.client > 0) vx.client -= speed.vxy_max * dt;
-        if (vx.client < 0) vx.client += speed.vxy_max * dt;
+        if (vx.client > 0) {
+            vx.client -= config.dxy * dt;
+            if (vx.client < 0) vx.client = 0 * default_unit;
+        }
+        if (vx.client < 0) {
+            vx.client += config.dxy * dt;
+            if (vx.client > 0) vx.client = 0 * default_unit;
+        }
     }
     // ad控制水平
     if (vt13.key.a) {
         if (vy.client < 0) vy.client = 0 * default_unit;
-        vy.client += speed.vxy_max * dt;
+        vy.client += config.axy * dt;
+        vy.client = unit::clamp(vy.client, config.vxy_max);
     } else if (vt13.key.d) {
         if (vy.client > 0) vy.client = 0 * default_unit;
-        vy.client -= speed.vxy_max * dt;
+        vy.client -= config.axy * dt;
+        vy.client = unit::clamp(vy.client, config.vxy_max);
     } else {
-        if (vy.client > 0) vy.client -= speed.vxy_max * dt;
-        if (vy.client < 0) vy.client += speed.vxy_max * dt;
+        if (vy.client > 0) {
+            vy.client -= config.dxy * dt;
+            if (vy.client < 0) vy.client = 0 * default_unit;
+        }
+        if (vy.client < 0) {
+            vy.client += config.dxy * dt;
+            if (vy.client > 0) vy.client = 0 * default_unit;
+        }
     }
 
     // todo: 鼠标滚轮和中键控制小陀螺
@@ -214,9 +230,9 @@ void Robot::handle_imu() {
 
 void Robot::handle_chassis() {
     // 设置底盘速度
-    vx.sum = unit::clamp(vx.rc + vx.vt13 + vx.client + vx.nav, speed.vxy_max);
-    vy.sum = unit::clamp(vy.rc + vy.vt13 + vy.client + vy.nav, speed.vxy_max);
-    vr.sum = unit::clamp(vr.rc + vr.vt13 + vr.client + vr.nav, speed.vr_max);
+    vx.sum = unit::clamp(vx.rc + vx.vt13 + vx.client + vx.nav, config.vxy_max);
+    vy.sum = unit::clamp(vy.rc + vy.vt13 + vy.client + vy.nav, config.vxy_max);
+    vr.sum = unit::clamp(vr.rc + vr.vt13 + vr.client + vr.nav, config.vr_max);
     chassis.SetSpeed(vx.sum, vy.sum, vr.sum);
 
     // 设置云台方向
@@ -227,8 +243,8 @@ void Robot::handle_chassis() {
 
 void Robot::handle_gimbal() {
     // 设置云台速度
-    pitch_speed.sum = unit::clamp(pitch_speed.rc + pitch_speed.vt13 + pitch_speed.client + pitch_speed.nav, speed.pitch_max);
-    yaw_speed.sum = unit::clamp(yaw_speed.rc + yaw_speed.vt13 + yaw_speed.client + yaw_speed.nav, speed.yaw_max);
+    pitch_speed.sum = unit::clamp(pitch_speed.rc + pitch_speed.vt13 + pitch_speed.client + pitch_speed.nav, config.pitch_max);
+    yaw_speed.sum = unit::clamp(yaw_speed.rc + yaw_speed.vt13 + yaw_speed.client + yaw_speed.nav, config.yaw_max);
     gimbal.SetSpeed(yaw_speed.sum, pitch_speed.sum);
 
     // 设置小陀螺前馈
@@ -238,8 +254,8 @@ void Robot::handle_gimbal() {
 }
 
 void Robot::handle_shooter() {
-    shooter.SetBulletSpeed(24.0f * m_s); // 设置弹速
-    shooter.SetBulletFreq(5.0f * Hz);   // 设置弹频
+    shooter.SetBulletSpeed(config.bullet_speed); // 设置弹速
+    shooter.SetBulletFreq(config.bullet_freq);   // 设置弹频
 
     shooter.OnLoop();
 }

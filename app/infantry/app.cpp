@@ -15,14 +15,14 @@ NUC nuc;
 // 传感器
 IMU imu(config.imu.dir, config.imu.calib);
 // 执行器
-Chassis chassis( &config.chassis.wheel_pid);
+Chassis chassis(&config.chassis.wheel_pid);
 Gimbal gimbal(imu, &config.gimbal.yaw_pid, &config.gimbal.pitch_pid);
 Shooter shooter(&config.shooter.shoot_pid);
 
-Robot control(config.speed,
-                dj6, vt13, referee, nuc, // 控制器
-                imu,                     // 传感器
-                chassis, gimbal, shooter // 执行器
+Robot robot(config.config,
+            dj6, vt13, referee, nuc, // 控制器
+            imu,                     // 传感器
+            chassis, gimbal, shooter // 执行器
 );
 
 void handle_can() {
@@ -68,7 +68,7 @@ void setup() {
 
 void loop() {
     led.OnLoop();
-    control.OnLoop();
+    robot.OnLoop();
 
     handle_can();
 }

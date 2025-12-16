@@ -45,11 +45,11 @@ extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t S
 extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef* huart) {
     if (huart->Instance == USART3) { // 遥控器串口
         UART3::err_cnt++;
-        __HAL_UNLOCK(huart);
+        HAL_UART_DMAStop(&huart3);
         UART3::Init();                      // 继续接收
     } else if (huart->Instance == USART6) { // 裁判系统图传串口
         UART6::err_cnt++;
-        __HAL_UNLOCK(huart);
+        HAL_UART_DMAStop(&huart6);
         UART6::Init(); // 继续接收
     }
 }

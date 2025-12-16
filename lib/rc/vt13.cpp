@@ -45,7 +45,7 @@ void VT13::callback(const uint8_t data[], const uint16_t size) {
     fn_right = raw.fn_2;
 
     mouse_yaw = -(float)raw.mouse_x / MOUSE_MAX;
-    mouse_pitch = -(float)raw.mouse_y / MOUSE_MAX;
+    mouse_pitch = (float)raw.mouse_y / MOUSE_MAX;
     mouse_z = raw.mouse_z;
     mouse_left = raw.mouse_left;
     mouse_right = raw.mouse_right;

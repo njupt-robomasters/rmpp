@@ -207,11 +207,12 @@ struct __attribute__((packed)) power_heat_data_t {
     float reserved_3;                    // 保留位
     uint16_t buffer_energy;              // 缓冲能量（单位：J）
     uint16_t shooter_17mm_1_barrel_heat; // 第1个17mm发射机构的射击热量
+    uint16_t shooter_17mm_2_barrel_heat; // 第2个17mm发射机构的射击热量
     uint16_t shooter_42mm_barrel_heat;   // 42mm发射机构的射击热量
 };
 
-// 0x0203，机器人位置数据
-// 主控模块→对应机器人（1Hz）
+// 0x0203，机器人位置数据（1Hz）
+// 主控模块→对应机器人
 struct __attribute__((packed)) robot_pos_t {
     float x;     // 本机器人位置x坐标，单位：m
     float y;     // 本机器人位置y坐标，单位：m

@@ -41,7 +41,7 @@ public:
 private:
     static constexpr float TIMEOUT = 0.1f;         // 断联检测超时时间
     static constexpr float STICK_DEADLINE = 0.05f; // 摇杆死区，小于此值认为是0
-    static constexpr float MOUSE_MAX = 2000.0f;
+    static constexpr float MOUSE_MAX = 500.0f;
 
     struct __attribute__((packed)) {
         uint8_t sof_1 : 8;   // 0xA9

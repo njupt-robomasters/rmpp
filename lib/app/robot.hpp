@@ -16,22 +16,27 @@
 
 class Robot {
 public:
-    struct speed_t {
+    struct config_t {
         // 底盘速度
         UnitFloat<m_s> vxy_max; // 前后左右平移速度
         UnitFloat<rpm> vr_max;  // 旋转角速度
-        UnitFloat<m_ss> axy;
+        UnitFloat<m_ss> axy;    // 加速度（仅键盘操作有效）
+        UnitFloat<m_ss> dxy;    // 减速度（仅键盘操作有效）
 
         // 云台速度
         UnitFloat<deg_s> yaw_max;
         UnitFloat<deg_s> pitch_max;
+
+        // 发射机构
+        UnitFloat<m_s> bullet_speed; // 弹速
+        UnitFloat<Hz> bullet_freq;   // 弹频
     };
 
-    Robot(const speed_t& speed,
-            DJ6& dj6, VT13& vt13, Referee& referee, NUC& nuc,
-            IMU& imu,
-            Chassis_Template& chassis, Gimbal_Template& gimbal, Shooter_Template& shooter) :
-        speed(speed),
+    Robot(const config_t& config,
+          DJ6& dj6, VT13& vt13, Referee& referee, NUC& nuc,
+          IMU& imu,
+          Chassis_Template& chassis, Gimbal_Template& gimbal, Shooter_Template& shooter) :
+        config(config),
         dj6(dj6), vt13(vt13), referee(referee), nuc(nuc),
         imu(imu),
         chassis(chassis), gimbal(gimbal), shooter(shooter) {}
@@ -41,18 +46,8 @@ public:
     void OnLoop();
 
 private:
-    // 底盘运动
-    struct {
-        UnitFloat<m_s> rc, vt13, client, nav, sum;
-    } vx, vy, vr;
-
-    // 云台运动
-    struct {
-        UnitFloat<deg_s> rc, vt13, client, nav, sum;
-    } yaw_speed, pitch_speed;
-
-    // 速度配置
-    const speed_t& speed;
+    // 配置
+    const config_t& config;
 
     // 控制器
     DJ6& dj6;
@@ -67,6 +62,16 @@ private:
     Chassis_Template& chassis;
     Gimbal_Template& gimbal;
     Shooter_Template& shooter;
+
+    // 底盘运动
+    struct {
+        UnitFloat<m_s> rc, vt13, client, nav, sum;
+    } vx, vy, vr;
+
+    // 云台运动
+    struct {
+        UnitFloat<deg_s> rc, vt13, client, nav, sum;
+    } yaw_speed, pitch_speed;
 
     // 控制器
     void handle_disconnect();

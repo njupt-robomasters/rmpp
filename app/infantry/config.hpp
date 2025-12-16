@@ -3,15 +3,20 @@
 #include "lib.hpp"
 
 inline struct {
-    Robot::speed_t speed = {
-        // 底盘速度参数
+    Robot::config_t config = {
+        // 底盘速度
         .vxy_max = 2.0f * m_s,
         .vr_max = 60.0f * rpm,
-        .axy = 2.0f * m_ss,
+        .axy = 4.0f * m_ss,
+        .dxy = 8.0f * m_ss,
 
-        // 云台速度参数
-        .yaw_max = 180.0f * deg_s,
-        .pitch_max = 180.0f * deg_s,
+        // 云台速度
+        .yaw_max = 360.0f * deg_s,
+        .pitch_max = 360.0f * deg_s,
+
+        // 发射机构
+        .bullet_speed = 24.0f * m_s,
+        .bullet_freq = 5.0f * Hz
     };
 
     // IMU参数
@@ -25,7 +30,7 @@ inline struct {
         PID::param_t wheel_pid = {
             .mode = PID::INCREMENT_MODE,
             .kp = (20 * A) / (120.0f * rpm),
-            .ki = (20 * A) / (0.4f * rev),
+            .ki = (20 * A) / (15.0f * deg),
             .max_out = 20 * A,
         };
     } chassis;

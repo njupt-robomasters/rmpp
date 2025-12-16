@@ -93,7 +93,9 @@ void Referee::Parser::parseByte(const uint8_t byte) {
         case FRAME_TAIL: {
             packet[len++] = byte;
             if (len == 5 + 2 + packet.frame_header.data_length + 2) {
-                if (CRC16::Verify((const uint8_t*)&packet, len - 2, packet.frame_tail)) { // CRC16校验成功
+                // CRC16校验
+                const uint16_t crc16 = packet[len - 2] | (packet[len - 1] << 8);
+                if (CRC16::Verify((const uint8_t*)&packet, len - 2, crc16)) {
                     referee->deserialize(packet.cmd_id, packet.data, packet.frame_header.data_length);
                 }
                 step = INIT;
@@ -150,7 +152,7 @@ void Referee::deserialize(const uint16_t cmd_id, const uint8_t data[], uint8_t s
             memcpy(&power_heat_data, data, sizeof(power_heat_data));
             break;
         }
-        case 0x0203: { // 0x0203，机器人位置数据
+        case 0x0203: { // 0x0203，机器人位置数据（1Hz）
             if (size != sizeof(robot_pos)) break;
             memcpy(&robot_pos, data, sizeof(robot_pos));
             break;
