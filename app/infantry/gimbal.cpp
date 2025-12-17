@@ -36,14 +36,14 @@ void Gimbal::SetEnable(const bool is_enable) {
 void Gimbal::OnLoop() {
     updateMotion();
 
-    backwardCalc();
-    forwardCalc();
+    angleBackward();
+    angleForward();
 
     m_yaw.OnLoop();
     m_pitch.OnLoop();
 }
 
-void Gimbal::forwardCalc() {
+void Gimbal::angleForward() {
     // 用于参考系转换
     const Angle yaw_imu_minus_ecd = yaw.imu.measure - yaw.ecd.measure;
     const Angle pitch_imu_minus_ecd = pitch.imu.measure - pitch.ecd.measure;
@@ -69,8 +69,7 @@ void Gimbal::forwardCalc() {
     pitch.imu.ref = pitch.ecd.ref + pitch_imu_minus_ecd;
 }
 
-// 电机角度 -> 云台姿态
-void Gimbal::backwardCalc() {
+void Gimbal::angleBackward() {
     // 从电机读取
     yaw.ecd.measure = m_yaw.angle.measure;
     pitch.ecd.measure = m_pitch.angle.measure;

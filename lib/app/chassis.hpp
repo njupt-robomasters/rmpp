@@ -69,10 +69,10 @@ protected:
     void calcFollow();
 
     // 车体速度 -> 轮子速度
-    virtual void forwardCalc() = 0;
+    virtual void speedForward() = 0;
 
     // 轮子速度 -> 车体速度
-    virtual void backwardCalc() = 0;
+    virtual void speedBackward() = 0;
 
     // 功率控制
     virtual void powerControl() = 0;

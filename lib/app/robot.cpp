@@ -158,17 +158,6 @@ void Robot::handle_vt13() {
     trigger_last = vt13.trigger;
 
     // 客户端
-    // 鼠标控制云台
-    yaw_speed.client = vt13.mouse_yaw * config.yaw_max;
-    pitch_speed.client = vt13.mouse_pitch * config.pitch_max;
-
-    // 鼠标左键开火
-    static bool mouse_left_last = false;
-    if (mouse_left_last != vt13.mouse_left) { // 状态改变才处理
-        shooter.SetShoot(vt13.mouse_left);
-    }
-    mouse_left_last = vt13.mouse_left;
-
     // wsad控制底盘
     // ws控制前后
     static BSP::Dwt dwt;
@@ -212,6 +201,24 @@ void Robot::handle_vt13() {
     }
 
     // todo: 鼠标滚轮和中键控制小陀螺
+
+    // 鼠标控制云台
+    yaw_speed.client = vt13.mouse_yaw * config.yaw_max;
+    pitch_speed.client = vt13.mouse_pitch * config.pitch_max;
+
+    // 鼠标左键开火
+    static bool mouse_left_last = false;
+    if (mouse_left_last != vt13.mouse_left) { // 状态改变才处理
+        shooter.SetShoot(vt13.mouse_left);
+    }
+    mouse_left_last = vt13.mouse_left;
+
+    // 鼠标右键自瞄
+    if (vt13.mouse_right) {
+        yaw_speed.client = 0 * default_unit;
+        pitch_speed.client = 0 * default_unit;
+        gimbal.SetAngle(mavlink.aim.yaw, mavlink.aim.pitch);
+    }
 
     vt13.OnLoop();
 }

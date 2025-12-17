@@ -27,10 +27,10 @@ public:
 
 private:
     // 车体速度 -> 轮子速度
-    void forwardCalc() override;
+    void speedForward() override;
 
     // 轮子速度 -> 车体速度
-    void backwardCalc() override;
+    void speedBackward() override;
 
     // 功率控制
     void powerControl() override;

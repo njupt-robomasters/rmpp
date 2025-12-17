@@ -36,8 +36,8 @@ void Gimbal_Template::SetChassisVR(const UnitFloat<>& chassis_vr) {
 
 void Gimbal_Template::OnLoop() {
     updateMotion();
-    backwardCalc();
-    forwardCalc();
+    angleBackward();
+    angleForward();
 }
 
 void Gimbal_Template::updateMotion() {

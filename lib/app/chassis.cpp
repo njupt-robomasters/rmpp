@@ -40,8 +40,8 @@ void Chassis_Template::OnLoop() {
     calcFollow();
 
     // 运动学解算
-    backwardCalc();
-    forwardCalc();
+    speedBackward();
+    speedForward();
 
     // 这里更新电机
 

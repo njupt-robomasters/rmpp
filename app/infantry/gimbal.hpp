@@ -28,8 +28,8 @@ public:
 
 private:
     // 云台姿态 -> 电机角度
-    void forwardCalc() override;
+    void angleForward() override;
 
     // 电机角度 -> 云台姿态
-    void backwardCalc() override;
+    void angleBackward() override;
 };

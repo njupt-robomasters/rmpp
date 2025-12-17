@@ -56,8 +56,8 @@ protected:
     void updateMotion();
 
     // 云台姿态 -> 电机角度
-    virtual void forwardCalc() = 0;
+    virtual void angleForward() = 0;
 
     // 电机角度 -> 云台姿态
-    virtual void backwardCalc() = 0;
+    virtual void angleBackward() = 0;
 };

@@ -52,8 +52,8 @@ void Chassis::OnLoop() {
     calcFollow();
 
     // 运动学解算
-    backwardCalc();
-    forwardCalc();
+    speedBackward();
+    speedForward();
 
     // 电机PID计算
     m_wheel1.OnLoop();
@@ -65,7 +65,7 @@ void Chassis::OnLoop() {
     powerControl();
 }
 
-void Chassis::forwardCalc() {
+void Chassis::speedForward() {
     // 1. 转换到底盘参考系
     // 注意这里是换参考系，而非旋转速度矢量，所以旋转角度为：底盘 -> 云台的角度
     std::tie(vx.chassis.ref, vy.chassis.ref) = unit::rotate(vx.gimbal.ref, vy.gimbal.ref, gimbal_yaw);
@@ -84,7 +84,7 @@ void Chassis::forwardCalc() {
     m_wheel4.SetSpeed(v4.ref / WHEEL_RADIUS);
 }
 
-void Chassis::backwardCalc() {
+void Chassis::speedBackward() {
     // 1.读取电机转速
     v1.measure = m_wheel1.speed.measure * WHEEL_RADIUS;
     v2.measure = m_wheel2.speed.measure * WHEEL_RADIUS;
