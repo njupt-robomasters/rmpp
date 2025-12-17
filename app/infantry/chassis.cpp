@@ -3,7 +3,7 @@
 static const float sqrt2 = std::sqrt(2.0f);
 static const float sqrt2div2 = std::sqrt(2.0f) / 2.0f;
 
-Chassis::Chassis(PID::param_t* wheel_pid) :
+Chassis::Chassis(PID::param_t* wheel_pid, PID::param_t* follow_pid) :
     m_wheel1(1, 1),
     m_wheel2(1, 2),
     m_wheel3(1, 3),
@@ -13,6 +13,9 @@ Chassis::Chassis(PID::param_t* wheel_pid) :
     m_wheel2.SetPID(Motor::SPEED_MODE, Motor::CURRENT_TYPE, wheel_pid);
     m_wheel3.SetPID(Motor::SPEED_MODE, Motor::CURRENT_TYPE, wheel_pid);
     m_wheel4.SetPID(Motor::SPEED_MODE, Motor::CURRENT_TYPE, wheel_pid);
+
+    // 设置底盘跟随PID参数
+    this->follow_pid.SetParam(follow_pid);
 
     // 设置电机减速比
     m_wheel1.SetReduction(14.0f);
@@ -37,6 +40,7 @@ Chassis::Chassis(PID::param_t* wheel_pid) :
 void Chassis::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable) return;
     this->is_enable = is_enable;
+    SetMode(DETACH_MODE); // 失能/使能后默认分离模式，防止车突然转动伤人
     m_wheel1.SetEnable(is_enable);
     m_wheel2.SetEnable(is_enable);
     m_wheel3.SetEnable(is_enable);
@@ -44,6 +48,9 @@ void Chassis::SetEnable(const bool is_enable) {
 }
 
 void Chassis::OnLoop() {
+    // 底盘跟随
+    calcFollow();
+
     // 运动学解算
     backwardCalc();
     forwardCalc();
@@ -62,7 +69,7 @@ void Chassis::forwardCalc() {
     // 1. 转换到底盘参考系
     // 注意这里是换参考系，而非旋转速度矢量，所以旋转角度为：底盘 -> 云台的角度
     std::tie(vx.chassis.ref, vy.chassis.ref) = unit::rotate(vx.gimbal.ref, vy.gimbal.ref, gimbal_yaw);
-    vz.ref = vr.ref * CHASSIS_RADIUS;
+    vz.ref = vr.ref.sum * CHASSIS_RADIUS;
 
     // 2. 运动学正解
     v1.ref = -sqrt2div2 * vx.chassis.ref + sqrt2div2 * vy.chassis.ref + vz.ref;

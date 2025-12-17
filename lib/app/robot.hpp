@@ -77,8 +77,8 @@ private:
     void handle_disconnect();
     void handle_dj6();
     void handle_vt13();
-    void handle_mavlink();
     void handle_referee();
+    void handle_mavlink();
 
     // 传感器
     void handle_imu();

@@ -15,7 +15,7 @@ Mavlink mavlink;
 // 传感器
 IMU imu(config.imu.dir, config.imu.calib);
 // 执行器
-Chassis chassis(&config.chassis.wheel_pid);
+Chassis chassis(&config.chassis.wheel_pid, &config.chassis.follow_pid);
 Gimbal gimbal(imu, &config.gimbal.yaw_pid, &config.gimbal.pitch_pid);
 Shooter shooter(&config.shooter.shoot_pid);
 

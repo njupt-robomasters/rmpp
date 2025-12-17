@@ -5,8 +5,8 @@ void Robot::OnLoop() {
     handle_disconnect();
     handle_dj6();
     handle_vt13();
-    handle_mavlink();
     handle_referee();
+    handle_mavlink();
 
     // 传感器
     handle_imu();
@@ -77,22 +77,22 @@ void Robot::handle_dj6() {
     }
     switch_left_last = dj6.switch_left;
 
-    // 右拨杆：云台模式、测试小陀螺
+    // 右拨杆：底盘模式、测试小陀螺
     static DJ6::switch_e switch_right_last = DJ6::ERR;
     if (switch_right_last != dj6.switch_right) { // 状态改变才处理
         switch (dj6.switch_right) {
             case DJ6::ERR:
                 break;
             case DJ6::UP:
-                gimbal.SetMode(Gimbal_Template::ECD_MODE);
+                chassis.SetMode(Chassis_Template::FOLLOW_MODE);
                 vr.rc = 0 * default_unit;
                 break;
             case DJ6::MID:
-                gimbal.SetMode(Gimbal_Template::IMU_MODE);
+                chassis.SetMode(Chassis_Template::DETACH_MODE);
                 vr.rc = 0 * default_unit;
                 break;
             case DJ6::DOWN:
-                gimbal.SetMode(Gimbal_Template::IMU_MODE);
+                chassis.SetMode(Chassis_Template::DETACH_MODE);
                 if (switch_right_last != DJ6::ERR) { // 刚连上不算
                     vr.rc = config.vr_max;
                 }
@@ -113,17 +113,17 @@ void Robot::handle_vt13() {
     yaw_speed.vt13 = vt13.yaw * config.yaw_max;
     pitch_speed.vt13 = vt13.pitch * config.pitch_max;
 
-    // 左fn键 -> ECD模式
+    // 左fn键 -> 分离模式
     static bool fn_left_last = false;
     if (vt13.fn_left && fn_left_last != vt13.fn_left) { // 按下
-        gimbal.SetMode(Gimbal_Template::ECD_MODE);
+        chassis.SetMode(Chassis_Template::DETACH_MODE);
     }
     fn_left_last = vt13.fn_left;
 
-    // 右fn键 -> ECD模式
+    // 右fn键 -> 跟随模式
     static bool fn_right_last = false;
     if (vt13.fn_right && fn_right_last != vt13.fn_right) { // 按下
-        gimbal.SetMode(Gimbal_Template::IMU_MODE);
+        chassis.SetMode(Chassis_Template::FOLLOW_MODE);
     }
     fn_right_last = vt13.fn_right;
 

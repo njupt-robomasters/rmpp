@@ -1,14 +1,17 @@
 #pragma once
 
 #include "unit/include_me.hpp"
+#include "controller/pid.hpp"
 
 class Chassis_Template {
 public:
+    enum mode_e {
+        DETACH_MODE,
+        FOLLOW_MODE
+    };
+
     // 底盘使能标志
     bool is_enable = false;
-
-    // 前进正方向（云台yaw角度）
-    Angle<deg> gimbal_yaw;
 
     // 底盘速度
     // vx 前后速度，前为正
@@ -26,7 +29,10 @@ public:
 
     // vr 旋转角速度，逆时针为正
     struct {
-        UnitFloat<rpm> ref, measure;
+        struct {
+            UnitFloat<rpm> input, follow, sum;
+        } ref;
+        UnitFloat<rpm> measure;
     } vr;
 
     // 用于底盘功率控制
@@ -36,6 +42,8 @@ public:
 
     // 底盘使能/失能
     virtual void SetEnable(bool is_enable);
+
+    void SetMode(mode_e mode);
 
     // 设置速度
     void SetSpeed(const UnitFloat<>& vx, const UnitFloat<>& vy, const UnitFloat<>& vr);
@@ -50,6 +58,16 @@ public:
     virtual void OnLoop();
 
 protected:
+    mode_e mode = DETACH_MODE;
+
+    // 前进正方向（云台相对于底盘的yaw）
+    Angle<deg> gimbal_yaw;
+
+    // 底盘跟随PID
+    PID follow_pid;
+
+    void calcFollow();
+
     // 车体速度 -> 轮子速度
     virtual void forwardCalc() = 0;
 

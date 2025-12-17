@@ -12,12 +12,13 @@ public:
     };
 
     struct param_t {
-        mode_e mode;
+        mode_e mode = POSITION_MODE;
         UnitFloat<> kp, ki, kd; // p、i、d三参数
         UnitFloat<> ff;         // 前馈
         UnitFloat<> max_i;      // 积分限幅
         UnitFloat<> max_out;    // 输出限幅
-        UnitFloat<> fc;         // 输入低通截止频率
+        UnitFloat<> deadline;   // 输入死区
+        UnitFloat<> fc;         // 输出低通截止频率
     };
 
     UnitFloat<> out;
@@ -35,8 +36,8 @@ public:
 private:
     param_t* param = nullptr; // PID参数
 
-    UnitFloat<> err, last_err, last_err2; // 误差值 err = ref - measure
-    UnitFloat<> p_out, i_out, d_out, out_no_filter;      // pid输出
+    UnitFloat<> err, last_err, last_err2;           // 误差值 err = ref - measure
+    UnitFloat<> p_out, i_out, d_out, out_no_filter; // pid输出
 
     BSP::Dwt dwt; // 用于计算dt
 

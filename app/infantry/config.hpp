@@ -5,18 +5,18 @@
 inline struct {
     Robot::config_t config = {
         // 底盘速度
-        .vxy_max = 2.0f * m_s,
-        .vr_max = 60.0f * rpm,
-        .axy = 4.0f * m_ss,
-        .dxy = 8.0f * m_ss,
+        .vxy_max = 2 * m_s,
+        .vr_max = 60 * rpm,
+        .axy = 4 * m_ss,
+        .dxy = 8 * m_ss,
 
         // 云台速度
-        .yaw_max = 360.0f * deg_s,
-        .pitch_max = 360.0f * deg_s,
+        .yaw_max = 360 * deg_s,
+        .pitch_max = 360 * deg_s,
 
         // 发射机构
-        .bullet_speed = 24.0f * m_s,
-        .bullet_freq = 5.0f * Hz
+        .bullet_speed = 24 * m_s,
+        .bullet_freq = 5 * Hz
     };
 
     // IMU参数
@@ -29,9 +29,15 @@ inline struct {
     struct {
         PID::param_t wheel_pid = {
             .mode = PID::INCREMENT_MODE,
-            .kp = (20 * A) / (120.0f * rpm),
-            .ki = (20 * A) / (15.0f * deg),
+            .kp = (20 * A) / (120 * rpm),
+            .ki = (20 * A) / (15 * deg),
             .max_out = 20 * A,
+        };
+        PID::param_t follow_pid = {
+            .mode = PID::POSITION_MODE,
+            .kp = 1 / (0.2f * s),
+            .max_out = 360 * deg_s,
+            .deadline = 10 * deg
         };
     } chassis;
 
@@ -39,15 +45,15 @@ inline struct {
     struct {
         PID::param_t yaw_pid = {
             .mode = PID::POSITION_MODE,
-            .kp = (3 * A) / (15.0f * deg),
-            .kd = (3 * A) / (300.0f * deg_s),
+            .kp = (3 * A) / (15 * deg),
+            .kd = (3 * A) / (300 * deg_s),
             .max_out = 3 * A,
             .fc = 30 * Hz
         };
         PID::param_t pitch_pid = {
             .mode = PID::POSITION_MODE,
-            .kp = (3 * Nm) / (15.0f * deg),
-            .kd = (3 * Nm) / (200.0f * deg_s),
+            .kp = (3 * Nm) / (15 * deg),
+            .kd = (3 * Nm) / (200 * deg_s),
             .max_out = 3 * Nm
         };
     } gimbal;
@@ -56,7 +62,7 @@ inline struct {
     struct {
         PID::param_t shoot_pid = {
             .mode = PID::POSITION_MODE,
-            .kp = (10 * A) / (20.0f * rpm),
+            .kp = (10 * A) / (20 * rpm),
             .max_out = 10 * A,
         };
     } shooter;

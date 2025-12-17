@@ -6,6 +6,7 @@
 #define ff (param->ff)
 #define max_i (param->max_i)
 #define max_out (param->max_out)
+#define deadline (param->deadline)
 #define fc (param->fc)
 
 PID::PID(param_t* param) : param(param) {}
@@ -39,7 +40,12 @@ void PID::calcPosition(const UnitFloat<>& err, const std::optional<UnitFloat<>>&
     // 计算dt
     const float dt = dwt.UpdateDT();
 
-    this->err = err;
+    // 输入死区
+    if (unit::abs(err) < deadline) {
+        this->err = 0 * default_unit;
+    } else {
+        this->err = err;
+    }
 
     // 基础PID计算
     p_out = kp * err;
@@ -75,7 +81,12 @@ void PID::calcIncrement(const UnitFloat<>& err) {
     // 计算dt
     const float dt = dwt.UpdateDT();
 
-    this->err = err;
+    // 输入死区
+    if (unit::abs(err) < deadline) {
+        this->err = 0 * default_unit;
+    } else {
+        this->err = err;
+    }
 
     // 基础PID计算
     p_out = kp * (err - last_err);
@@ -104,12 +115,6 @@ void PID::Clear() {
     dwt.Reset();
 }
 
-#undef kp
-#undef ki
-#undef kd
-#undef ff
-#undef max_i
-#undef max_out
 #undef fc
 
 UnitFloat<> PID::lowpassFilter(const UnitFloat<>& pre, const UnitFloat<>& next, const UnitFloat<>& fc, const float dt) {
