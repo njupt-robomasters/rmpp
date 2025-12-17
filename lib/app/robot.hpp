@@ -3,7 +3,7 @@
 // 控制器
 #include "rc/vt13.hpp"
 #include "rc/dj6.hpp"
-#include "rc/nuc.hpp"
+#include "mavlink/mavlink.hpp"
 #include "referee/referee.hpp"
 
 // 传感器
@@ -33,11 +33,11 @@ public:
     };
 
     Robot(const config_t& config,
-          DJ6& dj6, VT13& vt13, Referee& referee, NUC& nuc,
+          DJ6& dj6, VT13& vt13, Referee& referee, Mavlink& mavlink,
           IMU& imu,
           Chassis_Template& chassis, Gimbal_Template& gimbal, Shooter_Template& shooter) :
         config(config),
-        dj6(dj6), vt13(vt13), referee(referee), nuc(nuc),
+        dj6(dj6), vt13(vt13), referee(referee), mavlink(mavlink),
         imu(imu),
         chassis(chassis), gimbal(gimbal), shooter(shooter) {}
 
@@ -53,7 +53,7 @@ private:
     DJ6& dj6;
     VT13& vt13;
     Referee& referee;
-    NUC& nuc;
+    Mavlink& mavlink;
 
     // 传感器
     IMU& imu;
@@ -77,7 +77,7 @@ private:
     void handle_disconnect();
     void handle_dj6();
     void handle_vt13();
-    void handle_nuc();
+    void handle_mavlink();
     void handle_referee();
 
     // 传感器

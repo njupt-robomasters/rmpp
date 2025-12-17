@@ -5,7 +5,7 @@ void Robot::OnLoop() {
     handle_disconnect();
     handle_dj6();
     handle_vt13();
-    handle_nuc();
+    handle_mavlink();
     handle_referee();
 
     // 传感器
@@ -220,8 +220,8 @@ void Robot::handle_referee() {
     referee.OnLoop();
 }
 
-void Robot::handle_nuc() {
-    nuc.OnLoop();
+void Robot::handle_mavlink() {
+    mavlink.OnLoop();
 }
 
 void Robot::handle_imu() {

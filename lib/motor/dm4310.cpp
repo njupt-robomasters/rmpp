@@ -14,6 +14,7 @@ void DM4310::OnLoop() {
     Motor::OnLoop();
 
     if (dwt_can_send_freq.GetDT() >= 1 / can_send_freq.toFloat(Hz)) {
+        dwt_can_send_freq.UpdateDT();
         send_cnt++;
         if (is_enable && is_online) {
             if (send_cnt % 100 == 0) { // 每100次调用重新发送使能

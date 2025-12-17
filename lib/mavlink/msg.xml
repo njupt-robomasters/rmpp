@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<mavlink>
+    <version>2</version>
+    <messages>
+        <message id="00" name="imu">
+            <description>imu report(c board -> mini pc)</description>
+            <field type="float" name="yaw" units="deg">yaw</field>
+            <field type="float" name="pitch" units="deg">pitch</field>
+            <field type="float" name="roll" units="deg">roll</field>
+        </message>
+
+        <message id="01" name="referee">
+            <description>referee report(c board -> mini pc)</description>
+            <field type="uint8_t" name="is_red">is_red(1 is red, 0 is blue)</field>
+            <field type="float" name="bullet_speed" units="m/s">bullet_speed</field>
+        </message>
+
+        <message id="10" name="aim">
+            <description>aim control(mini pc -> c board)</description>
+            <field type="uint8_t" name="is_detected">is_detected</field>
+            <field type="uint8_t" name="is_fire_advise">is_fire_advise</field>
+            <field type="float" name="yaw" units="deg">yaw</field>
+            <field type="float" name="pitch" units="deg">pitch</field>
+        </message>
+
+        <message id="11" name="ui">
+            <description>ui(mini pc -> c board)</description>
+            <field type="uint8_t" name="num">num</field>
+            <field type="float" name="speed" units="rpm">rpm</field>
+            <field type="float" name="x0">x0</field>
+            <field type="float" name="y0">y0</field>
+            <field type="float" name="x1">x1</field>
+            <field type="float" name="y1">y1</field>
+            <field type="float" name="x2">x2</field>
+            <field type="float" name="y2">y2</field>
+            <field type="float" name="x3">x3</field>
+            <field type="float" name="y3">y3</field>
+            <field type="float" name="x4">x4</field>
+            <field type="float" name="y4">y4</field>
+        </message>
+    </messages>
+</mavlink>

@@ -11,7 +11,7 @@ LED led;
 DJ6 dj6;
 VT13 vt13;
 Referee referee;
-NUC nuc;
+Mavlink mavlink;
 // 传感器
 IMU imu(config.imu.dir, config.imu.calib);
 // 执行器
@@ -20,7 +20,7 @@ Gimbal gimbal(imu, &config.gimbal.yaw_pid, &config.gimbal.pitch_pid);
 Shooter shooter(&config.shooter.shoot_pid);
 
 Robot robot(config.config,
-            dj6, vt13, referee, nuc, // 控制器
+            dj6, vt13, referee, mavlink, // 控制器
             imu,                     // 传感器
             chassis, gimbal, shooter // 执行器
 );
