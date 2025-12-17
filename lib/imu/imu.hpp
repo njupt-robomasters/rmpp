@@ -74,8 +74,8 @@ private:
         UnitFloat<pct> power;
 
         PID::param_t pid_param = {
-            .kp = 50.0f * pct_C,
-            .ki = 5.0f * pct_C,
+            .kp = 50.0f * (pct / C),
+            .ki = 5.0f * (pct / C),
             .max_i = 30.0f * pct,
             .max_out = 100.0f * pct
         };
