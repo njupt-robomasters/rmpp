@@ -27,17 +27,21 @@ inline constexpr Unit rad("rad", 1.0f);        // 弧度
 inline constexpr Unit deg("deg", PI / 180.0f); // 角度
 inline constexpr Unit rev("rev", 2 * PI);      // 圈
 
+// 力
+inline constexpr Unit N("N", 1.0f);   // 力
+inline constexpr Unit Nm("Nm", 1.0f); // 扭矩
+
+// 电学
+inline constexpr Unit V("V", 1.0f);     // 电压
+inline constexpr Unit A("A", 1.0f);     // 电流
+inline constexpr Unit W("W", 1.0f);     // 功率
+inline constexpr Unit Ohm("Ohm", 1.0f); // 电阻
+
 // 比例
 inline constexpr Unit ratio("ratio", 1.0f); // 比例
 inline constexpr Unit pct("%", 0.01f);      // 百分比
 
-// 物理
-inline constexpr Unit V("V", 1.0f);     // 电压
-inline constexpr Unit A("A", 1.0f);     // 电流
-inline constexpr Unit W("W", 1.0f);     // 功率
-inline constexpr Unit Nm("Nm", 1.0f);   // 扭矩
-inline constexpr Unit Ohm("Ohm", 1.0f); // 电阻
-
+// 其他
 inline constexpr Unit Hz("Hz", 1.0f); // 频率
 inline constexpr Unit C("C", 1.0f);   // 摄氏度
 
@@ -54,12 +58,6 @@ inline constexpr Unit rps("rps", (rev / s).m_scale);
 // 加速度
 inline constexpr Unit m_ss = m / s / s;
 inline constexpr Unit deg_ss = deg / s / s;
-
-// pid单位
-inline constexpr Unit A_deg = A / deg;
-inline constexpr Unit Nm_deg = Nm / deg;
-inline constexpr Unit A_rpm = A / rpm;
-inline constexpr Unit pct_C = pct / C;
 
 // 扭矩系数
 inline constexpr Unit Nm_A = Nm / A;

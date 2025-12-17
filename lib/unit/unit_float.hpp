@@ -31,6 +31,21 @@ namespace unit {
             return *this;
         }
 
+        // 特化版本
+        constexpr UnitFloat& operator=(const UnitFloat& other) {
+            m_unit = other.m_unit;
+            m_value = other.toFloat(m_unit);
+            return *this;
+        }
+
+        // 移动赋值
+        template <const Unit&T2>
+        constexpr UnitFloat& operator=(UnitFloat<T2>&& other) {
+            m_unit = other.m_unit;
+            m_value = other.toFloat(m_unit);
+            return *this;
+        }
+
         // 取正数
         constexpr UnitFloat operator+() const {
             return *this;

@@ -28,6 +28,21 @@ namespace unit {
             return *this;
         }
 
+        // 特化版本
+        constexpr Angle& operator=(const Angle& other) {
+            UnitFloat<T>::operator=(other);
+            normalize();
+            return *this;
+        }
+
+        // 移动赋值
+        template <const Unit&T2>
+        constexpr Angle& operator=(UnitFloat<T2>&& other) {
+            UnitFloat<T>::operator=(other);
+            normalize();
+            return *this;
+        }
+
         // +=运算
         template <const Unit&T2>
         constexpr Angle& operator+=(const UnitFloat<T2>& other) {
