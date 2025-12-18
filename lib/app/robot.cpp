@@ -215,7 +215,9 @@ void Robot::handle_vt13() {
     // 鼠标左键开火
     static bool mouse_left_last = false;
     if (mouse_left_last != vt13.mouse_left) { // 状态改变才处理
-        shooter.SetShoot(vt13.mouse_left);
+        if (shooter.is_prepare_shoot) {
+            shooter.SetShoot(vt13.mouse_left);
+        }
     }
     mouse_left_last = vt13.mouse_left;
 
@@ -310,14 +312,12 @@ void Robot::handle_shooter() {
 void Robot::handle_ui() {
     ui.is_detected = mavlink.aim.is_detected;
     ui.gimbal_yaw = gimbal.yaw.ecd.measure;
-    // if (hit.dwt.GetDT() < HIT_TIMEOUT) {
-    //     ui.is_hit = true;
-    //     ui.hit = hit.yaw_imu - gimbal.yaw.imu.measure;
-    // } else {
-    //     ui.is_hit = false;
-    // }
-    ui.is_hit = true;
-    ui.hit = hit.yaw_imu - gimbal.yaw.imu.measure;
+    if (hit.dwt.GetDT() < HIT_TIMEOUT) {
+        ui.is_hit = true;
+        ui.hit = hit.yaw_imu - gimbal.yaw.imu.measure;
+    } else {
+        ui.is_hit = false;
+    }
 
     ui.OnLoop();
 }

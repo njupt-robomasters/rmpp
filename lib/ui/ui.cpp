@@ -1,4 +1,17 @@
 #include "ui.hpp"
+#include "referee/referee.hpp"
+
+// 适配rmui
+extern "C" void print_message(const uint8_t* message, const int length) {
+    extern Referee referee;
+    referee.AddCanData(message, length);
+}
+
+extern "C" void _ui_init_g_Ungroup_0();
+extern "C" void _ui_init_g_Ungroup_1();
+
+extern "C" void _ui_update_g_Ungroup_0();
+extern "C" void _ui_update_g_Ungroup_1();
 
 void UI::Init() {
     state = 0;
@@ -16,11 +29,20 @@ void UI::OnLoop() {
                 state = 1;
                 break;
             case 1:
-                ui_init_g_Ungroup();
+                _ui_init_g_Ungroup_0();
                 state = 2;
                 break;
             case 2:
-                ui_update_g_Ungroup();
+                _ui_init_g_Ungroup_1();
+                state = 3;
+                break;
+            case 3:
+                _ui_update_g_Ungroup_0();
+                state = 4;
+                break;
+            case 4:
+                _ui_update_g_Ungroup_1();
+                state = 3;
                 break;
             default:
                 break;
@@ -40,8 +62,8 @@ void UI::updateLib() {
 
     // dir
     // 高中平面直角坐标系
-    const int dx = (int)(unit::cos(-gimbal_yaw + 90 * deg).toFloat() * 50);
-    const int dy = (int)(unit::sin(-gimbal_yaw + 90 * deg).toFloat() * 50);
+    const int dx = (int)(unit::cos(gimbal_yaw + 90 * deg).toFloat() * 50);
+    const int dy = (int)(unit::sin(gimbal_yaw + 90 * deg).toFloat() * 50);
     ui_g_Ungroup_dir->end_x = ui_g_Ungroup_dir->start_x + dx;
     ui_g_Ungroup_dir->end_y = ui_g_Ungroup_dir->start_y + dy;
 

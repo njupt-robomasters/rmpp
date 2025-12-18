@@ -16,7 +16,7 @@ public:
     void OnLoop();
 
 private:
-    static constexpr UnitFloat UPDATE_FREQ = 10.0f * Hz;
+    static constexpr UnitFloat UPDATE_FREQ = 20.0f * Hz;
 
     uint8_t state = 0;
 

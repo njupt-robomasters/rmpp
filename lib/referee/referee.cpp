@@ -163,6 +163,9 @@ void Referee::deserialize(const uint16_t cmd_id, const uint8_t data[], uint8_t s
         case 0x0201: { // 0x0201，机器人性能体系数据（10Hz）
             if (size != sizeof(robot_status)) break;
             memcpy(&robot_status, data, sizeof(robot_status));
+            // 适配rmui
+            extern int ui_self_id;
+            ui_self_id = robot_status.robot_id;
             break;
         }
         case 0x0202: { // 0x0202，实时底盘缓冲能量和射击热量数据（10Hz）

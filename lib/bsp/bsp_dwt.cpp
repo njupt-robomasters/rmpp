@@ -20,9 +20,11 @@ void Dwt::Delay(const float seconds) {
     while (DWT->CYCCNT - start_tick < need_ticks) {}
 }
 
-float Dwt::GetDT() const {
+float Dwt::GetDT() {
     const uint32_t now_tick = DWT->CYCCNT;
     const float dt = (float)(now_tick - last_tick) / (float)SystemCoreClock;
+    if (dt > TIMEOUT) is_timeout = true;
+    if (is_timeout) return TIMEOUT;
     return dt;
 }
 
@@ -31,11 +33,13 @@ float Dwt::UpdateDT() {
     dt = (float)(now_tick - last_tick) / (float)SystemCoreClock;
     freq = 1 / dt;
     last_tick = now_tick;
+    is_timeout = false;
     return dt;
 }
 
 void Dwt::Reset() {
     last_tick = DWT->CYCCNT;
+    is_timeout = false;
 }
 
 float BSP_DWT_GetDT(const uint32_t last_tick) {

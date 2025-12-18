@@ -91,7 +91,3 @@ extern "C" void app_main() {
         }
     }
 }
-
-extern "C" void print_message(const uint8_t* message, const int length) {
-    referee.AddCanData(message, length);
-}
