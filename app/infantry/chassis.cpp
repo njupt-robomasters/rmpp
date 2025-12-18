@@ -24,7 +24,7 @@ Chassis::Chassis(PID::param_t* wheel_pid, PID::param_t* follow_pid) :
     m_wheel4.SetReduction(14.0f);
 
     // 设置电流力矩系数
-    constexpr UnitFloat Kt = 0.525f * Nm_A;
+    constexpr UnitFloat Kt = 0.4f * Nm_A;
     m_wheel1.SetKt(Kt);
     m_wheel2.SetKt(Kt);
     m_wheel3.SetKt(Kt);
