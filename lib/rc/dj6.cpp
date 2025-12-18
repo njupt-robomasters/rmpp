@@ -9,7 +9,7 @@ DJ6::DJ6() {
 }
 
 void DJ6::OnLoop() {
-    if (dwt.GetDT() > TIMEOUT) {
+    if (dwt_is_connected.GetDT() > CONNECT_TIMEOUT) {
         resetData();
     }
 }
@@ -20,7 +20,7 @@ void DJ6::callback(const uint8_t data[], const uint16_t size) {
     parseSBUS(data);
 
     if (raw.is_connected) {
-        dwt.UpdateDT();
+        dwt_is_connected.UpdateDT();
         is_connected = true;
         y = -getStick(raw.CH1);            // 右手水平
         x = getStick(raw.CH2);             // 右手垂直

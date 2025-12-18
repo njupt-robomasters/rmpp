@@ -26,4 +26,6 @@
 
 #include "referee/referee.hpp"
 
+#include "ui/ui.hpp"
+
 #include "unit/include_me.hpp"

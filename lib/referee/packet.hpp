@@ -511,58 +511,6 @@ struct __attribute__((packed)) robot_interaction_data_t {
     uint8_t user_data[112]; // 内容数据段，最大112字节
 };
 
-// 0x0301的字内容：0x0100，选手端删除图层
-struct __attribute__((packed)) interaction_layer_delete_t {
-    // 删除操作
-    // 0：空操作
-    // 1：删除图层
-    // 2：删除所有
-    uint8_t delete_type;
-
-    uint8_t layer; // 图层数：0~9
-};
-
-// 0x0301的字内容：0x0101，选手端绘制一个图形
-struct __attribute__((packed)) interaction_figure_t {
-    // 图形名
-    // 在图形删除、修改等操作中，作为索引
-    uint8_t figure_name[3];
-
-    // todo
-    uint32_t operate_tpye : 3;
-    uint32_t figure_tpye : 3;
-    uint32_t layer : 4;
-    uint32_t color : 4;
-    uint32_t details_a : 9;
-    uint32_t details_b : 9;
-    uint32_t width : 10;
-    uint32_t start_x : 11;
-    uint32_t start_y : 11;
-    uint32_t details_c : 10;
-    uint32_t details_d : 11;
-    uint32_t details_e : 11;
-};
-
-// 0x0301的字内容：0x0102，选手端绘制两个图形
-struct __attribute__((packed)) interaction_figure_2_t {
-    interaction_figure_t interaction_figure[2];
-};
-
-// 0x0301的字内容：0x0103，选手端绘制五个图形
-struct __attribute__((packed)) interaction_figure_3_t {
-    interaction_figure_t interaction_figure[5];
-};
-
-// 0x0301的字内容：0x0104，选手端绘制七个图形
-struct __attribute__((packed)) interaction_figure_4_t {
-    interaction_figure_t interaction_figure[7];
-};
-
-// 0x0301的字内容：0x0110，选手端绘制字符图形
-struct __attribute__((packed)) ext_client_custom_character_t {
-    uint8_t data[30]; // graphic_data_struct暂时用data代替
-};
-
 // 0x0301的字内容：0x0120，哨兵自主决策指令
 struct __attribute__((packed)) sentry_cmd_t {
     struct {

@@ -5,7 +5,6 @@ void Robot::OnLoop() {
     handle_disconnect();
     handle_dj6();
     handle_vt13();
-    handle_referee();
     handle_mavlink();
 
     // 传感器
@@ -15,6 +14,10 @@ void Robot::OnLoop() {
     handle_chassis();
     handle_gimbal();
     handle_shooter();
+
+    // 裁判系统交互
+    handle_referee();
+    handle_ui();
 }
 
 void Robot::SetEnable(const bool is_enable) {
@@ -199,8 +202,11 @@ void Robot::handle_vt13() {
             if (vy.client > 0) vy.client = 0 * default_unit;
         }
     }
-
-    // todo: 鼠标滚轮和中键控制小陀螺
+    // f刷新UI
+    static bool f_last = false;
+    if (vt13.key.f && f_last != vt13.key.f) {
+        ui.Init();
+    }
 
     // 鼠标控制云台
     yaw_speed.client = vt13.mouse_yaw * config.yaw_max;
@@ -220,6 +226,8 @@ void Robot::handle_vt13() {
         gimbal.SetAngle(mavlink.aim.yaw, mavlink.aim.pitch);
     }
 
+    // todo: 鼠标滚轮和中键控制小陀螺
+
     vt13.OnLoop();
 }
 
@@ -228,6 +236,16 @@ void Robot::handle_referee() {
 }
 
 void Robot::handle_mavlink() {
+    mavlink.imu = {
+        .yaw = imu.yaw,
+        .pitch = imu.pitch,
+        .roll = imu.roll
+    };
+    mavlink.referee = {
+        .is_red = referee.robot_status.robot_id < 100,
+        .bullet_speed = 24 * m_s
+    };
+
     mavlink.OnLoop();
 }
 
@@ -255,7 +273,7 @@ void Robot::handle_gimbal() {
     gimbal.SetSpeed(yaw_speed.sum, pitch_speed.sum);
 
     // 设置小陀螺前馈
-    gimbal.SetChassisVR(chassis.vr.measure);
+    gimbal.SetChassisVR(chassis.wr.measure);
 
     gimbal.OnLoop();
 }
@@ -265,4 +283,11 @@ void Robot::handle_shooter() {
     shooter.SetBulletFreq(config.bullet_freq);   // 设置弹频
 
     shooter.OnLoop();
+}
+
+void Robot::handle_ui() {
+    ui.is_detected = mavlink.aim.is_detected;
+    ui.dir = gimbal.yaw.ecd.measure;
+
+    ui.OnLoop();
 }

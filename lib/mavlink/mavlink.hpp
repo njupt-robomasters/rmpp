@@ -43,17 +43,15 @@ public:
     void OnLoop();
 
 private:
-    // MAVLink系统参数
-    static constexpr uint8_t SYSTEM_ID = 1;
-    static constexpr uint8_t COMPONENT_ID = 1;
-
-    static constexpr float TIMEOUT = 0.1f;
+    static constexpr float CONNECT_TIMEOUT = 0.1f; // 断联检测超时时间
+    static constexpr UnitFloat SEND_FREQ = 100.0f * Hz;
+    static constexpr uint8_t SYSTEM_ID = 1;    // mavlink参数
+    static constexpr uint8_t COMPONENT_ID = 1; // mavlink参数
 
     // 用于断联检测
     BSP::Dwt dwt_is_connected;
 
     // 用于控制发送频率
-    UnitFloat<Hz> send_freq = 100.0f * Hz;
     BSP::Dwt dwt_send_freq;
 
     // CDC接收回调

@@ -20,7 +20,9 @@ public:
     void OnLoop() override;
 
 private:
-    void forwardCalc() override;
+    // 速度正解：弹速、弹频 -> 电机速度
+    void speedForward() override;
 
-    void backwardCalc() override;
+    // 速度逆解：电机速度 -> 弹速、弹频
+    void speedBackward() override;
 };

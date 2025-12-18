@@ -15,19 +15,37 @@ Referee::Referee() : can_parser(this), uart_parser(this) {
     BSP::UART6::RegisterCallback(uart_callback);
 }
 
+void Referee::AddCanData(const uint8_t data[], const size_t len) {
+    for (size_t i = 0; i < len; i++) {
+        if ((tail + 1) % CAN_SEND_BUF_SIZE == head) break; // 队列满
+        can_tx_buf[tail] = data[i];
+        tail = (tail + 1) % CAN_SEND_BUF_SIZE;
+    }
+}
+
 void Referee::OnLoop() {
-    if (dwt_can.GetDT() > TIMEOUT) {
+    if (dwt_can.GetDT() > CONNECT_TIMEOUT) {
         is_can_connected = false;
     }
-    if (dwt_uart.GetDT() > TIMEOUT) {
+    if (dwt_uart.GetDT() > CONNECT_TIMEOUT) {
         is_uart_connected = false;
+    }
+
+    if (head != tail) { // 队列有数据
+        uint8_t data[8];
+        uint8_t dlc = 0;
+        for (int i = 0; i < 8; i++) {
+            if (head == tail) break; // 队列空
+            data[i] = can_tx_buf[head];
+            head = (head + 1) % CAN_SEND_BUF_SIZE;
+            dlc++;
+        }
+        BSP::CAN::TransmitStd(CAN_PORT, CAN_SLAVE_ID, data, dlc);
     }
 }
 
 void Referee::can_callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
-    if (port != 1) return;
-
-    if (id != 0x00) return;
+    if (port != CAN_PORT || id != CAN_MASTER_ID) return;
 
     is_can_connected = true;
     dwt_can.UpdateDT();

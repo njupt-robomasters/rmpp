@@ -14,6 +14,8 @@
 #include "app/gimbal.hpp"
 #include "app/shooter.hpp"
 
+#include "ui/ui.hpp"
+
 class Robot {
 public:
     struct config_t {
@@ -33,13 +35,15 @@ public:
     };
 
     Robot(const config_t& config,
-          DJ6& dj6, VT13& vt13, Referee& referee, Mavlink& mavlink,
+          DJ6& dj6, VT13& vt13, Mavlink& mavlink,
           IMU& imu,
-          Chassis_Template& chassis, Gimbal_Template& gimbal, Shooter_Template& shooter) :
+          Chassis_Template& chassis, Gimbal_Template& gimbal, Shooter_Template& shooter,
+          Referee& referee, UI& ui) :
         config(config),
-        dj6(dj6), vt13(vt13), referee(referee), mavlink(mavlink),
+        dj6(dj6), vt13(vt13), mavlink(mavlink),
         imu(imu),
-        chassis(chassis), gimbal(gimbal), shooter(shooter) {}
+        chassis(chassis), gimbal(gimbal), shooter(shooter),
+        referee(referee), ui(ui) {}
 
     void SetEnable(bool is_enable);
 
@@ -52,7 +56,6 @@ private:
     // 控制器
     DJ6& dj6;
     VT13& vt13;
-    Referee& referee;
     Mavlink& mavlink;
 
     // 传感器
@@ -62,6 +65,10 @@ private:
     Chassis_Template& chassis;
     Gimbal_Template& gimbal;
     Shooter_Template& shooter;
+
+    // 裁判系统交互
+    Referee& referee;
+    UI& ui;
 
     // 底盘运动
     struct {
@@ -77,7 +84,6 @@ private:
     void handle_disconnect();
     void handle_dj6();
     void handle_vt13();
-    void handle_referee();
     void handle_mavlink();
 
     // 传感器
@@ -87,4 +93,8 @@ private:
     void handle_chassis();
     void handle_gimbal();
     void handle_shooter();
+
+    // 裁判系统交互
+    void handle_referee();
+    void handle_ui();
 };

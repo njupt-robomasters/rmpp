@@ -9,6 +9,8 @@ void Shooter_Template::SetEnable(bool is_enable) {
         is_prepare_shoot = false;
         is_shoot = false;
     }
+
+    // 这里设置电机
 }
 
 void Shooter_Template::SetBulletSpeed(const UnitFloat<>& bullet_speed) {
@@ -31,6 +33,9 @@ void Shooter_Template::SetShoot(const bool is_shoot) {
 }
 
 void Shooter_Template::OnLoop() {
-    backwardCalc();
-    forwardCalc();
+    // 速度解算
+    speedBackward();
+    speedForward();
+
+    // 这里更新电机
 }

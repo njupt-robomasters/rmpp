@@ -12,11 +12,11 @@ Mavlink::Mavlink() {
 
 void Mavlink::OnLoop() {
     // 断联检测
-    if (dwt_is_connected.GetDT() > TIMEOUT) {
+    if (dwt_is_connected.GetDT() > CONNECT_TIMEOUT) {
         is_connected = false;
     }
 
-    if (dwt_send_freq.GetDT() >= 1 / send_freq.toFloat(Hz)) {
+    if (dwt_send_freq.GetDT() >= 1 / SEND_FREQ.toFloat(Hz)) {
         dwt_send_freq.UpdateDT();
         sendImu();
         sendReferee();

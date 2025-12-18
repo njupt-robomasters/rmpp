@@ -42,7 +42,9 @@ public:
     virtual void OnLoop();
 
 private:
-    virtual void forwardCalc() = 0;
+    // 速度正解：弹速、弹频 -> 电机速度
+    virtual void speedForward() = 0;
 
-    virtual void backwardCalc() = 0;
+    // 速度逆解：电机速度 -> 弹速、弹频
+    virtual void speedBackward() = 0;
 };

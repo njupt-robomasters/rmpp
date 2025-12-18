@@ -25,20 +25,23 @@ void Gimbal::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable) return;
     this->is_enable = is_enable;
 
-    m_yaw.SetEnable(is_enable);
-    m_pitch.SetEnable(is_enable);
-
     // 设置当前位置位目标位置
     yaw.ecd.ref = yaw.ecd.measure;
     pitch.ecd.ref = pitch.ecd.measure;
+
+    m_yaw.SetEnable(is_enable);
+    m_pitch.SetEnable(is_enable);
 }
 
 void Gimbal::OnLoop() {
+    // 更新云台转动
     updateMotion();
 
+    // 角度解算
     angleBackward();
     angleForward();
 
+    // 电机PID计算
     m_yaw.OnLoop();
     m_pitch.OnLoop();
 }

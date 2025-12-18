@@ -11,7 +11,7 @@ VT13::VT13() {
 }
 
 void VT13::OnLoop() {
-    if (dwt.GetDT() > TIMEOUT) {
+    if (dwt_is_connected.GetDT() > CONNECT_TIMEOUT) {
         resetData();
     }
 }
@@ -29,7 +29,7 @@ void VT13::callback(const uint8_t data[], const uint16_t size) {
 
     std::memcpy(&raw, data, sizeof(raw));
 
-    dwt.UpdateDT();
+    dwt_is_connected.UpdateDT();
     is_connected = true;
 
     y = -getStick(raw.ch_0);     // 右手水平

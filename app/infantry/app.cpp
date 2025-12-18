@@ -10,7 +10,6 @@ LED led;
 // 控制器
 DJ6 dj6;
 VT13 vt13;
-Referee referee;
 Mavlink mavlink;
 // 传感器
 IMU imu(config.imu.dir, config.imu.calib);
@@ -18,11 +17,15 @@ IMU imu(config.imu.dir, config.imu.calib);
 Chassis chassis(&config.chassis.wheel_pid, &config.chassis.follow_pid);
 Gimbal gimbal(imu, &config.gimbal.yaw_pid, &config.gimbal.pitch_pid);
 Shooter shooter(&config.shooter.shoot_pid);
+// 裁判系统交互
+Referee referee;
+UI ui;
 
 Robot robot(config.config,
-            dj6, vt13, referee, mavlink, // 控制器
-            imu,                     // 传感器
-            chassis, gimbal, shooter // 执行器
+            dj6, vt13, mavlink,       // 控制器
+            imu,                      // 传感器
+            chassis, gimbal, shooter, // 执行器
+            referee, ui               // 裁判系统交互
 );
 
 void handle_can() {
@@ -87,4 +90,8 @@ extern "C" void app_main() {
             cpu_usage = running_time / interval_time * ratio;
         }
     }
+}
+
+extern "C" void print_message(const uint8_t* message, const int length) {
+    referee.AddCanData(message, length);
 }

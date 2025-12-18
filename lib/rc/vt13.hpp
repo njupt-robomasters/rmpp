@@ -32,16 +32,16 @@ public:
         bool v = false, b = false;
     } key;
 
-    BSP::Dwt dwt; // 用于断联超时检测
-
     VT13();
 
     void OnLoop();
 
 private:
-    static constexpr float TIMEOUT = 0.1f;         // 断联检测超时时间
+    static constexpr float CONNECT_TIMEOUT = 0.1f; // 断联检测超时时间
     static constexpr float STICK_DEADLINE = 0.05f; // 摇杆死区，小于此值认为是0
-    static constexpr float MOUSE_MAX = 500.0f;
+    static constexpr float MOUSE_MAX = 500.0f;     // 鼠标xy最大速度
+
+    BSP::Dwt dwt_is_connected; // 用于断联检测
 
     struct __attribute__((packed)) {
         uint8_t sof_1 : 8;   // 0xA9

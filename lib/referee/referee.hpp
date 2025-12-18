@@ -44,24 +44,32 @@ public:
     custom_info_t custom_info{};                 // 0x0308，选手端小地图接收机器人数据（频率上限为3Hz）【己方机器人→己方选手端】
     robot_custom_data_2_t robot_custom_data_2{}; // 0x0310（图传链路），机器人发送给自定义客户端的数据（频率上限为 50Hz）【己方机器人→图传链路→对应操作手选手端连接的自定义客户端】
     // 0x0301
-    robot_interaction_data_t robot_interaction_data_send{};      // 0x0301，机器人交互数据（频率上限为30Hz）【己方机器人→服务器】
-    interaction_layer_delete_t interaction_layer_delete{};       // 0x0301的字内容：0x0100，选手端删除图层
-    interaction_figure_t interaction_figure{};                   // 0x0301的字内容：0x0101，选手端绘制一个图形
-    interaction_figure_2_t interaction_figure_2{};               // 0x0301的字内容：0x0102，选手端绘制两个图形
-    interaction_figure_3_t interaction_figure_3{};               // 0x0301的字内容：0x0103，选手端绘制五个图形
-    interaction_figure_4_t interaction_figure_4{};               // 0x0301的字内容：0x0104，选手端绘制七个图形
-    ext_client_custom_character_t ext_client_custom_character{}; // 0x0301的字内容：0x0110，选手端绘制字符图形
-    sentry_cmd_t sentry_cmd{};                                   // 0x0301的字内容：0x0120，哨兵自主决策指令
-    radar_cmd_t radar_cmd{};                                     // 0x0301的字内容：0x0121，雷达自主决策指令
+    robot_interaction_data_t robot_interaction_data_send{}; // 0x0301，机器人交互数据（频率上限为30Hz）【己方机器人→服务器】
+    sentry_cmd_t sentry_cmd{};                              // 0x0301的字内容：0x0120，哨兵自主决策指令
+    radar_cmd_t radar_cmd{};                                // 0x0301的字内容：0x0121，雷达自主决策指令
 
     Referee();
 
+    void AddCanData(const uint8_t data[], size_t len);
+
+    // 需要在循环中调用
     void OnLoop();
 
 private:
-    static constexpr float TIMEOUT = 0.5f;
+    static constexpr float CONNECT_TIMEOUT = 0.5f; // 断联检测超时时间
 
+    // CAN通信参数
+    static constexpr uint8_t CAN_PORT = 1;
+    static constexpr uint32_t CAN_MASTER_ID = 0;
+    static constexpr uint32_t CAN_SLAVE_ID = 1;
+    static constexpr size_t CAN_SEND_BUF_SIZE = 1024;
+
+    // 用于断联检测
     BSP::Dwt dwt_can, dwt_uart;
+
+    // CAN发送队列
+    uint8_t can_tx_buf[CAN_SEND_BUF_SIZE]{};
+    size_t head = 0, tail = 0;
 
     // 解析器
     class Parser {

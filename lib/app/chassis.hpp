@@ -22,23 +22,26 @@ public:
         } chassis, gimbal;
     } vx, vy;
 
-    // vz 旋转线速度，逆时针为正
+    // 旋转线速度，逆时针为正
     struct {
         UnitFloat<m_s> ref, measure;
     } vz;
 
-    // vr 旋转角速度，逆时针为正
+    // 旋转角速度，逆时针为正
     struct {
         struct {
             UnitFloat<rpm> input, follow, sum;
         } ref;
+
         UnitFloat<rpm> measure;
-    } vr;
+    } wr;
 
     // 用于底盘功率控制
-    UnitFloat<W> power_limit = 120 * W;       // 功率限制
-    UnitFloat<W> power_estimate;              // 当前功率估计
-    UnitFloat<pct> current_ratio = 100 * pct; // 电流衰减系数
+    struct {
+        UnitFloat<W> limit = 120 * W;             // 功率限制
+        UnitFloat<W> estimate;                    // 当前功率估计
+        UnitFloat<pct> current_ratio = 100 * pct; // 电流衰减系数
+    } power;
 
     // 底盘使能/失能
     virtual void SetEnable(bool is_enable);

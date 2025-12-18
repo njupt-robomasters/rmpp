@@ -56,7 +56,7 @@ void Motor::SetSpeed(const UnitFloat<>& speed) {
 
 void Motor::SetAngle(const Angle<>& angle, const UnitFloat<>& speed_ff) {
     // 电机掉线或失能，不断把目标角度设置为当前位置（防止电机一下子飞起来）
-    if (is_online == false || is_enable == false) {
+    if (is_connected == false || is_enable == false) {
         this->angle.ref = this->angle.measure;
     } else {
         this->angle.ref = angle;
@@ -77,11 +77,11 @@ void Motor::SetAngle(const Angle<>& angle, const UnitFloat<>& speed_ff) {
 }
 
 void Motor::OnLoop() {
-    if (dwt_online.GetDT() > TIMEOUT) {
-        is_online = false;
+    if (dwt_is_conected.GetDT() > DISCONNECT_TIMEOUT) {
+        is_connected = false;
     }
 
-    if (is_online && is_enable) {
+    if (is_connected && is_enable) {
         if (pid_mode == SPEED_MODE) { // 速度模式
             const UnitFloat speed_err = speed.ref - speed.measure;
             if (pid_type == CURRENT_TYPE) {
@@ -118,9 +118,9 @@ void Motor::OnLoop() {
 }
 
 void Motor::callback() {
-    // 电机在线检测
-    is_online = true;
-    dwt_online.UpdateDT();;
+    // 电机断联检测
+    is_connected = true;
+    dwt_is_conected.UpdateDT();;
 
     // 电机修正
     if (!is_invert) {
@@ -142,7 +142,7 @@ void Motor::callback() {
     }
 
     // 功率估计
-    power.estimate.heat = 3 * R * unit::square(current.measure);
-    power.estimate.mechanical = torque.measure * speed.measure;
-    power.estimate.total = power.estimate.heat + power.estimate.mechanical;
+    power.heat = 3 * R * unit::square(current.measure);
+    power.mechanical = torque.measure * speed.measure;
+    power.total = power.heat + power.mechanical;
 }

@@ -1,8 +1,8 @@
 #include "imu.hpp"
 #include <tuple>
 #include "bsp/bsp.hpp"
-#include "bmi088/bmi088.h"
-#include "ekf/QuaternionEKF.h"
+#include "lib/bmi088/bmi088.h"
+#include "lib/ekf/QuaternionEKF.h"
 
 IMU::IMU(const dir_t& dir, const calib_t& calib) : dir(dir), calib(calib) {
     IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0);

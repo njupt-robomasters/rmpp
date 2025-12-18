@@ -20,8 +20,10 @@ public:
     void OnLoop();
 
 private:
-    static constexpr float TIMEOUT = 0.1f;         // 断联检测超时时间
+    static constexpr float CONNECT_TIMEOUT = 0.1f; // 断联检测超时时间
     static constexpr float STICK_DEADLINE = 0.05f; // 摇杆死区，小于此值认为是0
+
+    BSP::Dwt dwt_is_connected; // 用于断联检测
 
     struct {
         bool is_connected = false; // 是否连接上遥控器
@@ -42,8 +44,6 @@ private:
         uint16_t CH15 = 1024;
         uint16_t CH16 = 1024;
     } raw;
-
-    BSP::Dwt dwt; // 用于断联超时检测
 
     // 串口接收回调
     void callback(const uint8_t data[], uint16_t size);

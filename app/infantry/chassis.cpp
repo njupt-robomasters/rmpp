@@ -40,7 +40,9 @@ Chassis::Chassis(PID::param_t* wheel_pid, PID::param_t* follow_pid) :
 void Chassis::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable) return;
     this->is_enable = is_enable;
+
     SetMode(DETACH_MODE); // 失能/使能后默认分离模式，防止车突然转动伤人
+
     m_wheel1.SetEnable(is_enable);
     m_wheel2.SetEnable(is_enable);
     m_wheel3.SetEnable(is_enable);
@@ -69,7 +71,7 @@ void Chassis::speedForward() {
     // 1. 转换到底盘参考系
     // 注意这里是换参考系，而非旋转速度矢量，所以旋转角度为：底盘 -> 云台的角度
     std::tie(vx.chassis.ref, vy.chassis.ref) = unit::rotate(vx.gimbal.ref, vy.gimbal.ref, gimbal_yaw);
-    vz.ref = vr.ref.sum * CHASSIS_RADIUS;
+    vz.ref = wr.ref.sum * CHASSIS_RADIUS;
 
     // 2. 运动学正解
     v1.ref = -sqrt2div2 * vx.chassis.ref + sqrt2div2 * vy.chassis.ref + vz.ref;
@@ -95,7 +97,7 @@ void Chassis::speedBackward() {
     vx.chassis.measure = sqrt2 * (-v1.measure - v2.measure + v3.measure + v4.measure) / 4.0f;
     vy.chassis.measure = sqrt2 * (+v1.measure - v2.measure - v3.measure + v4.measure) / 4.0f;
     vz.measure = (v1.measure + v2.measure + v3.measure + v4.measure) / 4.0f;
-    vr.measure = vz.measure / CHASSIS_RADIUS;
+    wr.measure = vz.measure / CHASSIS_RADIUS;
 
     // 3. 转换到云台参考系
     std::tie(vx.gimbal.measure, vy.gimbal.measure) = rotate(vx.chassis.measure, vy.chassis.measure, -gimbal_yaw);
@@ -122,23 +124,20 @@ void Chassis::powerControl() {
     b += m_wheel3.Kt * m_wheel3.current.ref * m_wheel3.speed.measure;
     b += m_wheel4.Kt * m_wheel4.current.ref * m_wheel4.speed.measure;
 
-    const UnitFloat c = -power_limit;
+    const UnitFloat c = -power.limit;
 
     // 一定为一正根和一负根（x1*x2 = c/a < 0)
-    current_ratio = (-b + unit::sqrt(b * b - 4 * a * c)) / (2 * a);
+    power.current_ratio = (-b + unit::sqrt(b * b - 4 * a * c)) / (2 * a);
 
     // 钳位
-    current_ratio = unit::clamp(current_ratio, 0.0f * default_unit, 1.0f * default_unit);
+    power.current_ratio = unit::clamp(power.current_ratio, 0.0f * default_unit, 1.0f * default_unit);
 
     // 设置电机电流衰减
-    m_wheel1.SetCurrentRatio(current_ratio);
-    m_wheel2.SetCurrentRatio(current_ratio);
-    m_wheel3.SetCurrentRatio(current_ratio);
-    m_wheel4.SetCurrentRatio(current_ratio);
+    m_wheel1.SetCurrentRatio(power.current_ratio);
+    m_wheel2.SetCurrentRatio(power.current_ratio);
+    m_wheel3.SetCurrentRatio(power.current_ratio);
+    m_wheel4.SetCurrentRatio(power.current_ratio);
 
     // 估算底盘当前功率
-    power_estimate = m_wheel1.power.estimate.total
-        + m_wheel2.power.estimate.total
-        + m_wheel3.power.estimate.total
-        + m_wheel4.power.estimate.total;
+    power.estimate = m_wheel1.power.total + m_wheel2.power.total + m_wheel3.power.total + m_wheel4.power.total;
 }

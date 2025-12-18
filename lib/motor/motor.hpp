@@ -22,8 +22,8 @@ public:
     UnitFloat<Nm_A> Kt = 1.0f * Nm_A; // 力矩系数
     UnitFloat<Ohm> R = 0.0f * Ohm;    // 相电阻（两相间电阻/2）
 
-    bool is_enable = false; // 电机使能标志
-    bool is_online = false; // 电机在线标识
+    bool is_connected = false; // 电机连接状态
+    bool is_enable = false;    // 电机使能状态
 
     // 电流
     struct {
@@ -45,12 +45,9 @@ public:
         Angle<deg> ref, measure, raw, last_raw; // raw为电机反转、安装偏移处理前的值
     } angle;
 
-    // 功率
+    // 功率（可能是估计值）
     struct {
-        struct {
-            UnitFloat<W> heat, mechanical, total;
-        } estimate;           // 功率估计
-        UnitFloat<W> measure; // 真实功率
+        UnitFloat<W> heat, mechanical, total; // 焦耳热功率、机械功率、总功率
     } power;
 
     // 设置电机使能/失能
@@ -88,7 +85,7 @@ public:
     void OnLoop();
 
 protected:
-    static constexpr float TIMEOUT = 0.01f;
+    static constexpr float DISCONNECT_TIMEOUT = 0.01f; // 电机掉线超时时间
 
     // 电机安装参数
     bool is_invert = false;          // 电机反转标志
@@ -101,14 +98,13 @@ protected:
     pid_type_e pid_type = CURRENT_TYPE;   // PID输出类型
     PID pid;                              // PID控制器
 
-    // CAN发送频率
+    // CAN报文发送频率
     UnitFloat<Hz> can_send_freq = 1000.0f * Hz;
-
     BSP::Dwt dwt_can_send_freq; // 用于控制CAN报文发送频率
 
     // CAN接收回调，子类重写后要调用
     void callback();
 
 private:
-    BSP::Dwt dwt_online; // 用于电机掉线检测，也可以参考CAN接收频率
+    BSP::Dwt dwt_is_conected; // 用于电机掉线检测，也可以参考CAN接收频率
 };

@@ -27,15 +27,17 @@ void Shooter::SetEnable(const bool is_enable) {
 }
 
 void Shooter::OnLoop() {
-    backwardCalc();
-    forwardCalc();
+    // 速度解算
+    speedBackward();
+    speedForward();
 
+    // 更新电机
     n630_1.OnLoop();
     n630_2.OnLoop();
     m_shoot.OnLoop();
 }
 
-void Shooter::forwardCalc() {
+void Shooter::speedForward() {
     // 摩擦轮
     if (is_prepare_shoot) {
         const UnitFloat<rpm> n630_speed = bullet_speed.ref / WHEEL_RADIUS;
@@ -55,7 +57,7 @@ void Shooter::forwardCalc() {
     }
 }
 
-void Shooter::backwardCalc() {
+void Shooter::speedBackward() {
     // 摩擦轮
     bullet_speed.measure1 = n630_1.speed.measure * WHEEL_RADIUS;
     bullet_speed.measure2 = n630_2.speed.measure * WHEEL_RADIUS;
