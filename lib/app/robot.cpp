@@ -287,7 +287,7 @@ void Robot::handle_shooter() {
 
 void Robot::handle_ui() {
     ui.is_detected = mavlink.aim.is_detected;
-    ui.dir = gimbal.yaw.ecd.measure;
+    ui.yaw = gimbal.yaw.ecd.measure;
 
     ui.OnLoop();
 }

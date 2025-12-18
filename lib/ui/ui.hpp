@@ -7,7 +7,7 @@
 class UI {
 public:
     bool is_detected = false, is_locked = false;
-    Angle<deg> dir;
+    Angle<deg> yaw;
     UnitFloat<pct> cap;
     Angle<deg> hit;
 

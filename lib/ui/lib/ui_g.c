@@ -92,8 +92,8 @@ void ui_init_g() {
     ui_g_Ungroup_aim->start_y = 460;
     ui_g_Ungroup_aim->width = 3;
     ui_g_Ungroup_aim->font_size = 30;
-    ui_g_Ungroup_aim->str_length = 8;
-    strcpy(ui_g_Ungroup_aim->string, "DETECTED");
+    ui_g_Ungroup_aim->str_length = 0;
+    strcpy(ui_g_Ungroup_aim->string, "");
 
     uint32_t idx = 0;
     for (int i = 0; i < TOTAL_FIGURE; i++) {
