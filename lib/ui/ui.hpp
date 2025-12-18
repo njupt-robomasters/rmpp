@@ -16,7 +16,11 @@ public:
     void OnLoop();
 
 private:
-    static constexpr UnitFloat<> UPDATE_FREQ = 10.0f * Hz;
+    static constexpr UnitFloat UPDATE_FREQ = 10.0f * Hz;
 
-    BSP::Dwt dwt;
+    uint8_t state = 0;
+
+    BSP::Dwt dwt_update_freq;
+
+    void updateLib();
 };

@@ -1,6 +1,6 @@
 //
 // Created by RM UI Designer
-// Dynamic Edition
+// Static Edition
 //
 
 #ifndef UI_H
@@ -12,6 +12,10 @@ extern "C" {
 #include "ui_interface.h"
 
 #include "ui_g.h"
+
+void ui_init_g_Ungroup();
+void ui_update_g_Ungroup();
+void ui_remove_g_Ungroup();
 
 #ifdef __cplusplus
 }
