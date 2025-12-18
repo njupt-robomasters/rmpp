@@ -9,6 +9,8 @@ public:
     bool is_can_connected = false;
     bool is_uart_connected = false;
 
+    uint32_t hit_cnt = 0;
+
     // 接收报文
     game_status_t game_status{};                               // 0x0001，比赛状态数据（1Hz）
     game_result_t game_result{};                               // 0x0002，比赛结果数据（比赛结束触发发送）

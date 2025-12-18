@@ -40,19 +40,25 @@ void UI::updateLib() {
 
     // dir
     // 高中平面直角坐标系
-    const int dx = (int)(unit::cos(-yaw + 90 * deg).toFloat() * 50);
-    const int dy = (int)(unit::sin(-yaw + 90 * deg).toFloat() * 50);
+    const int dx = (int)(unit::cos(-gimbal_yaw + 90 * deg).toFloat() * 50);
+    const int dy = (int)(unit::sin(-gimbal_yaw + 90 * deg).toFloat() * 50);
     ui_g_Ungroup_dir->end_x = ui_g_Ungroup_dir->start_x + dx;
     ui_g_Ungroup_dir->end_y = ui_g_Ungroup_dir->start_y + dy;
 
     // hit
-    // 6点钟方向为0度，逆时针增加
-    // ±18°逆时针画弧
-    int start_angle = (int)(Angle(hit + 180 * deg - 18 * deg).toFloat(deg));
-    if (start_angle < 0) start_angle += 360;
-    int end_angle = (int)(Angle(hit + 180 * deg + 18 * deg).toFloat(deg));
-    if (end_angle < 0) end_angle += 360;
-    ui_g_Ungroup_hit->width = 20;
-    ui_g_Ungroup_hit->start_angle = 0;
-    ui_g_Ungroup_hit->end_angle = 0;
+    if (is_hit) {
+        // 6点钟方向为0度，逆时针增加
+        // ±18°逆时针画弧
+        int start_angle = (int)(Angle(-hit - 18 * deg).toFloat(deg));
+        int end_angle = (int)(Angle(-hit + 18 * deg).toFloat(deg));
+        if (start_angle < 0) start_angle += 360;
+        if (end_angle < 0) end_angle += 360;
+        ui_g_Ungroup_hit->width = 20;
+        ui_g_Ungroup_hit->start_angle = start_angle;
+        ui_g_Ungroup_hit->end_angle = end_angle;
+    } else {
+        ui_g_Ungroup_hit->width = 0;
+        ui_g_Ungroup_hit->start_angle = 0;
+        ui_g_Ungroup_hit->end_angle = 0;
+    }
 }

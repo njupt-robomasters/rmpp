@@ -7,8 +7,8 @@
 class UI {
 public:
     bool is_detected = false, is_locked = false;
-    Angle<deg> yaw;
-    UnitFloat<pct> cap;
+    Angle<deg> gimbal_yaw;
+    bool is_hit = false;
     Angle<deg> hit;
 
     void Init();

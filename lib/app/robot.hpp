@@ -50,6 +50,8 @@ public:
     void OnLoop();
 
 private:
+    static constexpr float HIT_TIMEOUT = 1;
+
     // 配置
     const config_t& config;
 
@@ -79,6 +81,11 @@ private:
     struct {
         UnitFloat<deg_s> rc, vt13, client, nav, sum;
     } yaw_speed, pitch_speed;
+
+    struct {
+        BSP::Dwt dwt;
+        Angle<deg> yaw_imu;
+    } hit;
 
     // 控制器
     void handle_disconnect();

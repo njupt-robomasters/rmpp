@@ -232,6 +232,28 @@ void Robot::handle_vt13() {
 }
 
 void Robot::handle_referee() {
+    static uint32_t last_hit_cnt = 0;
+    if (last_hit_cnt != referee.hit_cnt) {
+        hit.dwt.UpdateDT();
+        switch (referee.hurt_data.armor_id) {
+            case 0:
+                hit.yaw_imu = gimbal.yaw.imu.measure - gimbal.yaw.ecd.measure;
+                break;
+            case 1:
+                hit.yaw_imu = gimbal.yaw.imu.measure - gimbal.yaw.ecd.measure + 90 * deg;
+                break;
+            case 2:
+                hit.yaw_imu = gimbal.yaw.imu.measure - gimbal.yaw.ecd.measure + 180 * deg;
+                break;
+            case 3:
+                hit.yaw_imu = gimbal.yaw.imu.measure - gimbal.yaw.ecd.measure + 270 * deg;
+                break;
+            default:
+                break;
+        }
+    }
+    last_hit_cnt = referee.hit_cnt;
+
     referee.OnLoop();
 }
 
@@ -287,7 +309,15 @@ void Robot::handle_shooter() {
 
 void Robot::handle_ui() {
     ui.is_detected = mavlink.aim.is_detected;
-    ui.yaw = gimbal.yaw.ecd.measure;
+    ui.gimbal_yaw = gimbal.yaw.ecd.measure;
+    // if (hit.dwt.GetDT() < HIT_TIMEOUT) {
+    //     ui.is_hit = true;
+    //     ui.hit = hit.yaw_imu - gimbal.yaw.imu.measure;
+    // } else {
+    //     ui.is_hit = false;
+    // }
+    ui.is_hit = true;
+    ui.hit = hit.yaw_imu - gimbal.yaw.imu.measure;
 
     ui.OnLoop();
 }

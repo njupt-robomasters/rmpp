@@ -183,6 +183,9 @@ void Referee::deserialize(const uint16_t cmd_id, const uint8_t data[], uint8_t s
         case 0x0206: { // 0x0206，伤害状态数据（伤害发生后发送）
             if (size != sizeof(hurt_data)) break;
             memcpy(&hurt_data, data, sizeof(hurt_data));
+            if (hurt_data.HP_deduction_reason == 0) { // 装甲模块被弹丸攻击导致扣血
+                hit_cnt++;
+            }
             break;
         }
         case 0x0207: { // 0x0207，实时射击数据（弹丸发射后发送）
