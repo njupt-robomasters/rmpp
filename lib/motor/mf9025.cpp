@@ -22,7 +22,7 @@ void MF9025::OnLoop() {
                 sendCurrent();
             }
         } else {
-            // 失能，交替发送使能和读取CAN状态
+            // 失能，交替发送失能和读取CAN状态
             if (send_cnt % 2 == 0) {
                 sendDisable();
             } else if (send_cnt % 2 == 1) {

@@ -36,8 +36,7 @@ inline struct {
         PID::param_t follow_pid = {
             .mode = PID::POSITION_MODE,
             .kp = 1 / (0.2f * s),
-            .max_out = 360 * deg_s,
-            .deadline = 10 * deg
+            .max_out = 360 * deg_s
         };
     } chassis;
 
@@ -62,7 +61,7 @@ inline struct {
     struct {
         PID::param_t shoot_pid = {
             .mode = PID::POSITION_MODE,
-            .kp = (10 * A) / (20 * rpm),
+            .kp = (10 * A) / (120 * deg_s),
             .max_out = 10 * A,
         };
     } shooter;

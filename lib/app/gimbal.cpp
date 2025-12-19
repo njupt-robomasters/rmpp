@@ -6,9 +6,8 @@ void Gimbal_Template::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable) return;
     this->is_enable = is_enable;
 
-    // 设置当前位置位目标位置
-    yaw.ecd.ref = yaw.ecd.measure;
-    pitch.ecd.ref = pitch.ecd.measure;
+    // 设置当前位置为目标位置
+    setCurrentAsTarget();
 
     // 这里设置电机
 }
@@ -59,5 +58,15 @@ void Gimbal_Template::updateMotion() {
             yaw.imu.ref += yaw_delta;
             pitch.imu.ref += pitch_delta;
         }
+    }
+}
+
+void Gimbal_Template::setCurrentAsTarget() {
+    if (mode == ECD_MODE) {
+        yaw.ecd.ref = yaw.ecd.measure;
+        pitch.ecd.ref = pitch.ecd.measure;
+    } else if (mode == IMU_MODE) {
+        yaw.imu.ref = yaw.imu.measure;
+        pitch.imu.ref = pitch.imu.measure;
     }
 }

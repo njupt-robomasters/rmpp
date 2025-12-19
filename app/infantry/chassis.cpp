@@ -71,9 +71,9 @@ void Chassis::speedForward() {
     // 1. 转换到底盘参考系
     // 注意这里是换参考系，而非旋转速度矢量，所以旋转角度为：底盘 -> 云台的角度
     std::tie(vx.chassis.ref, vy.chassis.ref) = unit::rotate(vx.gimbal.ref, vy.gimbal.ref, gimbal_yaw);
-    vz.ref = wr.ref.sum * CHASSIS_RADIUS;
 
     // 2. 运动学正解
+    vz.ref = wr.ref.sum * CHASSIS_RADIUS;
     v1.ref = -sqrt2div2 * vx.chassis.ref + sqrt2div2 * vy.chassis.ref + vz.ref;
     v2.ref = -sqrt2div2 * vx.chassis.ref - sqrt2div2 * vy.chassis.ref + vz.ref;
     v3.ref = +sqrt2div2 * vx.chassis.ref - sqrt2div2 * vy.chassis.ref + vz.ref;

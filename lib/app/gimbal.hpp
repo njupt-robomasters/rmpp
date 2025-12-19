@@ -55,6 +55,8 @@ protected:
     // 更新云台转动，通过dt不断计算角度增量
     void updateMotion();
 
+    void setCurrentAsTarget();
+
     // 云台姿态 -> 电机角度
     virtual void angleForward() = 0;
 

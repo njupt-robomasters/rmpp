@@ -10,9 +10,9 @@ public:
     // yaw
     static constexpr Angle YAW_OFFSET = 96.72f * deg; // yaw与前进方向重合时的绝对角度
     // pitch
-    static constexpr Angle PITCH_OFFSET = -65.0f * deg;                      // pitch水平时的绝对角度
-    static constexpr Angle PITCH_MIN = (-75.0f + 5.0f) * deg - PITCH_OFFSET; // pitch最低相对角度
-    static constexpr Angle PITCH_MAX = (-40.0f - 5.0f) * deg - PITCH_OFFSET; // pitch最高相对角度
+    static constexpr Angle PITCH_OFFSET = -65 * deg;    // pitch水平时的绝对角度
+    static constexpr Angle PITCH_MIN = (-10 + 5) * deg; // pitch最低相对角度
+    static constexpr Angle PITCH_MAX = (25 - 5) * deg;  // pitch最高相对角度
 
     // 电机对象
     GM6020 m_yaw;

@@ -25,9 +25,8 @@ void Gimbal::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable) return;
     this->is_enable = is_enable;
 
-    // 设置当前位置位目标位置
-    yaw.ecd.ref = yaw.ecd.measure;
-    pitch.ecd.ref = pitch.ecd.measure;
+    // 设置当前位置为目标位置
+    setCurrentAsTarget();
 
     m_yaw.SetEnable(is_enable);
     m_pitch.SetEnable(is_enable);
@@ -65,10 +64,9 @@ void Gimbal::angleForward() {
     m_yaw.SetAngle(yaw.ecd.ref, -chassis_vr); // 同时设置前馈（前馈与底盘速度方向相反，因为云台期望静止）
     m_pitch.SetAngle(pitch.ecd.ref);
 
-    // 传递软件限位
-    yaw.ecd.ref = m_yaw.angle.ref;
+    // 传递pitch软件限位
     pitch.ecd.ref = m_pitch.angle.ref;
-    yaw.imu.ref = yaw.ecd.ref + yaw_imu_minus_ecd;
+    // 传递到imu参考系
     pitch.imu.ref = pitch.ecd.ref + pitch_imu_minus_ecd;
 }
 

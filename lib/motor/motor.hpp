@@ -106,5 +106,5 @@ protected:
     void callback();
 
 private:
-    BSP::Dwt dwt_is_conected; // 用于电机掉线检测，也可以参考CAN接收频率
+    BSP::Dwt dwt_is_connected; // 用于电机掉线检测，也可以参考CAN接收频率
 };

@@ -1,15 +1,5 @@
 #include "config.hpp"
-
-// bsp
-#include "bsp/bsp.hpp"
-
-// lib
-#include "rc/vt13.hpp"
-#include "imu/imu.hpp"
-#include "rc/dj6.hpp"
-#include "referee/referee.hpp"
-#include "template/control.hpp"
-#include "template/led.hpp"
+#include "lib.hpp"
 
 // app
 #include "chassis.hpp"
@@ -20,27 +10,30 @@ LED led;
 // 控制器
 DJ6 dj6;
 VT13 vt13;
-Referee referee;
-NUC nuc;
+Mavlink mavlink;
 // 传感器
 IMU imu(config.imu.dir, config.imu.calib);
 // 执行器
-Chassis chassis(&config.chassis.servo_pid_param, &config.chassis.wheel_pid_param);
-Gimbal gimbal(imu, &config.gimbal.yaw1_pid_param, &config.gimbal.yaw2_pid_param, &config.gimbal.pitch_pid_param);
-Shooter shooter(&config.shooter.shoot_pid_param);
+Chassis chassis(&config.chassis.wheel_pid, &config.chassis.servo_pid, &config.chassis.follow_pid);
+Gimbal gimbal(imu, &config.gimbal.yaw1_pid, &config.gimbal.yaw2_pid, &config.gimbal.pitch_pid);
+Shooter shooter(&config.shooter.shoot_pid);
+// 裁判系统交互
+Referee referee;
+UI ui;
 
-Control control(config.speed,
-                dj6, vt13, referee, nuc, // 控制器
-                imu,                     // 传感器
-                chassis, gimbal, shooter // 执行器
+Robot robot(config.config,
+            dj6, vt13, mavlink,       // 控制器
+            imu,                      // 传感器
+            chassis, gimbal, shooter, // 执行器
+            referee, ui               // 裁判系统交互
 );
 
 void handle_can() {
     // 底盘
+    const int16_t cmd1 = chassis.m_wheel1.GetCurrentCmd();
+    const int16_t cmd2 = chassis.m_wheel2.GetCurrentCmd();
     const int16_t cmd7 = chassis.m_servo1.GetVoltageCmd();
     const int16_t cmd8 = chassis.m_servo2.GetVoltageCmd();
-    const int16_t cmd1 = chassis.m1.GetCurrentCmd();
-    const int16_t cmd2 = chassis.m_wheel2.GetCurrentCmd();
 
     // 云台
     const int16_t cmd5 = gimbal.m_yaw2.GetVoltageCmd();
@@ -80,7 +73,7 @@ void setup() {
 
 void loop() {
     led.OnLoop();
-    control.OnLoop();
+    robot.OnLoop();
 
     handle_can();
 }

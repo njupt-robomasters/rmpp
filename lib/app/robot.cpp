@@ -311,6 +311,7 @@ void Robot::handle_shooter() {
 
 void Robot::handle_ui() {
     ui.is_detected = mavlink.aim.is_detected;
+    ui.is_mavlink_connected = mavlink.is_connected;
     ui.gimbal_yaw = gimbal.yaw.ecd.measure;
     if (hit.dwt.GetDT() < HIT_TIMEOUT) {
         ui.is_hit = true;

@@ -48,12 +48,12 @@ void PID::calcPosition(const UnitFloat<>& err, const std::optional<UnitFloat<>>&
     }
 
     // 基础PID计算
-    p_out = kp * err;
-    UnitFloat<> di = ki * err * dt;
+    p_out = kp * this->err;
+    UnitFloat<> di = ki * this->err * dt;
     if (derr.has_value()) {
         d_out = kd * derr.value();
     } else {
-        d_out = kd * (err - last_err) / dt;
+        d_out = kd * (this->err - last_err) / dt;
     }
 
     // 积分限幅
@@ -74,7 +74,7 @@ void PID::calcPosition(const UnitFloat<>& err, const std::optional<UnitFloat<>>&
     // 输出滤波
     out = lowpassFilter(out, out_no_filter, fc, dt);
 
-    last_err = err;
+    last_err = this->err;
 }
 
 void PID::calcIncrement(const UnitFloat<>& err) {
@@ -89,9 +89,9 @@ void PID::calcIncrement(const UnitFloat<>& err) {
     }
 
     // 基础PID计算
-    p_out = kp * (err - last_err);
-    i_out = ki * err * dt;
-    d_out = kd * (err - 2 * last_err + last_err2) / dt;
+    p_out = kp * (this->err - last_err);
+    i_out = ki * this->err * dt;
+    d_out = kd * (this->err - 2 * last_err + last_err2) / dt;
 
     // 积分限幅：总输出饱和，阻止I继续累积
     if (unit::abs(out) >= max_out) {
@@ -106,7 +106,7 @@ void PID::calcIncrement(const UnitFloat<>& err) {
     out = lowpassFilter(out, out_no_filter, fc, dt);
 
     last_err2 = last_err;
-    last_err = err;
+    last_err = this->err;
 }
 
 void PID::Clear() {

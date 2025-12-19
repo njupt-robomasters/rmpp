@@ -77,7 +77,7 @@ void Motor::SetAngle(const Angle<>& angle, const UnitFloat<>& speed_ff) {
 }
 
 void Motor::OnLoop() {
-    if (dwt_is_conected.GetDT() > DISCONNECT_TIMEOUT) {
+    if (dwt_is_connected.GetDT() > DISCONNECT_TIMEOUT) {
         is_connected = false;
     }
 
@@ -120,7 +120,7 @@ void Motor::OnLoop() {
 void Motor::callback() {
     // 电机断联检测
     is_connected = true;
-    dwt_is_conected.UpdateDT();;
+    dwt_is_connected.UpdateDT();;
 
     // 电机修正
     if (!is_invert) {

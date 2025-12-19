@@ -52,10 +52,12 @@ void UI::OnLoop() {
 
 void UI::updateLib() {
     // aim
-    if (is_locked) {
-        strcpy(ui_g_Ungroup_aim->string, " LOCK ");
-    } else if (is_detected) {
+    if (is_detected) {
+        ui_g_Ungroup_aim->color = 2; // 绿色
         strcpy(ui_g_Ungroup_aim->string, "DETECT");
+    } else if (is_mavlink_connected) {
+        ui_g_Ungroup_aim->color = 3; // 橙色
+        strcpy(ui_g_Ungroup_aim->string, "ONLINE");
     } else {
         strcpy(ui_g_Ungroup_aim->string, "      ");
     }

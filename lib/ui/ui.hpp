@@ -6,7 +6,7 @@
 
 class UI {
 public:
-    bool is_detected = false, is_locked = false;
+    bool is_mavlink_connected = false, is_detected = false;
     Angle<deg> gimbal_yaw;
     bool is_hit = false;
     Angle<deg> hit;

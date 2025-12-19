@@ -9,15 +9,15 @@ class Gimbal : public Gimbal_Template {
 public:
     // 电机偏移参数
     // 大yaw
-    static constexpr Angle YAW1_OFFSET = -3.0f * deg; // 大yaw与前进方向重合时的绝对角度
+    static constexpr Angle YAW1_OFFSET = 103 * deg; // 大yaw与前进方向重合时的绝对角度
     // 小yaw
-    static constexpr Angle YAW2_OFFSET = -120.0f * deg; // 小yaw相对于大yaw居中时的绝对角度
-    static constexpr Angle YAW2_MIN = -120.0f * deg;    // 小yaw最右相对角度
-    static constexpr Angle YAW2_MAX = 120.0f * deg;     // 小yaw最左相对角度
+    static constexpr Angle YAW2_OFFSET = -120 * deg; // 小yaw相对于大yaw居中时的绝对角度
+    static constexpr Angle YAW2_MIN = -90 * deg;     // 小yaw最右相对角度
+    static constexpr Angle YAW2_MAX = 90 * deg;      // 小yaw最左相对角度
     // pitch
-    static constexpr Angle PITCH_OFFSET = 160.0f * deg; // pitch水平时的绝对角度
-    static constexpr Angle PITCH_MIN = -30.0f * deg;    // pitch最低相对角度
-    static constexpr Angle PITCH_MAX = 25.0f * deg;     // pitch最高相对角度
+    static constexpr Angle PITCH_OFFSET = -162 * deg;   // pitch水平时的绝对角度
+    static constexpr Angle PITCH_MIN = (-23 + 5) * deg; // pitch最低相对角度
+    static constexpr Angle PITCH_MAX = (32 - 5) * deg;  // pitch最高相对角度
 
     // 大小yaw分配
     struct {
@@ -29,7 +29,7 @@ public:
     GM6020 m_yaw2;
     DM4310 m_pitch;
 
-    Gimbal(const IMU& imu, PID::param_t* yaw1_pid_param, PID::param_t* yaw2_pid_param, PID::param_t* pitch_pid_param);
+    Gimbal(const IMU& imu, PID::param_t* yaw1_pid, PID::param_t* yaw2_pid, PID::param_t* pitch_pid);
 
     // 云台使能/失能
     void SetEnable(bool is_enable) override;
@@ -39,8 +39,8 @@ public:
 
 private:
     // 云台姿态 -> 电机角度
-    void forwardCalc() override;
+    void angleForward() override;
 
     // 电机角度 -> 云台姿态
-    void backwardCalc() override;
+    void angleBackward() override;
 };

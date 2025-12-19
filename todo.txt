@@ -7,12 +7,17 @@
 
 自定义UI：底盘电机状态，云台电机状态，发射机构状态（摩擦轮和拨弹电机），通信连接状态（DJ6，VT13，Referee，Mavlink）
 适配超电
+一键校准，参数存入flash
 
 【重构】
 重构bmi088
 重构ekf
 n630继承motor
 packet是否保留UI操作
+电机基类电压模式（适配6020）
 
 【bug】
 dwt GetDT 溢出问题
+
+【调参】
+轮电机pid

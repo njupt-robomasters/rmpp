@@ -1,6 +1,6 @@
 #pragma once
 
-#include "template/chassis.hpp"
+#include "app/chassis.hpp"
 #include "motor/gm6020.hpp"
 #include "motor/m3508.hpp"
 
@@ -11,8 +11,8 @@ public:
     static constexpr UnitFloat WHEEL_RADIUS = 5.25f * cm;     // 轮子半径
 
     // 舵电机偏移
-    static constexpr Angle SERVO1_OFFSET = -134.82f * deg;
-    static constexpr Angle SERVO2_OFFSET = -77.65f * deg;
+    static constexpr Angle SERVO1_OFFSET = 133.33f * deg;
+    static constexpr Angle SERVO2_OFFSET = 71.89f * deg;
 
     // 最小转舵速度
     static constexpr UnitFloat MIN_V = 0.01f * m_s;
@@ -28,10 +28,10 @@ public:
     } s1, s2;
 
     // 电机对象
+    M3508 m_wheel1, m_wheel2;  // 轮电机
     GM6020 m_servo1, m_servo2; // 舵电机
-    M3508 m1, m_wheel2;  // 轮电机
 
-    Chassis(PID::param_t* servo_pid_param, PID::param_t* wheel_pid_param);
+    Chassis(PID::param_t* wheel_pid, PID::param_t* servo_pid, PID::param_t* follow_pid);
 
     // 底盘使能/失能
     void SetEnable(bool is_enable) override;
@@ -41,10 +41,10 @@ public:
 
 private:
     // 车体速度 -> 轮子速度
-    void forwardCalc() override;
+    void speedForward() override;
 
     // 轮子速度 -> 车体速度
-    void backwardCalc() override;
+    void speedBackward() override;
 
     // 功率控制
     void powerControl() override;
