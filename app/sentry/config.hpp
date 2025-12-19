@@ -11,8 +11,8 @@ inline struct {
         .dxy = 4 * m_ss,
 
         // 云台速度
-        .yaw_max = 360 * deg_s,
-        .pitch_max = 360 * deg_s,
+        .yaw_max = 540 * deg_s,
+        .pitch_max = 540 * deg_s,
 
         // 发射机构
         .bullet_speed = 21 * m_s,

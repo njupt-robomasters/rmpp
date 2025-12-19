@@ -126,7 +126,7 @@ void Chassis::speedBackward() {
 // 计算电流衰减系数，需要在电机PID计算后调用
 void Chassis::powerControl() {
     // 估算底盘当前功率
-    power.estimate = m_wheel1.power.total + m_wheel2.power.total + m_wheel3.power.total + m_wheel4.power.total;
+    power.estimate = m_wheel1.power.total + m_wheel2.power.total;
 
     if (power.limit == 0) return;
 
