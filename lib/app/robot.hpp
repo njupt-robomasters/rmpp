@@ -32,6 +32,7 @@ public:
         // 发射机构
         UnitFloat<m_s> bullet_speed; // 弹速
         UnitFloat<Hz> bullet_freq;   // 弹频
+        uint16_t heat_protect = 0;   // 枪口热量保护
     };
 
     Robot(const config_t& config,
@@ -86,6 +87,9 @@ private:
         BSP::Dwt dwt;
         Angle<deg> yaw_imu;
     } hit;
+
+    UnitFloat<m_ss> ax, ay;
+    UnitFloat<deg_ss> ar;
 
     // 控制器
     void handle_disconnect();

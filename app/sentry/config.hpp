@@ -8,7 +8,7 @@ inline struct {
         .vxy_max = 3 * m_s,
         .wr_max = 60 * rpm,
         .axy = 4 * m_ss,
-        .dxy = 8 * m_ss,
+        .dxy = 4 * m_ss,
 
         // 云台速度
         .yaw_max = 360 * deg_s,
@@ -16,7 +16,8 @@ inline struct {
 
         // 发射机构
         .bullet_speed = 21 * m_s,
-        .bullet_freq = 5 * Hz
+        .bullet_freq = 5 * Hz,
+        .heat_protect = 20
     };
 
     // IMU参数

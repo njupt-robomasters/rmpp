@@ -196,7 +196,7 @@ struct __attribute__((packed)) robot_status_t {
     uint16_t chassis_power_limit;                // 机器人底盘功率上限
     uint8_t power_management_gimbal_output : 1;  // gimbal口输出，0为无输出，1为24V输出
     uint8_t power_management_chassis_output : 1; // chassis口输出，0为无输出，1为24V输出
-    uint8_t power_management_shooter_output : 1; // shooter口输出，0为无输出，1为24V 输出
+    uint8_t power_management_shooter_output : 1; // shooter口输出，0为无输出，1为24V输出
 };
 
 // 0x0202，实时底盘缓冲能量和射击热量数据（10Hz）

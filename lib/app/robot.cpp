@@ -154,7 +154,7 @@ void Robot::handle_vt13() {
     // 扳机键射击
     static bool trigger_last = false;
     if (trigger_last != vt13.trigger) { // 状态改变才处理
-        if (shooter.is_prepare_shoot) {
+        if (shooter.is_prepare_shoot) { // 摩擦轮保护
             shooter.SetShoot(vt13.trigger);
         }
     }
@@ -215,11 +215,16 @@ void Robot::handle_vt13() {
     // 鼠标左键开火
     static bool mouse_left_last = false;
     if (mouse_left_last != vt13.mouse_left) { // 状态改变才处理
-        if (shooter.is_prepare_shoot) {
+        if (shooter.is_prepare_shoot) {       // 摩擦轮保护
             shooter.SetShoot(vt13.mouse_left);
         }
     }
     mouse_left_last = vt13.mouse_left;
+    // 枪口热量保护
+    const uint16_t remaining_heat = referee.robot_status.shooter_barrel_heat_limit - referee.power_heat_data.shooter_17mm_1_barrel_heat;
+    if (remaining_heat <= config.heat_protect) {
+        shooter.SetShoot(false);
+    }
 
     // 鼠标右键自瞄
     if (vt13.mouse_right) {
@@ -236,32 +241,6 @@ void Robot::handle_vt13() {
     }
 
     vt13.OnLoop();
-}
-
-void Robot::handle_referee() {
-    static uint32_t last_hit_cnt = 0;
-    if (last_hit_cnt != referee.hit_cnt) {
-        hit.dwt.UpdateDT();
-        switch (referee.hurt_data.armor_id) {
-            case 0:
-                hit.yaw_imu = gimbal.yaw.imu.measure - gimbal.yaw.ecd.measure;
-                break;
-            case 1:
-                hit.yaw_imu = gimbal.yaw.imu.measure - gimbal.yaw.ecd.measure + 90 * deg;
-                break;
-            case 2:
-                hit.yaw_imu = gimbal.yaw.imu.measure - gimbal.yaw.ecd.measure + 180 * deg;
-                break;
-            case 3:
-                hit.yaw_imu = gimbal.yaw.imu.measure - gimbal.yaw.ecd.measure + 270 * deg;
-                break;
-            default:
-                break;
-        }
-    }
-    last_hit_cnt = referee.hit_cnt;
-
-    referee.OnLoop();
 }
 
 void Robot::handle_mavlink() {
@@ -292,6 +271,9 @@ void Robot::handle_chassis() {
     // 设置云台方向
     chassis.SetGimbalYaw(gimbal.yaw.ecd.measure);
 
+    // 设置底盘功率限制
+    chassis.SetPowerLimit(referee.robot_status.chassis_power_limit * W);
+
     chassis.OnLoop();
 }
 
@@ -312,6 +294,33 @@ void Robot::handle_shooter() {
     shooter.SetBulletFreq(config.bullet_freq);   // 设置弹频
 
     shooter.OnLoop();
+}
+
+void Robot::handle_referee() {
+    // 击打反馈
+    static uint32_t last_hit_cnt = 0;
+    if (last_hit_cnt != referee.hit_cnt) {
+        hit.dwt.UpdateDT();
+        switch (referee.hurt_data.armor_id) {
+            case 0:
+                hit.yaw_imu = gimbal.yaw.imu.measure - gimbal.yaw.ecd.measure;
+                break;
+            case 1:
+                hit.yaw_imu = gimbal.yaw.imu.measure - gimbal.yaw.ecd.measure + 90 * deg;
+                break;
+            case 2:
+                hit.yaw_imu = gimbal.yaw.imu.measure - gimbal.yaw.ecd.measure + 180 * deg;
+                break;
+            case 3:
+                hit.yaw_imu = gimbal.yaw.imu.measure - gimbal.yaw.ecd.measure + 270 * deg;
+                break;
+            default:
+                break;
+        }
+    }
+    last_hit_cnt = referee.hit_cnt;
+
+    referee.OnLoop();
 }
 
 void Robot::handle_ui() {
