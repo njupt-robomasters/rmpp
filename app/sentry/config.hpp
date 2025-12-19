@@ -5,8 +5,8 @@
 inline struct {
     Robot::config_t config = {
         // 底盘速度
-        .vxy_max = 2 * m_s,
-        .vr_max = 60 * rpm,
+        .vxy_max = 3 * m_s,
+        .wr_max = 60 * rpm,
         .axy = 4 * m_ss,
         .dxy = 8 * m_ss,
 
@@ -73,7 +73,7 @@ inline struct {
     struct {
         PID::param_t shoot_pid = {
             .mode = PID::POSITION_MODE,
-            .kp = (10 * A) / (120 * deg_s),
+            .kp = (10 * A) / (60 * deg_s),
             .max_out = 10 * A,
         };
     } shooter;

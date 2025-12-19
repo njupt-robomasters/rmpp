@@ -21,7 +21,7 @@ public:
     struct config_t {
         // 底盘速度
         UnitFloat<m_s> vxy_max; // 前后左右平移速度
-        UnitFloat<rpm> vr_max;  // 旋转角速度
+        UnitFloat<rpm> wr_max;  // 旋转角速度
         UnitFloat<m_ss> axy;    // 加速度（仅键盘操作有效）
         UnitFloat<m_ss> dxy;    // 减速度（仅键盘操作有效）
 
@@ -75,7 +75,7 @@ private:
     // 底盘运动
     struct {
         UnitFloat<m_s> rc, vt13, client, nav, sum;
-    } vx, vy, vr;
+    } vx, vy, wr;
 
     // 云台运动
     struct {

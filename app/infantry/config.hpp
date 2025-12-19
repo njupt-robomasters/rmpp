@@ -5,8 +5,8 @@
 inline struct {
     Robot::config_t config = {
         // 底盘速度
-        .vxy_max = 2 * m_s,
-        .vr_max = 60 * rpm,
+        .vxy_max = 3 * m_s,
+        .wr_max = 60 * rpm,
         .axy = 4 * m_ss,
         .dxy = 8 * m_ss,
 

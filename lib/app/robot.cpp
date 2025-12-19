@@ -88,16 +88,16 @@ void Robot::handle_dj6() {
                 break;
             case DJ6::UP:
                 chassis.SetMode(Chassis_Template::FOLLOW_MODE);
-                vr.rc = 0 * default_unit;
+                wr.rc = 0 * default_unit;
                 break;
             case DJ6::MID:
                 chassis.SetMode(Chassis_Template::DETACH_MODE);
-                vr.rc = 0 * default_unit;
+                wr.rc = 0 * default_unit;
                 break;
             case DJ6::DOWN:
                 chassis.SetMode(Chassis_Template::DETACH_MODE);
                 if (switch_right_last != DJ6::ERR) { // 刚连上不算
-                    vr.rc = config.vr_max;
+                    wr.rc = config.wr_max;
                 }
                 break;
         }
@@ -112,7 +112,7 @@ void Robot::handle_vt13() {
     // 摇杆
     vx.vt13 = vt13.x * config.vxy_max;
     vy.vt13 = vt13.y * config.vxy_max;
-    vr.vt13 = -vt13.wheel * config.vr_max;
+    wr.vt13 = -vt13.wheel * config.wr_max;
     yaw_speed.vt13 = vt13.yaw * config.yaw_max;
     pitch_speed.vt13 = vt13.pitch * config.pitch_max;
 
@@ -228,7 +228,12 @@ void Robot::handle_vt13() {
         gimbal.SetAngle(mavlink.aim.yaw, mavlink.aim.pitch);
     }
 
-    // todo: 鼠标滚轮和中键控制小陀螺
+    // shift开小陀螺
+    if (vt13.key.shift) {
+        wr.client = config.wr_max;
+    } else {
+        wr.client = 0 * default_unit;
+    }
 
     vt13.OnLoop();
 }
@@ -281,8 +286,8 @@ void Robot::handle_chassis() {
     // 设置底盘速度
     vx.sum = unit::clamp(vx.rc + vx.vt13 + vx.client + vx.nav, config.vxy_max);
     vy.sum = unit::clamp(vy.rc + vy.vt13 + vy.client + vy.nav, config.vxy_max);
-    vr.sum = unit::clamp(vr.rc + vr.vt13 + vr.client + vr.nav, config.vr_max);
-    chassis.SetSpeed(vx.sum, vy.sum, vr.sum);
+    wr.sum = unit::clamp(wr.rc + wr.vt13 + wr.client + wr.nav, config.wr_max);
+    chassis.SetSpeed(vx.sum, vy.sum, wr.sum);
 
     // 设置云台方向
     chassis.SetGimbalYaw(gimbal.yaw.ecd.measure);
