@@ -16,7 +16,7 @@ void MF9025::OnLoop() {
         dwt_can_send_freq.UpdateDT();
         send_cnt++;
         if (is_enable && is_connected) {
-            if (send_cnt % 100 == 0) { // 每100次调用重新发送使能
+            if (send_cnt % 1000 == 0) { // 每100次调用重新发送使能
                 sendEnable();
             } else {
                 sendCurrent();

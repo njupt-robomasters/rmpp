@@ -8,7 +8,7 @@ inline struct {
         .vxy_max = 3 * m_s,
         .wr_max = 60 * rpm,
         .axy = 4 * m_ss,
-        .dxy = 4 * m_ss,
+        .dxy = 8 * m_ss,
 
         // 云台速度
         .yaw_max = 540 * deg_s,

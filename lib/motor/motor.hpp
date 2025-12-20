@@ -85,7 +85,7 @@ public:
     void OnLoop();
 
 protected:
-    static constexpr float DISCONNECT_TIMEOUT = 0.01f; // 电机掉线超时时间
+    static constexpr float DISCONNECT_TIMEOUT = 0.1f; // 电机掉线超时时间
 
     // 电机安装参数
     bool is_invert = false;          // 电机反转标志
