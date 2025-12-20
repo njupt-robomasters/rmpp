@@ -31,8 +31,8 @@ void Gimbal_Template::SetSpeed(const UnitFloat<>& yaw_speed, const UnitFloat<>& 
     this->pitch_speed = pitch_speed;
 }
 
-void Gimbal_Template::SetChassisVR(const UnitFloat<>& chassis_vr) {
-    this->chassis_vr = chassis_vr;
+void Gimbal_Template::SetChassisWr(const UnitFloat<>& chassis_vr) {
+    this->chassis_wr = chassis_vr;
 }
 
 void Gimbal_Template::OnLoop() {

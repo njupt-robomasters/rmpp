@@ -20,6 +20,11 @@ Chassis::Chassis(PID::param_t* wheel_pid, PID::param_t* servo_pid, PID::param_t*
     m_wheel1.SetReduction(14.0f);
     m_wheel2.SetReduction(14.0f);
 
+    // 设置电流力矩系数
+    constexpr UnitFloat Kt = 0.3f / (3591.0f / 187.0f) * 14 * Nm_A;
+    m_wheel1.SetKt(Kt / 0.8f);
+    m_wheel2.SetKt(Kt / 0.8f);
+
     // 设置电机正方向
     m_servo1.SetInvert(true);
     m_servo2.SetInvert(true);
@@ -102,8 +107,8 @@ void Chassis::speedForward() {
 
 void Chassis::speedBackward() {
     // 1. 读取轮电机
-    v1.measure = m_wheel1.speed.measure;
-    v2.measure = m_wheel2.speed.measure;
+    v1.measure = m_wheel1.speed.measure * WHEEL_RADIUS;
+    v2.measure = m_wheel2.speed.measure * WHEEL_RADIUS;
     s1.measure = m_servo1.angle.measure;
     s2.measure = m_servo2.angle.measure;
 

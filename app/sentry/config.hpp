@@ -6,7 +6,7 @@ inline struct {
     Robot::config_t config = {
         // 底盘速度
         .vxy_max = 3 * m_s,
-        .wr_max = 60 * rpm,
+        .wr_max = 120 * rpm,
         .axy = 4 * m_ss,
         .dxy = 8 * m_ss,
 
@@ -15,9 +15,9 @@ inline struct {
         .pitch_max = 540 * deg_s,
 
         // 发射机构
-        .bullet_speed = 22 * m_s,
+        .bullet_speed = 21 * m_s,
         .bullet_freq = 10 * Hz,
-        .heat_protect = 60
+        .heat_protect = 70
     };
 
     // IMU参数

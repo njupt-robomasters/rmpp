@@ -197,7 +197,7 @@ void Robot::handle_client() {
     is_shoot.client = vt13.mouse_left;
 
     // 鼠标右键自瞄
-    if (vt13.mouse_right) {
+    if (vt13.mouse_right && mavlink.aim.is_detected) {
         yaw_speed.client = 0 * default_unit;
         pitch_speed.client = 0 * default_unit;
         gimbal.SetAngle(mavlink.aim.yaw, mavlink.aim.pitch);
@@ -252,7 +252,7 @@ void Robot::handle_gimbal() {
     gimbal.SetSpeed(yaw_speed.sum, pitch_speed.sum);
 
     // 设置小陀螺前馈
-    gimbal.SetChassisVR(chassis.wr.measure);
+    gimbal.SetChassisWr(chassis.wr.measure);
 
     gimbal.OnLoop();
 }

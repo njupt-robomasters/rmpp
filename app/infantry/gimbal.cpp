@@ -61,7 +61,7 @@ void Gimbal::angleForward() {
     }
 
     // 设置电机角度
-    m_yaw.SetAngle(yaw.ecd.ref, -chassis_vr); // 同时设置前馈（前馈与底盘速度方向相反，因为云台期望静止）
+    m_yaw.SetAngle(yaw.ecd.ref, -chassis_wr); // 同时设置前馈（前馈与底盘速度方向相反，因为云台期望静止）
     m_pitch.SetAngle(pitch.ecd.ref);
 
     // 传递pitch软件限位

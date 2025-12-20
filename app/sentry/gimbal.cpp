@@ -72,8 +72,8 @@ void Gimbal::angleForward() {
     yaw2.ref = yaw.ecd.ref - yaw1.measure; // 大yaw未转到目标，小yaw来补偿
 
     // 设置电机角度
-    m_yaw1.SetAngle(yaw1.ref);
-    m_yaw2.SetAngle(yaw2.ref, -m_yaw1.speed.measure);
+    m_yaw1.SetAngle(yaw1.ref, -chassis_wr);
+    m_yaw2.SetAngle(yaw2.ref,  -m_yaw1.speed.measure - chassis_wr);
     m_pitch.SetAngle(pitch.ecd.ref);
 
     // 传递pitch软件限位

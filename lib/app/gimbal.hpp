@@ -14,7 +14,7 @@ public:
     bool is_enable = false;
 
     // yaw速度前馈（小陀螺模式需要）
-    UnitFloat<rpm> chassis_vr;
+    UnitFloat<rpm> chassis_wr;
 
     // 云台角度
     struct {
@@ -43,7 +43,7 @@ public:
     void SetAngle(const Angle<>& yaw, const Angle<>& pitch);
 
     // 设置底盘旋转速度，用于yaw轴前馈
-    void SetChassisVR(const UnitFloat<>& chassis_vr);
+    void SetChassisWr(const UnitFloat<>& chassis_vr);
 
     // 需要在循环中调用
     virtual void OnLoop();

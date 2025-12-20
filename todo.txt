@@ -19,5 +19,6 @@ packet是否保留UI操作
 【bug】
 dwt GetDT 溢出问题
 
-【调参】
-轮电机pid
+【重要】
+拨弹pid抖
+前几发高射频

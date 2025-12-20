@@ -51,9 +51,9 @@ void PID::calcPosition(const UnitFloat<>& err, const std::optional<UnitFloat<>>&
     p_out = kp * this->err;
     UnitFloat<> di = ki * this->err * dt;
     if (derr.has_value()) {
-        d_out = kd * derr.value();
+        d_out_no_filter = kd * derr.value();
     } else {
-        d_out = kd * (this->err - last_err) / dt;
+        d_out_no_filter = kd * (this->err - last_err) / dt;
     }
 
     // 积分限幅
@@ -67,12 +67,12 @@ void PID::calcPosition(const UnitFloat<>& err, const std::optional<UnitFloat<>>&
     i_out += di;
     i_out = unit::clamp(i_out, max_i);
 
-    // 输出限幅
-    out_no_filter = p_out + i_out + d_out + ff;
-    out_no_filter = unit::clamp(out_no_filter, max_out);
+    // 微分滤波
+    d_out = lowpassFilter(d_out, d_out_no_filter, fc, dt);
 
-    // 输出滤波
-    out = lowpassFilter(out, out_no_filter, fc, dt);
+    // 输出限幅
+    out = p_out + i_out + d_out + ff;
+    out = unit::clamp(out, max_out);
 
     last_err = this->err;
 }
@@ -99,11 +99,11 @@ void PID::calcIncrement(const UnitFloat<>& err) {
     }
 
     // 输出限幅
-    out_no_filter += p_out + i_out + d_out;
-    out_no_filter = unit::clamp(out_no_filter, max_out);
+    d_out_no_filter += p_out + i_out + d_out;
+    d_out_no_filter = unit::clamp(d_out_no_filter, max_out);
 
     // 输出滤波
-    out = lowpassFilter(out, out_no_filter, fc, dt);
+    out = lowpassFilter(out, d_out_no_filter, fc, dt);
 
     last_err2 = last_err;
     last_err = this->err;
@@ -111,7 +111,7 @@ void PID::calcIncrement(const UnitFloat<>& err) {
 
 void PID::Clear() {
     err = last_err = last_err2 = 0 * default_unit;
-    out = out_no_filter = p_out = i_out = d_out = 0 * default_unit;
+    out = d_out_no_filter = p_out = i_out = d_out = 0 * default_unit;
     dwt.Reset();
 }
 
