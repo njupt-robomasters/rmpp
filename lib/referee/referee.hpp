@@ -50,6 +50,27 @@ public:
     sentry_cmd_t sentry_cmd{};                              // 0x0301的字内容：0x0120，哨兵自主决策指令
     radar_cmd_t radar_cmd{};                                // 0x0301的字内容：0x0121，雷达自主决策指令
 
+    // 用于统计报文频率
+    BSP::Dwt dwt_game_status;
+    BSP::Dwt dwt_game_robot_HP;
+    BSP::Dwt dwt_event_data;
+    BSP::Dwt dwt_referee_warning;
+    BSP::Dwt dwt_dart_info;
+    BSP::Dwt dwt_robot_status;
+    BSP::Dwt dwt_power_heat_data;
+    BSP::Dwt dwt_robot_pos;
+    BSP::Dwt dwt_buff;
+    BSP::Dwt dwt_hurt_data;
+    BSP::Dwt dwt_projectile_allowance;
+    BSP::Dwt dwt_rfid_status;
+    BSP::Dwt dwt_dart_client_cmd;
+    BSP::Dwt dwt_ground_robot_position;
+    BSP::Dwt dwt_radar_mark_data;
+    BSP::Dwt dwt_sentry_info;
+    BSP::Dwt dwt_radar_info;
+    BSP::Dwt dwt_robot_interaction_data_receive;
+    BSP::Dwt dwt_remote_control;
+
     Referee();
 
     void AddCanData(const uint8_t data[], size_t len);
@@ -108,7 +129,7 @@ private:
             }
         } packet;
 
-        uint8_t len = 0;
+        uint16_t len = 0;
     } can_parser, uart_parser;
 
     void can_callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dlc);

@@ -49,7 +49,7 @@ void Shooter::speedForward() {
     }
 
     // 拨弹电机
-    if (is_shoot) {
+    if (is_prepare_shoot && is_shoot) {
         const UnitFloat<rpm> shoot_speed = bullet_freq.ref.toFloat(Hz) / SHOOT_PRE_ROUND * rps;
         m_shoot.SetSpeed(shoot_speed);
     } else {
@@ -64,4 +64,5 @@ void Shooter::speedBackward() {
 
     // 拨弹电机
     bullet_freq.measure = m_shoot.speed.measure.toFloat(rps) * SHOOT_PRE_ROUND * Hz;
+    shoot_current = m_shoot.current.measure;
 }

@@ -46,8 +46,6 @@ public:
         chassis(chassis), gimbal(gimbal), shooter(shooter),
         referee(referee), ui(ui) {}
 
-    void SetEnable(bool is_enable);
-
     void OnLoop();
 
 private:
@@ -73,28 +71,34 @@ private:
     Referee& referee;
     UI& ui;
 
-    // 底盘运动
+    // 底盘
     struct {
-        UnitFloat<m_s> rc, vt13, client, nav, sum;
+        UnitFloat<m_s> dj6, vt13, client, mavlink, sum;
     } vx, vy, wr;
 
-    // 云台运动
+    // 云台
     struct {
-        UnitFloat<deg_s> rc, vt13, client, nav, sum;
+        UnitFloat<deg_s> dj6, vt13, client, mavlink, sum;
     } yaw_speed, pitch_speed;
 
+    // 发射机构
+    struct {
+        bool dj6, vt13, client;
+    } is_prepare_shoot, is_shoot;
+
+    // 用于击打反馈
     struct {
         BSP::Dwt dwt;
         Angle<deg> yaw_imu;
     } hit;
 
-    UnitFloat<m_ss> ax, ay;
-    UnitFloat<deg_ss> ar;
+    void setEnable(bool is_enable);
 
     // 控制器
     void handle_disconnect();
     void handle_dj6();
     void handle_vt13();
+    void handle_client();
     void handle_mavlink();
 
     // 传感器

@@ -38,16 +38,36 @@ struct __attribute__((packed)) game_result_t {
 // 0x0003，机器人血量数据（3Hz）
 // 服务器→全体机器人
 // 注：若机器人未上场或者被罚下，则血量为0
+// V1.7.0
 struct __attribute__((packed)) game_robot_HP_t {
-    uint16_t ally_1_robot_HP; // 己方1号英雄机器人血量
-    uint16_t ally_2_robot_HP; // 己方2号工程机器人血量
-    uint16_t ally_3_robot_HP; // 己方3步兵机器人血量
-    uint16_t ally_4_robot_HP; // 己方4号步兵机器人血量
-    uint16_t reserved;        // 保留位
-    uint16_t ally_7_robot_HP; // 己方7号哨兵机器人血量
-    uint16_t ally_outpost_HP; // 己方前哨站血量
-    uint16_t ally_base_HP;    // 己方基地血量
+    uint16_t red_1_robot_HP;  // 红1英雄机器人血量
+    uint16_t red_2_robot_HP;  // 红2工程机器人血量
+    uint16_t red_3_robot_HP;  // 红3步兵机器人血量
+    uint16_t red_4_robot_HP;  // 红4步兵机器人血量
+    uint16_t reserved_1;      // 保留位
+    uint16_t red_7_robot_HP;  // 红7哨兵机器人血量
+    uint16_t red_outpost_HP;  // 红方前哨站血量
+    uint16_t red_base_HP;     // 红方基地血量
+    uint16_t blue_1_robot_HP; // 蓝1英雄机器人血量
+    uint16_t blue_2_robot_HP; // 蓝2工程机器人血量
+    uint16_t blue_3_robot_HP; // 蓝3步兵机器人血量
+    uint16_t blue_4_robot_HP; // 蓝4步兵机器人血量
+    uint16_t reserved_2;      // 保留位
+    uint16_t blue_7_robot_HP; // 蓝7哨兵机器人血量
+    uint16_t blue_outpost_HP; // 蓝方前哨站血量
+    uint16_t blue_base_HP;    // 蓝方基地血量
 };
+// V1.0.0
+// struct __attribute__((packed)) game_robot_HP_t {
+//     uint16_t ally_1_robot_HP; // 己方1号英雄机器人血量
+//     uint16_t ally_2_robot_HP; // 己方2号工程机器人血量
+//     uint16_t ally_3_robot_HP; // 己方3步兵机器人血量
+//     uint16_t ally_4_robot_HP; // 己方4号步兵机器人血量
+//     uint16_t reserved;        // 保留位
+//     uint16_t ally_7_robot_HP; // 己方7号哨兵机器人血量
+//     uint16_t ally_outpost_HP; // 己方前哨站血量
+//     uint16_t ally_base_HP;    // 己方基地血量
+// };
 
 // 0x0101，场地事件数据（1Hz）
 // 服务器→己方全体机器人
@@ -201,6 +221,7 @@ struct __attribute__((packed)) robot_status_t {
 
 // 0x0202，实时底盘缓冲能量和射击热量数据（10Hz）
 // 主控模块→对应机器人
+// V1.7.0
 struct __attribute__((packed)) power_heat_data_t {
     uint16_t reserved_1;                 // 保留位
     uint16_t reserved_2;                 // 保留位
@@ -210,6 +231,15 @@ struct __attribute__((packed)) power_heat_data_t {
     uint16_t shooter_17mm_2_barrel_heat; // 第2个17mm发射机构的射击热量
     uint16_t shooter_42mm_barrel_heat;   // 42mm发射机构的射击热量
 };
+// V1.0.0
+// struct __attribute__((packed)) power_heat_data_t {
+//     uint16_t reserved_1;                 // 保留位
+//     uint16_t reserved_2;                 // 保留位
+//     float reserved_3;                    // 保留位
+//     uint16_t buffer_energy;              // 缓冲能量（单位：J）
+//     uint16_t shooter_17mm_1_barrel_heat; // 第1个17mm发射机构的射击热量
+//     uint16_t shooter_42mm_barrel_heat;   // 42mm发射机构的射击热量
+// };
 
 // 0x0203，机器人位置数据（1Hz）
 // 主控模块→对应机器人

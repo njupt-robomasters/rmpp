@@ -23,6 +23,8 @@ public:
         UnitFloat<Hz> ref, measure;
     } bullet_freq;
 
+    UnitFloat<A> shoot_current;
+
     // 设置发射结构使能/失能
     virtual void SetEnable(bool is_enable);
 

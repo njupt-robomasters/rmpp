@@ -5,6 +5,7 @@ void Robot::OnLoop() {
     handle_disconnect();
     handle_dj6();
     handle_vt13();
+    handle_client();
     handle_mavlink();
 
     // 传感器
@@ -20,85 +21,78 @@ void Robot::OnLoop() {
     handle_ui();
 }
 
-void Robot::SetEnable(const bool is_enable) {
+void Robot::setEnable(const bool is_enable) {
     chassis.SetEnable(is_enable);
     gimbal.SetEnable(is_enable);
     shooter.SetEnable(is_enable);
 }
 
 void Robot::handle_disconnect() {
-    // 检查遥控器断联
-    if (vt13.is_connected) {
+    if (vt13.is_connected) { // VT13遥控器优先
         switch (vt13.mode) {
+            case VT13::ERR:
+                setEnable(false);
+                break;
             case VT13::C:
-                SetEnable(false);
+                setEnable(false);
                 break;
             case VT13::N:
-                SetEnable(true);
+                setEnable(true);
                 break;
             case VT13::S:
-                SetEnable(true);
-                break;
-            case VT13::ERR:
-                SetEnable(false);
+                setEnable(true);
                 break;
         }
     } else if (dj6.is_connected) {
-        SetEnable(true);
+        setEnable(true);
     } else {
-        SetEnable(false);
+        setEnable(false);
     }
 }
 
 void Robot::handle_dj6() {
-    vx.rc = dj6.x * config.vxy_max;
-    vy.rc = dj6.y * config.vxy_max;
-    yaw_speed.rc = dj6.yaw * config.yaw_max;
-    pitch_speed.rc = dj6.pitch * config.pitch_max;
+    vx.dj6 = dj6.x * config.vxy_max;
+    vy.dj6 = dj6.y * config.vxy_max;
+    yaw_speed.dj6 = dj6.yaw * config.yaw_max;
+    pitch_speed.dj6 = dj6.pitch * config.pitch_max;
 
-    // 左拨杆：发射结构
-    static DJ6::switch_e switch_left_last = DJ6::ERR;
-    if (switch_left_last != dj6.switch_left) { // 状态改变才处理
-        if (switch_left_last != DJ6::ERR) {    // 刚连上不算
-            switch (dj6.switch_left) {
-                case DJ6::ERR:
-                    break;
-                case DJ6::UP:
-                    shooter.SetPrepareShoot(false);
-                    shooter.SetShoot(false);
-                    break;
-                case DJ6::MID:
-                    shooter.SetPrepareShoot(true);
-                    shooter.SetShoot(false);
-                    break;
-                case DJ6::DOWN:
-                    shooter.SetPrepareShoot(true);
-                    shooter.SetShoot(true);
-                    break;
-            }
-        }
+    // 左拨杆：发射机构
+    switch (dj6.switch_left) {
+        case DJ6::ERR:
+            is_prepare_shoot.dj6 = false;
+            is_shoot.dj6 = false;
+        case DJ6::UP:
+            is_prepare_shoot.dj6 = false;
+            is_shoot.dj6 = false;
+            break;
+        case DJ6::MID:
+            is_prepare_shoot.dj6 = true;
+            is_shoot.dj6 = false;
+            break;
+        case DJ6::DOWN:
+            is_prepare_shoot.dj6 = true;
+            is_shoot.dj6 = true;
+            break;
     }
-    switch_left_last = dj6.switch_left;
 
     // 右拨杆：底盘模式、测试小陀螺
+    // 只响应变化量
     static DJ6::switch_e switch_right_last = DJ6::ERR;
-    if (switch_right_last != dj6.switch_right) { // 状态改变才处理
+    if (switch_right_last != dj6.switch_right) {
         switch (dj6.switch_right) {
             case DJ6::ERR:
-                break;
+                wr.dj6 = 0 * default_unit;
             case DJ6::UP:
-                chassis.SetMode(Chassis_Template::FOLLOW_MODE);
-                wr.rc = 0 * default_unit;
+                chassis.SetMode(Chassis_Template::DETACH_MODE);
+                wr.dj6 = 0 * default_unit;
                 break;
             case DJ6::MID:
-                chassis.SetMode(Chassis_Template::DETACH_MODE);
-                wr.rc = 0 * default_unit;
+                chassis.SetMode(Chassis_Template::FOLLOW_MODE);
+                wr.dj6 = 0 * default_unit;
                 break;
             case DJ6::DOWN:
                 chassis.SetMode(Chassis_Template::DETACH_MODE);
-                if (switch_right_last != DJ6::ERR) { // 刚连上不算
-                    wr.rc = config.wr_max;
-                }
+                wr.dj6 = config.wr_max;
                 break;
         }
     }
@@ -108,59 +102,46 @@ void Robot::handle_dj6() {
 }
 
 void Robot::handle_vt13() {
-    // 遥控器
     // 摇杆
     vx.vt13 = vt13.x * config.vxy_max;
     vy.vt13 = vt13.y * config.vxy_max;
-    wr.vt13 = -vt13.wheel * config.wr_max;
+    wr.vt13 = vt13.wheel * config.wr_max;
     yaw_speed.vt13 = vt13.yaw * config.yaw_max;
     pitch_speed.vt13 = vt13.pitch * config.pitch_max;
 
-    // 左fn键 -> 分离模式
-    static bool fn_left_last = false;
-    if (vt13.fn_left && fn_left_last != vt13.fn_left) { // 按下
+    // 左fn键：底盘分离模式
+    if (vt13.fn_left) {
         chassis.SetMode(Chassis_Template::DETACH_MODE);
     }
-    fn_left_last = vt13.fn_left;
 
-    // 右fn键 -> 跟随模式
-    static bool fn_right_last = false;
-    if (vt13.fn_right && fn_right_last != vt13.fn_right) { // 按下
+    // 右fn键：底盘跟随模式
+    if (vt13.fn_right) {
         chassis.SetMode(Chassis_Template::FOLLOW_MODE);
     }
-    fn_right_last = vt13.fn_right;
 
-    // S挡开摩擦轮
-    static VT13::mode_e mode_last = VT13::mode_e::ERR;
-    if (mode_last != vt13.mode) {     // 状态改变才处理
-        if (mode_last != VT13::ERR) { // 刚连上不算
-            switch (vt13.mode) {
-                case VT13::ERR:
-                    break;
-                case VT13::C:
-                    shooter.SetPrepareShoot(false);
-                    break;
-                case VT13::N:
-                    shooter.SetPrepareShoot(false);
-                    break;
-                case VT13::S:
-                    shooter.SetPrepareShoot(true);
-                    break;
-            }
-        }
-        mode_last = vt13.mode;
+    // S挡：开摩擦轮
+    switch (vt13.mode) {
+        case VT13::ERR:
+            is_prepare_shoot.vt13 = false;
+            break;
+        case VT13::C:
+            is_prepare_shoot.vt13 = false;
+            break;
+        case VT13::N:
+            is_prepare_shoot.vt13 = false;
+            break;
+        case VT13::S:
+            is_prepare_shoot.vt13 = true;
+            break;
     }
 
     // 扳机键射击
-    static bool trigger_last = false;
-    if (trigger_last != vt13.trigger) { // 状态改变才处理
-        if (shooter.is_prepare_shoot) { // 摩擦轮保护
-            shooter.SetShoot(vt13.trigger);
-        }
-    }
-    trigger_last = vt13.trigger;
+    is_shoot.vt13 = vt13.trigger;
 
-    // 客户端
+    vt13.OnLoop();
+}
+
+void Robot::handle_client() {
     // wsad控制底盘
     // ws控制前后
     static BSP::Dwt dwt;
@@ -202,9 +183,9 @@ void Robot::handle_vt13() {
             if (vy.client > 0) vy.client = 0 * default_unit;
         }
     }
-    // f刷新UI
-    static bool f_last = false;
-    if (vt13.key.f && f_last != vt13.key.f) {
+
+    // f刷新ui
+    if (vt13.key.f) {
         ui.Init();
     }
 
@@ -213,18 +194,7 @@ void Robot::handle_vt13() {
     pitch_speed.client = vt13.mouse_pitch * config.pitch_max;
 
     // 鼠标左键开火
-    static bool mouse_left_last = false;
-    if (mouse_left_last != vt13.mouse_left) { // 状态改变才处理
-        if (shooter.is_prepare_shoot) {       // 摩擦轮保护
-            shooter.SetShoot(vt13.mouse_left);
-        }
-    }
-    mouse_left_last = vt13.mouse_left;
-    // 枪口热量保护
-    const uint16_t remaining_heat = referee.robot_status.shooter_barrel_heat_limit - referee.power_heat_data.shooter_17mm_1_barrel_heat;
-    if (remaining_heat <= config.heat_protect) {
-        shooter.SetShoot(false);
-    }
+    is_shoot.client = vt13.mouse_left;
 
     // 鼠标右键自瞄
     if (vt13.mouse_right) {
@@ -239,8 +209,6 @@ void Robot::handle_vt13() {
     } else {
         wr.client = 0 * default_unit;
     }
-
-    vt13.OnLoop();
 }
 
 void Robot::handle_mavlink() {
@@ -251,7 +219,7 @@ void Robot::handle_mavlink() {
     };
     mavlink.referee = {
         .is_red = referee.robot_status.robot_id < 100,
-        .bullet_speed = 24 * m_s
+        .bullet_speed = referee.shoot_data.initial_speed * m_s
     };
 
     mavlink.OnLoop();
@@ -263,9 +231,9 @@ void Robot::handle_imu() {
 
 void Robot::handle_chassis() {
     // 设置底盘速度
-    vx.sum = unit::clamp(vx.rc + vx.vt13 + vx.client + vx.nav, config.vxy_max);
-    vy.sum = unit::clamp(vy.rc + vy.vt13 + vy.client + vy.nav, config.vxy_max);
-    wr.sum = unit::clamp(wr.rc + wr.vt13 + wr.client + wr.nav, config.wr_max);
+    vx.sum = unit::clamp(vx.dj6 + vx.vt13 + vx.client + vx.mavlink, config.vxy_max);
+    vy.sum = unit::clamp(vy.dj6 + vy.vt13 + vy.client + vy.mavlink, config.vxy_max);
+    wr.sum = unit::clamp(wr.dj6 + wr.vt13 + wr.client + wr.mavlink, config.wr_max);
     chassis.SetSpeed(vx.sum, vy.sum, wr.sum);
 
     // 设置云台方向
@@ -279,8 +247,8 @@ void Robot::handle_chassis() {
 
 void Robot::handle_gimbal() {
     // 设置云台速度
-    pitch_speed.sum = unit::clamp(pitch_speed.rc + pitch_speed.vt13 + pitch_speed.client + pitch_speed.nav, config.pitch_max);
-    yaw_speed.sum = unit::clamp(yaw_speed.rc + yaw_speed.vt13 + yaw_speed.client + yaw_speed.nav, config.yaw_max);
+    pitch_speed.sum = unit::clamp(pitch_speed.dj6 + pitch_speed.vt13 + pitch_speed.client + pitch_speed.mavlink, config.pitch_max);
+    yaw_speed.sum = unit::clamp(yaw_speed.dj6 + yaw_speed.vt13 + yaw_speed.client + yaw_speed.mavlink, config.yaw_max);
     gimbal.SetSpeed(yaw_speed.sum, pitch_speed.sum);
 
     // 设置小陀螺前馈
@@ -293,13 +261,24 @@ void Robot::handle_shooter() {
     shooter.SetBulletSpeed(config.bullet_speed); // 设置弹速
     shooter.SetBulletFreq(config.bullet_freq);   // 设置弹频
 
+    // 摩擦轮
+    shooter.SetPrepareShoot(is_prepare_shoot.dj6 || is_prepare_shoot.vt13 || is_prepare_shoot.client);
+
+    // 拨弹电机
+    const uint16_t remaining_heat = referee.robot_status.shooter_barrel_heat_limit - referee.power_heat_data.shooter_17mm_1_barrel_heat;
+    if (remaining_heat <= config.heat_protect) { // 枪口热量保护
+        shooter.SetShoot(false);
+    } else {
+        shooter.SetShoot(is_shoot.dj6 || is_shoot.vt13 || is_shoot.client);
+    }
+
     shooter.OnLoop();
 }
 
 void Robot::handle_referee() {
-    // 击打反馈
+    // 用于击打反馈
     static uint32_t last_hit_cnt = 0;
-    if (last_hit_cnt != referee.hit_cnt) {
+    if (last_hit_cnt != referee.hit_cnt) { // 检测到击打，记录受击打方向（imu参考系）
         hit.dwt.UpdateDT();
         switch (referee.hurt_data.armor_id) {
             case 0:
@@ -324,15 +303,34 @@ void Robot::handle_referee() {
 }
 
 void Robot::handle_ui() {
-    ui.is_detected = mavlink.aim.is_detected;
-    ui.is_mavlink_connected = mavlink.is_connected;
-    ui.gimbal_yaw = gimbal.yaw.ecd.measure;
+    // yaw
+    ui.yaw = gimbal.yaw.ecd.measure;
+
+    // hit
     if (hit.dwt.GetDT() < HIT_TIMEOUT) {
         ui.is_hit = true;
         ui.hit = hit.yaw_imu - gimbal.yaw.imu.measure;
     } else {
         ui.is_hit = false;
     }
+
+    // bullet_speed
+    ui.bullet_speed_1 = shooter.bullet_speed.measure1;
+    ui.bullet_speed_2 = shooter.bullet_speed.measure2;
+
+    // shoot_current
+    ui.shoot_current = shooter.shoot_current;
+
+    // enemy_hp
+    if (referee.robot_status.robot_id < 100) { // 红方
+        ui.enemy_hp = referee.game_robot_HP.blue_3_robot_HP;
+    } else { // 蓝方
+        ui.enemy_hp = referee.game_robot_HP.red_3_robot_HP;
+    }
+
+    // aim
+    ui.is_aim_detected = mavlink.aim.is_detected;
+    ui.is_aim_connected = mavlink.is_connected;
 
     ui.OnLoop();
 }

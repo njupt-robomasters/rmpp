@@ -1,4 +1,5 @@
 #include "ui.hpp"
+#include "lib/ui.h"
 #include "referee/referee.hpp"
 
 // 适配rmui
@@ -51,23 +52,12 @@ void UI::OnLoop() {
 }
 
 void UI::updateLib() {
-    // aim
-    if (is_detected) {
-        ui_g_Ungroup_aim->color = 3; // 橙色
-        strcpy(ui_g_Ungroup_aim->string, "DETECT");
-    } else if (is_mavlink_connected) {
-        ui_g_Ungroup_aim->color = 2; // 绿色
-        strcpy(ui_g_Ungroup_aim->string, "ONLINE");
-    } else {
-        strcpy(ui_g_Ungroup_aim->string, "      ");
-    }
-
-    // dir
+    // yaw
     // 高中平面直角坐标系
-    const int dx = (int)(unit::cos(gimbal_yaw + 90 * deg).toFloat() * 50);
-    const int dy = (int)(unit::sin(gimbal_yaw + 90 * deg).toFloat() * 50);
-    ui_g_Ungroup_dir->end_x = ui_g_Ungroup_dir->start_x + dx;
-    ui_g_Ungroup_dir->end_y = ui_g_Ungroup_dir->start_y + dy;
+    const int dx = (int)(unit::cos(yaw + 90 * deg).toFloat() * 50);
+    const int dy = (int)(unit::sin(yaw + 90 * deg).toFloat() * 50);
+    ui_g_Ungroup_yaw->end_x = ui_g_Ungroup_yaw->start_x + dx;
+    ui_g_Ungroup_yaw->end_y = ui_g_Ungroup_yaw->start_y + dy;
 
     // hit
     if (is_hit) {
@@ -84,5 +74,26 @@ void UI::updateLib() {
         ui_g_Ungroup_hit->width = 0;
         ui_g_Ungroup_hit->start_angle = 0;
         ui_g_Ungroup_hit->end_angle = 0;
+    }
+
+    // bullet_speed
+    ui_g_Ungroup_bullet_speed_1->number = (int32_t)(bullet_speed_1.toFloat(m_s) * 1000);
+    ui_g_Ungroup_bullet_speed_2->number = (int32_t)(bullet_speed_2.toFloat(m_s) * 1000);
+
+    // shoot_current
+    ui_g_Ungroup_shoot_current->number = (int32_t)(shoot_current.toFloat(A) * 1000);
+
+    // enemy_hp
+    ui_g_Ungroup_enemy_hp->number = enemy_hp;
+
+    // aim
+    if (is_aim_detected) {
+        ui_g_Ungroup_aim->color = 3; // 橙色
+        strcpy(ui_g_Ungroup_aim->string, "DETECT");
+    } else if (is_aim_connected) {
+        ui_g_Ungroup_aim->color = 2; // 绿色
+        strcpy(ui_g_Ungroup_aim->string, "ONLINE");
+    } else {
+        strcpy(ui_g_Ungroup_aim->string, "      ");
     }
 }

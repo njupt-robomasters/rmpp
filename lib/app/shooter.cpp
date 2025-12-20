@@ -27,9 +27,6 @@ void Shooter_Template::SetPrepareShoot(const bool is_prepare_shoot) {
 
 void Shooter_Template::SetShoot(const bool is_shoot) {
     this->is_shoot = is_shoot;
-    if (is_shoot) { // 如果开始拨弹，强制开启摩擦轮
-        this->is_prepare_shoot = true;
-    }
 }
 
 void Shooter_Template::OnLoop() {

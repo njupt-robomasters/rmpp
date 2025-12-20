@@ -32,11 +32,11 @@ void VT13::callback(const uint8_t data[], const uint16_t size) {
     dwt_is_connected.UpdateDT();
     is_connected = true;
 
-    y = -getStick(raw.ch_0);     // 右手水平
-    x = getStick(raw.ch_1);      // 右手垂直
-    pitch = getStick(raw.ch_2);  // 左手垂直
-    yaw = -getStick(raw.ch_3);   // 左手水平
-    wheel = getStick(raw.wheel); // 拨轮
+    y = -getStick(raw.ch_0);      // 右手水平
+    x = getStick(raw.ch_1);       // 右手垂直
+    pitch = getStick(raw.ch_2);   // 左手垂直
+    yaw = -getStick(raw.ch_3);    // 左手水平
+    wheel = -getStick(raw.wheel); // 拨轮
 
     mode = mode_e(raw.mode_sw);
     pause = raw.pause;
