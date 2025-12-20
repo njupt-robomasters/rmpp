@@ -15,9 +15,9 @@ inline struct {
         .pitch_max = 540 * deg_s,
 
         // 发射机构
-        .bullet_speed = 21 * m_s,
+        .bullet_speed = 22 * m_s,
         .bullet_freq = 10 * Hz,
-        .heat_protect = 50
+        .heat_protect = 60
     };
 
     // IMU参数
