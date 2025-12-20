@@ -206,7 +206,13 @@ void Robot::handle_client() {
     // shift开小陀螺
     if (vt13.key.shift) {
         wr.client = config.wr_max;
-    } else {
+    }
+    // ctrl关小陀螺
+    if (vt13.key.ctrl) {
+        wr.client = 0 * default_unit;
+    }
+    // 失能/断联关小陀螺
+    if (vt13.is_connected == false || vt13.mode == VT13::ERR || vt13.mode == VT13::C) {
         wr.client = 0 * default_unit;
     }
 }

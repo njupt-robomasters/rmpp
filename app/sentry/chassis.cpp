@@ -125,7 +125,7 @@ void Chassis::speedBackward() {
     wr.measure = vz.measure / CHASSIS_RADIUS;
 
     // 3. 转换到云台参考系
-    std::tie(vx.gimbal.measure, vy.gimbal.measure) = rotate(vx.gimbal.measure, vy.gimbal.measure, -gimbal_yaw);
+    std::tie(vx.gimbal.measure, vy.gimbal.measure) = rotate(vx.chassis.measure, vy.chassis.measure, -gimbal_yaw);
 }
 
 // 计算电流衰减系数，需要在电机PID计算后调用
