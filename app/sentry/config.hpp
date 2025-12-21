@@ -36,7 +36,7 @@ inline struct {
         };
         PID::param_t servo_pid = {
             .mode = PID::POSITION_MODE,
-            .kp = (3 * A) / (10 * deg),
+            .kp = (3 * A) / (20 * deg),
             .max_out = 3 * A,
         };
         PID::param_t follow_pid = {
@@ -50,8 +50,8 @@ inline struct {
     struct {
         PID::param_t yaw1_pid = {
             .mode = PID::POSITION_MODE,
-            .kp = (10 * A) / (10 * deg),
-            .kd = (10 * A) / (100 * deg_s),
+            .kp = (10 * A) / (50 * deg),
+            .kd = (10 * A) / (500 * deg_s),
             .max_out = 10 * A,
             .fc = 10 * Hz
         };
@@ -64,8 +64,8 @@ inline struct {
         };
         PID::param_t pitch_pid = {
             .mode = PID::POSITION_MODE,
-            .kp = (3 * Nm) / (7.5f * deg),
-            .kd = (3 * Nm) / (150 * deg_s),
+            .kp = (3 * Nm) / (15 * deg),
+            .kd = (3 * Nm) / (300 * deg_s),
             .max_out = 3 * Nm
         };
     } gimbal;
