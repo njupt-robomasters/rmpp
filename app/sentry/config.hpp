@@ -16,7 +16,7 @@ inline struct {
 
         // 发射机构
         .bullet_speed = 21 * m_s,
-        .bullet_freq = 10 * Hz,
+        .bullet_freq = 5 * Hz,
         .heat_protect = 70
     };
 
@@ -74,7 +74,7 @@ inline struct {
     struct {
         PID::param_t shoot_pid = {
             .mode = PID::POSITION_MODE,
-            .kp = (10 * A) / (60 * deg_s),
+            .kp = (10 * A) / (120 * deg_s),
             .max_out = 10 * A,
         };
     } shooter;

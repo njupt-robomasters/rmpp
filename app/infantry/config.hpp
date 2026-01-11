@@ -11,13 +11,13 @@ inline struct {
         .dxy = 4 * m_ss,
 
         // 云台速度
-        .yaw_max = 360 * deg_s,
-        .pitch_max = 360 * deg_s,
+        .yaw_max = 180 * deg_s,
+        .pitch_max = 180 * deg_s,
 
         // 发射机构
         .bullet_speed = 23 * m_s,
-        .bullet_freq = 10 * Hz,
-        .heat_protect = 50
+        .bullet_freq = 30 * Hz,
+        .heat_protect = 0
     };
 
     // IMU参数
@@ -36,7 +36,7 @@ inline struct {
         };
         PID::param_t follow_pid = {
             .mode = PID::POSITION_MODE,
-            .kp = 1 / (0.2f * s),
+            .kp = 1 / (0.5f * s),
             .max_out = 360 * deg_s
         };
     } chassis;
@@ -52,9 +52,10 @@ inline struct {
         };
         PID::param_t pitch_pid = {
             .mode = PID::POSITION_MODE,
-            .kp = (3 * Nm) / (10 * deg),
-            .kd = (3 * Nm) / (200 * deg_s),
-            .max_out = 3 * Nm
+            .kp = (3 * Nm) / (6 * deg),
+            .kd = (3 * Nm) / (150 * deg_s),
+            .max_out = 3 * Nm,
+            .fc = 30 * Hz
         };
     } gimbal;
 

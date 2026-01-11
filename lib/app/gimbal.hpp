@@ -21,6 +21,7 @@ public:
         struct {
             Angle<deg> ref, measure;
         } ecd, imu;
+        Angle<deg> imu_minus_ecd;
     } yaw, pitch;
 
     // 云台运动速度

@@ -47,27 +47,27 @@ void Gimbal::OnLoop() {
 
 void Gimbal::angleForward() {
     // 用于参考系转换
-    const Angle yaw_imu_minus_ecd = yaw.imu.measure - yaw.ecd.measure;
-    const Angle pitch_imu_minus_ecd = pitch.imu.measure - pitch.ecd.measure;
+    yaw.imu_minus_ecd = yaw.imu.measure - yaw.ecd.measure;
+    pitch.imu_minus_ecd = pitch.imu.measure - pitch.ecd.measure;
 
     if (mode == ECD_MODE) {
         // 换算到imu参考系
-        yaw.imu.ref = yaw.ecd.ref + yaw_imu_minus_ecd;
-        pitch.imu.ref = pitch.ecd.ref + pitch_imu_minus_ecd;
+        yaw.imu.ref = yaw.ecd.ref + yaw.imu_minus_ecd;
+        pitch.imu.ref = pitch.ecd.ref + pitch.imu_minus_ecd;
     } else if (mode == IMU_MODE) {
         // 换算到ecd参考系
-        yaw.ecd.ref = yaw.imu.ref - yaw_imu_minus_ecd;
-        pitch.ecd.ref = pitch.imu.ref - pitch_imu_minus_ecd;
+        yaw.ecd.ref = yaw.imu.ref - yaw.imu_minus_ecd;
+        pitch.ecd.ref = pitch.imu.ref - pitch.imu_minus_ecd;
     }
 
     // 设置电机角度
-    m_yaw.SetAngle(yaw.ecd.ref, -chassis_wr); // 同时设置前馈（前馈与底盘速度方向相反，因为云台期望静止）
-    m_pitch.SetAngle(pitch.ecd.ref);
+    m_yaw.SetAngle(yaw.ecd.ref, -chassis_wr + yaw_speed); // 同时设置前馈（前馈与底盘速度方向相反，因为云台期望静止）
+    m_pitch.SetAngle(pitch.ecd.ref, pitch_speed - imu.gyro[0] * rad_s);
 
     // 传递pitch软件限位
     pitch.ecd.ref = m_pitch.angle.ref;
     // 传递到imu参考系
-    pitch.imu.ref = pitch.ecd.ref + pitch_imu_minus_ecd;
+    pitch.imu.ref = pitch.ecd.ref + pitch.imu_minus_ecd;
 }
 
 void Gimbal::angleBackward() {

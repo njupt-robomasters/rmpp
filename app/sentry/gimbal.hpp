@@ -9,7 +9,7 @@ class Gimbal : public Gimbal_Template {
 public:
     // 电机偏移参数
     // 大yaw
-    static constexpr Angle YAW1_OFFSET = 137 * deg; // 大yaw与前进方向重合时的绝对角度
+    static constexpr Angle YAW1_OFFSET = 173.12f * deg; // 大yaw与前进方向重合时的绝对角度
     // 小yaw
     static constexpr Angle YAW2_OFFSET = -120 * deg; // 小yaw相对于大yaw居中时的绝对角度
     static constexpr Angle YAW2_MIN = -90 * deg;     // 小yaw最右相对角度
