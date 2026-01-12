@@ -1,13 +1,13 @@
 #include "mi_mit.hpp"
 
-MiMIT::MiMIT(const uint8_t can_port, const uint32_t motor_id) :
-    can_port(can_port), motor_id(motor_id) {
+MiMIT::MiMIT(uint8_t can_port, uint32_t master_id, uint32_t slave_id) :
+    can_port(can_port), master_id(master_id), slave_id(slave_id) {
     auto callback = [this](const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
         this->callback(port, id, data, dlc);
     };
     BSP::CAN::RegisterCallback(callback);
 
-    // miCyber电机参数设置
+    // MiMIT电机参数设置
     SetKt(KT * Nm_A);  // 扭矩常数 0.1 Nm/A
     SetR(0.17f * Ohm); // 相电阻约为0.17 Ohm
 }
@@ -23,7 +23,7 @@ void MiMIT::OnLoop() {
     if (dwt_can_send_freq.GetDT() >= 1 / can_send_freq.toFloat(Hz)) {
         dwt_can_send_freq.UpdateDT();
         send_cnt++;
-        if (is_enable && is_connected) {
+        if (is_enable & is_connected) {
             if (send_cnt % 100 == 0) { // 每100次调用重新发送使能
                 sendEnable();
             } else {
@@ -36,14 +36,11 @@ void MiMIT::OnLoop() {
 }
 
 void MiMIT::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
-    if (port != can_port)
-        return;
-    if (id != motor_id)
-        return;
-    if (dlc != 8)
-        return;
+    if (port != can_port) return;
+    if (id != master_id) return;
+    if (dlc != 8) return;
 
-    // miCyber反馈报文检查：data[6]和data[7]应为0x00或特殊标识
+    // MiMIT反馈报文检查：data[6]和data[7]应为0x00或特殊标识
     // 正常反馈: data[6]=0x00, data[7]=0x00
     // 使能确认: data[6]=0xfe, data[7]=0xef
     if (!((data[7] == 0 && data[6] == 0) || (data[6] == 0xfe && data[7] == 0xef))) {
@@ -52,10 +49,7 @@ void MiMIT::callback(const uint8_t port, const uint32_t id, const uint8_t data[8
 
     // 解析CAN报文
     // data[0] 是电机ID
-    const uint8_t id_temp = data[0];
-    if (id_temp != (motor_id & 0xFF))
-        return;
-
+    if ((data[0] & 0x0F) != (slave_id & 0x0F)) return;
     // 解析位置（16位）
     int p_int = data[1];
     p_int <<= 8;
@@ -77,8 +71,10 @@ void MiMIT::callback(const uint8_t port, const uint32_t id, const uint8_t data[8
     torque.raw = uint_to_float(t_int, -I_MAX * KT * GR, I_MAX * KT * GR, 12) * Nm;
     current.raw = torque.raw / (KT * Nm_A);
 
-    // data[6]和data[7]在miCyber中不是温度数据
-    // 如果需要温度数据，可能需要额外的查询命令
+    // data[6]和data[7]在MiMIT中不是温度数据
+    // 如果需要温度数据，需要额外的查询命令
+    temperate_mos = 0.0f * C;
+    temperate_motor = 0.0f * C;
 
     // 调用父类公共回调函数
     Motor::callback();
@@ -98,17 +94,17 @@ int MiMIT::float_to_uint(const float x, const float x_min, const float x_max, co
 
 void MiMIT::sendEnable() const {
     uint8_t data[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfc};
-    BSP::CAN::TransmitStd(can_port, motor_id, data, 8);
+    BSP::CAN::TransmitStd(can_port, slave_id, data, 8);
 }
 
 void MiMIT::sendDisable() const {
     uint8_t data[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfd};
-    BSP::CAN::TransmitStd(can_port, motor_id, data, 8);
+    BSP::CAN::TransmitStd(can_port, slave_id, data, 8);
 }
 
 void MiMIT::sendZero() const {
     uint8_t data[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe};
-    BSP::CAN::TransmitStd(can_port, motor_id, data, 8);
+    BSP::CAN::TransmitStd(can_port, slave_id, data, 8);
 }
 
 void MiMIT::sendMIT() const {
@@ -139,5 +135,5 @@ void MiMIT::sendMIT() const {
     data[6] = ((kd_int & 0xf) << 4) | (tq_int >> 8);
     data[7] = tq_int & 0xff;
 
-    BSP::CAN::TransmitStd(can_port, motor_id, data, 8);
+    BSP::CAN::TransmitStd(can_port, slave_id, data, 8);
 }

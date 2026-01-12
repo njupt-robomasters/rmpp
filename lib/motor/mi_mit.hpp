@@ -5,7 +5,10 @@
 class MiMIT : public Motor {
 public:
     // 从CAN读取的额外信息
-    MiMIT(uint8_t can_port, uint32_t motor_id);
+    UnitFloat<C> temperate_mos;   // MOS温度
+    UnitFloat<C> temperate_motor; // 电机温度
+
+    MiMIT(uint8_t can_port, uint32_t master_id, uint32_t slave_id);
 
     // 需要在循环中调用
     void OnLoop();
@@ -14,8 +17,11 @@ public:
     // 设置控制参数（用于位置速度模式）
     void SetPositionControl(float kp, float kd);
 
+    // 发送零位设置指令
+    void sendZero() const;
+
 private:
-    // miCyber电机参数限制
+    // MiMIT电机参数限制
     constexpr static float P_MIN = -12.5f;  // 位置最小值 rad
     constexpr static float P_MAX = 12.5f;   // 位置最大值 rad
     constexpr static float V_MIN = -20.5f;  // 速度最小值 rad/s
@@ -26,11 +32,11 @@ private:
     constexpr static float KD_MAX = 5.0f;   // Kd最大值
     constexpr static float I_MAX = 40.0f;   // 最大电流 A
     constexpr static float KT = 0.1f;       // 扭矩常数 Nm/A
-    constexpr static float GR = 6.0f;       // 减速比
+    constexpr static float GR = 9.0f;       // 减速比
 
     // CAN通信参数
     const uint8_t can_port;
-    const uint32_t motor_id;
+    const uint32_t master_id, slave_id;
 
     // 用于定期发送使能命令
     uint32_t send_cnt = 0;
@@ -51,7 +57,4 @@ private:
 
     // 发送电机失能
     void sendDisable() const;
-
-    // 发送零位设置指令
-    void sendZero() const;
 };
