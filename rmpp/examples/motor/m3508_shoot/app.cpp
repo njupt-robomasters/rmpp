@@ -2,7 +2,7 @@
 #include "rc.hpp"
 #include "motor.hpp"
 
-static constexpr UnitFloat BULLET_FREQ = 10 * Hz;
+static constexpr UnitFloat BULLET_FREQ = 5 * Hz;
 static constexpr UnitFloat BULLET_PER_REV = 9.0f * (41.0f / 50.0f) * (Hz / rps);
 static constexpr UnitFloat<rpm> MAX_SPEED = BULLET_FREQ / BULLET_PER_REV;
 
