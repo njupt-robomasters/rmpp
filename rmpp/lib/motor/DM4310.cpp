@@ -17,7 +17,7 @@ void DM4310::OnLoop() {
             if (send_cnt % 100 == 0) { // 每100次调用重新发送使能
                 sendEnable();
             } else {
-                sendMIT();
+                sendTorque(torque.ref);
             }
         } else {
             sendDisable();
@@ -77,16 +77,16 @@ void DM4310::sendDisable() const {
     BSP::CAN::TransmitStd(config.can_port, config.slave_id, data, 8);
 }
 
-void DM4310::sendMIT() const {
+void DM4310::sendTorque(const UnitFloat<>& torque) const {
     uint16_t angle_u16 = float_to_uint(0, -P_MAX, P_MAX, 16); // 位置
     uint16_t speed_u12 = float_to_uint(0, -V_MAX, V_MAX, 12); // 速度
     uint16_t kp_u12 = float_to_uint(0, 0, KP_MAX, 12);        // 位置比例系数
     uint16_t kd_u12 = float_to_uint(0, 0, KD_MAX, 12);        // 位置微分系数
-    uint16_t current_u12;                                     // 电流
+    uint16_t torque_u12;                                      // 电流
     if (!config.is_invert) {
-        current_u12 = float_to_uint(torque.ref.toFloat(Nm), -T_MAX, T_MAX, 12);
+        torque_u12 = float_to_uint(torque.toFloat(Nm), -T_MAX, T_MAX, 12);
     } else {
-        current_u12 = float_to_uint(-torque.ref.toFloat(Nm), -T_MAX, T_MAX, 12);
+        torque_u12 = float_to_uint(-torque.toFloat(Nm), -T_MAX, T_MAX, 12);
     }
 
     uint8_t data[8];
@@ -96,7 +96,7 @@ void DM4310::sendMIT() const {
     data[3] = ((speed_u12 & 0x0F) << 4) | (kp_u12 >> 8);
     data[4] = kp_u12;
     data[5] = kd_u12 >> 4;
-    data[6] = ((kd_u12 & 0x0F) << 4) | (current_u12 >> 8);
-    data[7] = current_u12;
+    data[6] = ((kd_u12 & 0x0F) << 4) | (torque_u12 >> 8);
+    data[7] = torque_u12;
     BSP::CAN::TransmitStd(config.can_port, config.slave_id, data, 8);
 }

@@ -1,40 +1,57 @@
 #pragma once
 
-#include "unit/include_me.hpp"
 #include "bsp/bsp.hpp"
 
 class UI {
 public:
-    // yaw
+    struct config_t {
+        // CAN通信参数
+        uint8_t can_port = 1;
+        uint32_t master_id = 0;
+        uint32_t slave_id = 1;
+        UnitFloat<> update_freq = 10.0f * Hz;
+    } config;
+
+    // 云台yaw角
     Angle<deg> yaw;
 
-    // hit
-    bool is_hit = false;
-    Angle<deg> hit;
+    // 伤害提示
+    bool is_hurt = false;
+    Angle<deg> hurt_dir;
 
-    // n630_speed
+    // 摩擦轮速度
     UnitFloat<m_s> bullet_speed_1;
     UnitFloat<m_s> bullet_speed_2;
 
-    // shoot_current
+    // 拨弹电机电流
     UnitFloat<A> shoot_current;
 
-    // enemy_hp
-    uint16_t enemy_hp = 200;
+    // 自瞄状态
+    struct {
+        bool is_connect = false;
+        bool is_detect = false;
+    } aim;
 
-    // aim
-    bool is_aim_connected = false, is_aim_detected = false;
+    UI(const config_t& config);
+
+    static void AddTxData(const uint8_t data[], size_t len);
 
     void Init();
 
     void OnLoop();
 
 private:
-    static constexpr UnitFloat<> UPDATE_FREQ = 10.0f * Hz;
+    static constexpr size_t TXBUF_SIZE = 1024;
 
     uint8_t state = 0;
 
-    BSP::Dwt dwt_update_freq;
+    BSP::Dwt dwt_update;
 
-    void updateLib();
+    // CAN发送队列
+    static uint8_t txbuf[TXBUF_SIZE];
+    static size_t head, tail;
+
+    void handleLib();
+
+    void handleTx();
 };

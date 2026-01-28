@@ -7,8 +7,8 @@ void Infantry::OnLoop() {
 
     // 控制器
     handle_fsi6x();
-    handle_vt13();
-    handle_client();
+    handle_vt13_rc();
+    handle_vt13_client();
     handle_mavlink();
 
     // 传感器
@@ -83,7 +83,7 @@ void Infantry::handle_fsi6x() {
     device.fsi6x.OnLoop();
 }
 
-void Infantry::handle_vt13() {
+void Infantry::handle_vt13_rc() {
     // 摇杆
     vx.vt13 = device.vt13.x * config.vxy_max;
     vy.vt13 = device.vt13.y * config.vxy_max;
@@ -114,11 +114,10 @@ void Infantry::handle_vt13() {
     device.vt13.OnLoop();
 }
 
-void Infantry::handle_client() {
+void Infantry::handle_vt13_client() {
     // wsad控制底盘
     // ws控制前后
-    static BSP::Dwt dwt;
-    const UnitFloat dt = dwt.UpdateDT();
+    const UnitFloat dt = dwt_acc.UpdateDT();
     if (device.vt13.key.w) { // 前
         if (vx.client < 0) vx.client = 0 * default_unit;
         vx.client += config.axy * dt;
@@ -170,7 +169,7 @@ void Infantry::handle_client() {
     is_shoot.client = device.vt13.mouse.left;
 
     // 鼠标右键自瞄
-    if (device.vt13.mouse.right && device.mavlink.aim.is_detected) {
+    if (device.vt13.mouse.right && device.mavlink.aim.is_detect) {
         yaw_speed.client = 0 * default_unit;
         pitch_speed.client = 0 * default_unit;
         device.gimbal.SetAngle(device.mavlink.aim.yaw, device.mavlink.aim.pitch);
@@ -197,8 +196,8 @@ void Infantry::handle_mavlink() {
         .roll = device.imu.roll
     };
     device.mavlink.referee = {
-        .is_red = device.referee.robot_status.robot_id < 100,
-        .bullet_speed = device.referee.shoot_data.initial_speed * m_s
+        .is_red = device.referee.game.is_red,
+        .bullet_speed = device.referee.shooter.bullet_speed
     };
 
     device.mavlink.OnLoop();
@@ -219,7 +218,7 @@ void Infantry::handle_chassis() {
     device.chassis.SetGimbalYaw(device.gimbal.yaw.ecd.measure);
 
     // 设置底盘功率限制
-    device.chassis.SetPowerLimit(device.referee.robot_status.chassis_power_limit * W);
+    device.chassis.SetPowerLimit(device.referee.chassis.power_limit);
 
     device.chassis.OnLoop();
 }
@@ -244,8 +243,7 @@ void Infantry::handle_shooter() {
     device.shooter.SetRub(is_rub.fsi6x || is_rub.vt13 || is_rub.client);
 
     // 拨弹电机
-    const uint16_t remaining_heat = device.referee.robot_status.shooter_barrel_heat_limit - device.referee.power_heat_data.shooter_17mm_1_barrel_heat;
-    if (remaining_heat <= config.heat_protect) { // 枪口热量保护
+    if (device.referee.shooter.heat_remain <= config.heat_protect) { // 枪口热量保护
         device.shooter.SetShoot(false);
     } else {
         device.shooter.SetShoot(is_shoot.fsi6x || is_shoot.vt13 || is_shoot.client);
@@ -255,32 +253,7 @@ void Infantry::handle_shooter() {
 }
 
 void Infantry::handle_referee() {
-    // todo: 移动到裁判系统解析
-    // 用于击打反馈
-    static uint32_t last_hit_cnt = 0;
-    if (last_hit_cnt != device.referee.hit_cnt) { // 检测到击打，记录受击打方向（imu参考系）
-        hit.dwt.UpdateDT();
-        hit.yaw_imu = device.gimbal.yaw.imu.measure - device.gimbal.yaw.ecd.measure;
-        switch (device.referee.hurt_data.armor_id) {
-            case 0:
-                hit.yaw_imu += 0 * deg;
-                break;
-            case 1:
-                hit.yaw_imu += 90 * deg;
-                break;
-            case 2:
-                hit.yaw_imu += 180 * deg;
-                break;
-            case 3:
-                hit.yaw_imu += 270 * deg;
-                break;
-            default:
-                break;
-        }
-    }
-    last_hit_cnt = device.referee.hit_cnt;
-
-    device.referee.OnLoop();
+    device.referee.OnLoop(device.imu.yaw, device.gimbal.yaw.ecd.measure);
 }
 
 void Infantry::handle_ui() {
@@ -288,11 +261,11 @@ void Infantry::handle_ui() {
     device.ui.yaw = device.gimbal.yaw.ecd.measure;
 
     // hit
-    if (hit.dwt.GetDT() < HIT_TIMEOUT) {
-        device.ui.is_hit = true;
-        device.ui.hit = hit.yaw_imu - device.gimbal.yaw.imu.measure;
+    if (device.referee.hurt.dwt.GetDT() < HIT_TIMEOUT) {
+        device.ui.is_hurt = true;
+        device.ui.hurt_dir = device.referee.hurt.dir.by_gimbal;
     } else {
-        device.ui.is_hit = false;
+        device.ui.is_hurt = false;
     }
 
     // bullet_speed
@@ -302,16 +275,9 @@ void Infantry::handle_ui() {
     // shoot_current
     device.ui.shoot_current = device.shooter.GetShootCurrentMeasure();
 
-    // enemy_hp
-    if (device.referee.robot_status.robot_id < 100) { // 红方
-        device.ui.enemy_hp = device.referee.game_robot_HP.blue_3_robot_HP;
-    } else { // 蓝方
-        device.ui.enemy_hp = device.referee.game_robot_HP.red_3_robot_HP;
-    }
-
     // aim
-    device.ui.is_aim_detected = device.mavlink.aim.is_detected;
-    device.ui.is_aim_connected = device.mavlink.is_connected;
+    device.ui.aim.is_detect = device.mavlink.aim.is_detect;
+    device.ui.aim.is_connect = device.mavlink.is_connect;
 
     device.ui.OnLoop();
 }

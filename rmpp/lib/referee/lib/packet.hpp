@@ -57,6 +57,7 @@ struct __attribute__((packed)) game_robot_HP_t {
     uint16_t blue_outpost_HP; // 蓝方前哨站血量
     uint16_t blue_base_HP;    // 蓝方基地血量
 };
+
 // V1.0.0
 // struct __attribute__((packed)) game_robot_HP_t {
 //     uint16_t ally_1_robot_HP; // 己方1号英雄机器人血量
@@ -75,83 +76,81 @@ struct __attribute__((packed)) game_robot_HP_t {
 // 0：未占领/未激活
 // 1：已占领/已激活
 struct __attribute__((packed)) event_data_t {
-    struct __attribute__((packed)) {
-        // bit 0
-        // 己方与资源区不重叠的补给区占领状态，1为已占领
-        uint8_t supply_non_overlap : 1;
-        // bit 1
-        // 己方与资源区重叠的补给区占领状态，1为已占领
-        uint8_t supply_overlap : 1;
-        // bit 2
-        // 己方补给区的占领状态，1为已占领（仅RMUL适用）
-        uint8_t supply_status : 1;
+    // bit 0
+    // 己方与资源区不重叠的补给区占领状态，1为已占领
+    uint8_t supply_non_overlap : 1;
+    // bit 1
+    // 己方与资源区重叠的补给区占领状态，1为已占领
+    uint8_t supply_overlap : 1;
+    // bit 2
+    // 己方补给区的占领状态，1为已占领（仅RMUL适用）
+    uint8_t supply_status : 1;
 
-        // bit 3-4
-        // 己方小能量机关的激活状态
-        // 0为未激活
-        // 1为已激活
-        // 2为正在激活
-        uint8_t small_energy_status : 2;
+    // bit 3-4
+    // 己方小能量机关的激活状态
+    // 0为未激活
+    // 1为已激活
+    // 2为正在激活
+    uint8_t small_energy_status : 2;
 
-        // bit 5-6
-        // 己方大能量机关的激活状态
-        // 0为未激活
-        // 1为已激活
-        // 2为正在激活
-        uint8_t large_energy_status : 2;
+    // bit 5-6
+    // 己方大能量机关的激活状态
+    // 0为未激活
+    // 1为已激活
+    // 2为正在激活
+    uint8_t large_energy_status : 2;
 
-        // bit 7-8
-        // 方中央高地的占领状态，1为被己方占领，2为被对方占领
-        uint8_t central_highland : 2;
+    // bit 7-8
+    // 方中央高地的占领状态，1为被己方占领，2为被对方占领
+    uint8_t central_highland : 2;
 
-        // bit 9-10
-        // 己方梯形高地的占领状态，1为已占领
-        uint8_t trapezoid_highland : 2;
+    // bit 9-10
+    // 己方梯形高地的占领状态，1为已占领
+    uint8_t trapezoid_highland : 2;
 
-        // bit 11-19
-        // 对方飞镖最后一次击中己方前哨站或基地的时间（0-420，开局默认为0）
-        uint16_t last_hit_time : 9;
+    // bit 11-19
+    // 对方飞镖最后一次击中己方前哨站或基地的时间（0-420，开局默认为0）
+    uint16_t last_hit_time : 9;
 
-        // bit 20-22
-        // 对方飞镖最后一次击中己方前哨站或基地的具体目标
-        // 开局默认为0
-        // 1为击中前哨站
-        // 2为击中基地固定目标
-        // 3为击中基地随机固定目标
-        // 4为击中基地随机移动目标
-        // 5为击中基地末端移动目标
-        uint8_t last_hit_target : 3;
+    // bit 20-22
+    // 对方飞镖最后一次击中己方前哨站或基地的具体目标
+    // 开局默认为0
+    // 1为击中前哨站
+    // 2为击中基地固定目标
+    // 3为击中基地随机固定目标
+    // 4为击中基地随机移动目标
+    // 5为击中基地末端移动目标
+    uint8_t last_hit_target : 3;
 
-        // bit 23-24
-        // 中心增益点的占领状态（仅RMUL适用）
-        // 0为未被占领
-        // 1为被己方占领
-        // 2为被对方占领
-        // 3为被双方占领
-        uint8_t center_buff : 2;
+    // bit 23-24
+    // 中心增益点的占领状态（仅RMUL适用）
+    // 0为未被占领
+    // 1为被己方占领
+    // 2为被对方占领
+    // 3为被双方占领
+    uint8_t center_buff : 2;
 
-        // bit 25-26
-        // 己方堡垒增益点的占领状态
-        // 0为未被占领
-        // 1为被己方占领
-        // 2为被对方占领
-        // 3为被双方占领
-        uint8_t fortress_buff : 2;
+    // bit 25-26
+    // 己方堡垒增益点的占领状态
+    // 0为未被占领
+    // 1为被己方占领
+    // 2为被对方占领
+    // 3为被双方占领
+    uint8_t fortress_buff : 2;
 
-        // bit 27-28
-        // 己方前哨站增益点的占领状态
-        // 0为未被占领
-        // 1为被己方占领
-        // 2为被对方占领
-        uint8_t outpost_buff : 2;
+    // bit 27-28
+    // 己方前哨站增益点的占领状态
+    // 0为未被占领
+    // 1为被己方占领
+    // 2为被对方占领
+    uint8_t outpost_buff : 2;
 
-        // bit 29
-        // 己方基地增益点的占领状态，1为已占领
-        uint8_t base_buff : 1;
+    // bit 29
+    // 己方基地增益点的占领状态，1为已占领
+    uint8_t base_buff : 1;
 
-        // bit 30-31，保留位
-        uint8_t reserved : 2;
-    } event_data;
+    // bit 30-31，保留位
+    uint8_t reserved : 2;
 };
 
 // 0x0104，裁判警告数据（1Hz，己方判罚/判负时触发发送）
@@ -231,6 +230,7 @@ struct __attribute__((packed)) power_heat_data_t {
     uint16_t shooter_17mm_2_barrel_heat; // 第2个17mm发射机构的射击热量
     uint16_t shooter_42mm_barrel_heat;   // 42mm发射机构的射击热量
 };
+
 // V1.0.0
 // struct __attribute__((packed)) power_heat_data_t {
 //     uint16_t reserved_1;                 // 保留位
@@ -318,56 +318,52 @@ struct __attribute__((packed)) projectile_allowance_t {
 // 1. bit位值为1/0的含义：是否已检测到该增益点RFID卡
 // 2. 所有RFID卡仅在赛内生效。在赛外，即使检测到对应的RFID卡，对应值也为0
 struct __attribute__((packed)) rfid_status_t {
-    struct {
-        uint8_t base_buff : 1;               // bit 0: 己方基地增益点
-        uint8_t central_highland_self : 1;   // bit 1: 己方中央高地增益点
-        uint8_t central_highland_oppo : 1;   // bit 2: 对方中央高地增益点
-        uint8_t trapezoid_highland_self : 1; // bit 3: 己方梯形高地增益点
-        uint8_t trapezoid_highland_oppo : 1; // bit 4: 对方梯形高地增益点
+    uint8_t base_buff : 1;               // bit 0: 己方基地增益点
+    uint8_t central_highland_self : 1;   // bit 1: 己方中央高地增益点
+    uint8_t central_highland_oppo : 1;   // bit 2: 对方中央高地增益点
+    uint8_t trapezoid_highland_self : 1; // bit 3: 己方梯形高地增益点
+    uint8_t trapezoid_highland_oppo : 1; // bit 4: 对方梯形高地增益点
 
-        // 地形跨越增益点（飞坡）
-        uint8_t ramp_self_front : 1; // bit 5: 己方地形跨越增益点（飞坡）（靠近己方一侧飞坡前）
-        uint8_t ramp_self_back : 1;  // bit 6: 己方地形跨越增益点（飞坡）（靠近己方一侧飞坡后）
-        uint8_t ramp_oppo_front : 1; // bit 7: 对方地形跨越增益点（飞坡）（靠近对方一侧飞坡前）
-        uint8_t ramp_oppo_back : 1;  // bit 8: 对方地形跨越增益点（飞坡）（靠近对方一侧飞坡后）
+    // 地形跨越增益点（飞坡）
+    uint8_t ramp_self_front : 1; // bit 5: 己方地形跨越增益点（飞坡）（靠近己方一侧飞坡前）
+    uint8_t ramp_self_back : 1;  // bit 6: 己方地形跨越增益点（飞坡）（靠近己方一侧飞坡后）
+    uint8_t ramp_oppo_front : 1; // bit 7: 对方地形跨越增益点（飞坡）（靠近对方一侧飞坡前）
+    uint8_t ramp_oppo_back : 1;  // bit 8: 对方地形跨越增益点（飞坡）（靠近对方一侧飞坡后）
 
-        // 地形跨越增益点（中央高地）
-        uint8_t central_under_self : 1; // bit 9: 己方地形跨越增益点（中央高地下方）
-        uint8_t central_over_self : 1;  // bit 10: 己方地形跨越增益点（中央高地上方）
-        uint8_t central_under_oppo : 1; // bit 11: 对方地形跨越增益点（中央高地下方）
-        uint8_t central_over_oppo : 1;  // bit 12: 对方地形跨越增益点（中央高地上方）
+    // 地形跨越增益点（中央高地）
+    uint8_t central_under_self : 1; // bit 9: 己方地形跨越增益点（中央高地下方）
+    uint8_t central_over_self : 1;  // bit 10: 己方地形跨越增益点（中央高地上方）
+    uint8_t central_under_oppo : 1; // bit 11: 对方地形跨越增益点（中央高地下方）
+    uint8_t central_over_oppo : 1;  // bit 12: 对方地形跨越增益点（中央高地上方）
 
-        // 地形跨越增益点（公路）
-        uint8_t road_under_self : 1; // bit 13: 己方地形跨越增益点（公路下方）
-        uint8_t road_over_self : 1;  // bit 14: 己方地形跨越增益点（公路上方）
-        uint8_t road_under_oppo : 1; // bit 15: 对方地形跨越增益点（公路下方）
-        uint8_t road_over_oppo : 1;  // bit 16: 对方地形跨越增益点（公路上方）
+    // 地形跨越增益点（公路）
+    uint8_t road_under_self : 1; // bit 13: 己方地形跨越增益点（公路下方）
+    uint8_t road_over_self : 1;  // bit 14: 己方地形跨越增益点（公路上方）
+    uint8_t road_under_oppo : 1; // bit 15: 对方地形跨越增益点（公路下方）
+    uint8_t road_over_oppo : 1;  // bit 16: 对方地形跨越增益点（公路上方）
 
-        uint8_t fortress_self : 1;           // bit 17: 己方堡垒增益点
-        uint8_t outpost_self : 1;            // bit 18: 己方前哨站增益点
-        uint8_t supply_non_overlap_self : 1; // bit 19: 己方与资源区不重叠的补给区/RMUL补给区
-        uint8_t supply_overlap_self : 1;     // bit 20: 己方与资源区重叠的补给区
+    uint8_t fortress_self : 1;           // bit 17: 己方堡垒增益点
+    uint8_t outpost_self : 1;            // bit 18: 己方前哨站增益点
+    uint8_t supply_non_overlap_self : 1; // bit 19: 己方与资源区不重叠的补给区/RMUL补给区
+    uint8_t supply_overlap_self : 1;     // bit 20: 己方与资源区重叠的补给区
 
-        uint8_t assembly_self : 1; // bit 21: 己方装配增益点
-        uint8_t assembly_oppo : 1; // bit 22: 对方装配增益点
-        uint8_t center_buff : 1;   // bit 23: 中心增益点（仅RMUL适用）
-        uint8_t fortress_oppo : 1; // bit 24: 对方堡垒增益点
-        uint8_t outpost_oppo : 1;  // bit 25: 对方前哨站增益点
+    uint8_t assembly_self : 1; // bit 21: 己方装配增益点
+    uint8_t assembly_oppo : 1; // bit 22: 对方装配增益点
+    uint8_t center_buff : 1;   // bit 23: 中心增益点（仅RMUL适用）
+    uint8_t fortress_oppo : 1; // bit 24: 对方堡垒增益点
+    uint8_t outpost_oppo : 1;  // bit 25: 对方前哨站增益点
 
-        // 地形跨越增益点（隧道）- 第一部分
-        uint8_t tunnel_road_under_self : 1;     // bit 26: 己方地形跨越增益点（隧道）（靠近己方一侧公路区下方）
-        uint8_t tunnel_road_over_self : 1;      // bit 27: 己方地形跨越增益点（隧道）（靠近己方一侧公路区上方）
-        uint8_t tunnel_trapezoid_low_self : 1;  // bit 28: 己方地形跨越增益点（隧道）（靠近己方梯形高地较低处）
-        uint8_t tunnel_trapezoid_high_self : 1; // bit 29: 己方地形跨越增益点（隧道）（靠近己方梯形高地较高处）
-        uint8_t tunnel_road_under_oppo : 1;     // bit 30: 对方地形跨越增益点（隧道）（靠近对方一侧公路区下方）
-        uint8_t tunnel_road_over_oppo : 1;      // bit 31: 对方地形跨越增益点（隧道）（靠近对方一侧公路区上方）
-    } rfid_status;
+    // 地形跨越增益点（隧道）- 第一部分
+    uint8_t tunnel_road_under_self : 1;     // bit 26: 己方地形跨越增益点（隧道）（靠近己方一侧公路区下方）
+    uint8_t tunnel_road_over_self : 1;      // bit 27: 己方地形跨越增益点（隧道）（靠近己方一侧公路区上方）
+    uint8_t tunnel_trapezoid_low_self : 1;  // bit 28: 己方地形跨越增益点（隧道）（靠近己方梯形高地较低处）
+    uint8_t tunnel_trapezoid_high_self : 1; // bit 29: 己方地形跨越增益点（隧道）（靠近己方梯形高地较高处）
+    uint8_t tunnel_road_under_oppo : 1;     // bit 30: 对方地形跨越增益点（隧道）（靠近对方一侧公路区下方）
+    uint8_t tunnel_road_over_oppo : 1;      // bit 31: 对方地形跨越增益点（隧道）（靠近对方一侧公路区上方）
 
-    struct {
-        // 地形跨越增益点（隧道）- 第二部分
-        uint8_t tunnel_trapezoid_low_oppo : 1;  // 对方地形跨越增益点（隧道）（靠近对方梯形高地较低处）
-        uint8_t tunnel_trapezoid_high_oppo : 1; // 对方地形跨越增益点（隧道）（靠近对方梯形高地较高处）
-    } rfid_status_2;
+    // 地形跨越增益点（隧道）- 第二部分
+    uint8_t tunnel_trapezoid_low_oppo : 1;  // 对方地形跨越增益点（隧道）（靠近对方梯形高地较低处）
+    uint8_t tunnel_trapezoid_high_oppo : 1; // 对方地形跨越增益点（隧道）（靠近对方梯形高地较高处）
 };
 
 // 0x020A，飞镖选手端指令数据（3Hz）

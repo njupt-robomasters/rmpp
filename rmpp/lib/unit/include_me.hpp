@@ -36,6 +36,7 @@ inline constexpr Unit V("V", 1.0f);     // 电压
 inline constexpr Unit A("A", 1.0f);     // 电流
 inline constexpr Unit W("W", 1.0f);     // 功率
 inline constexpr Unit Ohm("Ohm", 1.0f); // 电阻
+inline constexpr Unit J("J", 1.0f);     // 能量
 
 // 比例
 inline constexpr Unit ratio("ratio", 1.0f); // 比例

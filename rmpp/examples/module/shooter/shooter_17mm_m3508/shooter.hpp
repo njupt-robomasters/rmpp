@@ -22,9 +22,8 @@ inline VESC rub_right({
 // 拨弹电机速度PID参数
 inline PID::config_t shoot_pid = {
     .mode = PID::POSITION_MODE,
-    .kp = (20 * A) / (80 * rpm),
+    .kp = (20 * A) / (40 * rpm),
     .max_out = 20 * A,
-    .fc = 1 * Hz,
 };
 // 拨弹电机
 inline M3508 shoot({

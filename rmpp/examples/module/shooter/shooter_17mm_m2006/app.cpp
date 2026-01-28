@@ -2,7 +2,7 @@
 #include "rc.hpp"
 #include "shooter.hpp"
 
-static constexpr UnitFloat BULLET_FREQ = 10 * Hz;
+static constexpr UnitFloat BULLET_FREQ = 5 * Hz;
 
 void dji_can_send() {
     const int16_t cmd7 = shoot.GetCurrentCmd();
@@ -22,7 +22,7 @@ void dji_can_send() {
 void setup() {
     BSP::Init();
 
-    shooter.SetBulletSpeed(25 * m_s);
+    shooter.SetBulletSpeed(16 * m_s);
 }
 
 void loop() {

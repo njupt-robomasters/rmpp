@@ -1,43 +1,16 @@
-#include "config.hpp"
-#include "lib.hpp"
+#include "led.hpp"
+#include "robot.hpp"
 
-// app
-#include "../../Lib/App/Chassis/Chassis_Omni.hpp"
-#include "Gimbal_Norm.hpp"
-#include "../../Lib/App/Shooter/Shooter_17mm.hpp"
-
-LED led;
-// 控制器
-DJ6 dj6;
-VT13 vt13;
-Mavlink mavlink;
-// 传感器
-IMU imu(config.imu.dir, config.imu.calib);
-// 执行器
-Chassis_Omni chassis(&config.chassis.wheel_pid, &config.chassis.follow_pid);
-Gimbal_Norm gimbal(imu, &config.gimbal.yaw_pid, &config.gimbal.pitch_pid);
-Shooter_17mm shooter(&config.shooter.shoot_pid);
-// 裁判系统交互
-Referee referee;
-UI ui;
-
-Robot robot(config.config,
-            dj6, vt13, mavlink,       // 控制器
-            imu,                      // 传感器
-            chassis, gimbal, shooter, // 执行器
-            referee, ui               // 裁判系统交互
-);
-
-void handle_can() {
+void dji_can_send() {
     // 底盘
-    const int16_t cmd1 = chassis.m_wheel1.GetCurrentCmd();
-    const int16_t cmd2 = chassis.m_wheel2.GetCurrentCmd();
-    const int16_t cmd3 = chassis.m_wheel3.GetCurrentCmd();
-    const int16_t cmd4 = chassis.m_wheel4.GetCurrentCmd();
+    const int16_t cmd1 = w1.GetCurrentCmd();
+    const int16_t cmd2 = w2.GetCurrentCmd();
+    const int16_t cmd3 = w3.GetCurrentCmd();
+    const int16_t cmd4 = w4.GetCurrentCmd();
     // 云台
-    const int16_t cmd5 = gimbal.m_yaw.GetVoltageCmd();
+    const int16_t cmd5 = yaw.GetVoltageCmd();
     // 发射机构
-    const int16_t cmd7 = shooter.m_shoot.GetCurrentCmd();
+    const int16_t cmd7 = shoot.GetCurrentCmd();
 
     uint8_t data[8];
 
@@ -64,30 +37,22 @@ void handle_can() {
 
 void setup() {
     BSP::Init();
-
-    imu.Init();
     // imu.Calibrate();
 }
 
 void loop() {
     led.OnLoop();
     robot.OnLoop();
-
-    handle_can();
+    dji_can_send();
 }
 
-static BSP::Dwt dwt;
-static UnitFloat<pct> cpu_usage;
-
-extern "C" void app_main() {
+extern "C" void rmpp_main() {
     setup();
 
+    BSP::Dwt dwt;
     while (true) {
-        if (dwt.CheckTimeout(0.001f)) {
-            const float interval_time = dwt.UpdateDT();
+        if (dwt.PollTimeout(1 * ms)) {
             loop();
-            const float running_time = dwt.GetDT();
-            cpu_usage = running_time / interval_time * ratio;
         }
     }
 }

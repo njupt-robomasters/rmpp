@@ -10,6 +10,7 @@ file(GLOB_RECURSE USER_SOURCES
 
         # 云台
         # "examples/imu/*.*"
+        # "examples/motor/mf9025/*.*"
         # "examples/motor/gm6020/*.*"
         # "examples/motor/dm4310/*.*"
         # "examples/module/gimbal/gimbal_classic/*.*"
@@ -20,6 +21,9 @@ file(GLOB_RECURSE USER_SOURCES
         # "examples/motor/m3508_shoot/*.*"
         # "examples/module/shooter/shooter_17mm_m2006/*.*"
         "examples/module/shooter/shooter_17mm_m3508/*.*"
+
+        # 整车代码
+        # "app/infantry/*.*"
 )
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE

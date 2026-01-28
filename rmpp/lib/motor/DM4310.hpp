@@ -47,6 +47,6 @@ private:
     // 发送电机失能
     void sendDisable() const;
 
-    // 发送MIT控制指令
-    void sendMIT() const;
+    // 发送电流
+    void sendTorque(const UnitFloat<>& torque) const;
 };

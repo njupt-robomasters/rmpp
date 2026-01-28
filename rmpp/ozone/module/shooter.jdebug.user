@@ -1,15 +1,15 @@
 
-GraphedExpression="shooter.bullet_freq.measure.value", Color=#a00909
-GraphedExpression="shoot.current.measure.value", Color=#09a01b
+GraphedExpression="shooter.bullet_speed.measure.left.value", Color=#a00909
+GraphedExpression="shooter.bullet_speed.measure.right.value", Color=#09a01b
 OpenDocument="main.c", FilePath="E:/workspace/rm/code/embedded/rmpp/Core/Src/main.c", Line=46
 OpenDocument="unit.hpp", FilePath="E:/workspace/rm/code/embedded/rmpp/rmpp/lib/unit/unit.hpp", Line=133
 OpenToolbar="Debug", Floating=0, x=0, y=0
 OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=0, w=1622, h=1587, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1932, h=745, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
-OpenWindow="Timeline", DockArea=RIGHT, x=0, y=0, w=1932, h=841, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="1286;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="1066;-108", CodeGraphLegendShown=0, CodeGraphLegendPosition="1089;0"
+OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1932, h=756, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=RIGHT, x=0, y=0, w=1932, h=830, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="1188;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="1066;-108", CodeGraphLegendShown=0, CodeGraphLegendPosition="1089;0"
 OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=3840, h=337, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" shooter.bullet_freq.measure.value";" shoot.current.measure.value"], ColWidths=[100;100;100;100]
-TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="DESCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[540;106;206;190;174;174;176;204;204]
+TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" shooter.bullet_speed.measure.left.value";" shooter.bullet_speed.measure.right.value"], ColWidths=[100;100;100;100]
+TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="DESCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[540;106;254;206;174;174;176;204;204]
 TableHeader="Power Sampling", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
 TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Refresh"], ColWidths=[600;187;222;613]
 TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
@@ -18,3 +18,5 @@ WatchedExpression="shooter.bullet_speed.measure.left.value", Window=Watched Data
 WatchedExpression="shooter.bullet_speed.measure.right.value", Window=Watched Data 1
 WatchedExpression="shooter.bullet_freq.measure.value", Window=Watched Data 1
 WatchedExpression="shoot.current.measure.value", Window=Watched Data 1
+WatchedExpression="shoot.temperature.motor.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="shoot_pid", Window=Watched Data 1

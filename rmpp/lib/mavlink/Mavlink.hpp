@@ -6,7 +6,7 @@
 
 class Mavlink {
 public:
-    bool is_connected = false;
+    bool is_connect = false;
 
     // 发送
     struct {
@@ -23,7 +23,7 @@ public:
 
     // 接收
     struct {
-        bool is_detected = false;
+        bool is_detect = false;
         bool is_fire_advise = false;
         Angle<deg> yaw;
         Angle<deg> pitch;

@@ -21,15 +21,6 @@ private:
     // CAN回调函数
     void callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dlc);
 
-    // 发送电机使能
-    void sendEnable() const;
-
-    // 发送电机失能
-    void sendDisable() const;
-
-    // 触发状态读取
-    void sendReadState() const;
-
     // 发送电流
-    void sendCurrent() const;
+    void sendCurrent(const UnitFloat<>& current) const;
 };

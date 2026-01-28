@@ -1,8 +1,8 @@
 #pragma once
 
 // 控制器
-#include "rc/VT13.hpp"
 #include "rc/FSi6X.hpp"
+#include "rc/VT13.hpp"
 #include "mavlink/Mavlink.hpp"
 
 // 传感器
@@ -74,11 +74,8 @@ private:
         bool fsi6x = false, vt13 = false, client = false;
     } is_rub, is_shoot;
 
-    // 用于击打反馈
-    struct {
-        BSP::Dwt dwt;
-        Angle<deg> yaw_imu;
-    } hit;
+    // 用于缓加减速
+    BSP::Dwt dwt_acc;
 
     void setEnable(bool is_enable);
 
@@ -86,8 +83,8 @@ private:
 
     // 控制器
     void handle_fsi6x();
-    void handle_vt13();
-    void handle_client();
+    void handle_vt13_rc();
+    void handle_vt13_client();
     void handle_mavlink();
 
     // 传感器

@@ -1,6 +1,6 @@
 #include "VT13.hpp"
 #include <cstring> // memcpy
-#include "referee/crc.hpp"
+#include "referee/lib/crc.hpp"
 
 VT13::VT13(const config_t& config) : RC(config) {
     // 注册串口回调

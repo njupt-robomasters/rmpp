@@ -13,7 +13,7 @@ Mavlink::Mavlink() {
 void Mavlink::OnLoop() {
     // 断联检测
     if (dwt_is_connected.GetDT() > CONNECT_TIMEOUT) {
-        is_connected = false;
+        is_connect = false;
     }
 
     // 发送频率控制
@@ -30,7 +30,7 @@ void Mavlink::callback(const uint8_t data[], const uint32_t size) {
         mavlink_status_t status;
         if (mavlink_parse_char(MAVLINK_COMM_0, data[i], &msg, &status)) {
             parse(msg);
-            is_connected = true;
+            is_connect = true;
             dwt_is_connected.UpdateDT();
         }
     }
@@ -42,7 +42,7 @@ void Mavlink::parse(const mavlink_message_t& msg) {
             mavlink_aim_t aim;
             mavlink_msg_aim_decode(&msg, &aim);
             this->aim = {
-                .is_detected = (bool)aim.is_detected,
+                .is_detect = (bool)aim.is_detected,
                 .is_fire_advise = (bool)aim.is_fire_advise,
                 .yaw = aim.yaw * deg,
                 .pitch = aim.pitch * deg
