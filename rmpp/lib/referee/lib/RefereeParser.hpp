@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include "BSP/bsp.hpp"
+#include "bsp/bsp.hpp"
 #include "packet.hpp"
 
 class RefereeParser {

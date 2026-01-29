@@ -1,8 +1,8 @@
 #pragma once
 
-#include "unit.hpp"
+#include "Unit.hpp"
 #include "UnitFloat.hpp"
-#include "angle.hpp"
+#include "Angle.hpp"
 
 using unit::Unit;
 using unit::UnitFloat;

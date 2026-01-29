@@ -2,8 +2,8 @@
 
 #include <functional>
 #include <vector>
-#include "BSP/bsp_dwt.h"
-#include "Unit/include_me.hpp"
+#include "bsp/bsp_dwt.h"
+#include "unit/include_me.hpp"
 
 namespace BSP {
     class CAN {

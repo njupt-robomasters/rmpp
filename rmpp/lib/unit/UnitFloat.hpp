@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cmath>
-#include "unit.hpp"
+#include "Unit.hpp"
 
 namespace unit {
     template <const Unit &T = default_unit>

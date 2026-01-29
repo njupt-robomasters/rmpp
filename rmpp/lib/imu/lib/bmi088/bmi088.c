@@ -3,7 +3,7 @@
 #include <math.h>
 #include "bmi088_reg.h"
 #include "bmi088_middleware.h"
-#include "BSP/bsp_dwt.h"
+#include "bsp/bsp_dwt.h"
 
 float BMI088_ACCEL_SEN = BMI088_ACCEL_6G_SEN;
 float BMI088_GYRO_SEN = BMI088_GYRO_2000_SEN;
