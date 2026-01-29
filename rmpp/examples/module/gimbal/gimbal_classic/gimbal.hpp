@@ -29,7 +29,7 @@ inline GM6020 yaw({
     .is_invert = false,
     .offset = 96.72f * deg,
     .control_mode = Motor::ANGLE_SPEED_MODE,
-    .speed_pid_output = Motor::CURRENT_OUTPUT,
+    .pid_out_type = Motor::CURRENT_OUTPUT,
     .speed_pid_config = &yaw_speed_pid,
     .angle_pid_config = &yaw_angle_pid,
 });
@@ -61,7 +61,7 @@ inline DM4310 pitch({
     .limit_min = -20 * deg,
     .limit_max = 25 * deg,
     .control_mode = Motor::ANGLE_SPEED_MODE,
-    .speed_pid_output = Motor::TORQUE_OUTPUT,
+    .pid_out_type = Motor::TORQUE_OUTPUT,
     .speed_pid_config = &pitch_speed_pid,
     .angle_pid_config = &pitch_angle_pid,
 });

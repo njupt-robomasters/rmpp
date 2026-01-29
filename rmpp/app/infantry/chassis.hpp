@@ -4,9 +4,9 @@
 #include "module/chassis/Chassis_Omni.hpp"
 
 // 底盘电机参数
-static constexpr float reduction = 268.0f / 17.0f;
+static constexpr float reduction = 14.0f;
+static constexpr UnitFloat Kt = M3508::Kt / M3508::reduction * reduction;
 static constexpr bool is_invert = false;
-static constexpr UnitFloat Kt = 0.2187f * Nm_A;
 
 // 底盘速度PID参数
 inline PID::config_t wheel_pid = {
@@ -27,7 +27,7 @@ inline M3508 w1({
     .R = M3508::R,
     .is_invert = is_invert,
     .control_mode = Motor::SPEED_MODE,
-    .speed_pid_output = Motor::CURRENT_OUTPUT,
+    .pid_out_type = Motor::CURRENT_OUTPUT,
     .speed_pid_config = &wheel_pid
 });
 inline M3508 w2({
@@ -39,7 +39,7 @@ inline M3508 w2({
     .R = M3508::R,
     .is_invert = is_invert,
     .control_mode = Motor::SPEED_MODE,
-    .speed_pid_output = Motor::CURRENT_OUTPUT,
+    .pid_out_type = Motor::CURRENT_OUTPUT,
     .speed_pid_config = &wheel_pid
 });
 inline M3508 w3({
@@ -51,7 +51,7 @@ inline M3508 w3({
     .R = M3508::R,
     .is_invert = is_invert,
     .control_mode = Motor::SPEED_MODE,
-    .speed_pid_output = Motor::CURRENT_OUTPUT,
+    .pid_out_type = Motor::CURRENT_OUTPUT,
     .speed_pid_config = &wheel_pid
 });
 inline M3508 w4({
@@ -63,7 +63,7 @@ inline M3508 w4({
     .R = M3508::R,
     .is_invert = is_invert,
     .control_mode = Motor::SPEED_MODE,
-    .speed_pid_output = Motor::CURRENT_OUTPUT,
+    .pid_out_type = Motor::CURRENT_OUTPUT,
     .speed_pid_config = &wheel_pid
 });
 

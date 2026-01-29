@@ -33,12 +33,8 @@ void PID::calcPosition(const UnitFloat<>& err, const std::optional<UnitFloat<>>&
     // 计算dt
     const UnitFloat dt = dwt.UpdateDT();
 
-    // 输入死区
-    if (unit::abs(err) < deadline) {
-        this->err = 0 * default_unit;
-    } else {
-        this->err = err;
-    }
+    // 保存误差
+    this->err = err;
 
     // 基础PID计算
     p_out = kp * this->err;
@@ -74,12 +70,8 @@ void PID::calcIncrement(const UnitFloat<>& err) {
     // 计算dt
     const UnitFloat dt = dwt.UpdateDT();
 
-    // 输入死区
-    if (unit::abs(err) < deadline) {
-        this->err = 0 * default_unit;
-    } else {
-        this->err = err;
-    }
+    // 保存误差
+    this->err = err;
 
     // 基础PID计算
     p_out = kp * (this->err - last_err);

@@ -70,7 +70,7 @@ void Motor::OnLoop() {
             speed_pid.Calculate(speed_err);                        // 计算PID
 
             // 根据PID输出类型设置电流/力矩
-            switch (config.speed_pid_output) {
+            switch (config.pid_out_type) {
                 case CURRENT_OUTPUT:
                     SetCurrent(speed_pid.out);
                     break;
@@ -85,14 +85,16 @@ void Motor::OnLoop() {
         case ANGLE_MODE: {
             if (config.is_limit) { // 限位模式
                 const UnitFloat angle_err = angle.ref - angle.measure;
-                angle_pid.Calculate(angle_err);
+                const UnitFloat speed_err = speed.ref - speed.measure;
+                angle_pid.Calculate(angle_err, speed_err);
             } else { // 圆周模式
                 const Angle angle_err = angle.ref - angle.measure;
-                angle_pid.Calculate(angle_err);
+                const UnitFloat speed_err = speed.ref - speed.measure;
+                angle_pid.Calculate(angle_err, speed_err);
             }
 
             // 根据PID输出类型设置电流/力矩
-            switch (config.speed_pid_output) {
+            switch (config.pid_out_type) {
                 case CURRENT_OUTPUT:
                     SetCurrent(angle_pid.out);
                     break;
@@ -117,7 +119,7 @@ void Motor::OnLoop() {
             // 速度内环
             const UnitFloat speed_err = speed.outer + speed.ref - speed.measure; // 计算误差
             speed_pid.Calculate(speed_err);                                      // 计算PID
-            switch (config.speed_pid_output) {
+            switch (config.pid_out_type) {
                 case CURRENT_OUTPUT:
                     SetCurrent(speed_pid.out);
                     break;

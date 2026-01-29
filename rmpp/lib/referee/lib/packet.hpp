@@ -203,7 +203,7 @@ struct __attribute__((packed)) dart_info_t {
     } dart_info;
 };
 
-// 0x0201，机器人性能体系数据（10Hz）
+// 0x0201，机器人性能体系数据（10Hz，离线模式下可用）
 // 主控模块→对应机器人
 struct __attribute__((packed)) robot_status_t {
     uint8_t robot_id;                            // 本机器人ID
@@ -218,7 +218,7 @@ struct __attribute__((packed)) robot_status_t {
     uint8_t power_management_shooter_output : 1; // shooter口输出，0为无输出，1为24V输出
 };
 
-// 0x0202，实时底盘缓冲能量和射击热量数据（10Hz）
+// 0x0202，实时底盘缓冲能量和射击热量数据（10Hz，离线模式下可用）
 // 主控模块→对应机器人
 // V1.7.0
 struct __attribute__((packed)) power_heat_data_t {
@@ -241,7 +241,7 @@ struct __attribute__((packed)) power_heat_data_t {
 //     uint16_t shooter_42mm_barrel_heat;   // 42mm发射机构的射击热量
 // };
 
-// 0x0203，机器人位置数据（1Hz）
+// 0x0203，机器人位置数据（1Hz，离线模式下可用）
 // 主控模块→对应机器人
 struct __attribute__((packed)) robot_pos_t {
     float x;     // 本机器人位置x坐标，单位：m
@@ -269,7 +269,7 @@ struct __attribute__((packed)) buff_t {
     } remaining_energy;                   // 机器人剩余能量值反馈，以16进制标识机器人剩余能量值比例，仅在机器人剩余能量小于50%时反馈，其余默认反馈0x80。机器人初始能量视为100%
 };
 
-// 0x0206，伤害状态数据（伤害发生后发送）
+// 0x0206，伤害状态数据（伤害发生后发送，离线模式下可用）
 // 主控模块→对应机器人
 // 0x0206的受伤害情况为机器人裁判系统本地判定，即时发送，但实际是否受到对应伤害受规则条例影响，请以服务器最终判定为准
 struct __attribute__((packed)) hurt_data_t {
@@ -284,7 +284,7 @@ struct __attribute__((packed)) hurt_data_t {
     uint8_t HP_deduction_reason : 4;
 };
 
-// 0x0207，实时射击数据（弹丸发射后发送）
+// 0x0207，实时射击数据（弹丸发射后发送，离线模式下可用）
 // 主控模块→对应机器人
 struct __attribute__((packed)) shoot_data_t {
     // 弹丸类型

@@ -17,7 +17,6 @@ public:
         UnitFloat<> ff;         // 前馈
         UnitFloat<> max_i;      // 积分限幅
         UnitFloat<> max_out;    // 输出限幅
-        UnitFloat<> deadline;   // 输入死区
         UnitFloat<> fc;         // 输出低通截止频率
     };
 

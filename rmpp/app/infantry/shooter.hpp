@@ -33,7 +33,7 @@ inline M2006 shoot({
     .R = M2006::R,
     .is_invert = false,
     .control_mode = Motor::SPEED_MODE,
-    .speed_pid_output = Motor::CURRENT_OUTPUT,
+    .pid_output = Motor::CURRENT_OUTPUT,
     .speed_pid_config = &shoot_pid,
 });
 

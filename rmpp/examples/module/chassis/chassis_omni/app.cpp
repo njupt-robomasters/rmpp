@@ -2,8 +2,8 @@
 #include "rc.hpp"
 #include "chassis.hpp"
 
-static constexpr UnitFloat VXY_MAX = 1 * m_s;
-static constexpr UnitFloat WR_MAX = 60 * rpm;
+static constexpr UnitFloat VXY_MAX = 2 * m_s; // 极限6.3m/s
+static constexpr UnitFloat WR_MAX = 60 * rpm; // 极限240rpm
 
 void dji_can_send() {
     const int16_t cmd1 = w1.GetCurrentCmd();
@@ -26,7 +26,7 @@ void dji_can_send() {
 void setup() {
     BSP::Init();
 
-    chassis.SetPowerLimit(120 * W);
+    chassis.SetPowerLimit(0 * W);
     chassis.SetMode(Chassis::DETACH_MODE);
 }
 

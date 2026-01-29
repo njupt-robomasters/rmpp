@@ -5,9 +5,9 @@
 // 角度PID
 inline PID::config_t angle_pid = {
     .mode = PID::POSITION_MODE,
-    .kp = (10 * A) / (50 * deg),
-    .kd = (10 * A) / (500 * deg_s),
-    .max_out = 10 * A,
+    .kp = (16.5 * A) / (16.5 * deg),
+    .kd = (16.5 * A) / (165 * deg_s),
+    .max_out = 16.5 * A,
     .fc = 10 * Hz,
 };
 
@@ -20,6 +20,6 @@ inline MF9025 motor({
     .is_invert = false,
     .offset = 102.71 * deg,
     .control_mode = Motor::ANGLE_MODE,
-    .speed_pid_output = Motor::CURRENT_OUTPUT,
+    .pid_out_type = Motor::CURRENT_OUTPUT,
     .angle_pid_config = &angle_pid,
 });

@@ -32,7 +32,7 @@ inline DM4310 motor({
     .limit_min = -20 * deg,
     .limit_max = 25 * deg,
     .control_mode = Motor::ANGLE_SPEED_MODE,
-    .speed_pid_output = Motor::TORQUE_OUTPUT,
+    .pid_out_type = Motor::TORQUE_OUTPUT,
     .speed_pid_config = &speed_pid,
     .angle_pid_config = &angle_pid,
 });

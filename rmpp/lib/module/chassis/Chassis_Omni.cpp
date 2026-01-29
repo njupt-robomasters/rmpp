@@ -32,7 +32,7 @@ void Chassis_Omni::OnLoop() {
     motor.w4.OnLoop();
 
     // 功率控制
-    // powerControl();
+    powerControl();
 }
 
 void Chassis_Omni::speedForward() {

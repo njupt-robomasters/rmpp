@@ -6,16 +6,16 @@
 
 // 摩擦轮
 inline VESC rub_left({
-    .can_port = 2,
-    .master_id = 0x20,
-    .slave_id = 0x20,
-}, {});
+                         .can_port = 2,
+                         .master_id = 0x20,
+                         .slave_id = 0x20,
+                     }, {});
 
 inline VESC rub_right({
-    .can_port = 2,
-    .master_id = 0x21,
-    .slave_id = 0x21,
-}, {});
+                          .can_port = 2,
+                          .master_id = 0x21,
+                          .slave_id = 0x21,
+                      }, {});
 
 // 拨弹电机速度PID参数
 inline PID::config_t shoot_pid = {
@@ -33,7 +33,7 @@ inline M2006 shoot({
     .R = M2006::R,
     .is_invert = false,
     .control_mode = Motor::SPEED_MODE,
-    .speed_pid_output = Motor::CURRENT_OUTPUT,
+    .pid_out_type = Motor::CURRENT_OUTPUT,
     .speed_pid_config = &shoot_pid,
 });
 

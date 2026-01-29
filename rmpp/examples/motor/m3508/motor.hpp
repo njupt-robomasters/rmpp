@@ -16,11 +16,11 @@ inline M3508 motor({
     .can_port = 1,
     .master_id = 0x201,
     .slave_id = 0x200,
-    .reduction = M3508::reduction,
+    .reduction = 268.0f / 17.0f,
     .Kt = M3508::Kt,
     .R = M3508::R,
     .is_invert = false,
     .control_mode = Motor::SPEED_MODE,
-    .speed_pid_output = Motor::CURRENT_OUTPUT,
+    .pid_out_type = Motor::CURRENT_OUTPUT,
     .speed_pid_config = &wheel_pid,
 });

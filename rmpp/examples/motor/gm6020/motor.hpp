@@ -28,7 +28,7 @@ inline GM6020 motor({
     .R = GM6020::R,
     .is_invert = false,
     .control_mode = Motor::ANGLE_SPEED_MODE,
-    .speed_pid_output = Motor::CURRENT_OUTPUT,
+    .pid_out_type = Motor::CURRENT_OUTPUT,
     .speed_pid_config = &speed_pid,
     .angle_pid_config = &angle_pid,
 });

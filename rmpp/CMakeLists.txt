@@ -2,11 +2,16 @@ file(GLOB_RECURSE USER_SOURCES
         "lib/*.*"
 
         # 遥控器
-        # "examples/rc/*.*"
+        # "examples/rc/fsi6x/*.*"
+
+        # IMU
+        # "examples/imu/*.*"
 
         # 底盘
         # "examples/motor/m3508/*.*"
-        # "examples/module/chassis/chassis_omni/*.*"
+        "examples/module/chassis/chassis_omni/*.*"
+        # "examples/module/chassis/chassis_mecanum/*.*"
+        # "examples/module/chassis/chassis_dualsteer/*.*"
 
         # 云台
         # "examples/imu/*.*"
@@ -15,12 +20,15 @@ file(GLOB_RECURSE USER_SOURCES
         # "examples/motor/dm4310/*.*"
         # "examples/module/gimbal/gimbal_classic/*.*"
 
-        # 发射结构
+        # 发射机构
         # "examples/motor/vesc/*.*"
         # "examples/motor/m2006/*.*"
         # "examples/motor/m3508_shoot/*.*"
         # "examples/module/shooter/shooter_17mm_m2006/*.*"
-        "examples/module/shooter/shooter_17mm_m3508/*.*"
+        # "examples/module/shooter/shooter_17mm_m3508/*.*"
+
+        # 裁判系统
+        # "examples/referee/*.*"
 
         # 整车代码
         # "app/infantry/*.*"

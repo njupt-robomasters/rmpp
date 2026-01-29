@@ -22,7 +22,7 @@ void dji_can_send() {
 void setup() {
     BSP::Init();
 
-    shooter.SetBulletSpeed(16 * m_s);
+    shooter.SetBulletSpeed(22 * m_s);
 }
 
 void loop() {

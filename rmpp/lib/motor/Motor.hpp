@@ -13,7 +13,7 @@ public:
     };
 
     // PID输出类型
-    enum speed_pid_output_e {
+    enum pid_out_type_e {
         CURRENT_OUTPUT, // PID输出电流
         TORQUE_OUTPUT,  // PID输出扭矩
     };
@@ -23,7 +23,7 @@ public:
         // CAN通信参数
         uint8_t can_port = -1;
         uint32_t master_id = 0, slave_id = 0;
-        UnitFloat<> can_send_freq = 1000 * Hz;     // CAN报文发送频率
+        UnitFloat<> can_send_freq = 10000 * Hz;    // CAN报文发送频率
         UnitFloat<> disconnect_timeout = 100 * ms; // 电机断联超时时间
 
         // 电机本体参数
@@ -38,10 +38,10 @@ public:
         Angle<> limit_min, limit_max; // min-右限位（负值），max-左限位（正值），相对于offset的角度
 
         // PID相关
-        control_mode_e control_mode = OPEN_LOOP_MODE;         // 电机闭环模式
-        speed_pid_output_e speed_pid_output = CURRENT_OUTPUT; // 速度PID输出类型
-        const PID::config_t* speed_pid_config = nullptr;      // 速度PID参数
-        const PID::config_t* angle_pid_config = nullptr;      // 角度PID参数
+        control_mode_e control_mode = OPEN_LOOP_MODE;    // 电机闭环模式
+        pid_out_type_e pid_out_type = CURRENT_OUTPUT;    // PID输出类型
+        const PID::config_t* speed_pid_config = nullptr; // 速度PID参数
+        const PID::config_t* angle_pid_config = nullptr; // 角度PID参数
     } config;
 
     bool is_connect = false; // 电机连接状态

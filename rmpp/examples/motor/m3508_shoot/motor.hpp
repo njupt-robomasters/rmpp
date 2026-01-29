@@ -19,6 +19,6 @@ inline M3508 motor({
     .R = M3508::R,
     .is_invert = false,
     .control_mode = Motor::SPEED_MODE,
-    .speed_pid_output = Motor::CURRENT_OUTPUT,
+    .pid_out_type = Motor::CURRENT_OUTPUT,
     .speed_pid_config = &wheel_pid,
 });
