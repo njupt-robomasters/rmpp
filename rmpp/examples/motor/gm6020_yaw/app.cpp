@@ -4,6 +4,21 @@
 
 static constexpr UnitFloat MAX_SPEED = 360 * deg_s;
 
+void can_send_cmd() {
+    const int16_t cmd5 = motor.GetCanCmd();
+
+    uint8_t data[8];
+    data[0] = cmd5 >> 8;
+    data[1] = cmd5;
+    data[2] = 0;
+    data[3] = 0;
+    data[4] = 0;
+    data[5] = 0;
+    data[6] = 0;
+    data[7] = 0;
+    BSP::CAN::TransmitStd(1, 0x1FF, data, 8);
+}
+
 void setup() {
     BSP::Init();
 }
@@ -31,6 +46,8 @@ void loop() {
     angle = motor.SetAngle(angle, speed);
 
     motor.OnLoop();
+
+    can_send_cmd();
 }
 
 extern "C" void rmpp_main() {

@@ -5,27 +5,32 @@
 static constexpr UnitFloat BULLET_FREQ = 5 * Hz;
 
 void send_can_cmd() {
-    rub_left.SendCanCmd();
-    rub_right.SendCanCmd();
+    static uint32_t send_cnt;
 
-    const int16_t cmd7 = shoot.GetCanCmd();
+    switch (send_cnt++ % 4) {
+        case 0:
+            rub_left1.SendCanCmd();
+            break;
+        case 1:
+            rub_right1.SendCanCmd();
+            break;
+        case 2:
+            rub_left2.SendCanCmd();
+            break;
+        case 3:
+            rub_right2.SendCanCmd();
+            break;
+        case 4:
+            break;
+    }
 
-    uint8_t data[8];
-    data[0] = 0;
-    data[1] = 0;
-    data[2] = 0;
-    data[3] = 0;
-    data[4] = cmd7 >> 8;
-    data[5] = cmd7;
-    data[6] = 0;
-    data[7] = 0;
-    BSP::CAN::TransmitStd(1, 0x1FF, data, 8);
+    shoot.SendCanCmd();
 }
 
 void setup() {
     BSP::Init();
 
-    shooter.SetBulletSpeed(22 * m_s);
+    shooter.SetBulletSpeed(12 * m_s);
 }
 
 void loop() {
@@ -38,7 +43,7 @@ void loop() {
         shooter.SetEnable(true);
     }
 
-    if (rc.mode == VT13::S) {
+    if (rc.swc == FSi6X::MID || rc.swc == FSi6X::DOWN) {
         shooter.SetBulletFreq(rc.x * BULLET_FREQ);
         shooter.SetRub(true);
         shooter.SetShoot(true);

@@ -2,23 +2,21 @@
 #include "rc.hpp"
 #include "motor.hpp"
 
-static constexpr UnitFloat BULLET_FREQ = 5 * Hz;
-static constexpr UnitFloat BULLET_PER_REV = 9.0f * (41.0f / 50.0f) * (Hz / rps);
-static constexpr UnitFloat<rpm> MAX_SPEED = BULLET_FREQ / BULLET_PER_REV;
+static constexpr UnitFloat MAX_SPEED = 60 * rpm;
 
 void send_can_cmd() {
-    const int16_t cmd6 = motor.GetCanCmd();
+    const int16_t cmd1 = motor.GetCanCmd();
 
     uint8_t data[8];
-    data[0] = 0;
-    data[1] = 0;
-    data[2] = cmd6 >> 8;
-    data[3] = cmd6;
+    data[0] = cmd1 >> 8;
+    data[1] = cmd1;
+    data[2] = 0;
+    data[3] = 0;
     data[4] = 0;
     data[5] = 0;
     data[6] = 0;
     data[7] = 0;
-    BSP::CAN::TransmitStd(1, 0x1FF, data, 8);
+    BSP::CAN::TransmitStd(1, 0x200, data, 8);
 }
 
 void setup() {

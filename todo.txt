@@ -21,3 +21,4 @@ dwt指定mindt和maxdt
 分离击打检测
 
 【bug】
+DM4310自动清除报错

@@ -8,18 +8,16 @@ VESC::VESC(const config_t& config, const vesc_config_t& vesc_config) : Motor(con
     BSP::CAN::RegisterCallback(callback);
 }
 
-void VESC::OnLoop() {
-    if (dwt.send.PollTimeout(1 / config.can_send_freq)) { // CAN发送频率控制
-        if (is_enable) { // 不检测电机在线，因为未必开了反馈报文
-            if (speed.ref == 0 && unit::abs(speed.measure) < vesc_config.auto_release_rpm) {
-                sendCurrentBrake(0); // 自动释放电机，避免持续的高频注入声音
-            } else {
-                const float erpm = speed.ref.toFloat(rpm) * (float)vesc_config.pole_pair;
-                sendERPM(erpm);
-            }
+void VESC::SendCanCmd() {
+    if (is_enable) { // 不检测电机在线，因为未必开了反馈报文
+        if (speed.ref == 0 && unit::abs(speed.measure) < vesc_config.auto_release_speed) {
+            sendCurrentBrake(0); // 自动释放电机，避免持续的高频注入声音
         } else {
-            sendCurrentBrake(0); // 释放电机
+            const float erpm = speed.ref.toFloat(rpm) * (float)vesc_config.pole_pair;
+            sendERPM(erpm);
         }
+    } else {
+        sendCurrentBrake(0); // 释放电机
     }
 }
 

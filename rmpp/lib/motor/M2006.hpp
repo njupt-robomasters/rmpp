@@ -10,7 +10,7 @@ public:
 
     M2006(const config_t& config);
 
-    int16_t GetCurrentCmd() const;
+    int16_t GetCanCmd() const;
 
 private:
     static constexpr UnitFloat MAX_CURRENT = 10.0f * A;

@@ -57,7 +57,7 @@ void Motor::SetSpeed(const UnitFloat<>& speed) {
 
 void Motor::OnLoop() {
     // 电机断联检测
-    if (dwt.connect.GetDT() > config.disconnect_timeout) {
+    if (dwt_connect.GetDT() > config.timeout) {
         is_connect = false;
     }
 
@@ -147,7 +147,7 @@ void Motor::callback(const raw_t& raw) {
 
     // 电机断联检测
     is_connect = true;
-    dwt.connect.UpdateDT();;
+    dwt_connect.UpdateDT();;
 
     // 电机修正
     Angle correct_angle;

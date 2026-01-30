@@ -8,7 +8,7 @@ M2006::M2006(const config_t& config) : Motor(config) {
     BSP::CAN::RegisterCallback(callback);
 }
 
-int16_t M2006::GetCurrentCmd() const {
+int16_t M2006::GetCanCmd() const {
     if (is_connect == false || is_enable == false) return 0;
 
     int16_t current_cmd;

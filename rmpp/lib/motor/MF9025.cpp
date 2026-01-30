@@ -8,16 +8,12 @@ MF9025::MF9025(const config_t& config) : Motor(config) {
     BSP::CAN::RegisterCallback(callback);
 }
 
-void MF9025::OnLoop() {
-    Motor::OnLoop();
-
-    if (dwt.send.PollTimeout(1 / config.can_send_freq)) { // CAN发送频率控制
-        send_cnt++;
-        if (is_connect && is_enable) {
-            sendCurrent(current.ref);
-        } else {
-            sendCurrent(0 * A);
-        }
+void MF9025::SendCanCmd() {
+    send_cnt++;
+    if (is_connect && is_enable) {
+        sendCurrent(current.ref);
+    } else {
+        sendCurrent(0 * A);
     }
 }
 

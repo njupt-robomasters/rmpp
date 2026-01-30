@@ -6,8 +6,8 @@ static constexpr UnitFloat BULLET_FREQ = 10 * Hz;
 static constexpr UnitFloat BULLET_PER_REV = 9.0f / 2.5f * (Hz / rps);
 static constexpr UnitFloat<rpm> MAX_SPEED = BULLET_FREQ / BULLET_PER_REV;
 
-void dji_can_send() {
-    const int16_t cmd7 = motor.GetCurrentCmd();
+void send_can_cmd() {
+    const int16_t cmd7 = motor.GetCanCmd();
 
     uint8_t data[8];
     data[0] = 0;
@@ -39,7 +39,8 @@ void loop() {
     motor.SetSpeed(speed);
 
     motor.OnLoop();
-    dji_can_send();
+
+    send_can_cmd();
 }
 
 extern "C" void rmpp_main() {

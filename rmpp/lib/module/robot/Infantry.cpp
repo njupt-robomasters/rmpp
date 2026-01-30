@@ -269,8 +269,8 @@ void Infantry::handle_ui() {
     }
 
     // bullet_speed
-    device.ui.bullet_speed_1 = device.shooter.bullet_speed.measure.left;
-    device.ui.bullet_speed_2 = device.shooter.bullet_speed.measure.right;
+    device.ui.bullet_speed_1 = device.shooter.bullet_speed.measure;
+    device.ui.bullet_speed_2 = device.shooter.bullet_speed.measure;
 
     // shoot_current
     device.ui.shoot_current = device.shooter.GetShootCurrentMeasure();

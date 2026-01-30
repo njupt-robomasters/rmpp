@@ -3,7 +3,7 @@
 #include "motor/M2006.hpp"
 
 // 速度PID参数
-inline PID::config_t wheel_pid = {
+inline PID::config_t speed_pid = {
     .mode = PID::POSITION_MODE,
     .kp = (10 * A) / (20 * rpm),
     .max_out = 10 * A,
@@ -20,5 +20,5 @@ inline M2006 motor({
     .is_invert = false,
     .control_mode = Motor::SPEED_MODE,
     .pid_out_type = Motor::CURRENT_OUTPUT,
-    .speed_pid_config = &wheel_pid,
+    .speed_pid_config = &speed_pid,
 });

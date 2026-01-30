@@ -2,21 +2,10 @@
 #include "rc.hpp"
 #include "motor.hpp"
 
-static constexpr UnitFloat MAX_SPEED = 60 * rpm;
+static constexpr UnitFloat MAX_SPEED = 360 * deg_s;
 
-void dji_can_send() {
-    const int16_t cmd1 = motor.GetCurrentCmd();
-
-    uint8_t data[8];
-    data[0] = cmd1 >> 8;
-    data[1] = cmd1;
-    data[2] = 0;
-    data[3] = 0;
-    data[4] = 0;
-    data[5] = 0;
-    data[6] = 0;
-    data[7] = 0;
-    BSP::CAN::TransmitStd(1, 0x200, data, 8);
+void send_can_cmd() {
+    motor.SendCanCmd();
 }
 
 void setup() {
@@ -33,11 +22,21 @@ void loop() {
         motor.SetEnable(true);
     }
 
-    const UnitFloat<rpm> speed = rc.x * MAX_SPEED;
-    motor.SetSpeed(speed);
+    const UnitFloat<rpm> speed = rc.yaw * MAX_SPEED;
+
+    // 速度闭环
+    // motor.SetSpeed(speed);
+
+    // 速度-角度闭环
+    static BSP::Dwt dwt;
+    static Angle<deg> angle;
+    const UnitFloat dt = dwt.UpdateDT();
+    angle += speed * dt;
+    angle = motor.SetAngle(angle, speed);
 
     motor.OnLoop();
-    dji_can_send();
+
+    send_can_cmd();
 }
 
 extern "C" void rmpp_main() {

@@ -8,7 +8,7 @@ GM6020::GM6020(const config_t& config) : Motor(config) {
     BSP::CAN::RegisterCallback(callback);
 }
 
-int16_t GM6020::GetVoltageCmd() const {
+int16_t GM6020::GetCanCmd() const {
     if (is_connect == false || is_enable == false) return 0;
 
     int16_t voltage_cmd;

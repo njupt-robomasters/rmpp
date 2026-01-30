@@ -12,8 +12,7 @@ public:
 
     CyberDogMotor(const config_t& config);
 
-    // 需要在循环中调用
-    void OnLoop() override;
+    void SendCanCmd() override;
 
 private:
     constexpr static float P_MAX = 12.5f;   // 位置最大值 rad

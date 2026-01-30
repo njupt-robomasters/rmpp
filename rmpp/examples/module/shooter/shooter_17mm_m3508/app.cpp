@@ -4,8 +4,11 @@
 
 static constexpr UnitFloat BULLET_FREQ = 5 * Hz;
 
-void dji_can_send() {
-    const int16_t cmd6 = shoot.GetCurrentCmd();
+void send_can_cmd() {
+    rub_left.SendCanCmd();
+    rub_right.SendCanCmd();
+
+    const int16_t cmd6 = shoot.GetCanCmd();
 
     uint8_t data[8];
     data[0] = 0;
@@ -45,7 +48,8 @@ void loop() {
     }
 
     shooter.OnLoop();
-    dji_can_send();
+
+    send_can_cmd();
 }
 
 extern "C" void rmpp_main() {

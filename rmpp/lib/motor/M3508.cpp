@@ -8,7 +8,7 @@ M3508::M3508(const config_t& config) : Motor(config) {
     BSP::CAN::RegisterCallback(callback);
 }
 
-int16_t M3508::GetCurrentCmd() const {
+int16_t M3508::GetCanCmd() const {
     if (is_enable == false) return 0;
 
     int16_t current_cmd;
@@ -20,7 +20,7 @@ int16_t M3508::GetCurrentCmd() const {
     return current_cmd;
 }
 
-void M3508::SendSetCANID() const {
+void M3508::SendQuickSetID() const {
     uint8_t data[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     BSP::CAN::TransmitStd(config.can_port, 0x700, data, 8);
 }

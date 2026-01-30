@@ -9,8 +9,7 @@ public:
 
     MF9025(const config_t& config);
 
-    // 需要在循环中调用
-    void OnLoop() override;
+    void SendCanCmd() override;
 
 private:
     static constexpr UnitFloat MAX_CURRENT = 16.5f * A;

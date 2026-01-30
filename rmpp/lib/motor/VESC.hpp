@@ -5,8 +5,8 @@
 class VESC : public Motor {
 public:
     struct vesc_config_t {
-        uint8_t pole_pair = 7;                    // 极对数
-        UnitFloat<> auto_release_rpm = 120 * rpm; // 自动释放电机的转速，避免持续的高频注入声音（0表示禁用）
+        uint8_t pole_pair = 7;                      // 极对数
+        UnitFloat<> auto_release_speed = 120 * rpm; // 自动释放电机的转速，避免持续的高频注入声音（0表示禁用）
     } vesc_config;
 
     // 母线电压电流
@@ -19,8 +19,10 @@ public:
 
     VESC(const config_t& config, const vesc_config_t& vesc_config);
 
-    // 需要在循环中调用
-    void OnLoop() override;
+    // 屏蔽父类闭环操作
+    void OnLoop() override {}
+
+    void SendCanCmd() override;
 
 private:
     enum command_e {

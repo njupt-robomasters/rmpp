@@ -8,21 +8,16 @@ CyberDogMotor::CyberDogMotor(const config_t& config) : Motor(config) {
     BSP::CAN::RegisterCallback(callback);
 }
 
-void CyberDogMotor::OnLoop() {
-    Motor::OnLoop();
-
-    if (dwt.send.GetDT() >= 1 / config.can_send_freq) { // CAN发送频率控制
-        dwt.send.UpdateDT();
-        send_cnt++;
-        if (is_connect && is_enable) {
-            if (send_cnt % 100 == 0) { // 每100次调用重新发送使能
-                sendEnable();
-            } else {
-                sendMIT();
-            }
+void CyberDogMotor::SendCanCmd() {
+    send_cnt++;
+    if (is_connect && is_enable) {
+        if (send_cnt % 100 == 0) { // 每100次调用重新发送使能
+            sendEnable();
         } else {
-            sendDisable();
+            sendMIT();
         }
+    } else {
+        sendDisable();
     }
 }
 

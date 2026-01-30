@@ -8,20 +8,16 @@ DM4310::DM4310(const config_t& config) : Motor(config) {
     BSP::CAN::RegisterCallback(callback);
 }
 
-void DM4310::OnLoop() {
-    Motor::OnLoop();
-
-    if (dwt.send.PollTimeout(1 / config.can_send_freq)) { // CAN发送频率控制
-        send_cnt++;
-        if (is_connect && is_enable) {
-            if (send_cnt % 100 == 0) { // 每100次调用重新发送使能
-                sendEnable();
-            } else {
-                sendTorque(torque.ref);
-            }
+void DM4310::SendCanCmd() {
+    send_cnt++;
+    if (is_connect && is_enable) {
+        if (send_cnt % 100 == 0) { // 每100次调用重新发送使能
+            sendEnable();
         } else {
-            sendDisable();
+            sendTorque(torque.ref);
         }
+    } else {
+        sendDisable();
     }
 }
 

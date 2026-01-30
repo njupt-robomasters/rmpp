@@ -10,7 +10,7 @@ public:
 
     GM6020(const config_t& config);
 
-    int16_t GetVoltageCmd() const;
+    int16_t GetCanCmd() const;
 
 private:
     static constexpr UnitFloat MAX_CURRENT = 3.0f * A;

@@ -23,8 +23,7 @@ public:
         // CAN通信参数
         uint8_t can_port = -1;
         uint32_t master_id = 0, slave_id = 0;
-        UnitFloat<> can_send_freq = 10000 * Hz;    // CAN报文发送频率
-        UnitFloat<> disconnect_timeout = 100 * ms; // 电机断联超时时间
+        UnitFloat<> timeout = 100 * ms; // 电机断联超时时间
 
         // 电机本体参数
         float reduction = 1.0f;       // 减速比
@@ -94,8 +93,10 @@ public:
     // 设置角度
     Angle<> SetAngle(const Angle<>& angle, const UnitFloat<>& speed_ff = 0 * default_unit);
 
-    // 需要在循环中调用，子类重写后要调用
+    // 需要在循环中调用
     virtual void OnLoop();
+
+    virtual void SendCanCmd() {}
 
 protected:
     // 电机反转、偏移修正之前的值
@@ -108,10 +109,7 @@ protected:
 
     PID speed_pid, angle_pid; // PID控制器
 
-    struct {
-        BSP::Dwt send;    // 用于控制CAN报文发送频率
-        BSP::Dwt connect; // 用于电机掉线检测
-    } dwt;
+    BSP::Dwt dwt_connect; // 用于电机断联检测
 
     // CAN接收回调，子类重写后要调用
     void callback(const raw_t& raw);

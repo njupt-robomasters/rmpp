@@ -5,13 +5,32 @@
 static constexpr UnitFloat BULLET_SPEED = 12 * m_s;
 static constexpr UnitFloat<rpm> RUB_SPEED = BULLET_SPEED / (3 * cm);
 
+void send_can_cmd() {
+    static uint32_t send_cnt;
+
+    switch (send_cnt++ % 4) {
+        case 0:
+            rub_left1.SendCanCmd();
+            break;
+        case 1:
+            rub_right1.SendCanCmd();
+            break;
+        case 2:
+            rub_left2.SendCanCmd();
+            break;
+        case 3:
+            rub_right2.SendCanCmd();
+            break;
+        case 4:
+            break;
+    }
+}
+
 void setup() {
     BSP::Init();
 }
 
 void loop() {
-    static uint32_t send_cnt;
-
     led.OnLoop();
     rc.OnLoop();
 
@@ -28,8 +47,8 @@ void loop() {
     }
 
     if (rc.swc == FSi6X::MID || rc.swc == FSi6X::DOWN) {
-        rub_left1.SetSpeed(RUB_SPEED);
-        rub_right1.SetSpeed(RUB_SPEED);
+        rub_left1.SetSpeed(RUB_SPEED + 2 * m_s);
+        rub_right1.SetSpeed(RUB_SPEED + 2 * m_s);
         rub_left2.SetSpeed(RUB_SPEED);
         rub_right2.SetSpeed(RUB_SPEED);
     } else {
@@ -39,20 +58,12 @@ void loop() {
         rub_right2.SetSpeed(0 * rpm);
     }
 
-    switch (send_cnt++ % 4) {
-        case 0:
-            rub_left1.OnLoop();
-            break;
-        case 1:
-            rub_right1.OnLoop();
-            break;
-        case 2:
-            rub_left2.OnLoop();
-            break;
-        case 3:
-            rub_right2.OnLoop();
-            break;
-    }
+    rub_left1.OnLoop();
+    rub_right1.OnLoop();
+    rub_left2.OnLoop();
+    rub_right2.OnLoop();
+
+    send_can_cmd();
 }
 
 extern "C" void rmpp_main() {

@@ -3,30 +3,32 @@ file(GLOB_RECURSE USER_SOURCES
 
         # 遥控器
         # "examples/rc/fsi6x/*.*"
+        # "examples/rc/vt13/*.*"
 
         # IMU
         # "examples/imu/*.*"
 
         # 底盘
-        # "examples/motor/m3508/*.*"
+        # "examples/motor/m3508_chassis/*.*"
         # "examples/module/chassis/chassis_omni/*.*"
         # "examples/module/chassis/chassis_mecanum/*.*"
         # "examples/module/chassis/chassis_dualsteer/*.*"
 
         # 云台
-        # "examples/imu/*.*"
-        # "examples/motor/mf9025/*.*"
-        # "examples/motor/gm6020/*.*"
-        # "examples/motor/dm4310/*.*"
+        # "examples/motor/mf9025_yaw/*.*"
+        # "examples/motor/gm6020_yaw/*.*"
+        # "examples/motor/dm4310_pitch/*.*"
         # "examples/module/gimbal/gimbal_classic/*.*"
 
         # 发射机构
-        # "examples/motor/vesc2/*.*"
-        "examples/motor/vesc4/*.*"
-        # "examples/motor/m2006/*.*"
+        # "examples/motor/vesc_2rub/*.*"
+        # "examples/motor/vesc_4rub/*.*"
+        # "examples/motor/m2006_shoot/*.*"
         # "examples/motor/m3508_shoot/*.*"
+        # "examples/motor/dm4310_shoot/*.*"
         # "examples/module/shooter/shooter_17mm_m2006/*.*"
-        # "examples/module/shooter/shooter_17mm_m3508/*.*"
+        # "examples/module/shooter/shooter_42mm_m3508/*.*"
+        "examples/module/shooter/shooter_42mm_dm4310/*.*"
 
         # 裁判系统
         # "examples/referee/*.*"

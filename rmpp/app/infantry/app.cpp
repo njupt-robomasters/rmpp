@@ -1,16 +1,16 @@
 #include "led.hpp"
 #include "robot.hpp"
 
-void dji_can_send() {
+void send_can_cmd() {
     // 底盘
-    const int16_t cmd1 = w1.GetCurrentCmd();
-    const int16_t cmd2 = w2.GetCurrentCmd();
-    const int16_t cmd3 = w3.GetCurrentCmd();
-    const int16_t cmd4 = w4.GetCurrentCmd();
+    const int16_t cmd1 = w1.GetCanCmd();
+    const int16_t cmd2 = w2.GetCanCmd();
+    const int16_t cmd3 = w3.GetCanCmd();
+    const int16_t cmd4 = w4.GetCanCmd();
     // 云台
-    const int16_t cmd5 = yaw.GetVoltageCmd();
+    const int16_t cmd5 = yaw.GetCanCmd();
     // 发射机构
-    const int16_t cmd7 = shoot.GetCurrentCmd();
+    const int16_t cmd7 = shoot.GetCanCmd();
 
     uint8_t data[8];
 
@@ -33,6 +33,10 @@ void dji_can_send() {
     data[6] = 0;
     data[7] = 0;
     BSP::CAN::TransmitStd(1, 0x1FF, data);
+
+    pitch.SendCanCmd();
+    rub_left.SendCanCmd();
+    rub_right.SendCanCmd();
 }
 
 void setup() {
@@ -43,7 +47,7 @@ void setup() {
 void loop() {
     led.OnLoop();
     robot.OnLoop();
-    dji_can_send();
+    send_can_cmd();
 }
 
 extern "C" void rmpp_main() {

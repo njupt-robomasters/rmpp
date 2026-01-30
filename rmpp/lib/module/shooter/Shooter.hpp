@@ -16,11 +16,7 @@ public:
 
     // 弹速
     struct {
-        struct {
-            UnitFloat<m_s> left, right;
-        } measure;
-
-        UnitFloat<m_s> ref;
+        UnitFloat<m_s> ref, measure;
     } bullet_speed;
 
     // 弹频

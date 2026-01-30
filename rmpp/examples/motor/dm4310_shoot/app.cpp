@@ -2,7 +2,13 @@
 #include "rc.hpp"
 #include "motor.hpp"
 
-static constexpr UnitFloat MAX_SPEED = 360 * deg_s;
+static constexpr UnitFloat BULLET_FREQ = 2 * Hz;
+static constexpr UnitFloat BULLET_PER_REV = 6 * (Hz / rps);
+static constexpr UnitFloat<rpm> MAX_SPEED = BULLET_FREQ / BULLET_PER_REV;
+
+void send_can_cmd() {
+    motor.SendCanCmd();
+}
 
 void setup() {
     BSP::Init();
@@ -18,19 +24,12 @@ void loop() {
         motor.SetEnable(true);
     }
 
-    const UnitFloat<rpm> speed = rc.pitch * MAX_SPEED;
-
-    // 速度闭环
-    // motor.SetSpeed(speed);
-
-    // 速度-角度闭环
-    static BSP::Dwt dwt;
-    static Angle<deg> angle;
-    const UnitFloat dt = dwt.UpdateDT();
-    angle += speed * dt;
-    angle = motor.SetAngle(angle, speed);
+    const UnitFloat<rpm> speed = rc.x * MAX_SPEED;
+    motor.SetSpeed(speed);
 
     motor.OnLoop();
+
+    send_can_cmd();
 }
 
 extern "C" void rmpp_main() {

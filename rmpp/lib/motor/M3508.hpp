@@ -10,9 +10,9 @@ public:
 
     M3508(const config_t& config);
 
-    int16_t GetCurrentCmd() const;
+    int16_t GetCanCmd() const;
 
-    void SendSetCANID() const;
+    void SendQuickSetID() const;
 
 private:
     static constexpr UnitFloat MAX_CURRENT = 20.0f * A;

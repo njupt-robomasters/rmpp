@@ -5,11 +5,11 @@
 static constexpr UnitFloat VXY_MAX = 2 * m_s; // 极限3.2m/s
 static constexpr UnitFloat WR_MAX = 60 * rpm; // 极限155rpm
 
-void dji_can_send() {
-    const int16_t cmd1 = w1.GetCurrentCmd();
-    const int16_t cmd2 = w2.GetCurrentCmd();
-    const int16_t cmd7 = s1.GetVoltageCmd();
-    const int16_t cmd8 = s2.GetVoltageCmd();
+void send_can_cmd() {
+    const int16_t cmd1 = w1.GetCanCmd();
+    const int16_t cmd2 = w2.GetCanCmd();
+    const int16_t cmd7 = s1.GetCanCmd();
+    const int16_t cmd8 = s2.GetCanCmd();
 
     uint8_t data[8];
     data[0] = cmd1 >> 8;
@@ -56,7 +56,8 @@ void loop() {
     chassis.SetSpeed(vx, vy, wr);
 
     chassis.OnLoop();
-    dji_can_send();
+
+    send_can_cmd();
 }
 
 extern "C" void rmpp_main() {

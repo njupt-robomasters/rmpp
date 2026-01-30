@@ -5,8 +5,10 @@
 static constexpr UnitFloat YAW_MAX_SPEED = 360 * deg_s;
 static constexpr UnitFloat PITCH_MAX_SPEED = 360 * deg_s;
 
-void dji_can_send() {
-    const int16_t cmd5 = yaw.GetVoltageCmd();
+void send_can_cmd() {
+    pitch.SendCanCmd();
+
+    const int16_t cmd5 = yaw.GetCanCmd();
 
     uint8_t data[8];
     data[0] = cmd5 >> 8;
@@ -42,7 +44,8 @@ void loop() {
     gimbal.SetSpeed(yaw_speed, pitch_speed);
 
     gimbal.OnLoop();
-    dji_can_send();
+
+    send_can_cmd();
 }
 
 extern "C" void rmpp_main() {

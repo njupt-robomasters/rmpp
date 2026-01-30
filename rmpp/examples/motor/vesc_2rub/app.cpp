@@ -5,6 +5,11 @@
 static constexpr UnitFloat BULLET_SPEED = 25 * m_s;
 static constexpr UnitFloat<rpm> RUB_SPEED = BULLET_SPEED / (3 * cm);
 
+void send_can_cmd() {
+    rub_left.SendCanCmd();
+    rub_right.SendCanCmd();
+}
+
 void setup() {
     BSP::Init();
 }
@@ -31,6 +36,8 @@ void loop() {
 
     rub_left.OnLoop();
     rub_right.OnLoop();
+
+    send_can_cmd();
 }
 
 extern "C" void rmpp_main() {

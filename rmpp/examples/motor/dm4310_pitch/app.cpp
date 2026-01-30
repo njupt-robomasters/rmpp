@@ -4,19 +4,8 @@
 
 static constexpr UnitFloat MAX_SPEED = 360 * deg_s;
 
-void dji_can_send() {
-    const int16_t cmd5 = motor.GetVoltageCmd();
-
-    uint8_t data[8];
-    data[0] = cmd5 >> 8;
-    data[1] = cmd5;
-    data[2] = 0;
-    data[3] = 0;
-    data[4] = 0;
-    data[5] = 0;
-    data[6] = 0;
-    data[7] = 0;
-    BSP::CAN::TransmitStd(1, 0x1FF, data, 8);
+void send_can_cmd() {
+    motor.SendCanCmd();
 }
 
 void setup() {
@@ -33,7 +22,7 @@ void loop() {
         motor.SetEnable(true);
     }
 
-    const UnitFloat<rpm> speed = rc.yaw * MAX_SPEED;
+    const UnitFloat<rpm> speed = rc.pitch * MAX_SPEED;
 
     // 速度闭环
     // motor.SetSpeed(speed);
@@ -46,7 +35,8 @@ void loop() {
     angle = motor.SetAngle(angle, speed);
 
     motor.OnLoop();
-    dji_can_send();
+
+    send_can_cmd();
 }
 
 extern "C" void rmpp_main() {

@@ -31,9 +31,9 @@ void Shooter_17mm::OnLoop() {
 void Shooter_17mm::speedForward() {
     // 摩擦轮
     if (is_rub) {
-        const UnitFloat<rpm> n630_speed = bullet_speed.ref / config.rub_radius;
-        motor.rub_left.SetSpeed(n630_speed);
-        motor.rub_right.SetSpeed(n630_speed);
+        const UnitFloat<rpm> speed = bullet_speed.ref / config.rub_radius;
+        motor.rub_left.SetSpeed(speed);
+        motor.rub_right.SetSpeed(speed);
     } else {
         motor.rub_left.SetSpeed(0 * default_unit);
         motor.rub_right.SetSpeed(0 * default_unit);
@@ -50,8 +50,7 @@ void Shooter_17mm::speedForward() {
 
 void Shooter_17mm::speedBackward() {
     // 摩擦轮
-    bullet_speed.measure.left = motor.rub_left.speed.measure * config.rub_radius;
-    bullet_speed.measure.right = motor.rub_right.speed.measure * config.rub_radius;
+    bullet_speed.measure = (motor.rub_left.speed.measure + motor.rub_right.speed.measure) * config.rub_radius;
 
     // 拨弹电机
     bullet_freq.measure = motor.shoot.speed.measure * config.bullet_per_rev;
