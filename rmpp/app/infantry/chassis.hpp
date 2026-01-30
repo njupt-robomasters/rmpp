@@ -4,11 +4,11 @@
 #include "module/chassis/Chassis_Omni.hpp"
 
 // 底盘电机参数
-static constexpr float reduction = 14.0f;
+static constexpr float reduction = 268.0f / 17.0f;
 static constexpr UnitFloat Kt = M3508::Kt / M3508::reduction * reduction;
 static constexpr bool is_invert = false;
 
-// 底盘速度PID参数
+// 底盘电机PID参数
 inline PID::config_t wheel_pid = {
     .mode = PID::POSITION_MODE,
     .kp = (20 * A) / (120 * rpm),

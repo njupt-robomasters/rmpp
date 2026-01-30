@@ -70,7 +70,7 @@ void UI::handleLib() {
     ui_g_Ungroup_yaw->end_x = ui_g_Ungroup_yaw->start_x + dx;
     ui_g_Ungroup_yaw->end_y = ui_g_Ungroup_yaw->start_y + dy;
 
-    // 伤害提示
+    // 伤害方向提示
     if (is_hurt) {
         // 6点钟方向为0度，逆时针增加
         // ±18°逆时针画弧

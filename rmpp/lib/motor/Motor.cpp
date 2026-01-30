@@ -17,25 +17,34 @@ void Motor::SetTorque(const UnitFloat<>& torque) {
 }
 
 Angle<> Motor::SetAngle(const Angle<>& angle, const UnitFloat<>& speed_ff) {
-    // 电机掉线或失能，不断把目标角度设置为当前位置（防止电机一下子飞起来）
+    // 电机断联/失能，不断把目标角度设置为当前位置，防止电机一下子飞起来
     if (is_connect == false || is_enable == false) {
         this->angle.ref = this->angle.measure;
-    } else {
-        this->angle.ref = angle;
+        speed.ref = 0 * default_unit;
+        is_first_setangle = true;
+        return this->angle.ref;
     }
 
-    // 速度前馈
-    speed.ref = speed_ff;
+    // 断联/失能后第一次设置，先不要应用
+    if (is_first_setangle) {
+        this->angle.ref = this->angle.measure;
+        speed.ref = 0 * default_unit;
+        is_first_setangle = false;
+        return this->angle.ref;
+    }
+
+    this->angle.ref = angle; // 应用角度
+    speed.ref = speed_ff;    // 应用速度前馈
 
     // 软件限位
     if (config.is_limit) {
         if (this->angle.ref < config.limit_min) { // 下限位
             this->angle.ref = config.limit_min;
-            speed.ref = 0 * default_unit; // 到达限位速度时，取消速度前馈
+            speed.ref = 0 * default_unit; // 到达限位时，取消速度前馈
         }
         if (this->angle.ref > config.limit_max) { // 上限位
             this->angle.ref = config.limit_max;
-            speed.ref = 0 * default_unit; // 到达限位速度时，取消速度前馈
+            speed.ref = 0 * default_unit; // 到达限位时，取消速度前馈
         }
     }
 

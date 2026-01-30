@@ -17,14 +17,14 @@
 
 inline Infantry::config_t robot_config = {
     .vxy_max = 3 * m_s,
-    .wr_max = 120 * rpm,
+    .wr_max = 60 * rpm,
     .axy = 4 * m_ss,
     .dxy = 4 * m_ss,
 
-    .yaw_max = 180 * deg_s,
-    .pitch_max = 180 * deg_s,
+    .yaw_max = 360 * deg_s,
+    .pitch_max = 360 * deg_s,
 
-    .bullet_speed = 16 * m_s,
+    .bullet_speed = 25 * m_s,
     .bullet_freq = 5 * Hz,
     .heat_protect = 0
 };

@@ -243,7 +243,7 @@ void Infantry::handle_shooter() {
     device.shooter.SetRub(is_rub.fsi6x || is_rub.vt13 || is_rub.client);
 
     // 拨弹电机
-    if (device.referee.shooter.heat_remain <= config.heat_protect) { // 枪口热量保护
+    if (device.referee.shooter.heat_remain < config.heat_protect) { // 枪口热量保护
         device.shooter.SetShoot(false);
     } else {
         device.shooter.SetShoot(is_shoot.fsi6x || is_shoot.vt13 || is_shoot.client);

@@ -15,7 +15,7 @@ public:
     // 云台yaw角
     Angle<deg> yaw;
 
-    // 伤害提示
+    // 伤害方向提示
     bool is_hurt = false;
     Angle<deg> hurt_dir;
 

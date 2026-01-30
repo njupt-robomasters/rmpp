@@ -119,4 +119,5 @@ protected:
 private:
     raw_t raw;             // 用于debug校正电机
     Angle<deg> last_angle; // 用于多圈计数
+    bool is_first_setangle = false;
 };
