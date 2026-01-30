@@ -1,7 +1,6 @@
 #pragma once
 
 #include "motor/VESC.hpp"
-#include "motor/M3508.hpp"
 
 inline VESC rub_left({
     .can_port = 2,

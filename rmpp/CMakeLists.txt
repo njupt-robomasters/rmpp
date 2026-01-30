@@ -21,7 +21,8 @@ file(GLOB_RECURSE USER_SOURCES
         # "examples/module/gimbal/gimbal_classic/*.*"
 
         # 发射机构
-        # "examples/motor/vesc/*.*"
+        # "examples/motor/vesc2/*.*"
+        "examples/motor/vesc4/*.*"
         # "examples/motor/m2006/*.*"
         # "examples/motor/m3508_shoot/*.*"
         # "examples/module/shooter/shooter_17mm_m2006/*.*"
@@ -31,7 +32,7 @@ file(GLOB_RECURSE USER_SOURCES
         # "examples/referee/*.*"
 
         # 整车代码
-        "app/infantry/*.*"
+        # "app/infantry/*.*"
 )
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
