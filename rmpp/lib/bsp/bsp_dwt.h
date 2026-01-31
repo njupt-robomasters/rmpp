@@ -1,13 +1,12 @@
 #pragma once
 
+// 以下为C/C++均可见的内容
 #ifdef __cplusplus
 #include <cstdint>
+
+extern "C" {
 #else
 #include <stdint.h>
-#endif
-
-#ifdef __cplusplus
-extern "C" {
 #endif
 
 void BSP_DWT_Delay(float seconds);
@@ -20,6 +19,7 @@ float BSP_DWT_UpdateDT(uint32_t* last_tick);
 }
 #endif
 
+// 以下为仅C++可见的内容
 #ifdef __cplusplus
 
 #include <unit/include_me.hpp>
@@ -29,6 +29,8 @@ namespace BSP {
     public:
         UnitFloat<> dt;
         UnitFloat<> freq;
+
+        Dwt(const UnitFloat<>& min_dt = 1 * ms, const UnitFloat<>& max_dt = 10 * s);
 
         Dwt& operator=(const Dwt& other) {
             if (this != &other) {
@@ -61,10 +63,12 @@ namespace BSP {
         void Reset();
 
     private:
-        static constexpr UnitFloat<> MAX_DT = 10.0f * s;
+        UnitFloat<> min_dt, max_dt;
+
+        uint32_t last_tick;
 
         bool is_max_dt = false;
-        uint32_t last_tick = 0;
     };
 }
+
 #endif
