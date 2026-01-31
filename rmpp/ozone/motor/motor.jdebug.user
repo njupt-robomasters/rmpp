@@ -1,14 +1,15 @@
 
-GraphedExpression="motor.angle.ref.value", Color=#a00909
-GraphedExpression="motor.angle.measure.value", Color=#09a01b
+GraphedExpression="motor.torque.ref.value", Color=#a00909
+GraphedExpression="motor.speed.ref.value", Color=#09a01b
+GraphedExpression="motor.speed.measure.value", Color=#09a087
 OpenDocument="main.c", FilePath="E:/workspace/rm/code/embedded/rmpp/Core/Src/main.c", Line=43
 OpenToolbar="Debug", Floating=0, x=0, y=0
 OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=0, w=1827, h=1587, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1713, h=775, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
-OpenWindow="Timeline", DockArea=RIGHT, x=0, y=0, w=1713, h=811, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="1151;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="795;-108", CodeGraphLegendShown=0, CodeGraphLegendPosition="823;0"
+OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1713, h=776, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=RIGHT, x=0, y=0, w=1713, h=810, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="1151;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="795;-105", CodeGraphLegendShown=0, CodeGraphLegendPosition="823;0"
 OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=3840, h=337, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" motor.angle.ref.value";" motor.angle.measure.value"], ColWidths=[100;100;100;100]
-TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="DESCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[540;106;190;190;174;190;176;204;204]
+TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" motor.torque.ref.value";" motor.speed.ref.value";" motor.speed.measure.value"], ColWidths=[100;100;100;100;100]
+TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="DESCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[540;106;206;190;174;190;176;204;204]
 TableHeader="Power Sampling", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
 TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Refresh"], ColWidths=[623;187;222;795]
 TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
@@ -21,6 +22,8 @@ WatchedExpression="motor.temperature.motor.value", RefreshRate=1, Window=Watched
 WatchedExpression="motor.raw.angle.value", Window=Watched Data 1
 WatchedExpression="motor.current.ref.value", Window=Watched Data 1
 WatchedExpression="motor.current.measure.value", Window=Watched Data 1
+WatchedExpression="motor.torque.ref.value", Window=Watched Data 1
+WatchedExpression="motor.torque.measure.value", Window=Watched Data 1
 WatchedExpression="motor.speed.ref.value", Window=Watched Data 1
 WatchedExpression="motor.speed.outer.value", Window=Watched Data 1
 WatchedExpression="motor.speed.measure.value", Window=Watched Data 1

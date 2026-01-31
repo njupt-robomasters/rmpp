@@ -9,7 +9,6 @@ public:
     struct config_t {
         UnitFloat<> chassis_radius; // 底盘半径
         UnitFloat<> wheel_radius;   // 轮半径
-
         const PID::config_t* follow_pid_config = nullptr; // 底盘跟随PID参数
     } config;
 

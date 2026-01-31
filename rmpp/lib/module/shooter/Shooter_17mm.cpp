@@ -50,7 +50,7 @@ void Shooter_17mm::speedForward() {
 
 void Shooter_17mm::speedBackward() {
     // 摩擦轮
-    bullet_speed.measure = (motor.rub_left.speed.measure + motor.rub_right.speed.measure) * config.rub_radius;
+    bullet_speed.measure = (motor.rub_left.speed.measure + motor.rub_right.speed.measure) / 2.0f * config.rub_radius;
 
     // 拨弹电机
     bullet_freq.measure = motor.shoot.speed.measure * config.bullet_per_rev;

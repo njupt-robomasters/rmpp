@@ -25,7 +25,7 @@ inline Infantry::config_t robot_config = {
     .pitch_max = 360 * deg_s,
 
     .bullet_speed = 23 * m_s,
-    .bullet_freq = 5 * Hz,
+    .bullet_freq = 10 * Hz,
     .heat_protect = 0
 };
 inline Infantry robot(robot_config,

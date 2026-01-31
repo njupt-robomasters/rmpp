@@ -28,13 +28,13 @@ file(GLOB_RECURSE USER_SOURCES
         # "examples/motor/dm4310_shoot/*.*"
         # "examples/module/shooter/shooter_17mm_m2006/*.*"
         # "examples/module/shooter/shooter_42mm_m3508/*.*"
-        "examples/module/shooter/shooter_42mm_dm4310/*.*"
+        # "examples/module/shooter/shooter_42mm_dm4310/*.*"
 
         # 裁判系统
         # "examples/referee/*.*"
 
         # 整车代码
-        # "app/infantry/*.*"
+        "app/infantry/*.*"
 )
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
