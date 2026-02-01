@@ -4,9 +4,11 @@
 
 class DM4310 : public Motor {
 public:
-    static constexpr float reduction = 1.0f;
+    static constexpr float REDUCTION = 1.0f;
     static constexpr UnitFloat<> Kt = 1.2f * Nm_A;
     static constexpr UnitFloat<> R = 0.65f / 2 * Ohm;
+    static constexpr UnitFloat<> MAX_TORQUE = 10.0f * Nm;
+    static constexpr UnitFloat<A> MAX_CURRENT = MAX_TORQUE / Kt;
 
     // 错误代码
     enum err_code_e {

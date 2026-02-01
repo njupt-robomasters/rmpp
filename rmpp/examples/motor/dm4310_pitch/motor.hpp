@@ -23,7 +23,7 @@ inline DM4310 motor({
     .can_port = 2,
     .master_id = 0x10,
     .slave_id = 0x11,
-    .reduction = DM4310::reduction,
+    .reduction = DM4310::REDUCTION,
     .Kt = DM4310::Kt,
     .R = DM4310::R,
     .is_invert = false,

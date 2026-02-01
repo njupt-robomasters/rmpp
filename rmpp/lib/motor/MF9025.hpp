@@ -6,13 +6,14 @@ class MF9025 : public Motor {
 public:
     static constexpr float reduction = 1.0f;
     static constexpr UnitFloat<> Kt = 0.32f * Nm_A;
+    static constexpr UnitFloat MAX_CURRENT = 16.5f * A;
+    static constexpr UnitFloat<Nm> MAX_TORQUE = MAX_CURRENT * Kt;
 
     MF9025(const config_t& config);
 
     void SendCanCmd() override;
 
 private:
-    static constexpr UnitFloat MAX_CURRENT = 16.5f * A;
     static constexpr uint16_t MAX_CURRENT_CMD = 2048;
 
     uint32_t send_cnt = 0; // 用于定期发送使能命令

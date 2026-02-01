@@ -22,98 +22,132 @@ void Chassis_Omni::OnLoop() {
     calcFollow();
 
     // 运动学解算
-    speedBackward();
-    speedForward();
+    backward();
+    forward();
 
-    // 电机PID计算
+    // 更新电机
     motor.w1.OnLoop();
     motor.w2.OnLoop();
     motor.w3.OnLoop();
     motor.w4.OnLoop();
-
-    // 功率控制
-    powerControl();
 }
 
-void Chassis_Omni::speedForward() {
-    // 1. 转换到底盘参考系
-    // 注意这里是换参考系，而非旋转速度矢量，所以旋转角度为：底盘 -> 云台的角度
-    std::tie(vx.chassis.ref, vy.chassis.ref) = unit::rotate(vx.gimbal.ref, vy.gimbal.ref, gimbal_yaw);
-
-    // 2. 运动学正解
+void Chassis_Omni::forward() {
+    // 速度解算
+    std::tie(vx.chassis.ref, vy.chassis.ref) = unit::rotate(vx.gimbal.ref, vy.gimbal.ref, gimbal_yaw); // 转换到底盘参考系
     vz.ref = wr.ref * config.chassis_radius;
     v1.ref = -sqrt2div2 * vx.chassis.ref + sqrt2div2 * vy.chassis.ref + vz.ref;
     v2.ref = -sqrt2div2 * vx.chassis.ref - sqrt2div2 * vy.chassis.ref + vz.ref;
     v3.ref = +sqrt2div2 * vx.chassis.ref - sqrt2div2 * vy.chassis.ref + vz.ref;
     v4.ref = +sqrt2div2 * vx.chassis.ref + sqrt2div2 * vy.chassis.ref + vz.ref;
 
-    // 3. 设置电机转速
-    motor.w1.SetSpeed(v1.ref / config.wheel_radius);
-    motor.w2.SetSpeed(v2.ref / config.wheel_radius);
-    motor.w3.SetSpeed(v3.ref / config.wheel_radius);
-    motor.w4.SetSpeed(v4.ref / config.wheel_radius);
+    // 设置电机转速
+    // motor.w1.SetSpeed(v1.ref / config.wheel_radius);
+    // motor.w2.SetSpeed(v2.ref / config.wheel_radius);
+    // motor.w3.SetSpeed(v3.ref / config.wheel_radius);
+    // motor.w4.SetSpeed(v4.ref / config.wheel_radius);
+
+    // 功率控制
+    // 1.先行衰减xy速度，防止PID饱和后偏向
+    const UnitFloat<W> power_xy_pre = fx.gimbal.measure * vx.gimbal.ref + fy.gimbal.measure * vy.gimbal.ref;
+    UnitFloat<m_s> vx_ref, vy_ref;
+    if (power_xy_pre > power_limit) {
+        vx_ref = vx.gimbal.ref * power_limit / power_xy_pre;
+        vy_ref = vy.gimbal.ref * power_limit / power_xy_pre;
+    } else {
+        vx_ref = vx.gimbal.ref;
+        vy_ref = vy.gimbal.ref;
+    }
+
+    // 计算PID
+    fx.gimbal.ref = vx_pid.Calculate(vx_ref - vx.gimbal.measure);
+    fy.gimbal.ref = vy_pid.Calculate(vy_ref - vy.gimbal.measure);
+    fz.ref = vz_pid.Calculate(vz.ref - vz.measure);
+
+    // 功率控制
+    // 2.基于功率估计的功率控制
+    const UnitFloat<W> power_xy = fx.gimbal.ref * vx.gimbal.measure + fy.gimbal.ref * vy.gimbal.measure;
+    const UnitFloat<W> power_z = fz.ref * vz.measure;
+    if (power_xy > power_limit) { // 停止旋转，衰减平移功率
+        fx.gimbal.ref *= power_limit / power_xy;
+        fy.gimbal.ref *= power_limit / power_xy;
+        fz.ref = 0 * default_unit;
+
+        // 清空PID，防止i累计
+        vx_pid.Clear();
+        vy_pid.Clear();
+        vz_pid.Clear();
+    } else if (power_xy + power_z > power_limit) { // 只衰减旋转功率
+        fz.ref *= (power_limit - power_xy) / power_z;
+
+        // 清空PID，防止i累计
+        vz_pid.Clear();
+    }
+    // 3.基于缓冲能量的功率控制
+    if (buffer_energy < 30 * J) { // 停止平移和旋转
+        fx.gimbal.ref = 0 * default_unit;
+        fy.gimbal.ref = 0 * default_unit;
+        fz.ref = 0 * default_unit;
+
+        // 清空PID，防止i累计
+        vx_pid.Clear();
+        vy_pid.Clear();
+        vz_pid.Clear();
+    } else if (buffer_energy < 45 * J) { // 停止旋转，衰减平移功率
+        fx.gimbal.ref *= (buffer_energy - 30 * J) / (15 * J);
+        fy.gimbal.ref *= (buffer_energy - 30 * J) / (15 * J);
+        fz.ref = 0 * default_unit;
+
+        // 清空PID，防止i累计
+        vx_pid.Clear();
+        vy_pid.Clear();
+        vz_pid.Clear();
+    } else if (buffer_energy < 60 * J) { // 只衰减旋转功率
+        fz.ref *= (buffer_energy - 45 * J) / (15 * J);
+
+        // 清空PID，防止i累计
+        vz_pid.Clear();
+    }
+
+    // 力学解算
+    std::tie(fx.chassis.ref, fy.chassis.ref) = unit::rotate(fx.gimbal.ref, fy.gimbal.ref, gimbal_yaw); // 转换到底盘参考系
+    mr.ref = fz.ref * config.chassis_radius;
+    f1.ref = (-sqrt2 * fx.chassis.ref + sqrt2 * fy.chassis.ref + fz.ref) / 4.0f;
+    f2.ref = (-sqrt2 * fx.chassis.ref - sqrt2 * fy.chassis.ref + fz.ref) / 4.0f;
+    f3.ref = (+sqrt2 * fx.chassis.ref - sqrt2 * fy.chassis.ref + fz.ref) / 4.0f;
+    f4.ref = (+sqrt2 * fx.chassis.ref + sqrt2 * fy.chassis.ref + fz.ref) / 4.0f;
+
+    // 设置电机扭矩
+    motor.w1.SetTorque(f1.ref * config.wheel_radius);
+    motor.w2.SetTorque(f2.ref * config.wheel_radius);
+    motor.w3.SetTorque(f3.ref * config.wheel_radius);
+    motor.w4.SetTorque(f4.ref * config.wheel_radius);
 }
 
-void Chassis_Omni::speedBackward() {
-    // 1.读取电机转速
+void Chassis_Omni::backward() {
+    // 读取电机转速
     v1.measure = motor.w1.speed.measure * config.wheel_radius;
     v2.measure = motor.w2.speed.measure * config.wheel_radius;
     v3.measure = motor.w3.speed.measure * config.wheel_radius;
     v4.measure = motor.w4.speed.measure * config.wheel_radius;
 
-    // 2. 运动学逆解
+    // 速度解算
     vx.chassis.measure = sqrt2 * (-v1.measure - v2.measure + v3.measure + v4.measure) / 4.0f;
     vy.chassis.measure = sqrt2 * (+v1.measure - v2.measure - v3.measure + v4.measure) / 4.0f;
     vz.measure = (+v1.measure + v2.measure + v3.measure + v4.measure) / 4.0f;
     wr.measure = vz.measure / config.chassis_radius;
+    std::tie(vx.gimbal.measure, vy.gimbal.measure) = unit::rotate(vx.chassis.measure, vy.chassis.measure, -gimbal_yaw); // 转换到云台参考系
 
-    // 3. 转换到云台参考系
-    std::tie(vx.gimbal.measure, vy.gimbal.measure) = rotate(vx.chassis.measure, vy.chassis.measure, -gimbal_yaw);
-}
+    // 读取电机扭矩
+    f1.measure = motor.w1.torque.measure / config.wheel_radius;
+    f2.measure = motor.w2.torque.measure / config.wheel_radius;
+    f3.measure = motor.w3.torque.measure / config.wheel_radius;
+    f4.measure = motor.w4.torque.measure / config.wheel_radius;
 
-void Chassis_Omni::powerControl() {
-    // 估算底盘当前功率
-    power.estimate = motor.w1.power.total
-        + motor.w2.power.total
-        + motor.w3.power.total
-        + motor.w4.power.total;
-
-    if (power.limit == 0) return;
-
-    // M*w + I^2*R = P
-    // kt*I*w + I^2*R = P
-    // kt * xI * w + (xI)^2 * R = P
-    // I^2*R * x^2 + kt*I*w * x - P = 0
-    // a = I^2*R
-    // b = kt*I*w
-    // c = -P
-
-    UnitFloat a;
-    a += 3 * unit::square(motor.w1.current.ref) * motor.w1.config.R;
-    a += 3 * unit::square(motor.w2.current.ref) * motor.w2.config.R;
-    a += 3 * unit::square(motor.w3.current.ref) * motor.w3.config.R;
-    a += 3 * unit::square(motor.w4.current.ref) * motor.w4.config.R;
-
-    UnitFloat b;
-    b += motor.w1.config.Kt * motor.w1.current.ref * motor.w1.speed.measure;
-    b += motor.w2.config.Kt * motor.w2.current.ref * motor.w2.speed.measure;
-    b += motor.w3.config.Kt * motor.w3.current.ref * motor.w3.speed.measure;
-    b += motor.w4.config.Kt * motor.w4.current.ref * motor.w4.speed.measure;
-
-    const UnitFloat c = -power.limit;
-
-    // 一定为一正根和一负根（x1*x2 = c/a < 0)
-    power.ratio = (-b + unit::sqrt(b * b - 4 * a * c)) / (2 * a);
-
-    // 钳位
-    power.ratio = unit::clamp(power.ratio, 0 * pct, 100 * pct);
-
-    // 使用缓冲能量再次衰减
-    power.ratio *= power.buffer_energy / (60 * J);
-
-    // 衰减电机电流
-    motor.w1.SetCurrent(motor.w1.current.ref * power.ratio);
-    motor.w2.SetCurrent(motor.w2.current.ref * power.ratio);
-    motor.w3.SetCurrent(motor.w3.current.ref * power.ratio);
-    motor.w4.SetCurrent(motor.w4.current.ref * power.ratio);
+    // 力学解算
+    fx.chassis.measure = sqrt2div2 * (-f1.measure - f2.measure + f3.measure + f4.measure);
+    fy.chassis.measure = sqrt2div2 * (+f1.measure - f2.measure - f3.measure + f4.measure);
+    fz.measure = f1.measure + f2.measure + f3.measure + f4.measure;
+    mr.measure = fz.measure * config.chassis_radius;
+    std::tie(fx.gimbal.measure, fy.gimbal.measure) = unit::rotate(fx.chassis.measure, fy.chassis.measure, -gimbal_yaw); // 转换到云台参考系
 }

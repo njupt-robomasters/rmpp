@@ -39,7 +39,7 @@ inline DM4310 shoot({
     .can_port = 1,
     .master_id = 0x10,
     .slave_id = 0x11,
-    .reduction = DM4310::reduction,
+    .reduction = DM4310::REDUCTION,
     .Kt = DM4310::Kt,
     .R = DM4310::R,
     .is_invert = true,

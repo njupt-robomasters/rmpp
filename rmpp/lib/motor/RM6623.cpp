@@ -8,16 +8,19 @@ RM6623::RM6623(const config_t& config) : Motor(config) {
     BSP::CAN::RegisterCallback(callback);
 }
 
-int16_t RM6623::GetCurrentCmd() const {
+int16_t RM6623::GetCanCmd() const {
     if (is_connect == false || is_enable == false) return 0;
 
-    int16_t current_cmd;
+    int16_t cmd;
+
+    const UnitFloat current_limit = unit::clamp(current.ref, MAX_CURRENT);
     if (!config.is_invert) {
-        current_cmd = (int16_t)(current.ref.toFloat(A) * 1000.0f);
+        cmd = (int16_t)((current_limit / MAX_CURRENT).toFloat(A) * MAX_CURRENT_CMD);
     } else {
-        current_cmd = (int16_t)((-current.ref).toFloat(A) * 1000.0f);
+        cmd = (int16_t)((-current_limit / MAX_CURRENT).toFloat(A) * MAX_CURRENT_CMD);
     }
-    return current_cmd;
+
+    return cmd;
 }
 
 void RM6623::SendCalibrateCmd() const {
@@ -38,7 +41,7 @@ void RM6623::callback(const uint8_t port, const uint32_t id, const uint8_t data[
 
     // 单位标准化
     const raw_t raw = {
-        .current = (float)current_measure_i16 / 1000.0f * A,
+        .current = (float)current_measure_i16 / MAX_CURRENT_CMD * MAX_CURRENT,
         .torque = raw.current * config.Kt,
         .angle = (float)angle_u16 / 8192.0f * rev
     };

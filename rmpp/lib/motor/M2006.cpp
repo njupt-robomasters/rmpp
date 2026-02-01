@@ -11,13 +11,16 @@ M2006::M2006(const config_t& config) : Motor(config) {
 int16_t M2006::GetCanCmd() const {
     if (is_connect == false || is_enable == false) return 0;
 
-    int16_t current_cmd;
+    int16_t cmd;
+
+    const UnitFloat current_limit = unit::clamp(current.ref, MAX_CURRENT);
     if (!config.is_invert) {
-        current_cmd = (int16_t)((current.ref / MAX_CURRENT).toFloat() * MAX_CURRENT_CMD);
+        cmd = (int16_t)((current_limit / MAX_CURRENT).toFloat(A) * MAX_CURRENT_CMD);
     } else {
-        current_cmd = (int16_t)((-current.ref / MAX_CURRENT).toFloat() * MAX_CURRENT_CMD);
+        cmd = (int16_t)((-current_limit / MAX_CURRENT).toFloat(A) * MAX_CURRENT_CMD);
     }
-    return current_cmd;
+
+    return cmd;
 }
 
 void M2006::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {

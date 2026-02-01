@@ -17,7 +17,7 @@
 
 inline Infantry::config_t robot_config = {
     .vxy_max = 3 * m_s,
-    .wr_max = 180 * rpm,
+    .wr_max = 240 * rpm,
     .axy = 4 * m_ss,
     .dxy = 4 * m_ss,
 

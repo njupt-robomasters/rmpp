@@ -11,13 +11,16 @@ GM6020::GM6020(const config_t& config) : Motor(config) {
 int16_t GM6020::GetCanCmd() const {
     if (is_connect == false || is_enable == false) return 0;
 
-    int16_t voltage_cmd;
+    int16_t cmd;
+
+    const UnitFloat current_limit = unit::clamp(current.ref, MAX_CURRENT);
     if (!config.is_invert) {
-        voltage_cmd = (int16_t)((current.ref / MAX_CURRENT).toFloat(A) * MAX_VOLTAGE_CMD);
+        cmd = (int16_t)((current_limit / MAX_CURRENT).toFloat(A) * MAX_VOLTAGE_CMD);
     } else {
-        voltage_cmd = (int16_t)((-current.ref / MAX_CURRENT).toFloat(A) * MAX_VOLTAGE_CMD);
+        cmd = (int16_t)((-current_limit / MAX_CURRENT).toFloat(A) * MAX_VOLTAGE_CMD);
     }
-    return voltage_cmd;
+
+    return cmd;
 }
 
 void GM6020::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {

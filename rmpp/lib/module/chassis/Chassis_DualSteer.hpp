@@ -33,11 +33,8 @@ private:
     static constexpr UnitFloat<> MIN_V = 0.01f * m_s; // 最小转舵速度
 
     // 车体速度 -> 轮子速度
-    void speedForward() override;
+    void forward() override;
 
     // 轮子速度 -> 车体速度
-    void speedBackward() override;
-
-    // 功率控制
-    void powerControl() override;
+    void backward() override;
 };

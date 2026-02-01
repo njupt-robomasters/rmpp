@@ -4,8 +4,8 @@
 #include "module/chassis/Chassis_Mecanum.hpp"
 
 // 底盘电机参数
-static constexpr float reduction = 268.0f / 17.0f;
-static constexpr UnitFloat Kt = M3508::Kt / M3508::reduction * reduction;
+static constexpr float REDUCTION = 268.0f / 17.0f;
+static constexpr UnitFloat Kt = M3508::Kt / M3508::reduction * REDUCTION;
 static constexpr bool is_invert = false;
 
 // 底盘电机PID参数
@@ -22,7 +22,7 @@ inline M3508 w1({
     .can_port = 1,
     .master_id = 0x201,
     .slave_id = 0x200,
-    .reduction = reduction,
+    .reduction = REDUCTION,
     .Kt = Kt,
     .R = M3508::R,
     .is_invert = is_invert,
@@ -34,7 +34,7 @@ inline M3508 w2({
     .can_port = 1,
     .master_id = 0x202,
     .slave_id = 0x200,
-    .reduction = reduction,
+    .reduction = REDUCTION,
     .Kt = Kt,
     .R = M3508::R,
     .is_invert = is_invert,
@@ -46,7 +46,7 @@ inline M3508 w3({
     .can_port = 1,
     .master_id = 0x203,
     .slave_id = 0x200,
-    .reduction = reduction,
+    .reduction = REDUCTION,
     .Kt = Kt,
     .R = M3508::R,
     .is_invert = is_invert,
@@ -58,7 +58,7 @@ inline M3508 w4({
     .can_port = 1,
     .master_id = 0x204,
     .slave_id = 0x200,
-    .reduction = reduction,
+    .reduction = REDUCTION,
     .Kt = Kt,
     .R = M3508::R,
     .is_invert = is_invert,

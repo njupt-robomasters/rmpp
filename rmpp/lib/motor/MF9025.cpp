@@ -45,20 +45,22 @@ void MF9025::callback(const uint8_t port, const uint32_t id, const uint8_t data[
 }
 
 void MF9025::sendCurrent(const UnitFloat<>& current) const {
-    int16_t current_cmd;
+    int16_t cmd;
+
+    const UnitFloat current_limit = unit::clamp(current, MAX_CURRENT);
     if (!config.is_invert) {
-        current_cmd = (int16_t)((current / MAX_CURRENT).toFloat() * MAX_CURRENT_CMD);
+        cmd = (int16_t)((current_limit / MAX_CURRENT).toFloat(A) * MAX_CURRENT_CMD);
     } else {
-        current_cmd = (int16_t)((-current / MAX_CURRENT).toFloat() * MAX_CURRENT_CMD);
+        cmd = (int16_t)((-current_limit / MAX_CURRENT).toFloat(A) * MAX_CURRENT_CMD);
     }
 
     uint8_t data[8];
-    data[0] = 0xA1; // 力矩模式
+    data[0] = 0xA1;
     data[1] = 0;
     data[2] = 0;
     data[3] = 0;
-    data[4] = current_cmd;
-    data[5] = current_cmd >> 8;
+    data[4] = cmd;
+    data[5] = cmd >> 8;
     data[6] = 0;
     data[7] = 0;
     BSP::CAN::TransmitStd(config.can_port, config.slave_id, data);

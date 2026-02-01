@@ -170,9 +170,4 @@ void Motor::callback(const raw_t& raw) {
     } else {
         angle.measure = correct_angle;
     }
-
-    // 功率估计
-    power.heat = 3 * config.R * unit::square(current.measure);
-    power.mechanical = torque.measure * speed.measure;
-    power.total = power.heat + power.mechanical;
 }

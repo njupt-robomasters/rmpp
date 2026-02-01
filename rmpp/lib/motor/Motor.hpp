@@ -66,11 +66,6 @@ public:
         Angle<deg> ref, measure;
     } angle;
 
-    // 功率估计
-    struct {
-        UnitFloat<W> heat, mechanical, total; // 焦耳热功率、机械功率、总功率
-    } power;
-
     // 温度
     struct {
         UnitFloat<C> mos, motor;

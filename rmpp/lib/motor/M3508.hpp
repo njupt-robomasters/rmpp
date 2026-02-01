@@ -4,9 +4,11 @@
 
 class M3508 : public Motor {
 public:
-    static constexpr float reduction = 3591.0f / 187.0f;
+    static constexpr float REDUCTION = 3591.0f / 187.0f;
     static constexpr UnitFloat<> Kt = 0.3f * Nm_A;
     static constexpr UnitFloat<> R = 0.194f / 2 * Ohm;
+    static constexpr UnitFloat MAX_CURRENT = 20.0f * A;
+    static constexpr UnitFloat<Nm> MAX_TORQUE = MAX_CURRENT * Kt;
 
     M3508(const config_t& config);
 
@@ -15,7 +17,6 @@ public:
     void SendQuickSetID() const;
 
 private:
-    static constexpr UnitFloat MAX_CURRENT = 20.0f * A;
     static constexpr uint16_t MAX_CURRENT_CMD = 16384;
 
     // CAN接收回调

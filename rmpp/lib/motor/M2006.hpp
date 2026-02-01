@@ -7,13 +7,14 @@ public:
     static constexpr float reduction = 36.0f;
     static constexpr UnitFloat<> Kt = 0.18f * Nm_A;
     static constexpr UnitFloat<> R = 0.461f / 2 * Ohm;
+    static constexpr UnitFloat MAX_CURRENT = 10.0f * A;
+    static constexpr UnitFloat<Nm> MAX_TORQUE = MAX_CURRENT * Kt;
 
     M2006(const config_t& config);
 
     int16_t GetCanCmd() const;
 
 private:
-    static constexpr UnitFloat MAX_CURRENT = 10.0f * A;
     static constexpr uint16_t MAX_CURRENT_CMD = 10000;
 
     // CAN接收回调

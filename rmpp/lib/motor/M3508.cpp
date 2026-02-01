@@ -11,13 +11,16 @@ M3508::M3508(const config_t& config) : Motor(config) {
 int16_t M3508::GetCanCmd() const {
     if (is_enable == false) return 0;
 
-    int16_t current_cmd;
+    int16_t cmd;
+
+    const UnitFloat current_limit = unit::clamp(current.ref, MAX_CURRENT);
     if (!config.is_invert) {
-        current_cmd = (int16_t)((current.ref / MAX_CURRENT).toFloat() * MAX_CURRENT_CMD);
+        cmd = (int16_t)((current_limit / MAX_CURRENT).toFloat(A) * MAX_CURRENT_CMD);
     } else {
-        current_cmd = (int16_t)((-current.ref / MAX_CURRENT).toFloat() * MAX_CURRENT_CMD);
+        cmd = (int16_t)((-current_limit / MAX_CURRENT).toFloat(A) * MAX_CURRENT_CMD);
     }
-    return current_cmd;
+
+    return cmd;
 }
 
 void M3508::SendQuickSetID() const {

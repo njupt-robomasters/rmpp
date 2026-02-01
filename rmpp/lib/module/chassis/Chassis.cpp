@@ -1,6 +1,8 @@
 #include "Chassis.hpp"
 
-Chassis::Chassis(const config_t& config) : config(config), follow_pid(config.follow_pid_config) {}
+Chassis::Chassis(const config_t& config) : config(config),
+                                           vx_pid(config.vxyz_pid_config), vy_pid(config.vxyz_pid_config), vz_pid(config.vxyz_pid_config),
+                                           follow_pid(config.follow_pid_config) {}
 
 void Chassis::SetEnable(bool is_enable) {
     if (this->is_enable == is_enable) return;
@@ -25,12 +27,12 @@ void Chassis::SetGimbalYaw(const Angle<>& gimbal_yaw) {
     this->gimbal_yaw = gimbal_yaw;
 }
 
-void Chassis::SetPowerLimit(const UnitFloat<>& power) {
-    this->power.limit = power;
+void Chassis::SetPowerLimit(const UnitFloat<>& power_limit) {
+    this->power_limit = power_limit;
 }
 
 void Chassis::SetBufferEnergy(const UnitFloat<>& buffer_energy) {
-    this->power.buffer_energy = buffer_energy;
+    this->buffer_energy = buffer_energy;
 }
 
 void Chassis::calcFollow() {
@@ -47,11 +49,8 @@ void Chassis::OnLoop() {
     calcFollow();
 
     // 运动学解算
-    speedBackward();
-    speedForward();
+    backward();
+    forward();
 
-    // 这里计算电机PID
-
-    // 功率控制
-    powerControl();
+    // 这里更新电机
 }

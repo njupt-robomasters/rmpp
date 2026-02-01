@@ -1,4 +1,5 @@
 #include "DM4310.hpp"
+#include <algorithm>
 
 DM4310::DM4310(const config_t& config) : Motor(config) {
     // 注册CAN回调
@@ -78,11 +79,13 @@ void DM4310::sendTorque(const UnitFloat<>& torque) const {
     uint16_t speed_u12 = float_to_uint(0, -V_MAX, V_MAX, 12); // 速度
     uint16_t kp_u12 = float_to_uint(0, 0, KP_MAX, 12);        // 位置比例系数
     uint16_t kd_u12 = float_to_uint(0, 0, KD_MAX, 12);        // 位置微分系数
-    uint16_t torque_u12;                                      // 电流
+    uint16_t torque_u12;                                      // 扭矩
+
+    const float torque_limit = std::clamp(torque.toFloat(Nm), -T_MAX, T_MAX);
     if (!config.is_invert) {
-        torque_u12 = float_to_uint(torque.toFloat(Nm), -T_MAX, T_MAX, 12);
+        torque_u12 = float_to_uint(torque_limit, -T_MAX, T_MAX, 12);
     } else {
-        torque_u12 = float_to_uint(-torque.toFloat(Nm), -T_MAX, T_MAX, 12);
+        torque_u12 = float_to_uint(-torque_limit, -T_MAX, T_MAX, 12);
     }
 
     uint8_t data[8];

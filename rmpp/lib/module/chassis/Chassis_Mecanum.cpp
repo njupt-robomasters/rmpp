@@ -22,20 +22,17 @@ void Chassis_Mecanum::OnLoop() {
     calcFollow();
 
     // 运动学解算
-    speedBackward();
-    speedForward();
+    backward();
+    forward();
 
-    // 电机PID计算
+    // 更新电机
     motor.w1.OnLoop();
     motor.w2.OnLoop();
     motor.w3.OnLoop();
     motor.w4.OnLoop();
-
-    // 功率控制
-    powerControl();
 }
 
-void Chassis_Mecanum::speedForward() {
+void Chassis_Mecanum::forward() {
     // 1. 转换到底盘参考系
     // 注意这里是换参考系，而非旋转速度矢量，所以旋转角度为：底盘 -> 云台的角度
     std::tie(vx.chassis.ref, vy.chassis.ref) = unit::rotate(vx.gimbal.ref, vy.gimbal.ref, gimbal_yaw);
@@ -54,7 +51,7 @@ void Chassis_Mecanum::speedForward() {
     motor.w4.SetSpeed(v4.ref / config.wheel_radius);
 }
 
-void Chassis_Mecanum::speedBackward() {
+void Chassis_Mecanum::backward() {
     // 1.读取电机转速
     v1.measure = motor.w1.speed.measure * config.wheel_radius;
     v2.measure = motor.w2.speed.measure * config.wheel_radius;
@@ -69,51 +66,4 @@ void Chassis_Mecanum::speedBackward() {
 
     // 3. 转换到云台参考系
     std::tie(vx.gimbal.measure, vy.gimbal.measure) = rotate(vx.chassis.measure, vy.chassis.measure, -gimbal_yaw);
-}
-
-void Chassis_Mecanum::powerControl() {
-    // 估算底盘当前功率
-    power.estimate = motor.w1.power.total
-        + motor.w2.power.total
-        + motor.w3.power.total
-        + motor.w4.power.total;
-
-    if (power.limit == 0) return;
-
-    // M*w + I^2*R = P
-    // kt*I*w + I^2*R = P
-    // kt * xI * w + (xI)^2 * R = P
-    // I^2*R * x^2 + kt*I*w * x - P = 0
-    // a = I^2*R
-    // b = kt*I*w
-    // c = -P
-
-    UnitFloat a;
-    a += 3 * unit::square(motor.w1.current.ref) * motor.w1.config.R;
-    a += 3 * unit::square(motor.w2.current.ref) * motor.w2.config.R;
-    a += 3 * unit::square(motor.w3.current.ref) * motor.w3.config.R;
-    a += 3 * unit::square(motor.w4.current.ref) * motor.w4.config.R;
-
-    UnitFloat b;
-    b += motor.w1.config.Kt * motor.w1.current.ref * motor.w1.speed.measure;
-    b += motor.w2.config.Kt * motor.w2.current.ref * motor.w2.speed.measure;
-    b += motor.w3.config.Kt * motor.w3.current.ref * motor.w3.speed.measure;
-    b += motor.w4.config.Kt * motor.w4.current.ref * motor.w4.speed.measure;
-
-    const UnitFloat c = -power.limit;
-
-    // 一定为一正根和一负根（x1*x2 = c/a < 0)
-    power.ratio = (-b + unit::sqrt(b * b - 4 * a * c)) / (2 * a);
-
-    // 钳位
-    power.ratio = unit::clamp(power.ratio, 0 * pct, 100 * pct);
-
-    // 使用缓冲能量再次衰减
-    power.ratio *= power.buffer_energy / (60 * J);
-
-    // 衰减电机电流
-    motor.w1.SetCurrent(motor.w1.current.ref * power.ratio);
-    motor.w2.SetCurrent(motor.w2.current.ref * power.ratio);
-    motor.w3.SetCurrent(motor.w3.current.ref * power.ratio);
-    motor.w4.SetCurrent(motor.w4.current.ref * power.ratio);
 }

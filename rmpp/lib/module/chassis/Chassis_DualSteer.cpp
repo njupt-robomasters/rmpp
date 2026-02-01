@@ -21,20 +21,17 @@ void Chassis_DualSteer::OnLoop() {
     calcFollow();
 
     // 运动学解算
-    speedBackward();
-    speedForward();
+    backward();
+    forward();
 
-    // 电机PID计算
+    // 更新电机
     motor.w1.OnLoop();
     motor.w2.OnLoop();
     motor.s1.OnLoop();
     motor.s2.OnLoop();
-
-    // 功率控制
-    powerControl();
 }
 
-void Chassis_DualSteer::speedForward() {
+void Chassis_DualSteer::forward() {
     // 1. 转换到底盘参考系
     // 注意这里是换参考系，而非旋转速度矢量，所以旋转角度为：底盘 -> 云台的角度
     std::tie(vx.chassis.ref, vy.chassis.ref) = unit::rotate(vx.gimbal.ref, vy.gimbal.ref, gimbal_yaw);
@@ -75,7 +72,7 @@ void Chassis_DualSteer::speedForward() {
     motor.s2.SetAngle(s2.ref);
 }
 
-void Chassis_DualSteer::speedBackward() {
+void Chassis_DualSteer::backward() {
     // 1. 读取轮电机
     v1.measure = motor.w1.speed.measure * config.wheel_radius;
     v2.measure = motor.w2.speed.measure * config.wheel_radius;
@@ -96,43 +93,4 @@ void Chassis_DualSteer::speedBackward() {
 
     // 3. 转换到云台参考系
     std::tie(vx.gimbal.measure, vy.gimbal.measure) = rotate(vx.chassis.measure, vy.chassis.measure, -gimbal_yaw);
-}
-
-// 计算电流衰减系数，需要在电机PID计算后调用
-void Chassis_DualSteer::powerControl() {
-    // 估算底盘当前功率
-    power.estimate = motor.w1.power.total + motor.w2.power.total;
-
-    if (power.limit == 0) return;
-
-    // M*w + I^2*R = P
-    // kt*I*w + I^2*R = P
-    // kt * xI * w + (xI)^2 * R = P
-    // I^2*R * x^2 + kt*I*w * x - P = 0
-    // a = I^2*R
-    // b = kt*I*w
-    // c = -P
-
-    UnitFloat a;
-    a += 3 * unit::square(motor.w1.current.ref) * motor.w1.config.R;
-    a += 3 * unit::square(motor.w2.current.ref) * motor.w2.config.R;
-
-    UnitFloat b;
-    b += motor.w1.config.Kt * motor.w1.current.ref * motor.w1.speed.measure;
-    b += motor.w2.config.Kt * motor.w2.current.ref * motor.w2.speed.measure;
-
-    const UnitFloat c = -power.limit;
-
-    // 一定为一正根和一负根（x1*x2 = c/a < 0)
-    power.ratio = (-b + unit::sqrt(b * b - 4 * a * c)) / (2 * a);
-
-    // 钳位
-    power.ratio = unit::clamp(power.ratio, 0 * pct, 100 * pct);
-
-    // 使用缓冲能量再次衰减
-    power.ratio *= power.buffer_energy / (60 * J);
-
-    // 衰减电机电流
-    motor.w1.SetCurrent(motor.w1.current.ref * power.ratio);
-    motor.w2.SetCurrent(motor.w2.current.ref * power.ratio);
 }
