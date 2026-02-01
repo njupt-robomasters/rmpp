@@ -108,6 +108,9 @@ void Chassis_Omni::powerControl() {
     // 钳位
     power.ratio = unit::clamp(power.ratio, 0 * pct, 100 * pct);
 
+    // 使用缓冲能量再次衰减
+    power.ratio *= power.buffer_energy / (60 * J);
+
     // 衰减电机电流
     motor.w1.SetCurrent(motor.w1.current.ref * power.ratio);
     motor.w2.SetCurrent(motor.w2.current.ref * power.ratio);

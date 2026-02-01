@@ -3,7 +3,7 @@
 
 // 适配rmui
 extern "C" void print_message(const uint8_t* message, const int length) {
-    UI::AddTxData(message, length);
+    UI::AddCanData(message, length);
 }
 
 extern "C" void _ui_init_g_Ungroup_0();
@@ -17,10 +17,10 @@ size_t UI::head, UI::tail;
 
 UI::UI(const config_t& config) : config(config) {}
 
-void UI::AddTxData(const uint8_t data[], const size_t len) {
+void UI::AddCanData(const uint8_t data[], const size_t len) {
     for (size_t i = 0; i < len; i++) {
         if ((tail + 1) % TXBUF_SIZE == head) break; // 队列满
-        txbuf[tail] = data[i];                      // 拷贝指针
+        txbuf[tail] = data[i];                      // 拷贝数据
         tail = (tail + 1) % TXBUF_SIZE;             // 后移队尾指针
     }
 }
@@ -31,7 +31,7 @@ void UI::Init() {
 
 void UI::OnLoop() {
     if (dwt_update.PollTimeout(1 / config.update_freq)) {
-        handleLib(); // 更新UI库
+        updateLib(); // 更新UI库
 
         switch (state) {
             case 0:
@@ -58,11 +58,23 @@ void UI::OnLoop() {
                 break;
         }
     }
-
-    handleTx(); // 发送数据
 }
 
-void UI::handleLib() {
+void UI::SendCanCmd() {
+    if (head != tail) { // 队列有数据
+        uint8_t data[8];
+        uint8_t dlc = 0;
+        for (int i = 0; i < 8; i++) {
+            if (head == tail) break;        // 队列空
+            data[i] = txbuf[head];          // 拷贝数据
+            head = (head + 1) % TXBUF_SIZE; // 后移队首指针
+            dlc++;
+        }
+        BSP::CAN::TransmitStd(config.can_port, config.slave_id, data, dlc);
+    }
+}
+
+void UI::updateLib() const {
     // 云台yaw角
     // 高中平面直角坐标系
     const int dx = (int)(unit::cos(yaw + 90 * deg).toFloat() * 50);
@@ -103,19 +115,5 @@ void UI::handleLib() {
         strcpy(ui_g_Ungroup_aim->string, "ONLINE");
     } else {
         strcpy(ui_g_Ungroup_aim->string, "      ");
-    }
-}
-
-void UI::handleTx() {
-    if (head != tail) { // 队列有数据
-        uint8_t data[8];
-        uint8_t dlc = 0;
-        for (int i = 0; i < 8; i++) {
-            if (head == tail) break;        // 队列空
-            data[i] = txbuf[head];          // 拷贝数据
-            head = (head + 1) % TXBUF_SIZE; // 后移队首指针
-            dlc++;
-        }
-        BSP::CAN::TransmitStd(config.can_port, config.slave_id, data, dlc);
     }
 }

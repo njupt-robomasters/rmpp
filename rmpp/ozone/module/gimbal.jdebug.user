@@ -1,14 +1,15 @@
 
-GraphedExpression="gimbal.yaw.imu.ref.value", Color=#a00909
-GraphedExpression="gimbal.yaw.imu.measure.value", Color=#09a01b
+GraphedExpression="gimbal.pitch.imu.ref.value", Color=#a00909
+GraphedExpression="gimbal.pitch.imu.measure.value", Color=#09a01b
+GraphedExpression="pitch.current.ref.value", Color=#09a087
 OpenDocument="main.c", FilePath="E:/workspace/rm/code/embedded/rmpp/Core/Src/main.c", Line=46
 OpenDocument="unit.hpp", FilePath="E:/workspace/rm/code/embedded/rmpp/rmpp/lib/unit/unit.hpp", Line=133
 OpenToolbar="Debug", Floating=0, x=0, y=0
 OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=0, w=1622, h=1587, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1932, h=753, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
-OpenWindow="Timeline", DockArea=RIGHT, x=0, y=0, w=1932, h=833, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="1316;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="1066;-108", CodeGraphLegendShown=0, CodeGraphLegendPosition="1089;0"
+OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1932, h=755, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=RIGHT, x=0, y=0, w=1932, h=831, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="1316;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="1066;-108", CodeGraphLegendShown=0, CodeGraphLegendPosition="1089;0"
 OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=3840, h=337, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" gimbal.yaw.imu.ref.value";" gimbal.yaw.imu.measure.value"], ColWidths=[100;100;100;100]
+TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" gimbal.pitch.imu.ref.value";" gimbal.pitch.imu.measure.value";" pitch.current.ref.value"], ColWidths=[100;100;100;100;100]
 TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="DESCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[540;106;190;190;174;190;176;204;204]
 TableHeader="Power Sampling", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
 TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Refresh"], ColWidths=[447;187;222;766]
@@ -25,3 +26,6 @@ WatchedExpression="gimbal.yaw.imu.ref.value", Window=Watched Data 1
 WatchedExpression="gimbal.yaw.imu.measure.value", Window=Watched Data 1
 WatchedExpression="gimbal.pitch.imu.ref.value", Window=Watched Data 1
 WatchedExpression="gimbal.pitch.imu.measure.value", Window=Watched Data 1
+WatchedExpression="pitch_angle_pid", Window=Watched Data 1
+WatchedExpression="pitch_speed_pid", Window=Watched Data 1
+WatchedExpression="pitch.current.ref.value", Window=Watched Data 1

@@ -9,7 +9,7 @@ public:
         uint8_t can_port = 1;
         uint32_t master_id = 0;
         uint32_t slave_id = 1;
-        UnitFloat<> update_freq = 10.0f * Hz;
+        UnitFloat<> update_freq = 10 * Hz;
     } config;
 
     // 云台yaw角
@@ -34,11 +34,14 @@ public:
 
     UI(const config_t& config);
 
-    static void AddTxData(const uint8_t data[], size_t len);
+    static void AddCanData(const uint8_t data[], size_t len);
 
     void Init();
 
+    // 需要在循环中调用
     void OnLoop();
+
+    void SendCanCmd();
 
 private:
     static constexpr size_t TXBUF_SIZE = 1024;
@@ -51,7 +54,6 @@ private:
     static uint8_t txbuf[TXBUF_SIZE];
     static size_t head, tail;
 
-    void handleLib();
-
-    void handleTx();
+    // 更新UI库
+    void updateLib() const;
 };

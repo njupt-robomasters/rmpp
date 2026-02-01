@@ -29,6 +29,10 @@ void Chassis::SetPowerLimit(const UnitFloat<>& power) {
     this->power.limit = power;
 }
 
+void Chassis::SetBufferEnergy(const UnitFloat<>& buffer_energy) {
+    this->power.buffer_energy = buffer_energy;
+}
+
 void Chassis::calcFollow() {
     if (mode == DETACH_MODE || wr.ref != 0) { // 小陀螺状态下强制分离模式
         wr.follow = 0 * default_unit;

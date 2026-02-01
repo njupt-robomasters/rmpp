@@ -214,11 +214,14 @@ void Infantry::handle_chassis() {
     wr.sum = unit::clamp(wr.fsi6x + wr.vt13 + wr.client + wr.mavlink, config.wr_max);
     device.chassis.SetSpeed(vx.sum, vy.sum, wr.sum);
 
-    // 设置云台方向
+    // 设置前进正方向
     device.chassis.SetGimbalYaw(device.gimbal.yaw.ecd.measure);
 
-    // 设置底盘功率限制
+    // 设置功率限制
     device.chassis.SetPowerLimit(device.referee.chassis.power_limit);
+
+    // 设置缓冲能量
+    device.chassis.SetBufferEnergy(device.referee.chassis.buffer_energy);
 
     device.chassis.OnLoop();
 }

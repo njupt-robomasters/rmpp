@@ -7,8 +7,8 @@ class Chassis {
 public:
     // 底盘配置
     struct config_t {
-        UnitFloat<> chassis_radius; // 底盘半径
-        UnitFloat<> wheel_radius;   // 轮半径
+        UnitFloat<> chassis_radius;                       // 底盘半径
+        UnitFloat<> wheel_radius;                         // 轮半径
         const PID::config_t* follow_pid_config = nullptr; // 底盘跟随PID参数
     } config;
 
@@ -41,9 +41,10 @@ public:
 
     // 用于底盘功率控制
     struct {
-        UnitFloat<W> limit = 120 * W;     // 功率限制
-        UnitFloat<W> estimate;            // 当前功率估计
-        UnitFloat<pct> ratio = 100 * pct; // 电流/力矩衰减系数
+        UnitFloat<W> limit = 120 * W;        // 功率限制
+        UnitFloat<J> buffer_energy = 60 * J; // 缓冲能量
+        UnitFloat<W> estimate;               // 当前功率估计
+        UnitFloat<pct> ratio = 100 * pct;    // 电流/力矩衰减系数
     } power;
 
     Chassis(const config_t& config);
@@ -62,6 +63,9 @@ public:
 
     // 设置功率限制
     void SetPowerLimit(const UnitFloat<>& power);
+
+    // 设置缓冲能量
+    void SetBufferEnergy(const UnitFloat<>& buffer_energy);
 
     // 需要在循环中调用
     virtual void OnLoop();
