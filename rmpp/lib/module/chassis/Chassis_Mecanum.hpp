@@ -15,6 +15,11 @@ public:
         UnitFloat<m_s> ref, measure;
     } v1, v2, v3, v4;
 
+    // 轮子力
+    struct {
+        UnitFloat<m_s> ref, measure;
+    } f1, f2, f3, f4;
+
     Chassis_Mecanum(const config_t& config, const motor_t& motor);
 
     // 底盘使能/失能
