@@ -38,7 +38,7 @@ struct __attribute__((packed)) game_result_t {
 // 0x0003，机器人血量数据（3Hz）
 // 服务器→全体机器人
 // 注：若机器人未上场或者被罚下，则血量为0
-// V1.7.0
+// V1.9.0
 struct __attribute__((packed)) game_robot_HP_t {
     uint16_t red_1_robot_HP;  // 红1英雄机器人血量
     uint16_t red_2_robot_HP;  // 红2工程机器人血量
@@ -58,7 +58,7 @@ struct __attribute__((packed)) game_robot_HP_t {
     uint16_t blue_base_HP;    // 蓝方基地血量
 };
 
-// V1.0.0
+// V1.1.0
 // struct __attribute__((packed)) game_robot_HP_t {
 //     uint16_t ally_1_robot_HP; // 己方1号英雄机器人血量
 //     uint16_t ally_2_robot_HP; // 己方2号工程机器人血量
@@ -220,26 +220,14 @@ struct __attribute__((packed)) robot_status_t {
 
 // 0x0202，实时底盘缓冲能量和射击热量数据（10Hz，离线模式下可用）
 // 主控模块→对应机器人
-// V1.7.0
 struct __attribute__((packed)) power_heat_data_t {
     uint16_t reserved_1;                 // 保留位
     uint16_t reserved_2;                 // 保留位
     float reserved_3;                    // 保留位
     uint16_t buffer_energy;              // 缓冲能量（单位：J）
     uint16_t shooter_17mm_1_barrel_heat; // 第1个17mm发射机构的射击热量
-    uint16_t shooter_17mm_2_barrel_heat; // 第2个17mm发射机构的射击热量
     uint16_t shooter_42mm_barrel_heat;   // 42mm发射机构的射击热量
 };
-
-// V1.0.0
-// struct __attribute__((packed)) power_heat_data_t {
-//     uint16_t reserved_1;                 // 保留位
-//     uint16_t reserved_2;                 // 保留位
-//     float reserved_3;                    // 保留位
-//     uint16_t buffer_energy;              // 缓冲能量（单位：J）
-//     uint16_t shooter_17mm_1_barrel_heat; // 第1个17mm发射机构的射击热量
-//     uint16_t shooter_42mm_barrel_heat;   // 42mm发射机构的射击热量
-// };
 
 // 0x0203，机器人位置数据（1Hz，离线模式下可用）
 // 主控模块→对应机器人
@@ -251,9 +239,10 @@ struct __attribute__((packed)) robot_pos_t {
 
 // 0x0204，机器人增益和底盘能量数据（3Hz）
 // 服务器→对应机器人
+// V1.9.0
 struct __attribute__((packed)) buff_t {
     uint8_t recovery_buff;      // 机器人回血增益（百分比，值为10表示每秒恢复血量上限的10%）
-    uint16_t cooling_buff;      // 机器人射击热量冷却增益具体值（直接值，值为x表示热量冷却增加x/s）
+    uint8_t cooling_buff;       // 机器人射击热量冷却增益具体值（直接值，值为x表示热量冷却增加x/s）
     uint8_t defence_buff;       // 机器人防御增益（百分比，值为50 表示50%防御增益）
     uint8_t vulnerability_buff; // 机器人负防御增益（百分比，值为30 表示-30%防御增益）
     uint16_t attack_buff;       // 机器人攻击增益（百分比，值为50 表示50%攻击增益）
@@ -268,6 +257,25 @@ struct __attribute__((packed)) buff_t {
         uint8_t remaining_energy_1 : 1;   // 在剩余能量≥1%时为1，其余情况为0
     } remaining_energy;                   // 机器人剩余能量值反馈，以16进制标识机器人剩余能量值比例，仅在机器人剩余能量小于50%时反馈，其余默认反馈0x80。机器人初始能量视为100%
 };
+
+// V1.2.0
+// struct __attribute__((packed)) buff_t {
+//     uint8_t recovery_buff;      // 机器人回血增益（百分比，值为10表示每秒恢复血量上限的10%）
+//     uint16_t cooling_buff;      // 机器人射击热量冷却增益具体值（直接值，值为x表示热量冷却增加x/s）
+//     uint8_t defence_buff;       // 机器人防御增益（百分比，值为50 表示50%防御增益）
+//     uint8_t vulnerability_buff; // 机器人负防御增益（百分比，值为30 表示-30%防御增益）
+//     uint16_t attack_buff;       // 机器人攻击增益（百分比，值为50 表示50%攻击增益）
+//
+//     struct {
+//         uint8_t remaining_energy_125 : 1; // 在剩余能量≥125%时为1，其余情况为0
+//         uint8_t remaining_energy_100 : 1; // 在剩余能量≥100%时为1，其余情况为0
+//         uint8_t remaining_energy_50 : 1;  // 在剩余能量≥50%时为1，其余情况为0
+//         uint8_t remaining_energy_30 : 1;  // 在剩余能量≥30%时为1，其余情况为0
+//         uint8_t remaining_energy_15 : 1;  // 在剩余能量≥15%时为1，其余情况为0
+//         uint8_t remaining_energy_5 : 1;   // 在剩余能量≥5%时为1，其余情况为0
+//         uint8_t remaining_energy_1 : 1;   // 在剩余能量≥1%时为1，其余情况为0
+//     } remaining_energy;                   // 机器人剩余能量值反馈，以16进制标识机器人剩余能量值比例，仅在机器人剩余能量小于50%时反馈，其余默认反馈0x80。机器人初始能量视为100%
+// };
 
 // 0x0206，伤害状态数据（伤害发生后发送，离线模式下可用）
 // 主控模块→对应机器人
@@ -317,6 +325,7 @@ struct __attribute__((packed)) projectile_allowance_t {
 // 注：
 // 1. bit位值为1/0的含义：是否已检测到该增益点RFID卡
 // 2. 所有RFID卡仅在赛内生效。在赛外，即使检测到对应的RFID卡，对应值也为0
+// V1.9.0
 struct __attribute__((packed)) rfid_status_t {
     uint8_t base_buff : 1;               // bit 0: 己方基地增益点
     uint8_t central_highland_self : 1;   // bit 1: 己方中央高地增益点
@@ -351,20 +360,59 @@ struct __attribute__((packed)) rfid_status_t {
     uint8_t assembly_oppo : 1; // bit 22: 对方装配增益点
     uint8_t center_buff : 1;   // bit 23: 中心增益点（仅RMUL适用）
     uint8_t fortress_oppo : 1; // bit 24: 对方堡垒增益点
-    uint8_t outpost_oppo : 1;  // bit 25: 对方前哨站增益点
 
-    // 地形跨越增益点（隧道）- 第一部分
-    uint8_t tunnel_road_under_self : 1;     // bit 26: 己方地形跨越增益点（隧道）（靠近己方一侧公路区下方）
-    uint8_t tunnel_road_over_self : 1;      // bit 27: 己方地形跨越增益点（隧道）（靠近己方一侧公路区上方）
-    uint8_t tunnel_trapezoid_low_self : 1;  // bit 28: 己方地形跨越增益点（隧道）（靠近己方梯形高地较低处）
-    uint8_t tunnel_trapezoid_high_self : 1; // bit 29: 己方地形跨越增益点（隧道）（靠近己方梯形高地较高处）
-    uint8_t tunnel_road_under_oppo : 1;     // bit 30: 对方地形跨越增益点（隧道）（靠近对方一侧公路区下方）
-    uint8_t tunnel_road_over_oppo : 1;      // bit 31: 对方地形跨越增益点（隧道）（靠近对方一侧公路区上方）
-
-    // 地形跨越增益点（隧道）- 第二部分
-    uint8_t tunnel_trapezoid_low_oppo : 1;  // 对方地形跨越增益点（隧道）（靠近对方梯形高地较低处）
-    uint8_t tunnel_trapezoid_high_oppo : 1; // 对方地形跨越增益点（隧道）（靠近对方梯形高地较高处）
+    uint8_t reserved_25_31 : 7; // 保留位
 };
+
+// V1.1.0
+// struct __attribute__((packed)) rfid_status_t {
+//     uint8_t base_buff : 1;               // bit 0: 己方基地增益点
+//     uint8_t central_highland_self : 1;   // bit 1: 己方中央高地增益点
+//     uint8_t central_highland_oppo : 1;   // bit 2: 对方中央高地增益点
+//     uint8_t trapezoid_highland_self : 1; // bit 3: 己方梯形高地增益点
+//     uint8_t trapezoid_highland_oppo : 1; // bit 4: 对方梯形高地增益点
+//
+//     // 地形跨越增益点（飞坡）
+//     uint8_t ramp_self_front : 1; // bit 5: 己方地形跨越增益点（飞坡）（靠近己方一侧飞坡前）
+//     uint8_t ramp_self_back : 1;  // bit 6: 己方地形跨越增益点（飞坡）（靠近己方一侧飞坡后）
+//     uint8_t ramp_oppo_front : 1; // bit 7: 对方地形跨越增益点（飞坡）（靠近对方一侧飞坡前）
+//     uint8_t ramp_oppo_back : 1;  // bit 8: 对方地形跨越增益点（飞坡）（靠近对方一侧飞坡后）
+//
+//     // 地形跨越增益点（中央高地）
+//     uint8_t central_under_self : 1; // bit 9: 己方地形跨越增益点（中央高地下方）
+//     uint8_t central_over_self : 1;  // bit 10: 己方地形跨越增益点（中央高地上方）
+//     uint8_t central_under_oppo : 1; // bit 11: 对方地形跨越增益点（中央高地下方）
+//     uint8_t central_over_oppo : 1;  // bit 12: 对方地形跨越增益点（中央高地上方）
+//
+//     // 地形跨越增益点（公路）
+//     uint8_t road_under_self : 1; // bit 13: 己方地形跨越增益点（公路下方）
+//     uint8_t road_over_self : 1;  // bit 14: 己方地形跨越增益点（公路上方）
+//     uint8_t road_under_oppo : 1; // bit 15: 对方地形跨越增益点（公路下方）
+//     uint8_t road_over_oppo : 1;  // bit 16: 对方地形跨越增益点（公路上方）
+//
+//     uint8_t fortress_self : 1;           // bit 17: 己方堡垒增益点
+//     uint8_t outpost_self : 1;            // bit 18: 己方前哨站增益点
+//     uint8_t supply_non_overlap_self : 1; // bit 19: 己方与资源区不重叠的补给区/RMUL补给区
+//     uint8_t supply_overlap_self : 1;     // bit 20: 己方与资源区重叠的补给区
+//
+//     uint8_t assembly_self : 1; // bit 21: 己方装配增益点
+//     uint8_t assembly_oppo : 1; // bit 22: 对方装配增益点
+//     uint8_t center_buff : 1;   // bit 23: 中心增益点（仅RMUL适用）
+//     uint8_t fortress_oppo : 1; // bit 24: 对方堡垒增益点
+//     uint8_t outpost_oppo : 1;  // bit 25: 对方前哨站增益点
+//
+//     // 地形跨越增益点（隧道）- 第一部分
+//     uint8_t tunnel_road_under_self : 1;     // bit 26: 己方地形跨越增益点（隧道）（靠近己方一侧公路区下方）
+//     uint8_t tunnel_road_over_self : 1;      // bit 27: 己方地形跨越增益点（隧道）（靠近己方一侧公路区上方）
+//     uint8_t tunnel_trapezoid_low_self : 1;  // bit 28: 己方地形跨越增益点（隧道）（靠近己方梯形高地较低处）
+//     uint8_t tunnel_trapezoid_high_self : 1; // bit 29: 己方地形跨越增益点（隧道）（靠近己方梯形高地较高处）
+//     uint8_t tunnel_road_under_oppo : 1;     // bit 30: 对方地形跨越增益点（隧道）（靠近对方一侧公路区下方）
+//     uint8_t tunnel_road_over_oppo : 1;      // bit 31: 对方地形跨越增益点（隧道）（靠近对方一侧公路区上方）
+//
+//     // 地形跨越增益点（隧道）- 第二部分
+//     uint8_t tunnel_trapezoid_low_oppo : 1;  // 对方地形跨越增益点（隧道）（靠近对方梯形高地较低处）
+//     uint8_t tunnel_trapezoid_high_oppo : 1; // 对方地形跨越增益点（隧道）（靠近对方梯形高地较高处）
+// };
 
 // 0x020A，飞镖选手端指令数据（3Hz）
 // 服务器→己方飞镖机器人

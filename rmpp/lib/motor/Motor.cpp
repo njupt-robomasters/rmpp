@@ -16,13 +16,17 @@ void Motor::SetTorque(const UnitFloat<>& torque) {
     current.ref = torque / config.Kt;
 }
 
+void Motor::SetSpeed(const UnitFloat<>& speed) {
+    this->speed.ref = speed;
+}
+
 Angle<> Motor::SetAngle(const Angle<>& angle, const UnitFloat<>& speed_ff) {
-    // 电机断联/失能，不断把目标角度设置为当前位置，防止电机一下子飞起来
+    // 电机断联/失能，不断把当前角度设置为目标角度，防止电机一下子飞起来
     if (is_connect == false || is_enable == false) {
         this->angle.ref = this->angle.measure;
         speed.ref = 0 * default_unit;
         is_first_setangle = true;
-        return this->angle.ref;
+        return this->angle.ref; // 返回实际设置的角度
     }
 
     // 断联/失能后第一次设置，先不要应用
@@ -30,7 +34,7 @@ Angle<> Motor::SetAngle(const Angle<>& angle, const UnitFloat<>& speed_ff) {
         this->angle.ref = this->angle.measure;
         speed.ref = 0 * default_unit;
         is_first_setangle = false;
-        return this->angle.ref;
+        return this->angle.ref; // 返回实际设置的角度
     }
 
     this->angle.ref = angle; // 应用角度
@@ -48,11 +52,7 @@ Angle<> Motor::SetAngle(const Angle<>& angle, const UnitFloat<>& speed_ff) {
         }
     }
 
-    return this->angle.ref; // 返回实际设置的值
-}
-
-void Motor::SetSpeed(const UnitFloat<>& speed) {
-    this->speed.ref = speed;
+    return this->angle.ref; // 返回实际设置的角度
 }
 
 void Motor::OnLoop() {
@@ -61,9 +61,8 @@ void Motor::OnLoop() {
         is_connect = false;
     }
 
-    // 电机断联/失能，复位状态
+    // 电机断联/失能，清空PID
     if (is_connect == false || is_enable == false) {
-        // 清空PID
         speed_pid.Clear();
         angle_pid.Clear();
         return;
@@ -71,12 +70,15 @@ void Motor::OnLoop() {
 
     // PID计算
     switch (config.control_mode) {
-        case OPEN_LOOP_MODE: // 开环电流/力矩控制
+        // 开环电流/力矩控制
+        case OPEN_LOOP_MODE:
             break;
 
-        case SPEED_MODE: {                                         // 速度闭环
-            const UnitFloat speed_err = speed.ref - speed.measure; // 计算误差
-            speed_pid.Calculate(speed_err);                        // 计算PID
+        // 速度闭环
+        case SPEED_MODE: {
+            // 计算速度PID
+            const UnitFloat speed_err = speed.ref - speed.measure;
+            speed_pid.Calculate(speed_err);
 
             // 根据PID输出类型设置电流/力矩
             switch (config.pid_out_type) {
@@ -93,10 +95,12 @@ void Motor::OnLoop() {
         // 角度闭环
         case ANGLE_MODE: {
             if (config.is_limit) { // 限位模式
+                // 计算角度PID，使用速度前馈
                 const UnitFloat angle_err = angle.ref - angle.measure;
                 const UnitFloat speed_err = speed.ref - speed.measure;
                 angle_pid.Calculate(angle_err, speed_err);
             } else { // 圆周模式
+                // 计算角度PID，使用速度前馈
                 const Angle angle_err = angle.ref - angle.measure;
                 const UnitFloat speed_err = speed.ref - speed.measure;
                 angle_pid.Calculate(angle_err, speed_err);
@@ -114,7 +118,7 @@ void Motor::OnLoop() {
         }
         break;
 
-        // 角度-角度闭环（串级PID）
+        // 角度-速度闭环（串级PID）
         case ANGLE_SPEED_MODE: {
             // 角度外环
             if (config.is_limit) { // 限位模式
@@ -125,9 +129,11 @@ void Motor::OnLoop() {
                 speed.outer = angle_pid.Calculate(angle_err);
             }
 
-            // 速度内环
-            const UnitFloat speed_err = speed.outer + speed.ref - speed.measure; // 计算误差
-            speed_pid.Calculate(speed_err);                                      // 计算PID
+            // 速度内环，使用速度前馈
+            const UnitFloat speed_err = speed.outer + speed.ref - speed.measure;
+            speed_pid.Calculate(speed_err);
+
+            // 根据PID输出类型设置电流/力矩
             switch (config.pid_out_type) {
                 case CURRENT_OUTPUT:
                     SetCurrent(speed_pid.out);
@@ -145,7 +151,7 @@ void Motor::callback(const raw_t& raw) {
     // 保存到成员变量，方便调试
     this->raw = raw;
 
-    // 电机断联检测
+    // 复位电机断联检测
     is_connect = true;
     dwt_connect.UpdateDT();;
 

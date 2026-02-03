@@ -18,8 +18,8 @@
 inline Infantry::config_t robot_config = {
     .vxy_max = 3 * m_s,
     .wr_max = 240 * rpm,
-    .axy = 4 * m_ss,
-    .dxy = 4 * m_ss,
+    .axy = 9.8 * m_ss,
+    .dxy = 9.8 * m_ss,
 
     .yaw_max = 360 * deg_s,
     .pitch_max = 360 * deg_s,

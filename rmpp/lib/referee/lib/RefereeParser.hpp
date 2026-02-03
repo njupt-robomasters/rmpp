@@ -27,8 +27,8 @@ public:
     referee_warning_t referee_warning{};                       // 0x0104，裁判警告数据（1Hz，己方判罚/判负时触发发送）
     dart_info_t dart_info{};                                   // 0x0105，飞镖发射相关数据（1Hz）
     robot_status_t robot_status{};                             // 0x0201，机器人性能体系数据（10Hz，离线模式下可用）
-    power_heat_data_t power_heat_data{};                       // 0x0202，实时底盘缓冲能量和射击热量数据（10Hz，离线模式下可用）
-    robot_pos_t robot_pos{};                                   // 0x0203，机器人位置数据（1Hz，离线模式下可用）
+    power_heat_data_t power_heat_data{};                       // 0x0202，实时底盘缓冲能量和射击热量数据（10Hz）
+    robot_pos_t robot_pos{};                                   // 0x0203，机器人位置数据（1Hz）
     buff_t buff{};                                             // 0x0204，机器人增益和底盘能量数据（3Hz）
     hurt_data_t hurt_data{};                                   // 0x0206，伤害状态数据（伤害发生后发送，离线模式下可用）
     shoot_data_t shoot_data{};                                 // 0x0207，实时射击数据（弹丸发射后发送，离线模式下可用）

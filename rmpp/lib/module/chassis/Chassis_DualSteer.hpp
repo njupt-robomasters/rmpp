@@ -11,15 +11,20 @@ public:
         Motor &s1, &s2; // 舵电机（左前，右后）
     } motor;
 
+    // 舵轮角度
+    struct {
+        Angle<deg> measure, ref;
+    } s1, s2;
+
     // 轮子线速度
     struct {
         UnitFloat<m_s> ref, measure;
     } v1, v2;
 
-    // 舵轮角度
+    // 轮子力
     struct {
-        Angle<deg> measure, ref;
-    } s1, s2;
+        UnitFloat<m_s> ref, measure;
+    } f1, f2;
 
     Chassis_DualSteer(const config_t& config, const motor_t& motor);
 
@@ -32,9 +37,7 @@ public:
 private:
     static constexpr UnitFloat<> MIN_V = 0.01f * m_s; // 最小转舵速度
 
-    // 车体速度 -> 轮子速度
-    void forward() override;
-
-    // 轮子速度 -> 车体速度
     void backward() override;
+
+    void forward() override;
 };

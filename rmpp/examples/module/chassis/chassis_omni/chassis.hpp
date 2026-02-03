@@ -17,6 +17,8 @@ static constexpr bool IS_INVERT = false;
 inline PID::config_t vxyz_pid = {
     .mode = PID::POSITION_MODE,
     .kp = MAX_F / (1 * (m / s)),
+    .ki = MAX_F / (10 * cm),
+    .max_i = MAX_F,
     .max_out = MAX_F,
     .fc = 10 * Hz,
 };
