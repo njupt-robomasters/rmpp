@@ -8,7 +8,6 @@ static constexpr UnitFloat<rpm> MAX_SPEED = BULLET_FREQ / BULLET_PER_REV;
 
 void send_can_cmd() {
     const int16_t cmd6 = motor.GetCanCmd();
-
     uint8_t data[8];
     data[0] = 0;
     data[1] = 0;

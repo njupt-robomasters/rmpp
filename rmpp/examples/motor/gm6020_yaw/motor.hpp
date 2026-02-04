@@ -4,7 +4,6 @@
 
 // 速度PID
 inline PID::config_t speed_pid = {
-    .mode = PID::POSITION_MODE,
     .kp = (3 * A) / (100 * deg_s),
     .ki = (3 * A) / (60 * deg),
     .max_i = 3 * A,
@@ -14,18 +13,15 @@ inline PID::config_t speed_pid = {
 
 // 角度PID
 inline PID::config_t angle_pid = {
-    .mode = PID::POSITION_MODE,
     .kp = 14 * default_unit,
     .max_out = 720 * deg_s,
 };
 
+// yaw电机
 inline GM6020 motor({
     .can_port = 1,
     .master_id = 0x205,
     .slave_id = 0x1FF,
-    .reduction = GM6020::reduction,
-    .Kt = GM6020::Kt,
-    .R = GM6020::R,
     .is_invert = false,
     .control_mode = Motor::ANGLE_SPEED_MODE,
     .pid_out_type = Motor::CURRENT_OUTPUT,

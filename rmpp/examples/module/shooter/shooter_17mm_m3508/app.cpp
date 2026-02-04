@@ -9,7 +9,6 @@ void send_can_cmd() {
     rub_right.SendCanCmd();
 
     const int16_t cmd6 = shoot.GetCanCmd();
-
     uint8_t data[8];
     data[0] = 0;
     data[1] = 0;

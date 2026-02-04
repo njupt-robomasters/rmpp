@@ -5,12 +5,11 @@
 
 // 底盘电机参数
 static constexpr float REDUCTION = 268.0f / 17.0f;
-static constexpr UnitFloat Kt = M3508::Kt / M3508::reduction * REDUCTION;
-static constexpr bool is_invert = false;
+static constexpr UnitFloat Kt = M3508::Kt / M3508::REDUCTION * REDUCTION;
+static constexpr bool IS_INVERT = false;
 
 // 底盘电机PID参数
 inline PID::config_t wheel_pid = {
-    .mode = PID::POSITION_MODE,
     .kp = (20 * A) / (120 * rpm),
     .ki = (20 * A) / (15 * deg),
     .max_i = 20 * A,
@@ -24,8 +23,7 @@ inline M3508 w1({
     .slave_id = 0x200,
     .reduction = REDUCTION,
     .Kt = Kt,
-    .R = M3508::R,
-    .is_invert = is_invert,
+    .is_invert = IS_INVERT,
     .control_mode = Motor::SPEED_MODE,
     .pid_out_type = Motor::CURRENT_OUTPUT,
     .speed_pid_config = &wheel_pid
@@ -36,8 +34,7 @@ inline M3508 w2({
     .slave_id = 0x200,
     .reduction = REDUCTION,
     .Kt = Kt,
-    .R = M3508::R,
-    .is_invert = is_invert,
+    .is_invert = IS_INVERT,
     .control_mode = Motor::SPEED_MODE,
     .pid_out_type = Motor::CURRENT_OUTPUT,
     .speed_pid_config = &wheel_pid
@@ -48,8 +45,7 @@ inline M3508 w3({
     .slave_id = 0x200,
     .reduction = REDUCTION,
     .Kt = Kt,
-    .R = M3508::R,
-    .is_invert = is_invert,
+    .is_invert = IS_INVERT,
     .control_mode = Motor::SPEED_MODE,
     .pid_out_type = Motor::CURRENT_OUTPUT,
     .speed_pid_config = &wheel_pid
@@ -60,8 +56,7 @@ inline M3508 w4({
     .slave_id = 0x200,
     .reduction = REDUCTION,
     .Kt = Kt,
-    .R = M3508::R,
-    .is_invert = is_invert,
+    .is_invert = IS_INVERT,
     .control_mode = Motor::SPEED_MODE,
     .pid_out_type = Motor::CURRENT_OUTPUT,
     .speed_pid_config = &wheel_pid

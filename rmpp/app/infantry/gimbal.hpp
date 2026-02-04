@@ -7,7 +7,6 @@
 
 // yaw电机
 inline PID::config_t yaw_speed_pid = {
-    .mode = PID::POSITION_MODE,
     .kp = (3 * A) / (100 * deg_s),
     .ki = (3 * A) / (60 * deg),
     .max_i = 3 * A,
@@ -15,7 +14,6 @@ inline PID::config_t yaw_speed_pid = {
     .fc = 10 * Hz,
 };
 inline PID::config_t yaw_angle_pid = {
-    .mode = PID::POSITION_MODE,
     .kp = 14 * default_unit,
     .max_out = 720 * deg_s,
 };
@@ -23,9 +21,6 @@ inline GM6020 yaw({
     .can_port = 1,
     .master_id = 0x205,
     .slave_id = 0x1FF,
-    .reduction = GM6020::REDUCTION,
-    .Kt = GM6020::Kt,
-    .R = GM6020::R,
     .is_invert = false,
     .offset = 117.77f * deg,
     .control_mode = Motor::ANGLE_SPEED_MODE,
@@ -36,7 +31,6 @@ inline GM6020 yaw({
 
 // pitch电机
 inline PID::config_t pitch_speed_pid = {
-    .mode = PID::POSITION_MODE,
     .kp = (3 * Nm) / (100 * deg_s),
     .ki = (3 * Nm) / (60 * deg),
     .max_i = 3 * Nm,
@@ -44,7 +38,6 @@ inline PID::config_t pitch_speed_pid = {
     .fc = 10 * Hz,
 };
 inline PID::config_t pitch_angle_pid = {
-    .mode = PID::POSITION_MODE,
     .kp = 14 * default_unit,
     .max_out = 720 * deg_s,
 };
@@ -52,9 +45,6 @@ inline DM4310 pitch({
     .can_port = 2,
     .master_id = 0x10,
     .slave_id = 0x11,
-    .reduction = DM4310::REDUCTION,
-    .Kt = DM4310::Kt,
-    .R = DM4310::R,
     .is_invert = false,
     .offset = -150 * deg,
     .is_limit = true,

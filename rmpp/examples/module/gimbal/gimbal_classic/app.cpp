@@ -9,7 +9,6 @@ void send_can_cmd() {
     pitch.SendCanCmd();
 
     const int16_t cmd5 = yaw.GetCanCmd();
-
     uint8_t data[8];
     data[0] = cmd5 >> 8;
     data[1] = cmd5;

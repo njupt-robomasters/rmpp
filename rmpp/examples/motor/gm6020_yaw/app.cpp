@@ -6,7 +6,6 @@ static constexpr UnitFloat MAX_SPEED = 360 * deg_s;
 
 void can_send_cmd() {
     const int16_t cmd5 = motor.GetCanCmd();
-
     uint8_t data[8];
     data[0] = cmd5 >> 8;
     data[1] = cmd5;

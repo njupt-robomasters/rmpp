@@ -1,6 +1,10 @@
 #include "MF9025.hpp"
 
 MF9025::MF9025(const config_t& config) : Motor(config) {
+    // 设置电机默认参数
+    if (this->config.reduction == 0.0f) this->config.reduction = REDUCTION;
+    if (this->config.Kt == 0.0f) this->config.Kt = Kt;
+
     // 注册CAN回调
     auto callback = [this](const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
         this->callback(port, id, data, dlc);

@@ -26,9 +26,8 @@ inline VESC rub_right2({
                            .slave_id = 0x23,
                        }, {});
 
-// 拨弹电机速度PID参数
+// 拨弹电机PID参数
 inline PID::config_t shoot_pid = {
-    .mode = PID::POSITION_MODE,
     .kp = (10 * Nm) / (200 * rpm),
     .ki = (10 * Nm) / (50 * deg),
     .max_i = 10 * Nm,

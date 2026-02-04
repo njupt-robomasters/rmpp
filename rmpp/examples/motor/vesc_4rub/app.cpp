@@ -7,7 +7,6 @@ static constexpr UnitFloat<rpm> RUB_SPEED = BULLET_SPEED / (3 * cm);
 
 void send_can_cmd() {
     static uint32_t send_cnt;
-
     switch (send_cnt++ % 4) {
         case 0:
             rub_left1.SendCanCmd();
@@ -47,8 +46,8 @@ void loop() {
     }
 
     if (rc.swc == FSi6X::MID || rc.swc == FSi6X::DOWN) {
-        rub_left1.SetSpeed(RUB_SPEED + 2 * m_s);
-        rub_right1.SetSpeed(RUB_SPEED + 2 * m_s);
+        rub_left1.SetSpeed(RUB_SPEED);
+        rub_right1.SetSpeed(RUB_SPEED);
         rub_left2.SetSpeed(RUB_SPEED);
         rub_right2.SetSpeed(RUB_SPEED);
     } else {

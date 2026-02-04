@@ -4,7 +4,6 @@
 
 // 速度PID
 inline PID::config_t speed_pid = {
-    .mode = PID::POSITION_MODE,
     .kp = (3 * Nm) / (100 * deg_s),
     .ki = (3 * Nm) / (60 * deg),
     .max_i = 3 * Nm,
@@ -14,18 +13,15 @@ inline PID::config_t speed_pid = {
 
 // 角度PID
 inline PID::config_t angle_pid = {
-    .mode = PID::POSITION_MODE,
     .kp = 14 * default_unit,
     .max_out = 720 * deg_s,
 };
 
+// pitch电机
 inline DM4310 motor({
     .can_port = 2,
     .master_id = 0x10,
     .slave_id = 0x11,
-    .reduction = DM4310::REDUCTION,
-    .Kt = DM4310::Kt,
-    .R = DM4310::R,
     .is_invert = false,
     .offset = -150 * deg,
     .is_limit = true,

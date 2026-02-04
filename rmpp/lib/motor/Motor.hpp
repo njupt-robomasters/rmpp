@@ -23,11 +23,11 @@ public:
         // CAN通信参数
         uint8_t can_port = -1;
         uint32_t master_id = 0, slave_id = 0;
-        UnitFloat<> timeout = 100 * ms; // 电机断联超时时间
+        UnitFloat<> timeout = 100.0f * ms; // 电机断联超时时间
 
-        // 电机本体参数
-        float reduction = 1.0f;       // 减速比
-        UnitFloat<> Kt = 1.0f * Nm_A; // 力矩系数
+        // 电机参数
+        float reduction = 0.0f;       // 减速比
+        UnitFloat<> Kt = 0.0f * Nm_A; // 力矩系数
         UnitFloat<> R = 0.0f * Ohm;   // 相电阻（两相间电阻/2）
 
         // 电机安装参数
@@ -110,7 +110,7 @@ protected:
     void callback(const raw_t& raw);
 
 private:
-    raw_t raw;             // 用于debug校正电机
-    Angle<deg> last_angle; // 用于多圈计数
-    bool is_first_setangle = false;
+    raw_t raw;                      // 用于debug校正电机
+    Angle<deg> last_angle;          // 用于多圈计数
+    bool is_first_setangle = false; // 断联/使能后第一次设置角度标志，防止电机一下子飞起来
 };

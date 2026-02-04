@@ -4,7 +4,7 @@
 
 class RM6623 : public Motor {
 public:
-    static constexpr float reduction = 1.0f;
+    static constexpr float REDUCTION = 1.0f;
     static constexpr UnitFloat<> Kt = 0.38f * Nm_A;
     static constexpr UnitFloat MAX_CURRENT = 5.0f * A;
     static constexpr UnitFloat<Nm> MAX_TORQUE = MAX_CURRENT * Kt;

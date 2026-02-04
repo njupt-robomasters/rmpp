@@ -4,7 +4,7 @@
 
 class CyberDogMotor : public Motor {
 public:
-    static constexpr float reduction = 1.0f;
+    static constexpr float REDUCTION = 1.0f;
     static constexpr UnitFloat<> Kt = 0.9f * Nm_A;
     static constexpr UnitFloat<> R = 0.17f * Ohm;
 

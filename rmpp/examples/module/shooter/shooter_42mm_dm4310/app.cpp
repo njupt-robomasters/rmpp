@@ -6,7 +6,6 @@ static constexpr UnitFloat BULLET_FREQ = 5 * Hz;
 
 void send_can_cmd() {
     static uint32_t send_cnt;
-
     switch (send_cnt++ % 4) {
         case 0:
             rub_left1.SendCanCmd();

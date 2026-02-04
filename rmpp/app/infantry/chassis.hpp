@@ -16,7 +16,6 @@ static constexpr UnitFloat<N> MAX_F = M3508::MAX_CURRENT * Kt / WHEEL_RADIUS * 4
 
 // 底盘PID参数
 inline PID::config_t vxyz_pid = {
-    .mode = PID::POSITION_MODE,
     .kp = MAX_F / (1 * (m / s)),
     .ki = MAX_F / (10 * cm),
     .max_i = MAX_F,
@@ -31,7 +30,6 @@ inline M3508 w1({
     .slave_id = 0x200,
     .reduction = REDUCTION,
     .Kt = Kt,
-    .R = M3508::R,
     .is_invert = IS_INVERT,
 });
 inline M3508 w2({
@@ -40,7 +38,6 @@ inline M3508 w2({
     .slave_id = 0x200,
     .reduction = REDUCTION,
     .Kt = Kt,
-    .R = M3508::R,
     .is_invert = IS_INVERT,
 });
 inline M3508 w3({
@@ -49,7 +46,6 @@ inline M3508 w3({
     .slave_id = 0x200,
     .reduction = REDUCTION,
     .Kt = Kt,
-    .R = M3508::R,
     .is_invert = IS_INVERT,
 });
 inline M3508 w4({
@@ -58,7 +54,6 @@ inline M3508 w4({
     .slave_id = 0x200,
     .reduction = REDUCTION,
     .Kt = Kt,
-    .R = M3508::R,
     .is_invert = IS_INVERT,
 });
 

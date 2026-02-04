@@ -1,7 +1,5 @@
 #include "Mavlink.hpp"
 
-#include "bsp/bsp.hpp"
-
 Mavlink::Mavlink() {
     // 注册CDC接收回调
     auto callback = [this](const uint8_t data[], const uint32_t size) {
