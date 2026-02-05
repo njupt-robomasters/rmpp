@@ -20,13 +20,14 @@ void Chassis_DualSteer::OnLoop() {
     handleFollow(); // 底盘跟随
     forward();      // 速度、力学正解
     backward();     // 速度、力学逆解
-    powerControl(); // 功率控制
 
     // 更新电机
     motor.w1.OnLoop();
     motor.w2.OnLoop();
     motor.s1.OnLoop();
     motor.s2.OnLoop();
+
+    powerControl(); // 功率控制
 }
 
 void Chassis_DualSteer::forward() {

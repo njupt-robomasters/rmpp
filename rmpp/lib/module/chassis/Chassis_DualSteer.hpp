@@ -33,6 +33,6 @@ private:
 
     void backward() override;
 
-    // 功率控制，必须放在逆解【之后】
+    // 功率控制，必须放在【更新电机之后】
     void powerControl();
 };

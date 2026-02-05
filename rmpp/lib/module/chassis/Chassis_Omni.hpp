@@ -30,6 +30,6 @@ private:
     // 底盘运动PID
     void handleXYZPID();
 
-    // 功率控制，必须放在逆解【之前】
+    // 功率控制，必须放在【逆解之前】
     void powerControl();
 };
