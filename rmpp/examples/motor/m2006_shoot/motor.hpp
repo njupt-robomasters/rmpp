@@ -2,13 +2,10 @@
 
 #include "motor/M2006.hpp"
 
-// 拨弹电机PID参数
 inline PID::config_t speed_pid = {
     .kp = (10 * A) / (20 * rpm),
     .max_out = 10 * A,
 };
-
-// 拨弹电机
 inline M2006 motor({
     .can_port = 1,
     .master_id = 0x207,

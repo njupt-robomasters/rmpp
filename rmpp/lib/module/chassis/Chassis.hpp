@@ -9,7 +9,6 @@ public:
     struct config_t {
         UnitFloat<> chassis_radius;                       // 底盘半径
         UnitFloat<> wheel_radius;                         // 轮子半径
-        const PID::config_t* vxyz_pid_config = nullptr;   // 底盘运动PID参数
         const PID::config_t* follow_pid_config = nullptr; // 底盘跟随PID参数
     } config;
 
@@ -50,10 +49,10 @@ public:
 
     // 用于功率控制
     struct {
-        UnitFloat<W> limit = 120 * W;                   // 功率限制
-        UnitFloat<J> buffer_energy = 60 * J;            // 缓冲能量
-        UnitFloat<pct> gain_x, gain_y, gain_xy, gain_z; // 力矩衰减系数
-        UnitFloat<W> estimate, estimate_xy, estimate_z; // 功率估计
+        UnitFloat<W> limit = 120 * W;                         // 功率限制
+        UnitFloat<J> buffer_energy = 60 * J;                  // 缓冲能量
+        UnitFloat<pct> gain, gain_x, gain_y, gain_xy, gain_z; // 力矩衰减系数
+        UnitFloat<W> estimate, estimate_xy, estimate_z;       // 功率估计
     } power;
 
     Chassis(const config_t& config);
@@ -70,7 +69,7 @@ public:
     // 设置底盘前进正方向（云台yaw角度）
     void SetGimbalYaw(const Angle<>& gimbal_yaw);
 
-    // 设置底盘功率限制
+    // 设置底盘功率限制，65535表示不限功率
     void SetPowerLimit(const UnitFloat<>& power_limit);
 
     // 设置底盘缓冲能量
@@ -82,18 +81,15 @@ public:
 protected:
     Angle<deg> gimbal_yaw; // 前进正方向（云台相对于底盘的yaw）
 
+    // 底盘跟随
+    void handleFollow();
+
+    // 速度、力学正解
     virtual void forward() = 0;
 
-    virtual void backward();
+    // 速度、力学逆解
+    virtual void backward() = 0;
 
 private:
-    // PID控制器
-    PID vx_pid, vy_pid, vz_pid;
     PID follow_pid; // 底盘跟随PID
-
-    // 计算PID
-    void calcPID();
-
-    // 功率控制
-    void powerControl();
 };

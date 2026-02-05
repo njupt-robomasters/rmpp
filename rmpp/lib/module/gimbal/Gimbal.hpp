@@ -38,7 +38,7 @@ public:
     void SetAngle(const Angle<>& yaw, const Angle<>& pitch);
 
     // 设置底盘旋转速度，用于yaw轴前馈
-    void SetChassisWr(const UnitFloat<>& chassis_vr);
+    void SetChassisWr(const UnitFloat<>& chassis_wr);
 
     // 需要在循环中调用
     virtual void OnLoop();
@@ -50,12 +50,12 @@ protected:
 
     BSP::Dwt dwt_motion; // 用于云台运动
 
-    // 更新云台转动，通过dt不断计算角度增量
-    void updateMotion();
-
-    // 云台姿态 -> 电机角度
-    virtual void angleForward() = 0;
+    // 处理云台转动，通过dt不断计算角度增量
+    void handleMotion();
 
     // 电机角度 -> 云台姿态
-    virtual void angleBackward() = 0;
+    virtual void forward() = 0;
+
+    // 云台姿态 -> 电机角度
+    virtual void backward() = 0;
 };

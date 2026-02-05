@@ -28,7 +28,7 @@ void setup() {
 
     chassis.SetMode(Chassis::DETACH_MODE);
     chassis.SetGimbalYaw(0 * deg);
-    chassis.SetPowerLimit(65535 * W);
+    chassis.SetPowerLimit(120 * W);
     chassis.SetBufferEnergy(60 * J);
 }
 

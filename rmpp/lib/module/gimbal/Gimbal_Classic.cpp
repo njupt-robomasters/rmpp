@@ -12,18 +12,28 @@ void Gimbal_Classic::SetEnable(const bool is_enable) {
 
 void Gimbal_Classic::OnLoop() {
     // 更新云台转动
-    updateMotion();
+    handleMotion();
 
-    // 角度解算
-    angleBackward();
-    angleForward();
+    // 角度正逆解
+    forward();
+    backward();
 
     // 电机PID计算
     motor.yaw.OnLoop();
     motor.pitch.OnLoop();
 }
 
-void Gimbal_Classic::angleForward() {
+void Gimbal_Classic::forward() {
+    // 从电机读取
+    yaw.ecd.measure = motor.yaw.angle.measure;
+    pitch.ecd.measure = motor.pitch.angle.measure;
+
+    // 读取imu
+    yaw.imu.measure = imu.yaw;
+    pitch.imu.measure = imu.pitch;
+}
+
+void Gimbal_Classic::backward() {
     // 用于参考系转换
     yaw.imu_minus_ecd = yaw.imu.measure - yaw.ecd.measure;
     pitch.imu_minus_ecd = pitch.imu.measure - pitch.ecd.measure;
@@ -45,14 +55,4 @@ void Gimbal_Classic::angleForward() {
     // 传递软件限位到imu参考系
     yaw.imu.ref = yaw.ecd.ref + yaw.imu_minus_ecd;
     pitch.imu.ref = pitch.ecd.ref + pitch.imu_minus_ecd;
-}
-
-void Gimbal_Classic::angleBackward() {
-    // 从电机读取
-    yaw.ecd.measure = motor.yaw.angle.measure;
-    pitch.ecd.measure = motor.pitch.angle.measure;
-
-    // 读取imu
-    yaw.imu.measure = imu.yaw;
-    pitch.imu.measure = imu.pitch;
 }

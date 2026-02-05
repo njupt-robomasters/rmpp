@@ -30,7 +30,7 @@ namespace BSP {
         UnitFloat<> dt;
         UnitFloat<> freq;
 
-        Dwt(const UnitFloat<>& min_dt = 1 * ms, const UnitFloat<>& max_dt = 10 * s);
+        Dwt(const UnitFloat<>& min_dt = 0.1 * ms, const UnitFloat<>& max_dt = 10 * s);
 
         Dwt& operator=(const Dwt& other) {
             if (this != &other) {

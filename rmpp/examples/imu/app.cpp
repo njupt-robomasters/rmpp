@@ -3,7 +3,7 @@
 
 void setup() {
     BSP::Init();
-    // imu.Calibrate();
+    imu.Calibrate();
 }
 
 void loop() {

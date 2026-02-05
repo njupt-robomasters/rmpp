@@ -19,6 +19,5 @@ public:
 
 private:
     UnitFloat<ratio> hue; // 当前色相
-
     BSP::Dwt dwt; // 用于计算dt
 };

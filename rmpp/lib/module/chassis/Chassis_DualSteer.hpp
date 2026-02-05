@@ -16,16 +16,6 @@ public:
         Angle<deg> measure, ref;
     } s1, s2;
 
-    // 轮子线速度
-    struct {
-        UnitFloat<m_s> ref, measure;
-    } v1, v2;
-
-    // 轮子力
-    struct {
-        UnitFloat<m_s> ref, measure;
-    } f1, f2;
-
     Chassis_DualSteer(const config_t& config, const motor_t& motor);
 
     // 底盘使能/失能
@@ -35,9 +25,14 @@ public:
     void OnLoop() override;
 
 private:
-    static constexpr UnitFloat<> MIN_V = 0.01f * m_s; // 最小转舵速度
+    static constexpr UnitFloat<> MIN_V = 1 * (cm / s); // 最小转舵速度
+
+    bool is_invert_v1 = false, is_invert_v2 = false;
+
+    void forward() override;
 
     void backward() override;
 
-    void forward() override;
+    // 功率控制，必须放在逆解【之后】
+    void powerControl();
 };

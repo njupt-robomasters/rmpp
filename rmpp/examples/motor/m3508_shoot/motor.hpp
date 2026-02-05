@@ -2,13 +2,10 @@
 
 #include "motor/M3508.hpp"
 
-// 拨弹电机PID参数
 inline PID::config_t speed_pid = {
     .kp = (20 * A) / (40 * rpm),
     .max_out = 20 * A,
 };
-
-// 拨弹电机
 inline M3508 motor({
     .can_port = 1,
     .master_id = 0x206,

@@ -1,6 +1,8 @@
 file(GLOB_RECURSE USER_SOURCES
         "lib/*.*"
 
+        # "examples/module/led/*.*"
+
         # 遥控器
         # "examples/rc/fsi6x/*.*"
         # "examples/rc/vt13/*.*"
@@ -17,8 +19,10 @@ file(GLOB_RECURSE USER_SOURCES
         # 云台
         # "examples/motor/mf9025_yaw/*.*"
         # "examples/motor/gm6020_yaw/*.*"
+        # "examples/motor/gm6020_yaw_limit/*.*"
         # "examples/motor/dm4310_pitch/*.*"
         # "examples/module/gimbal/gimbal_classic/*.*"
+        # "examples/module/gimbal/gimbal_dualyaw/*.*"
 
         # 发射机构
         # "examples/motor/vesc_2rub/*.*"
@@ -27,14 +31,15 @@ file(GLOB_RECURSE USER_SOURCES
         # "examples/motor/m3508_shoot/*.*"
         # "examples/motor/dm4310_shoot/*.*"
         # "examples/module/shooter/shooter_17mm_m2006/*.*"
-        # "examples/module/shooter/shooter_42mm_m3508/*.*"
+        # "examples/module/shooter/shooter_17mm_m3508/*.*"
         # "examples/module/shooter/shooter_42mm_dm4310/*.*"
 
         # 裁判系统
         # "examples/referee/*.*"
 
         # 整车代码
-        "app/infantry/*.*"
+        # "app/infantry/*.*"
+        "app/sentry/*.*"
 )
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE

@@ -2,15 +2,12 @@
 
 #include "motor/M3508.hpp"
 
-// 速度PID参数
 inline PID::config_t speed_pid = {
     .kp = (20 * A) / (120 * rpm),
     .ki = (20 * A) / (15 * deg),
     .max_i = 20 * A,
     .max_out = 20 * A,
 };
-
-// 电机
 inline M3508 motor({
     .can_port = 1,
     .master_id = 0x201,

@@ -211,8 +211,8 @@ struct __attribute__((packed)) robot_status_t {
     uint16_t current_HP;                         // 机器人当前血量
     uint16_t maximum_HP;                         // 机器人血量上限
     uint16_t shooter_barrel_cooling_value;       // 机器人射击热量每秒冷却值
-    uint16_t shooter_barrel_heat_limit;          // 机器人射击热量上限
-    uint16_t chassis_power_limit;                // 机器人底盘功率上限
+    uint16_t shooter_barrel_heat_limit = 65535;  // 机器人射击热量上限
+    uint16_t chassis_power_limit = 65535;        // 机器人底盘功率上限
     uint8_t power_management_gimbal_output : 1;  // gimbal口输出，0为无输出，1为24V输出
     uint8_t power_management_chassis_output : 1; // chassis口输出，0为无输出，1为24V输出
     uint8_t power_management_shooter_output : 1; // shooter口输出，0为无输出，1为24V输出
@@ -221,12 +221,12 @@ struct __attribute__((packed)) robot_status_t {
 // 0x0202，实时底盘缓冲能量和射击热量数据（10Hz，离线模式下可用）
 // 主控模块→对应机器人
 struct __attribute__((packed)) power_heat_data_t {
-    uint16_t reserved_1;                 // 保留位
-    uint16_t reserved_2;                 // 保留位
-    float reserved_3;                    // 保留位
-    uint16_t buffer_energy;              // 缓冲能量（单位：J）
-    uint16_t shooter_17mm_1_barrel_heat; // 第1个17mm发射机构的射击热量
-    uint16_t shooter_42mm_barrel_heat;   // 42mm发射机构的射击热量
+    uint16_t reserved_1;                     // 保留位
+    uint16_t reserved_2;                     // 保留位
+    float reserved_3;                        // 保留位
+    uint16_t buffer_energy = 60;             // 缓冲能量（单位：J）
+    uint16_t shooter_17mm_1_barrel_heat = 0; // 第1个17mm发射机构的射击热量
+    uint16_t shooter_42mm_barrel_heat = 0;   // 42mm发射机构的射击热量
 };
 
 // 0x0203，机器人位置数据（1Hz，离线模式下可用）

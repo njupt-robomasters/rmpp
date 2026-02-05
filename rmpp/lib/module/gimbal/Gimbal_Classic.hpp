@@ -8,7 +8,7 @@ public:
     // 云台电机
     struct motor_t {
         Motor &yaw, &pitch;
-    };
+    } motor;
 
     Gimbal_Classic(const IMU& imu, const motor_t& motor);
 
@@ -19,11 +19,9 @@ public:
     void OnLoop() override;
 
 private:
-    motor_t motor;
+    // 电机角度 -> 云台姿态
+    void forward() override;
 
     // 云台姿态 -> 电机角度
-    void angleForward() override;
-
-    // 电机角度 -> 云台姿态
-    void angleBackward() override;
+    void backward() override;
 };

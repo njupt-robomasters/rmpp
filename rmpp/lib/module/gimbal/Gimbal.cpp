@@ -28,22 +28,22 @@ void Gimbal::SetSpeed(const UnitFloat<>& yaw_speed, const UnitFloat<>& pitch_spe
     this->pitch_speed = pitch_speed;
 }
 
-void Gimbal::SetChassisWr(const UnitFloat<>& chassis_vr) {
-    this->chassis_wr = chassis_vr;
+void Gimbal::SetChassisWr(const UnitFloat<>& chassis_wr) {
+    this->chassis_wr = chassis_wr;
 }
 
 void Gimbal::OnLoop() {
     // 更新云台转动
-    updateMotion();
+    handleMotion();
 
     // 角度正逆解
-    angleBackward();
-    angleForward();
+    forward();
+    backward();
 
     // 这里计算电机PID
 }
 
-void Gimbal::updateMotion() {
+void Gimbal::handleMotion() {
     const UnitFloat dt = dwt_motion.UpdateDT();
     if (is_enable) {
         const Angle yaw_delta = yaw_speed * dt;

@@ -36,8 +36,10 @@ void send_can_cmd() {
 void setup() {
     BSP::Init();
 
-    chassis.SetPowerLimit(0 * W);
     chassis.SetMode(Chassis::DETACH_MODE);
+    chassis.SetGimbalYaw(0 * deg);
+    chassis.SetPowerLimit(65535 * W);
+    chassis.SetBufferEnergy(60 * J);
 }
 
 void loop() {

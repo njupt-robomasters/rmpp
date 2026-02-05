@@ -24,9 +24,9 @@ public:
     void OnLoop() override;
 
 private:
-    // 云台姿态 -> 电机角度
-    void angleForward() override;
-
     // 电机角度 -> 云台姿态
-    void angleBackward() override;
+    void forward() override;
+
+    // 云台姿态 -> 电机角度
+    void backward() override;
 };

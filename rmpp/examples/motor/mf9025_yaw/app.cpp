@@ -27,7 +27,7 @@ void loop() {
     // 速度闭环
     // motor.SetSpeed(speed);
 
-    // 速度-角度闭环
+    // 角度闭环
     static BSP::Dwt dwt;
     static Angle<deg> angle;
     const UnitFloat dt = dwt.UpdateDT();

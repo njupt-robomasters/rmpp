@@ -6,7 +6,9 @@ static constexpr UnitFloat YAW_MAX_SPEED = 360 * deg_s;
 static constexpr UnitFloat PITCH_MAX_SPEED = 360 * deg_s;
 
 void send_can_cmd() {
-    const int16_t cmd5 = yaw.GetCanCmd();
+    yaw1.SendCanCmd();
+
+    const int16_t cmd5 = yaw2.GetCanCmd();
     uint8_t data[8];
     data[0] = cmd5 >> 8;
     data[1] = cmd5;

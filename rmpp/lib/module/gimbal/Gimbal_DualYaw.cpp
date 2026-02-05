@@ -13,11 +13,11 @@ void Gimbal_DualYaw::SetEnable(const bool is_enable) {
 
 void Gimbal_DualYaw::OnLoop() {
     // 更新云台转动
-    updateMotion();
+    handleMotion();
 
-    // 角度解算
-    angleBackward();
-    angleForward();
+    // 角度正逆解
+    forward();
+    backward();
 
     // 电机PID计算
     motor.yaw1.OnLoop();
@@ -25,7 +25,21 @@ void Gimbal_DualYaw::OnLoop() {
     motor.pitch.OnLoop();
 }
 
-void Gimbal_DualYaw::angleForward() {
+void Gimbal_DualYaw::forward() {
+    // 从电机读取
+    yaw1.measure = motor.yaw1.angle.measure;
+    yaw2.measure = motor.yaw2.angle.measure;
+    pitch.ecd.measure = motor.pitch.angle.measure;
+
+    // 合并大小yaw
+    yaw.ecd.measure = yaw1.measure + yaw2.measure;
+
+    // 读取imu
+    yaw.imu.measure = imu.yaw;
+    pitch.imu.measure = imu.pitch;
+}
+
+void Gimbal_DualYaw::backward() {
     // 用于参考系转换
     yaw.imu_minus_ecd = yaw.imu.measure - yaw.ecd.measure;
     pitch.imu_minus_ecd = pitch.imu.measure - pitch.ecd.measure;
@@ -46,24 +60,10 @@ void Gimbal_DualYaw::angleForward() {
 
     // 设置电机角度
     yaw1.ref = motor.yaw1.SetAngle(yaw1.ref, -chassis_wr + yaw_speed);
-    yaw2.ref = motor.yaw2.SetAngle(yaw2.ref, -chassis_wr - motor.yaw1.speed.measure + yaw_speed);
+    yaw2.ref = motor.yaw2.SetAngle(yaw2.ref, -chassis_wr + yaw_speed - motor.yaw1.speed.measure);
     pitch.ecd.ref = motor.pitch.SetAngle(pitch.ecd.ref, pitch_speed);
 
     // 传递软件限位到imu参考系
-    yaw.imu.ref = yaw.ecd.ref + yaw.imu_minus_ecd;
+    yaw.imu.ref = yaw1.ref + yaw.imu_minus_ecd;
     pitch.imu.ref = pitch.ecd.ref + pitch.imu_minus_ecd;
-}
-
-void Gimbal_DualYaw::angleBackward() {
-    // 从电机读取
-    yaw1.measure = motor.yaw1.angle.measure;
-    yaw2.measure = motor.yaw2.angle.measure;
-    pitch.ecd.measure = motor.pitch.angle.measure;
-
-    // 合并大小yaw
-    yaw.ecd.measure = yaw1.measure + yaw2.measure;
-
-    // 读取imu
-    yaw.imu.measure = imu.yaw;
-    pitch.imu.measure = imu.pitch;
 }
