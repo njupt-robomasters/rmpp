@@ -5,8 +5,7 @@
 
 // 底盘电机参数
 static constexpr float REDUCTION = 268.0f / 17.0f;
-static constexpr float EFFICIENCY = 0.8f;
-static constexpr UnitFloat<Nm_A> Kt = M3508::Kt / M3508::REDUCTION * REDUCTION / EFFICIENCY;
+static constexpr UnitFloat<Nm_A> Kt = M3508::Kt / M3508::REDUCTION * REDUCTION;
 static constexpr bool IS_INVERT = false;
 
 // 底盘参数
@@ -61,6 +60,6 @@ inline M3508 w4({
 inline Chassis_Omni chassis({
                                 .chassis_radius = CHASSIS_RADIUS,
                                 .wheel_radius = WHEEL_RADIUS,
-                                .vxyz_pid_config = &vxyz_pid,
                             },
-                            {w1, w2, w3, w4});
+                            {w1, w2, w3, w4},
+                            &vxyz_pid);

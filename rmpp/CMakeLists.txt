@@ -38,8 +38,8 @@ file(GLOB_RECURSE USER_SOURCES
         # "examples/referee/*.*"
 
         # 整车代码
-        # "app/infantry/*.*"
-        "app/sentry/*.*"
+        "app/infantry/*.*"
+        # "app/sentry/*.*"
 )
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE

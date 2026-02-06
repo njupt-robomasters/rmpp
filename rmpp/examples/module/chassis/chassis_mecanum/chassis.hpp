@@ -1,19 +1,25 @@
 #pragma once
 
 #include "motor/M3508.hpp"
-#include "module/chassis/Chassis_Mecanum.hpp"
+#include "module/chassis/Chassis_Omni.hpp"
 
 // 底盘电机参数
 static constexpr float REDUCTION = 268.0f / 17.0f;
-static constexpr UnitFloat Kt = M3508::Kt / M3508::REDUCTION * REDUCTION;
+static constexpr UnitFloat<Nm_A> Kt = M3508::Kt / M3508::REDUCTION * REDUCTION;
 static constexpr bool IS_INVERT = false;
 
-// 底盘电机PID参数
-inline PID::config_t wheel_pid = {
-    .kp = (20 * A) / (120 * rpm),
-    .ki = (20 * A) / (15 * deg),
-    .max_i = 20 * A,
-    .max_out = 20 * A
+// 底盘参数
+static constexpr UnitFloat CHASSIS_RADIUS = 26 * cm;
+static constexpr UnitFloat WHEEL_RADIUS = 8 * cm;
+static constexpr UnitFloat<N> MAX_F = M3508::MAX_CURRENT * Kt / WHEEL_RADIUS * 4;
+
+// 底盘PID参数
+inline PID::config_t vxyz_pid = {
+    .kp = MAX_F / (1 * (m / s)),
+    .ki = MAX_F / (10 * cm),
+    .max_i = MAX_F,
+    .max_out = MAX_F,
+    .fc = 10 * Hz,
 };
 
 // 底盘电机
@@ -24,9 +30,6 @@ inline M3508 w1({
     .reduction = REDUCTION,
     .Kt = Kt,
     .is_invert = IS_INVERT,
-    .control_mode = Motor::SPEED_MODE,
-    .pid_out_type = Motor::CURRENT_OUTPUT,
-    .speed_pid_config = &wheel_pid
 });
 inline M3508 w2({
     .can_port = 1,
@@ -35,9 +38,6 @@ inline M3508 w2({
     .reduction = REDUCTION,
     .Kt = Kt,
     .is_invert = IS_INVERT,
-    .control_mode = Motor::SPEED_MODE,
-    .pid_out_type = Motor::CURRENT_OUTPUT,
-    .speed_pid_config = &wheel_pid
 });
 inline M3508 w3({
     .can_port = 1,
@@ -46,9 +46,6 @@ inline M3508 w3({
     .reduction = REDUCTION,
     .Kt = Kt,
     .is_invert = IS_INVERT,
-    .control_mode = Motor::SPEED_MODE,
-    .pid_out_type = Motor::CURRENT_OUTPUT,
-    .speed_pid_config = &wheel_pid
 });
 inline M3508 w4({
     .can_port = 1,
@@ -57,14 +54,12 @@ inline M3508 w4({
     .reduction = REDUCTION,
     .Kt = Kt,
     .is_invert = IS_INVERT,
-    .control_mode = Motor::SPEED_MODE,
-    .pid_out_type = Motor::CURRENT_OUTPUT,
-    .speed_pid_config = &wheel_pid
 });
 
 // 底盘
-inline Chassis_Mecanum chassis({
-                                   .chassis_radius = 26 * cm,
-                                   .wheel_radius = 8 * cm
-                               },
-                               {w1, w2, w3, w4});
+inline Chassis_Omni chassis({
+                                .chassis_radius = CHASSIS_RADIUS,
+                                .wheel_radius = WHEEL_RADIUS,
+                            },
+                            {w1, w2, w3, w4},
+                            &vxyz_pid);

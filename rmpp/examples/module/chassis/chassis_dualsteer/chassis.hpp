@@ -6,8 +6,7 @@
 
 // 底盘电机参数
 static constexpr float REDUCTION = 14.0f;
-static constexpr float EFFICIENCY = 0.8f;
-static constexpr UnitFloat<Nm_A> Kt = M3508::Kt / M3508::REDUCTION * REDUCTION / EFFICIENCY;
+static constexpr UnitFloat<Nm_A> Kt = M3508::Kt / M3508::REDUCTION * REDUCTION;
 static constexpr bool IS_WHEEL_INVERT = false;
 static constexpr bool IS_SERVO_INVERT = true;
 
