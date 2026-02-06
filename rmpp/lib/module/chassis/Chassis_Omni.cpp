@@ -155,8 +155,9 @@ void Chassis_Omni::powerControl() {
     }
 
     // 按xy牵引力比例分配
-    gain_x = 1 * ratio - (1 * ratio - gain_xy) * fx.ref / (fx.ref + fy.ref);
-    gain_y = 1 * ratio - (1 * ratio - gain_xy) * fy.ref / (fx.ref + fy.ref);
+    const UnitFloat<N> f_ref_total = unit::sqrt(unit::square(fx.ref) + unit::square(fy.ref));
+    gain_x = 1 * ratio - (1 * ratio - gain_xy) * unit::abs(fx.ref) / f_ref_total;
+    gain_y = 1 * ratio - (1 * ratio - gain_xy) * unit::abs(fy.ref) / f_ref_total;
 
     // 应用牵引力衰减
     fx.ref *= gain_x;

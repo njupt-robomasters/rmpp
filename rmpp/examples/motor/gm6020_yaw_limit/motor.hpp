@@ -3,14 +3,13 @@
 #include "motor/GM6020.hpp"
 
 inline PID::config_t speed_pid = {
-    .kp = (3 * A) / (100 * deg_s),
-    .ki = (3 * A) / (60 * deg),
-    .max_i = 3 * A,
+    .kp = (3 * A) / (300 * deg_s),
+    .kd = (3 * A) / (30000 * deg_ss),
     .max_out = 3 * A,
     .fc = 10 * Hz,
 };
 inline PID::config_t angle_pid = {
-    .kp = 14 * default_unit,
+    .kp = 30 * default_unit,
     .max_out = 720 * deg_s,
 };
 inline GM6020 motor({

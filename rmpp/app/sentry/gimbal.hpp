@@ -8,9 +8,9 @@
 
 // 大yaw电机
 inline PID::config_t yaw1_pid = {
-    .kp = (16.5 * A) / (16.5 * deg),
-    .kd = (16.5 * A) / (165 * deg_s),
-    .max_out = 16.5 * A,
+    .kp = 0.75 * (A / deg),
+    .kd = 0.1 * (A / deg_s),
+    .max_out = 7.45 * A,
     .fc = 10 * Hz,
 };
 inline MF9025 yaw1({
@@ -18,7 +18,7 @@ inline MF9025 yaw1({
     .master_id = 0x141,
     .slave_id = 0x141,
     .is_invert = false,
-    .offset = -69 * deg,
+    .offset = 166.4 * deg,
     .control_mode = Motor::ANGLE_MODE,
     .pid_out_type = Motor::CURRENT_OUTPUT,
     .angle_pid_config = &yaw1_pid,
@@ -26,14 +26,13 @@ inline MF9025 yaw1({
 
 // 小yaw电机
 inline PID::config_t yaw2_speed_pid = {
-    .kp = (3 * A) / (100 * deg_s),
-    .ki = (3 * A) / (60 * deg),
-    .max_i = 3 * A,
+    .kp = (3 * A) / (300 * deg_s),
+    .kd = (3 * A) / (30000 * deg_ss),
     .max_out = 3 * A,
     .fc = 10 * Hz,
 };
 inline PID::config_t yaw2_angle_pid = {
-    .kp = 14 * default_unit,
+    .kp = 30 * default_unit,
     .max_out = 720 * deg_s,
 };
 inline GM6020 yaw2({
@@ -52,14 +51,12 @@ inline GM6020 yaw2({
 
 // pitch电机
 inline PID::config_t pitch_speed_pid = {
-    .kp = (3 * Nm) / (100 * deg_s),
-    .ki = (3 * Nm) / (60 * deg),
-    .max_i = 3 * Nm,
+    .kp = (3 * Nm) / (150 * deg_s),
     .max_out = 3 * Nm,
     .fc = 10 * Hz,
 };
 inline PID::config_t pitch_angle_pid = {
-    .kp = 14 * default_unit,
+    .kp = 20 * default_unit,
     .max_out = 720 * deg_s,
 };
 inline DM4310 pitch({
@@ -71,7 +68,7 @@ inline DM4310 pitch({
     .is_limit = true,
     .limit_min = -35 * deg,
     .limit_max = 40 * deg,
-    .control_mode = Motor::SPEED_MODE,
+    .control_mode = Motor::ANGLE_SPEED_MODE,
     .pid_out_type = Motor::TORQUE_OUTPUT,
     .speed_pid_config = &pitch_speed_pid,
     .angle_pid_config = &pitch_angle_pid,

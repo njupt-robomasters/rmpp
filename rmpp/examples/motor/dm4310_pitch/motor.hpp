@@ -3,14 +3,12 @@
 #include "motor/DM4310.hpp"
 
 inline PID::config_t speed_pid = {
-    .kp = (3 * Nm) / (100 * deg_s),
-    .ki = (3 * Nm) / (60 * deg),
-    .max_i = 3 * Nm,
+    .kp = (3 * Nm) / (150 * deg_s),
     .max_out = 3 * Nm,
     .fc = 10 * Hz,
 };
 inline PID::config_t angle_pid = {
-    .kp = 14 * default_unit,
+    .kp = 20 * default_unit,
     .max_out = 720 * deg_s,
 };
 inline DM4310 motor({
@@ -22,7 +20,7 @@ inline DM4310 motor({
     .is_limit = true,
     .limit_min = -35 * deg,
     .limit_max = 40 * deg,
-    .control_mode = Motor::SPEED_MODE,
+    .control_mode = Motor::ANGLE_SPEED_MODE,
     .pid_out_type = Motor::TORQUE_OUTPUT,
     .speed_pid_config = &speed_pid,
     .angle_pid_config = &angle_pid,

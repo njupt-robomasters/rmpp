@@ -1,21 +1,17 @@
 
-GraphedExpression="gimbal.pitch.imu_minus_ecd.value", Color=#a00909
 OpenDocument="main.c", FilePath="E:/workspace/rm/code/embedded/rmpp/Core/Src/main.c", Line=46
 OpenDocument="unit.hpp", FilePath="E:/workspace/rm/code/embedded/rmpp/rmpp/lib/unit/unit.hpp", Line=133
 OpenToolbar="Debug", Floating=0, x=0, y=0
 OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=0, w=1622, h=1587, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1932, h=759, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
-OpenWindow="Timeline", DockArea=RIGHT, x=0, y=0, w=1932, h=827, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="1300;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="1066;-108", CodeGraphLegendShown=0, CodeGraphLegendPosition="1089;0"
+OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1932, h=761, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=RIGHT, x=0, y=0, w=1932, h=825, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="1300;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="1066;-105", CodeGraphLegendShown=0, CodeGraphLegendPosition="1089;0"
 OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=3840, h=337, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" gimbal.pitch.imu_minus_ecd.value"], ColWidths=[100;100;100]
+TableHeader="Data Sampling Table", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time"], ColWidths=[100;100]
 TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="DESCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[540;106;190;190;190;190;176;204;204]
 TableHeader="Power Sampling", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
 TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Refresh"], ColWidths=[515;187;222;698]
 TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
-TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[26;26;26;35]
 WatchedExpression="gimbal.is_enable", RefreshRate=1, Window=Watched Data 1
-WatchedExpression="gimbal.yaw_speed.value", Window=Watched Data 1
-WatchedExpression="gimbal.pitch_speed.value", Window=Watched Data 1
 WatchedExpression="gimbal.yaw.ecd.ref.value", Window=Watched Data 1
 WatchedExpression="gimbal.yaw.ecd.measure.value", Window=Watched Data 1
 WatchedExpression="gimbal.pitch.ecd.ref.value", Window=Watched Data 1
@@ -24,11 +20,5 @@ WatchedExpression="gimbal.yaw.imu.ref.value", Window=Watched Data 1
 WatchedExpression="gimbal.yaw.imu.measure.value", Window=Watched Data 1
 WatchedExpression="gimbal.pitch.imu.ref.value", Window=Watched Data 1
 WatchedExpression="gimbal.pitch.imu.measure.value", Window=Watched Data 1
-WatchedExpression="yaw.current.measure.value", Window=Watched Data 1
-WatchedExpression="pitch.current.measure.value", Window=Watched Data 1
-WatchedExpression="yaw_angle_pid", Window=Watched Data 1
-WatchedExpression="yaw_speed_pid", Window=Watched Data 1
-WatchedExpression="pitch_angle_pid", Window=Watched Data 1
-WatchedExpression="pitch_speed_pid", Window=Watched Data 1
 WatchedExpression="gimbal.yaw.imu_minus_ecd.value", Window=Watched Data 1
 WatchedExpression="gimbal.pitch.imu_minus_ecd.value", Window=Watched Data 1

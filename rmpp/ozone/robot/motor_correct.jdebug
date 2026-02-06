@@ -4,8 +4,6 @@
 *                         www.segger.com                             *
 **********************************************************************
 
-File          : E:/workspace/rm/code/sentry/robomaster.jdebug
-Created       : 16 Sep 2025 15:33
 Ozone Version : V3.24
 */
 
@@ -26,13 +24,13 @@ void OnProjectLoad (void) {
   Project.SetHostIF ("USB", "1043843174");
   Project.SetTargetIF ("SWD");
   Project.SetTIFSpeed ("4 MHz");
-  Project.AddPathSubstitute ("../../", "$(ProjectDir)");
+  Project.AddPathSubstitute ("../../../", "$(ProjectDir)");
   Project.AddSvdFile ("$(InstallDir)/Config/CPU/Cortex-M4F.svd");
   Project.AddSvdFile ("$(InstallDir)/Config/Peripherals/STM32F407IG.svd");
   //
   // User settings
   //
-  File.Open ("../../build/Debug/njupt_framework.elf");
+  File.Open ("../../../build/Debug/rmpp.elf");
 }
 
 /*********************************************************************

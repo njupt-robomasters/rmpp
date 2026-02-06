@@ -42,8 +42,10 @@ void CAN::TransmitStd(const uint8_t port, const uint32_t id, uint8_t data[8], co
 
     uint32_t send_mail_box;
     if (port == 1) {
+        while (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) == 0) {} // 等待发送邮箱有空余位置
         HAL_CAN_AddTxMessage(&hcan1, &header, data, &send_mail_box);
     } else if (port == 2) {
+        while (HAL_CAN_GetTxMailboxesFreeLevel(&hcan2) == 0) {} // 等待发送邮箱有空余位置
         HAL_CAN_AddTxMessage(&hcan2, &header, data, &send_mail_box);
     }
 }
@@ -57,8 +59,10 @@ void CAN::TransmitExt(const uint8_t port, const uint32_t id, uint8_t data[8], co
 
     uint32_t send_mail_box;
     if (port == 1) {
+        while (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) == 0) {} // 等待发送邮箱有空余位置
         HAL_CAN_AddTxMessage(&hcan1, &header, data, &send_mail_box);
     } else if (port == 2) {
+        while (HAL_CAN_GetTxMailboxesFreeLevel(&hcan2) == 0) {} // 等待发送邮箱有空余位置
         HAL_CAN_AddTxMessage(&hcan2, &header, data, &send_mail_box);
     }
 }
