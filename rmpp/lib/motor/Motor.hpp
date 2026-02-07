@@ -91,8 +91,6 @@ public:
     // 需要在循环中调用
     virtual void OnLoop();
 
-    virtual void SendCanCmd() {}
-
 protected:
     // 电机反转、偏移修正之前的值
     struct raw_t {

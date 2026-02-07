@@ -23,7 +23,7 @@ void Chassis_DualSteer::SetEnable(const bool is_enable) {
 void Chassis_DualSteer::OnLoop() {
     forward();      // 速度和力学正解
     calcPID();      // 计算PID
-    // powerControl(); // 功率控制
+    powerControl(); // 功率控制
     backward();     // 速度和力学逆解
 
     // 更新电机

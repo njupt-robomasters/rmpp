@@ -11,7 +11,7 @@ public:
 
     MF9025(const config_t& config);
 
-    void SendCanCmd() override;
+    void SendCanCmd();
 
 private:
     static constexpr uint16_t MAX_CURRENT_CMD = 2048;

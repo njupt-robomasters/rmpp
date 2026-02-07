@@ -24,7 +24,7 @@ public:
 
     DM4310(const config_t& config);
 
-    void SendCanCmd() override;
+    void SendCanCmd();
 
 private:
     constexpr static float P_MAX = 3.14159f; // 为了多圈计数，一定要在上位机改成这个值（其他参数都是默认值）

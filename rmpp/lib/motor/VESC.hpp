@@ -22,7 +22,7 @@ public:
     // 屏蔽父类闭环操作
     void OnLoop() override {}
 
-    void SendCanCmd() override;
+    void SendCanCmd();
 
 private:
     enum command_e {

@@ -12,7 +12,7 @@ public:
 
     CyberDogMotor(const config_t& config);
 
-    void SendCanCmd() override;
+    void SendCanCmd();
 
 private:
     constexpr static float P_MAX = 12.5f;   // 位置最大值 rad
