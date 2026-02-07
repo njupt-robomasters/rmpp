@@ -13,7 +13,7 @@ file(GLOB_RECURSE USER_SOURCES
         # 底盘
         # "examples/motor/m3508_chassis/*.*"
         # "examples/module/chassis/chassis_omni/*.*"
-        "examples/module/chassis/chassis_mecanum/*.*"
+        # "examples/module/chassis/chassis_mecanum/*.*"
         # "examples/module/chassis/chassis_dualsteer/*.*"
 
         # 云台
@@ -38,7 +38,7 @@ file(GLOB_RECURSE USER_SOURCES
         # "examples/referee/*.*"
 
         # 整车代码
-        # "app/infantry/*.*"
+        "app/infantry/*.*"
         # "app/sentry/*.*"
 )
 

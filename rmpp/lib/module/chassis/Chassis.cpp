@@ -109,13 +109,8 @@ void Chassis::powerControl() {
         gain_z *= (buffer_energy - 45 * J) / (15 * J);
     }
 
-    // 按xy牵引力比例分配
-    const UnitFloat<N> f_ref_total = unit::sqrt(unit::square(fx.ref) + unit::square(fy.ref));
-    gain_x = 1 * ratio - (1 * ratio - gain_xy) * unit::abs(fx.ref) / f_ref_total;
-    gain_y = 1 * ratio - (1 * ratio - gain_xy) * unit::abs(fy.ref) / f_ref_total;
-
     // 应用牵引力衰减
-    fx.ref *= gain_x;
-    fy.ref *= gain_y;
+    fx.ref *= gain_xy;
+    fy.ref *= gain_xy;
     fz.ref *= gain_z;
 }

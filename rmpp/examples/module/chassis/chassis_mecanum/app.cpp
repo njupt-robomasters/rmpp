@@ -2,8 +2,8 @@
 #include "rc.hpp"
 #include "chassis.hpp"
 
-static constexpr UnitFloat VXY_MAX = 2 * m_s;
-static constexpr UnitFloat WR_MAX = 60 * rpm;
+static constexpr UnitFloat VXY_MAX = 4 * m_s;  // 极限4.5m/s
+static constexpr UnitFloat WR_MAX = 120 * rpm; // 极限130rpm
 
 void send_can_cmd() {
     const int16_t cmd1 = w1.GetCanCmd();
@@ -28,7 +28,7 @@ void setup() {
 
     chassis.SetMode(Chassis::DETACH_MODE);
     chassis.SetGimbalYaw(0 * deg);
-    chassis.SetPowerLimit(65535 * W);
+    chassis.SetPowerLimit(120 * W);
     chassis.SetBufferEnergy(60 * J);
 }
 
