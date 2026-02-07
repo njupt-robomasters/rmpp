@@ -13,7 +13,7 @@ file(GLOB_RECURSE USER_SOURCES
         # 底盘
         # "examples/motor/m3508_chassis/*.*"
         # "examples/module/chassis/chassis_omni/*.*"
-        # "examples/module/chassis/chassis_mecanum/*.*"
+        "examples/module/chassis/chassis_mecanum/*.*"
         # "examples/module/chassis/chassis_dualsteer/*.*"
 
         # 云台
@@ -39,7 +39,7 @@ file(GLOB_RECURSE USER_SOURCES
 
         # 整车代码
         # "app/infantry/*.*"
-        "app/sentry/*.*"
+        # "app/sentry/*.*"
 )
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE

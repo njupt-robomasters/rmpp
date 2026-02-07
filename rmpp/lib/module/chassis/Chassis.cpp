@@ -36,6 +36,15 @@ void Chassis::SetBufferEnergy(const UnitFloat<>& buffer_energy) {
 }
 
 void Chassis::OnLoop() {
+    // 失能清空PID
+    if (is_enable == false) {
+        vx_pid.Clear();
+        vy_pid.Clear();
+        vz_pid.Clear();
+        follow_pid.Clear();
+        return;
+    }
+
     forward();      // 速度和力学正解
     calcPID();      // 计算PID
     powerControl(); // 功率控制

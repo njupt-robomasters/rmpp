@@ -2,8 +2,8 @@
 #include "rc.hpp"
 #include "chassis.hpp"
 
-static constexpr UnitFloat VXY_MAX = 2 * m_s; // 极限4.4m/s
-static constexpr UnitFloat WR_MAX = 60 * rpm; // 极限120rpm
+static constexpr UnitFloat VXY_MAX = 2 * m_s;
+static constexpr UnitFloat WR_MAX = 60 * rpm;
 
 void send_can_cmd() {
     const int16_t cmd1 = w1.GetCanCmd();
@@ -20,14 +20,16 @@ void send_can_cmd() {
     data[5] = cmd3;
     data[6] = cmd4 >> 8;
     data[7] = cmd4;
-    BSP::CAN::TransmitStd(1, 0x200, data, 8);
+    BSP::CAN::TransmitStd(2, 0x200, data, 8);
 }
 
 void setup() {
     BSP::Init();
 
-    chassis.SetPowerLimit(0 * W);
     chassis.SetMode(Chassis::DETACH_MODE);
+    chassis.SetGimbalYaw(0 * deg);
+    chassis.SetPowerLimit(65535 * W);
+    chassis.SetBufferEnergy(60 * J);
 }
 
 void loop() {
@@ -42,7 +44,7 @@ void loop() {
 
     const UnitFloat vx = rc.x * VXY_MAX;
     const UnitFloat vy = rc.y * VXY_MAX;
-    const UnitFloat wr = rc.yaw * WR_MAX;
+    const UnitFloat wr = rc.wheel * WR_MAX;
     chassis.SetSpeed(vx, vy, wr);
 
     chassis.OnLoop();

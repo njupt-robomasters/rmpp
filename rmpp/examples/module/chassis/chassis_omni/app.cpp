@@ -2,8 +2,8 @@
 #include "rc.hpp"
 #include "chassis.hpp"
 
-static constexpr UnitFloat VXY_MAX = 2 * m_s; // 极限6.3m/s
-static constexpr UnitFloat WR_MAX = 60 * rpm; // 极限240rpm
+static constexpr UnitFloat VXY_MAX = 2 * m_s;
+static constexpr UnitFloat WR_MAX = 60 * rpm;
 
 void send_can_cmd() {
     const int16_t cmd1 = w1.GetCanCmd();

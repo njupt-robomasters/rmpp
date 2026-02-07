@@ -15,7 +15,7 @@ void Chassis_Omni::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable) return;
     this->is_enable = is_enable;
 
-    SetMode(DETACH_MODE); // 失能/使能后默认分离模式，防止车突然转动伤人
+    Chassis::SetEnable(is_enable);
 
     motor.w1.SetEnable(is_enable);
     motor.w2.SetEnable(is_enable);
@@ -24,10 +24,7 @@ void Chassis_Omni::SetEnable(const bool is_enable) {
 }
 
 void Chassis_Omni::OnLoop() {
-    forward();      // 速度和力学正解
-    calcPID();      // 计算PID
-    powerControl(); // 功率控制
-    backward();     // 速度和力学逆解
+    Chassis::OnLoop();
 
     // 更新电机
     motor.w1.OnLoop();
