@@ -25,8 +25,16 @@ inline PID::config_t wheel_pid = {
 
 // 舵电机PID参数
 inline PID::config_t servo_pid = {
-    .kp = (3 * A) / (20 * deg),
+    .kp = (3 * A) / (180 * deg),
     .max_out = 3 * A,
+};
+
+// 底盘PID参数
+inline PID::config_t vxyz_pid = {
+    .kp = MAX_F / (1 * (m / s)),
+    .ki = MAX_F / (10 * cm),
+    .max_i = MAX_F,
+    .max_out = MAX_F,
 };
 
 // 轮电机
@@ -79,5 +87,6 @@ inline GM6020 s2({
 inline Chassis_DualSteer chassis({
                                      .chassis_radius = CHASSIS_RADIUS,
                                      .wheel_radius = WHEEL_RADIUS,
+                                     .vxyz_pid_config = &vxyz_pid,
                                  },
                                  {w1, w2, s1, s2});

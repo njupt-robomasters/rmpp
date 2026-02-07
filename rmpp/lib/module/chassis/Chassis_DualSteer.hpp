@@ -25,14 +25,16 @@ public:
     void OnLoop() override;
 
 private:
-    static constexpr UnitFloat<> MIN_V = 1 * (cm / s); // 最小转舵速度
+    static constexpr UnitFloat<> MIN_F = 1 * N; // 最小转舵力
 
-    bool is_invert_v1 = false, is_invert_v2 = false;
+    bool is_invert_f1 = false, is_invert_f2 = false;
 
+    // 速度和力学正解
     void forward() override;
 
+    // 速度和力学逆解
     void backward() override;
 
     // 功率控制，必须放在【更新电机之后】
-    void powerControl();
+    void powerControlAfterMotorUpdate();
 };

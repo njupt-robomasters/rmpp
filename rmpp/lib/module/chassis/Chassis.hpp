@@ -9,6 +9,7 @@ public:
     struct config_t {
         UnitFloat<> chassis_radius;                       // 底盘半径
         UnitFloat<> wheel_radius;                         // 轮子半径
+        const PID::config_t* vxyz_pid_config = nullptr;   // 底盘运动PID参数
         const PID::config_t* follow_pid_config = nullptr; // 底盘跟随PID参数
     } config;
 
@@ -81,15 +82,19 @@ public:
 protected:
     Angle<deg> gimbal_yaw; // 前进正方向（云台相对于底盘的yaw）
 
-    // 底盘跟随
-    void handleFollow();
+    // 计算PID
+    void calcPID();
 
-    // 速度、力学正解
+    // 功率控制，必须放在【逆解之前】
+    void powerControl();
+
+    // 速度和力学正解
     virtual void forward() = 0;
 
-    // 速度、力学逆解
+    // 速度和力学逆解
     virtual void backward() = 0;
 
 private:
-    PID follow_pid; // 底盘跟随PID
+    PID vx_pid, vy_pid, vz_pid; // 底盘运动PID控制器
+    PID follow_pid;             // 底盘跟随PID
 };

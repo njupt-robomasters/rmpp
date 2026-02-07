@@ -3,8 +3,38 @@
 static const float sqrt2 = std::sqrt(2.0f);
 static const float sqrt2div2 = sqrt2 / 2.0f;
 
-Chassis_Mecanum::Chassis_Mecanum(const config_t& config, const motor_t& motor, const PID::config_t* vxyz_pid_config) :
-    Chassis_Omni(config, motor, vxyz_pid_config) {}
+Chassis_Mecanum::Chassis_Mecanum(const config_t& config, const motor_t& motor) : Chassis(config), motor(motor) {
+    // 目前使用底盘速度PID，不使用轮速PID
+    motor.w1.config.control_mode = Motor::OPEN_LOOP_MODE;
+    motor.w2.config.control_mode = Motor::OPEN_LOOP_MODE;
+    motor.w3.config.control_mode = Motor::OPEN_LOOP_MODE;
+    motor.w4.config.control_mode = Motor::OPEN_LOOP_MODE;
+}
+
+void Chassis_Mecanum::SetEnable(const bool is_enable) {
+    if (this->is_enable == is_enable) return;
+    this->is_enable = is_enable;
+
+    SetMode(DETACH_MODE); // 失能/使能后默认分离模式，防止车突然转动伤人
+
+    motor.w1.SetEnable(is_enable);
+    motor.w2.SetEnable(is_enable);
+    motor.w3.SetEnable(is_enable);
+    motor.w4.SetEnable(is_enable);
+}
+
+void Chassis_Mecanum::OnLoop() {
+    forward();      // 速度和力学正解
+    calcPID();      // 计算PID
+    powerControl(); // 功率控制
+    backward();     // 速度和力学逆解
+
+    // 更新电机
+    motor.w1.OnLoop();
+    motor.w2.OnLoop();
+    motor.w3.OnLoop();
+    motor.w4.OnLoop();
+}
 
 void Chassis_Mecanum::forward() {
     // 读取电机转速
