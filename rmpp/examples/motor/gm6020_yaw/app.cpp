@@ -35,9 +35,11 @@ void loop() {
     const UnitFloat<rpm> speed = rc.yaw * MAX_SPEED;
 
     // 速度闭环
+    // motor.config.control_mode = Motor::SPEED_MODE;
     // motor.SetSpeed(speed);
 
     // 角度闭环
+    motor.config.control_mode = Motor::ANGLE_SPEED_MODE;
     static BSP::Dwt dwt;
     static Angle<deg> angle;
     const UnitFloat dt = dwt.UpdateDT();

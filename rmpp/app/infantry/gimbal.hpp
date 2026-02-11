@@ -7,14 +7,15 @@
 
 // yaw电机
 inline PID::config_t yaw_speed_pid = {
-    .kp = (3 * A) / (100 * deg_s),
-    .ki = (3 * A) / (60 * deg),
+    .kp = 0.04f * (A / deg_s),
+    .ki = 0.05f * (A / deg),
     .max_i = 3 * A,
     .max_out = 3 * A,
     .fc = 10 * Hz,
 };
 inline PID::config_t yaw_angle_pid = {
-    .kp = 14 * default_unit,
+    .kp = 12 * default_unit,
+    .kd = 0 * default_unit,
     .max_out = 720 * deg_s,
 };
 inline GM6020 yaw({

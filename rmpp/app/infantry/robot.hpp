@@ -16,8 +16,8 @@
 #include "ui.hpp"
 
 inline Infantry::config_t robot_config = {
-    .vxy_max = 6 * m_s,  // 极限6.3m/s
-    .wr_max = 240 * rpm, // 极限240rpm
+    .vxy_max = 1 * m_s,  // 极限6.3m/s
+    .wr_max = 60 * rpm, // 极限240rpm
     .axy = 10 * m_ss,
     .dxy = 10 * m_ss,
 
