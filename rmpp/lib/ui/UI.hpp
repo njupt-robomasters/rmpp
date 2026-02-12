@@ -9,7 +9,7 @@ public:
         uint8_t can_port = 1;
         uint32_t master_id = 0;
         uint32_t slave_id = 1;
-        UnitFloat<> update_freq = 10 * Hz;
+        UnitFloat<> update_freq = 30 * Hz;
     } config;
 
     // 云台yaw角

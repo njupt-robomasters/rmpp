@@ -84,8 +84,6 @@ void UI::updateLib() const {
 
     // 伤害方向提示
     if (is_hurt) {
-        // 6点钟方向为0度，逆时针增加
-        // ±18°逆时针画弧
         int start_angle = (int)(Angle(-hurt_dir - 18 * deg).toFloat(deg));
         int end_angle = (int)(Angle(-hurt_dir + 18 * deg).toFloat(deg));
         if (start_angle < 0) start_angle += 360;

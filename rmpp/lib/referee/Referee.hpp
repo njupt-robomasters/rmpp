@@ -88,8 +88,8 @@ public:
     } shooter;
 
     // 中心增益点的占领状态
-    // 0x0101 event_data.center_buff
-    // 0x0209 rfid_status.center_buff
+    // 0x0101 event_data
+    // 0x0209 rfid_status
     center_buff_e center_buff = EMPTY;
 
     // 伤害数据

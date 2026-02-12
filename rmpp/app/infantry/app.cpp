@@ -3,6 +3,8 @@
 
 void send_can_cmd() {
     // CAN1
+    ui.SendCanCmd();
+
     const int16_t cmd1 = w1.GetCanCmd();
     const int16_t cmd2 = w2.GetCanCmd();
     const int16_t cmd3 = w3.GetCanCmd();
@@ -31,8 +33,6 @@ void send_can_cmd() {
     data[6] = cmd8 >> 8;
     data[7] = cmd8;
     BSP::CAN::TransmitStd(1, 0x1FF, data);
-
-    ui.SendCanCmd();
 
     // CAN2
     pitch.SendCanCmd();

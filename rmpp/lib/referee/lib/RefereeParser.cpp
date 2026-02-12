@@ -1,71 +1,51 @@
 #include "RefereeParser.hpp"
 #include "crc.hpp"
 
-RefereeParser::RefereeParser(const config_t& config) : config(config), can_parser(this), uart_parser(this) {
+RefereeParser::RefereeParser(const config_t& config) : config(config) {
     // 注册CAN回调
     auto can_callback = [this](const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
-        this->can_callback(port, id, data, dlc);
+        this->callback(port, id, data, dlc);
     };
     BSP::CAN::RegisterCallback(can_callback);
-
-    // 注册串口回调
-    auto uart_callback = [this](const uint8_t data[], const uint16_t size) {
-        this->uart_callback(data, size);
-    };
-    BSP::UART6::RegisterCallback(uart_callback);
 }
 
 void RefereeParser::OnLoop() {
     // 断联检测
-    if (dwt_can_connect.GetDT() > config.timeout) {
-        is_can_connect = false;
-    }
-    if (dwt_uart_connect.GetDT() > config.timeout) {
-        is_uart_connect = false;
+    if (dwt_connect.GetDT() > config.timeout) {
+        is_connect = false;
     }
 }
 
-void RefereeParser::can_callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
+void RefereeParser::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
     if (port != config.can_port) return;
     if (id != config.master_id) return;
 
     // 更新断联检测
-    is_can_connect = true;
-    dwt_can_connect.UpdateDT();
+    is_connect = true;
+    dwt_connect.UpdateDT();
 
     // 逐字节解析
     for (int i = 0; i < dlc; i++) {
-        can_parser.parseByte(data[i]);
+        parseByte(data[i]);
     }
 }
 
-void RefereeParser::uart_callback(const uint8_t data[], const uint16_t size) {
-    // 更新断联检测
-    is_uart_connect = true;
-    dwt_uart_connect.UpdateDT();
-
-    // 逐字节解析
-    for (int i = 0; i < size; i++) {
-        uart_parser.parseByte(data[i]);
-    }
-}
-
-void RefereeParser::Parser::parseByte(const uint8_t byte) {
+void RefereeParser::parseByte(const uint8_t byte) {
     switch (step) {
         case INIT: {
             if (byte == 0xA5) { // 找到SOF
                 step = FRAME_HEADER;
                 packet[0] = byte;
-                len = 1;
+                pos = 1;
             } else {
-                len = 0;
+                pos = 0;
             }
         }
         break;
 
         case FRAME_HEADER: {
-            packet[len++] = byte;
-            if (len == 5) {
+            packet[pos++] = byte;
+            if (pos == 5) {
                 if (CRC8::Verify((const uint8_t*)&packet.frame_header, 4, packet.frame_header.crc8)) { // CRC8校验成功
                     step = CMD_ID;
                 } else { // CRC8校验失败，重新寻找SOF
@@ -76,31 +56,31 @@ void RefereeParser::Parser::parseByte(const uint8_t byte) {
         break;
 
         case CMD_ID: {
-            packet[len++] = byte;
-            if (len == 5 + 2) {
+            packet[pos++] = byte;
+            if (pos == 5 + 2) {
                 step = DATA;
             }
         }
         break;
 
         case DATA: {
-            if (len > sizeof(packet) - 2) { // 数据长度超出缓冲区
+            if (pos > sizeof(packet) - 2) { // 数据长度超出缓冲区
                 step = INIT;
             }
-            packet[len++] = byte;
-            if (len == 5 + 2 + packet.frame_header.data_length) {
+            packet[pos++] = byte;
+            if (pos == 5 + 2 + packet.frame_header.data_length) {
                 step = FRAME_TAIL;
             }
         }
         break;
 
         case FRAME_TAIL: {
-            packet[len++] = byte;
-            if (len == 5 + 2 + packet.frame_header.data_length + 2) {
+            packet[pos++] = byte;
+            if (pos == 5 + 2 + packet.frame_header.data_length + 2) {
                 // CRC16校验
-                const uint16_t crc16 = packet[len - 2] | (packet[len - 1] << 8);
-                if (CRC16::Verify((const uint8_t*)&packet, len - 2, crc16)) {
-                    outer->deserialize(packet.cmd_id, packet.data, packet.frame_header.data_length);
+                const uint16_t crc16 = packet[pos - 2] | (packet[pos - 1] << 8);
+                if (CRC16::Verify((const uint8_t*)&packet, pos - 2, crc16)) {
+                    deserialize(packet.cmd_id, packet.data, packet.frame_header.data_length);
                 }
                 step = INIT;
             }
@@ -230,23 +210,6 @@ void RefereeParser::deserialize(const uint16_t cmd_id, const uint8_t data[], uin
             if (size != sizeof(radar_info)) break;
             memcpy(&radar_info, data, sizeof(radar_info));
             dwt_radar_info.UpdateDT();
-            break;
-        }
-        case 0x0301: { // 0x0301，机器人交互数据（频率上限为30Hz）【多机通信接收】
-            if (size != sizeof(robot_interaction_data_receive)) break;
-            memcpy(&robot_interaction_data_receive, data, sizeof(robot_interaction_data_receive));
-            dwt_robot_interaction_data_receive.UpdateDT();
-            break;
-        }
-        case 0x0303: { // 0x0303，选手端小地图交互数据（选手端触发发送）【选手端点击→服务器→发送方选择的己方机器人】
-            if (size != sizeof(map_command)) break;
-            memcpy(&map_command, data, sizeof(map_command));
-            break;
-        }
-        case 0x0304: { // 0x0304（图传链路），键鼠遥控数据（30Hz）【选手端→选手端图传连接的机器人】
-            if (size != sizeof(remote_control)) break;
-            memcpy(&remote_control, data, sizeof(remote_control));
-            dwt_remote_control.UpdateDT();
             break;
         }
         default:

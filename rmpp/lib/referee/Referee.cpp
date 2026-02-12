@@ -29,16 +29,16 @@ void Referee::OnLoop(const UnitFloat<>& imu_yaw, const UnitFloat<>& gimbal_yaw) 
         shooter.heat_current = parser.power_heat_data.shooter_17mm_1_barrel_heat;
         shooter.bullet_allowance = parser.projectile_allowance.projectile_allowance_17mm;
     }
-    shooter.heat_remain = shooter.heat_limit - shooter.heat_current;
+    shooter.heat_remain = (int16_t)(shooter.heat_limit - shooter.heat_current);
     shooter.bullet_freq = parser.shoot_data.launching_frequency * Hz;
     shooter.bullet_speed = parser.shoot_data.initial_speed * m_s;
 
-    switch (parser.event_data.center_buff) {
+    switch ((parser.event_data.event_data >> 23) & 0b11) {
         case 0: // 未被占领
             center_buff = EMPTY;
             break;
         case 1: // 己方占领
-            if (parser.rfid_status.center_buff) {
+            if ((parser.rfid_status.rfid_status >> 23) & 0b1) {
                 center_buff = SELF;
             } else {
                 center_buff = TEAM;
