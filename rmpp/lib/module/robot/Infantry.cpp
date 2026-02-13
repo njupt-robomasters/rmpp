@@ -288,8 +288,7 @@ void Infantry::handle_ui() {
     device.ui.shoot_current = device.shooter.shoot_current;
 
     // 自瞄状态
-    device.ui.aim.is_connect = device.mavlink.is_connect;
-    device.ui.aim.is_detect = device.mavlink.aim.is_detect;
+    device.ui.is_detect = device.mavlink.aim.is_detect;
 
     device.ui.OnLoop();
 }

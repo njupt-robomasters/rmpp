@@ -58,6 +58,7 @@ extern ui_interface_arc_t *ui_g_1_bar0;
 extern ui_interface_arc_t *ui_g_1_bar1;
 extern ui_interface_arc_t *ui_g_1_bar2;
 extern ui_interface_arc_t *ui_g_1_bar3;
+extern ui_interface_round_t *ui_g_1_detect;
 
 void ui_init_g_1();
 void ui_update_g_1();
@@ -73,12 +74,6 @@ extern ui_interface_number_t *ui_g_2_pitch;
 void ui_init_g_2();
 void ui_update_g_2();
 void ui_remove_g_2();
-
-extern ui_interface_string_t *ui_g_3_aim_status;
-
-void ui_init_g_3();
-void ui_update_g_3();
-void ui_remove_g_3();
 
 
 #endif // UI_g_H

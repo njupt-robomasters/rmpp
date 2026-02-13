@@ -18,7 +18,12 @@ static void (*ui_init_g[])() = {
 
     ui_init_g_1,
     ui_init_g_2,
-    ui_init_g_3,
+};
+
+static void (*ui_update_g[])() = {
+    ui_update_g_1,
+    ui_update_g_1,
+    ui_update_g_2,
 };
 
 // CAN发送队列
@@ -38,6 +43,7 @@ void UI::AddCanData(const uint8_t data[], const size_t len) {
 void UI::Init() {
     state = INIT;
     init_index = 0;
+    update_index = 0;
 }
 
 void UI::OnLoop() {
@@ -53,11 +59,10 @@ void UI::OnLoop() {
         }
     } else if (state == UPDATE) {
         if (dwt.PollTimeout(1 / UPDATE_FREQ)) { // 发送频率控制
-            update_cnt++;
-            if (update_cnt % 10 == 0) {
-                ui_update_g_2();
-            } else{
-                ui_update_g_1();
+            ui_update_g[update_index]();
+            update_index++;
+            if (update_index >= std::size(ui_update_g)) {
+                update_index = 0;
             }
         }
     }
@@ -139,13 +144,9 @@ void UI::updateLib() const {
     ui_g_2_number3->number = (int32_t)shoot_current.toFloat(A);
 
     // 自瞄状态
-    if (aim.is_detect) {
-        ui_g_3_aim_status->color = 3; // 橙色
-        std::strcpy(ui_g_3_aim_status->string, "DETECT");
-    } else if (aim.is_connect) {
-        ui_g_3_aim_status->color = 2; // 绿色
-        std::strcpy(ui_g_3_aim_status->string, "ONLINE");
+    if (is_detect) {
+        ui_g_1_detect->width = 21;
     } else {
-        std::strcpy(ui_g_3_aim_status->string, "      ");
+        ui_g_1_detect->width = 0;
     }
 }

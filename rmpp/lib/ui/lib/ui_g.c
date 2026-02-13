@@ -445,15 +445,16 @@ ui_interface_arc_t *ui_g_1_bar0 = (ui_interface_arc_t*)&(ui_g_1_0.data[2]);
 ui_interface_arc_t *ui_g_1_bar1 = (ui_interface_arc_t*)&(ui_g_1_0.data[3]);
 ui_interface_arc_t *ui_g_1_bar2 = (ui_interface_arc_t*)&(ui_g_1_0.data[4]);
 ui_interface_arc_t *ui_g_1_bar3 = (ui_interface_arc_t*)&(ui_g_1_0.data[5]);
+ui_interface_round_t *ui_g_1_detect = (ui_interface_round_t*)&(ui_g_1_0.data[6]);
 
 void _ui_init_g_1_0() {
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 7; i++) {
         ui_g_1_0.data[i].figure_name[0] = 0;
         ui_g_1_0.data[i].figure_name[1] = 6;
         ui_g_1_0.data[i].figure_name[2] = i + 0;
         ui_g_1_0.data[i].operate_type = 1;
     }
-    for (int i = 6; i < 7; i++) {
+    for (int i = 7; i < 7; i++) {
         ui_g_1_0.data[i].operate_type = 0;
     }
 
@@ -529,13 +530,22 @@ void _ui_init_g_1_0() {
     ui_g_1_bar3->rx = 387;
     ui_g_1_bar3->ry = 387;
 
+    ui_g_1_detect->figure_type = 2;
+    ui_g_1_detect->operate_type = 1;
+    ui_g_1_detect->layer = 1;
+    ui_g_1_detect->color = 2;
+    ui_g_1_detect->start_x = 960;
+    ui_g_1_detect->start_y = 540;
+    ui_g_1_detect->width = 2;
+    ui_g_1_detect->r = 21;
+
 
     ui_proc_7_frame(&ui_g_1_0);
     SEND_MESSAGE((uint8_t *) &ui_g_1_0, sizeof(ui_g_1_0));
 }
 
 void _ui_update_g_1_0() {
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 7; i++) {
         ui_g_1_0.data[i].operate_type = 2;
     }
 
@@ -544,7 +554,7 @@ void _ui_update_g_1_0() {
 }
 
 void _ui_remove_g_1_0() {
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 7; i++) {
         ui_g_1_0.data[i].operate_type = 3;
     }
 
@@ -590,7 +600,7 @@ void _ui_init_g_2_0() {
     ui_g_2_number0->layer = 2;
     ui_g_2_number0->color = 8;
     ui_g_2_number0->start_x = 615;
-    ui_g_2_number0->start_y = 575;
+    ui_g_2_number0->start_y = 565;
     ui_g_2_number0->width = 2;
     ui_g_2_number0->font_size = 15;
     ui_g_2_number0->number = 12345;
@@ -600,7 +610,7 @@ void _ui_init_g_2_0() {
     ui_g_2_number1->layer = 2;
     ui_g_2_number1->color = 8;
     ui_g_2_number1->start_x = 615;
-    ui_g_2_number1->start_y = 550;
+    ui_g_2_number1->start_y = 530;
     ui_g_2_number1->width = 2;
     ui_g_2_number1->font_size = 15;
     ui_g_2_number1->number = 12345;
@@ -610,7 +620,7 @@ void _ui_init_g_2_0() {
     ui_g_2_number2->layer = 2;
     ui_g_2_number2->color = 8;
     ui_g_2_number2->start_x = 1250;
-    ui_g_2_number2->start_y = 550;
+    ui_g_2_number2->start_y = 530;
     ui_g_2_number2->width = 2;
     ui_g_2_number2->font_size = 15;
     ui_g_2_number2->number = 12345;
@@ -620,7 +630,7 @@ void _ui_init_g_2_0() {
     ui_g_2_number3->layer = 2;
     ui_g_2_number3->color = 8;
     ui_g_2_number3->start_x = 1250;
-    ui_g_2_number3->start_y = 575;
+    ui_g_2_number3->start_y = 565;
     ui_g_2_number3->width = 2;
     ui_g_2_number3->font_size = 15;
     ui_g_2_number3->number = 12345;
@@ -629,8 +639,8 @@ void _ui_init_g_2_0() {
     ui_g_2_yaw->operate_type = 1;
     ui_g_2_yaw->layer = 2;
     ui_g_2_yaw->color = 8;
-    ui_g_2_yaw->start_x = 783;
-    ui_g_2_yaw->start_y = 565;
+    ui_g_2_yaw->start_x = 970;
+    ui_g_2_yaw->start_y = 680;
     ui_g_2_yaw->width = 2;
     ui_g_2_yaw->font_size = 15;
     ui_g_2_yaw->number = 12345;
@@ -639,8 +649,8 @@ void _ui_init_g_2_0() {
     ui_g_2_pitch->operate_type = 1;
     ui_g_2_pitch->layer = 2;
     ui_g_2_pitch->color = 8;
-    ui_g_2_pitch->start_x = 965;
-    ui_g_2_pitch->start_y = 688;
+    ui_g_2_pitch->start_x = 780;
+    ui_g_2_pitch->start_y = 565;
     ui_g_2_pitch->width = 2;
     ui_g_2_pitch->font_size = 15;
     ui_g_2_pitch->number = 12345;
@@ -679,57 +689,5 @@ void ui_update_g_2() {
 
 void ui_remove_g_2() {
     _ui_remove_g_2_0();
-}
-
-
-ui_string_frame_t ui_g_3_0;
-ui_interface_string_t* ui_g_3_aim_status = &(ui_g_3_0.option);
-
-void _ui_init_g_3_0() {
-    ui_g_3_0.option.figure_name[0] = 0;
-    ui_g_3_0.option.figure_name[1] = 8;
-    ui_g_3_0.option.figure_name[2] = 0;
-    ui_g_3_0.option.operate_type = 1;
-
-    ui_g_3_aim_status->figure_type = 7;
-    ui_g_3_aim_status->operate_type = 1;
-    ui_g_3_aim_status->layer = 3;
-    ui_g_3_aim_status->color = 2;
-    ui_g_3_aim_status->start_x = 905;
-    ui_g_3_aim_status->start_y = 445;
-    ui_g_3_aim_status->width = 2;
-    ui_g_3_aim_status->font_size = 20;
-    ui_g_3_aim_status->str_length = 6;
-    strcpy(ui_g_3_aim_status->string, "ONLINE");
-
-
-    ui_proc_string_frame(&ui_g_3_0);
-    SEND_MESSAGE((uint8_t *) &ui_g_3_0, sizeof(ui_g_3_0));
-}
-
-void _ui_update_g_3_0() {
-    ui_g_3_0.option.operate_type = 2;
-
-    ui_proc_string_frame(&ui_g_3_0);
-    SEND_MESSAGE((uint8_t *) &ui_g_3_0, sizeof(ui_g_3_0));
-}
-
-void _ui_remove_g_3_0() {
-    ui_g_3_0.option.operate_type = 3;
-
-    ui_proc_string_frame(&ui_g_3_0);
-    SEND_MESSAGE((uint8_t *) &ui_g_3_0, sizeof(ui_g_3_0));
-}
-
-void ui_init_g_3() {
-    _ui_init_g_3_0();
-}
-
-void ui_update_g_3() {
-    _ui_update_g_3_0();
-}
-
-void ui_remove_g_3() {
-    _ui_remove_g_3_0();
 }
 

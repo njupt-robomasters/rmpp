@@ -40,10 +40,7 @@ public:
     UnitFloat<A> shoot_current;
 
     // 自瞄状态
-    struct {
-        bool is_connect = false;
-        bool is_detect = false;
-    } aim;
+    bool is_detect = false;
 
     UI(const config_t& config);
 
@@ -72,7 +69,7 @@ private:
     } state = INIT;
 
     uint8_t init_index = 0;
-    uint32_t update_cnt = 0;
+    uint32_t update_index = 0;
 
     BSP::Dwt dwt; // 用于控制发送频率
 
