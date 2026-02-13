@@ -18,12 +18,24 @@ static void (*ui_init_g[])() = {
 
     ui_init_g_1,
     ui_init_g_2,
+
+    ui_init_g_30,
+    ui_init_g_31,
+    ui_init_g_32,
 };
 
 static void (*ui_update_g[])() = {
     ui_update_g_1,
-    ui_update_g_1,
     ui_update_g_2,
+
+    ui_update_g_1,
+    ui_update_g_30,
+
+    ui_update_g_1,
+    ui_update_g_31,
+
+    ui_update_g_1,
+    ui_update_g_32,
 };
 
 // CAN发送队列
@@ -49,16 +61,14 @@ void UI::Init() {
 void UI::OnLoop() {
     updateLib(); // 更新UI库
 
-    if (state == INIT) {
-        if (dwt.PollTimeout(1 / INIT_FREQ)) { // 发送频率控制
+    if (dwt.PollTimeout(1 / SEND_FREQ)) { // 发送频率控制
+        if (state == INIT) {
             ui_init_g[init_index]();
             init_index++;
             if (init_index >= std::size(ui_init_g)) {
                 state = UPDATE;
             }
-        }
-    } else if (state == UPDATE) {
-        if (dwt.PollTimeout(1 / UPDATE_FREQ)) { // 发送频率控制
+        } else if (state == UPDATE) {
             ui_update_g[update_index]();
             update_index++;
             if (update_index >= std::size(ui_update_g)) {
@@ -143,10 +153,32 @@ void UI::updateLib() const {
     ui_g_1_bar3->end_angle = 85;
     ui_g_2_number3->number = (int32_t)shoot_current.toFloat(A);
 
-    // 自瞄状态
+    // 自瞄识别
     if (is_detect) {
         ui_g_1_detect->width = 21;
     } else {
         ui_g_1_detect->width = 0;
     }
+
+    // 整车状态
+    ui_g_30_w1->color = robot.w1;
+    ui_g_30_w2->color = robot.w2;
+    ui_g_30_w3->color = robot.w3;
+    ui_g_30_w4->color = robot.w4;
+    ui_g_30_s1->color = robot.s1;
+    ui_g_30_s2->color = robot.s2;
+    ui_g_30_s3->color = robot.s3;
+
+    ui_g_31_s4->color = robot.s4;
+    ui_g_31_cap->color = robot.cap;
+    ui_g_31_yaw1->color = robot.yaw1;
+    ui_g_31_yaw2->color = robot.yaw2;
+    ui_g_31_pitch->color = robot.pitch;
+    ui_g_31_rub_left1->color = robot.rub_left1;
+    ui_g_31_rub_right1->color = robot.rub_right1;
+
+    ui_g_32_rub_left2->color = robot.rub_left2;
+    ui_g_32_rub_right2->color = robot.rub_right2;
+    ui_g_32_shoot->color = robot.shoot;
+    ui_g_32_aim->color = robot.aim;
 }

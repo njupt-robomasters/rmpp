@@ -39,8 +39,31 @@ public:
     // 拨弹电机电流
     UnitFloat<A> shoot_current;
 
-    // 自瞄状态
+    // 自瞄识别
     bool is_detect = false;
+
+    enum color_e {
+        MAIN   = 0, // 红/蓝（己方颜色）
+        YELLOW = 1, // 黄色
+        GREEN  = 2, // 绿色
+        ORANGE = 3, // 橙色
+        PURPLE = 4, // 紫红色
+        PINK   = 5, // 粉色
+        CYAN   = 6, // 青色
+        BLACK  = 7, // 黑色
+        WHITE  = 8, // 白色
+    };
+
+    // 整车状态
+    struct {
+        color_e w1 = GREEN, w2 = GREEN, w3 = GREEN, w4 = GREEN;
+        color_e s1 = GREEN, s2 = GREEN, s3 = GREEN, s4 = GREEN;
+        color_e cap = GREEN;
+        color_e yaw1 = GREEN, yaw2 = GREEN, pitch = GREEN;
+        color_e rub_left1 = GREEN, rub_right1 = GREEN, rub_left2 = GREEN, rub_right2 = GREEN;
+        color_e shoot = GREEN;
+        color_e aim = GREEN;
+    } robot;
 
     UI(const config_t& config);
 
@@ -60,16 +83,15 @@ private:
     static size_t head, tail;
 
     // 发送频率
-    static constexpr UnitFloat<> INIT_FREQ = 15 * Hz;
-    static constexpr UnitFloat<> UPDATE_FREQ = 30 * Hz;
+    static constexpr UnitFloat<> SEND_FREQ = 30 * Hz;
 
     enum {
         INIT,
         UPDATE
     } state = INIT;
 
-    uint8_t init_index = 0;
-    uint32_t update_index = 0;
+    size_t init_index = 0;
+    size_t update_index = 0;
 
     BSP::Dwt dwt; // 用于控制发送频率
 

@@ -151,7 +151,7 @@ void Motor::callback(const raw_t& raw) {
     // 保存到成员变量，方便调试
     this->raw = raw;
 
-    // 复位电机断联检测
+    // 更新电机断联检测
     is_connect = true;
     dwt_connect.UpdateDT();;
 

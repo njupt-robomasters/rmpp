@@ -19,8 +19,8 @@ public:
 
     VESC(const config_t& config, const vesc_config_t& vesc_config);
 
-    // 屏蔽父类闭环操作
-    void OnLoop() override {}
+    // 重写父类的闭环操作
+    void OnLoop() override;
 
     void SendCanCmd();
 

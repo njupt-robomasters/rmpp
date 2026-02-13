@@ -48,6 +48,8 @@ void Shooter_17mm::backward() {
 
 void Shooter_17mm::forward() {
     // 摩擦轮
+    bullet_speed.measure_left1 = motor.rub_left.speed.measure * config.rub_radius;
+    bullet_speed.measure_right1 = motor.rub_right.speed.measure * config.rub_radius;
     bullet_speed.measure = (motor.rub_left.speed.measure + motor.rub_right.speed.measure) / 2.0f * config.rub_radius;
 
     // 拨弹电机

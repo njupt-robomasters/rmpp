@@ -56,10 +56,11 @@ void Shooter_42mm::backward() {
 
 void Shooter_42mm::forward() {
     // 摩擦轮
-    bullet_speed.measure = (motor.rub_left1.speed.measure
-        + motor.rub_right1.speed.measure
-        + motor.rub_left2.speed.measure
-        + motor.rub_right2.speed.measure) / 4.0f * config.rub_radius;
+    bullet_speed.measure_left1 = motor.rub_left1.speed.measure * config.rub_radius;
+    bullet_speed.measure_right1 = motor.rub_right1.speed.measure * config.rub_radius;
+    bullet_speed.measure_left2 = motor.rub_left2.speed.measure * config.rub_radius;
+    bullet_speed.measure_right2 = motor.rub_right2.speed.measure * config.rub_radius;
+    bullet_speed.measure = (motor.rub_left2.speed.measure + motor.rub_right2.speed.measure) / 4.0f * config.rub_radius;
 
     // 拨弹电机
     bullet_freq.measure = motor.shoot.speed.measure * config.bullet_per_rev;

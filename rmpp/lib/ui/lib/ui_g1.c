@@ -16,7 +16,7 @@ ui_interface_line_t *ui_g_00_line3 = (ui_interface_line_t*)&(ui_g_00_0.data[3]);
 
 void _ui_init_g_00_0() {
     for (int i = 0; i < 4; i++) {
-        ui_g_00_0.data[i].figure_name[0] = 0;
+        ui_g_00_0.data[i].figure_name[0] = 1;
         ui_g_00_0.data[i].figure_name[1] = 0;
         ui_g_00_0.data[i].figure_name[2] = i + 0;
         ui_g_00_0.data[i].operate_type = 1;
@@ -112,7 +112,7 @@ ui_interface_arc_t *ui_g_01_limit5 = (ui_interface_arc_t*)&(ui_g_01_0.data[5]);
 
 void _ui_init_g_01_0() {
     for (int i = 0; i < 6; i++) {
-        ui_g_01_0.data[i].figure_name[0] = 0;
+        ui_g_01_0.data[i].figure_name[0] = 1;
         ui_g_01_0.data[i].figure_name[1] = 1;
         ui_g_01_0.data[i].figure_name[2] = i + 0;
         ui_g_01_0.data[i].operate_type = 1;
@@ -234,7 +234,7 @@ ui_string_frame_t ui_g_02_0;
 ui_interface_string_t* ui_g_02_text0 = &(ui_g_02_0.option);
 
 void _ui_init_g_02_0() {
-    ui_g_02_0.option.figure_name[0] = 0;
+    ui_g_02_0.option.figure_name[0] = 1;
     ui_g_02_0.option.figure_name[1] = 2;
     ui_g_02_0.option.figure_name[2] = 0;
     ui_g_02_0.option.operate_type = 1;
@@ -286,7 +286,7 @@ ui_string_frame_t ui_g_03_0;
 ui_interface_string_t* ui_g_03_text1 = &(ui_g_03_0.option);
 
 void _ui_init_g_03_0() {
-    ui_g_03_0.option.figure_name[0] = 0;
+    ui_g_03_0.option.figure_name[0] = 1;
     ui_g_03_0.option.figure_name[1] = 3;
     ui_g_03_0.option.figure_name[2] = 0;
     ui_g_03_0.option.operate_type = 1;
@@ -338,7 +338,7 @@ ui_string_frame_t ui_g_04_0;
 ui_interface_string_t* ui_g_04_text2 = &(ui_g_04_0.option);
 
 void _ui_init_g_04_0() {
-    ui_g_04_0.option.figure_name[0] = 0;
+    ui_g_04_0.option.figure_name[0] = 1;
     ui_g_04_0.option.figure_name[1] = 4;
     ui_g_04_0.option.figure_name[2] = 0;
     ui_g_04_0.option.operate_type = 1;
@@ -390,7 +390,7 @@ ui_string_frame_t ui_g_05_0;
 ui_interface_string_t* ui_g_05_text3 = &(ui_g_05_0.option);
 
 void _ui_init_g_05_0() {
-    ui_g_05_0.option.figure_name[0] = 0;
+    ui_g_05_0.option.figure_name[0] = 1;
     ui_g_05_0.option.figure_name[1] = 5;
     ui_g_05_0.option.figure_name[2] = 0;
     ui_g_05_0.option.operate_type = 1;
@@ -449,7 +449,7 @@ ui_interface_round_t *ui_g_1_detect = (ui_interface_round_t*)&(ui_g_1_0.data[6])
 
 void _ui_init_g_1_0() {
     for (int i = 0; i < 7; i++) {
-        ui_g_1_0.data[i].figure_name[0] = 0;
+        ui_g_1_0.data[i].figure_name[0] = 1;
         ui_g_1_0.data[i].figure_name[1] = 6;
         ui_g_1_0.data[i].figure_name[2] = i + 0;
         ui_g_1_0.data[i].operate_type = 1;
@@ -586,7 +586,7 @@ ui_interface_number_t *ui_g_2_pitch = (ui_interface_number_t*)&(ui_g_2_0.data[5]
 
 void _ui_init_g_2_0() {
     for (int i = 0; i < 6; i++) {
-        ui_g_2_0.data[i].figure_name[0] = 0;
+        ui_g_2_0.data[i].figure_name[0] = 1;
         ui_g_2_0.data[i].figure_name[1] = 7;
         ui_g_2_0.data[i].figure_name[2] = i + 0;
         ui_g_2_0.data[i].operate_type = 1;

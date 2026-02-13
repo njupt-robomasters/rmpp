@@ -100,14 +100,13 @@ protected:
         Angle<deg> angle;
     };
 
-    PID speed_pid, angle_pid; // PID控制器
-
     BSP::Dwt dwt_connect; // 用于电机断联检测
 
     // CAN接收回调，子类重写后要调用
     void callback(const raw_t& raw);
 
 private:
+    PID speed_pid, angle_pid;       // PID控制器
     raw_t raw;                      // 用于debug校正电机
     Angle<deg> last_angle;          // 用于多圈计数
     bool is_first_setangle = false; // 断联/使能后第一次设置角度标志，防止电机一下子飞起来

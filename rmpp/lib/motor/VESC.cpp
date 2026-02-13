@@ -12,6 +12,13 @@ VESC::VESC(const config_t& config, const vesc_config_t& vesc_config) : Motor(con
     BSP::CAN::RegisterCallback(callback);
 }
 
+void VESC::OnLoop() {
+    // 电机断联检测
+    if (dwt_connect.GetDT() > config.timeout) {
+        is_connect = false;
+    }
+}
+
 void VESC::SendCanCmd() {
     if (is_enable) { // 不检测电机在线，因为未必开了反馈报文
         if (speed.ref == 0 && unit::abs(speed.measure) < vesc_config.auto_release_speed) {
@@ -30,6 +37,10 @@ void VESC::callback(const uint8_t port, const uint32_t id, const uint8_t data[8]
     if (port != config.can_port) return;
     if ((id & 0xFF) != config.master_id) return; // 必须要&FF，因为高位是命令码
     if (dlc != 8) return;
+
+    // 更新电机断联检测
+    is_connect = true;
+    dwt_connect.UpdateDT();;
 
     const uint8_t status = id >> 8;
     if (status == CAN_PACKET_STATUS) {

@@ -40,6 +40,41 @@ void send_can_cmd() {
     rub_right.SendCanCmd();
 }
 
+void handle_ui_robot() {
+    ui.robot.w1 = w1.is_connect ? UI::GREEN : UI::PINK;
+    ui.robot.w2 = w2.is_connect ? UI::GREEN : UI::PINK;
+    ui.robot.w3 = w3.is_connect ? UI::GREEN : UI::PINK;
+    ui.robot.w4 = w4.is_connect ? UI::GREEN : UI::PINK;
+
+    ui.robot.cap = UI::PINK;
+
+    ui.robot.yaw1 = yaw.is_connect ? UI::GREEN : UI::PINK;
+    ui.robot.pitch = pitch.is_connect ? UI::GREEN : UI::PINK;
+
+    ui.robot.rub_left1 = rub_left.is_connect ? UI::GREEN : UI::PINK;
+    ui.robot.rub_right1 = rub_right.is_connect ? UI::GREEN : UI::PINK;
+
+    if (rub_left.is_connect == false) {
+        ui.robot.rub_left1 = UI::PINK;
+    } else if (unit::abs(shooter.bullet_speed.ref - shooter.bullet_speed.measure_left1) < 1) {
+        ui.robot.rub_left1 = UI::GREEN;
+    } else {
+        ui.robot.rub_left1 = UI::ORANGE;
+    }
+
+    if (rub_right.is_connect == false) {
+        ui.robot.rub_right1 = UI::PINK;
+    } else if (unit::abs(shooter.bullet_speed.ref - shooter.bullet_speed.measure_right1) < 1) {
+        ui.robot.rub_right1 = UI::GREEN;
+    } else {
+        ui.robot.rub_right1 = UI::ORANGE;
+    }
+
+    ui.robot.shoot = shoot.is_connect ? UI::GREEN : UI::PINK;
+
+    ui.robot.aim = mavlink.is_connect ? UI::GREEN : UI::PINK;
+}
+
 void setup() {
     BSP::Init();
     // imu.Calibrate();
@@ -48,6 +83,7 @@ void setup() {
 void loop() {
     led.OnLoop();
     robot.OnLoop();
+    handle_ui_robot();
     send_can_cmd();
 }
 
