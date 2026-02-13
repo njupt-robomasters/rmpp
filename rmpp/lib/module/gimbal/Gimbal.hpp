@@ -48,14 +48,15 @@ protected:
 
     UnitFloat<rpm> chassis_wr; // yaw速度前馈（小陀螺模式需要）
 
+    // 角度正解：电机角度 -> 云台姿态
+    virtual void forward() = 0;
+
+    // 角度正解：云台姿态 -> 电机角度
+    virtual void backward() = 0;
+
+private:
     BSP::Dwt dwt_motion; // 用于云台运动
 
     // 处理云台转动，通过dt不断计算角度增量
     void handleMotion();
-
-    // 电机角度 -> 云台姿态
-    virtual void forward() = 0;
-
-    // 云台姿态 -> 电机角度
-    virtual void backward() = 0;
 };

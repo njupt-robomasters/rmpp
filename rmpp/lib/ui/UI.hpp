@@ -9,19 +9,32 @@ public:
         uint8_t can_port = 1;
         uint32_t master_id = 0;
         uint32_t slave_id = 1;
-        UnitFloat<> update_freq = 30 * Hz;
+
+        // 最大值
+        UnitFloat<> max_cap_ratio = 1 * ratio;
+        UnitFloat<> max_chassis_wr = 120 * rpm;
+        UnitFloat<> max_shoot_freq = 10 * Hz;
+        UnitFloat<> max_shoot_current = 10 * A;
     } config;
 
-    // 云台yaw角
-    Angle<deg> yaw;
+    // 云台相对底盘角度
+    Angle<deg> yaw_ecd;
 
-    // 伤害方向提示
+    // 云台角度
+    Angle<deg> yaw, pitch;
+
+    // 伤害方向
     bool is_hurt = false;
     Angle<deg> hurt_dir;
 
-    // 摩擦轮速度
-    UnitFloat<m_s> bullet_speed_1;
-    UnitFloat<m_s> bullet_speed_2;
+    // 电容剩余能量比例
+    UnitFloat<ratio> cap_ratio;
+
+    // 底盘旋转速度
+    UnitFloat<rpm> chassis_wr;
+
+    // 弹频
+    UnitFloat<Hz> shoot_freq;
 
     // 拨弹电机电流
     UnitFloat<A> shoot_current;
@@ -44,15 +57,24 @@ public:
     void SendCanCmd();
 
 private:
-    static constexpr size_t TXBUF_SIZE = 1024;
-
-    uint8_t state = 0;
-
-    BSP::Dwt dwt_update;
-
     // CAN发送队列
+    static constexpr size_t TXBUF_SIZE = 1024;
     static uint8_t txbuf[TXBUF_SIZE];
     static size_t head, tail;
+
+    // 发送频率
+    static constexpr UnitFloat<> INIT_FREQ = 15 * Hz;
+    static constexpr UnitFloat<> UPDATE_FREQ = 30 * Hz;
+
+    enum {
+        INIT,
+        UPDATE
+    } state = INIT;
+
+    uint8_t init_index = 0;
+    uint32_t update_cnt = 0;
+
+    BSP::Dwt dwt; // 用于控制发送频率
 
     // 更新UI库
     void updateLib() const;

@@ -57,7 +57,7 @@ public:
     void OnLoop();
 
 private:
-    static constexpr float HIT_TIMEOUT = 1;
+    static constexpr float HURT_TIMEOUT = 1;
 
     // 底盘
     struct {

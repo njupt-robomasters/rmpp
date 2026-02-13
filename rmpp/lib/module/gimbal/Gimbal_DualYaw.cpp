@@ -12,14 +12,9 @@ void Gimbal_DualYaw::SetEnable(const bool is_enable) {
 }
 
 void Gimbal_DualYaw::OnLoop() {
-    // 更新云台转动
-    handleMotion();
+    Gimbal::OnLoop();
 
-    // 角度正逆解
-    forward();
-    backward();
-
-    // 电机PID计算
+    // 更新电机
     motor.yaw1.OnLoop();
     motor.yaw2.OnLoop();
     motor.pitch.OnLoop();

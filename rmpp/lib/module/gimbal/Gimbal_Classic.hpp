@@ -19,9 +19,9 @@ public:
     void OnLoop() override;
 
 private:
-    // 电机角度 -> 云台姿态
+    // 角度正解：电机角度 -> 云台姿态
     void forward() override;
 
-    // 云台姿态 -> 电机角度
+    // 角度正解：云台姿态 -> 电机角度
     void backward() override;
 };

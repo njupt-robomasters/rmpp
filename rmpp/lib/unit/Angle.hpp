@@ -131,8 +131,8 @@ namespace unit {
 
     // 旋转
     inline std::tuple<UnitFloat<>, UnitFloat<>> rotate(const UnitFloat<>& x, const UnitFloat<>& y, const Angle<>& angle) {
-        const float cos = arm_cos_f32(angle.toFloat());
-        const float sin = arm_sin_f32(angle.toFloat());
+        const float cos = std::cos(angle.toFloat());
+        const float sin = std::sin(angle.toFloat());
         const UnitFloat rotate_x = cos * x - sin * y;
         const UnitFloat rotate_y = sin * x + cos * y;
         return {rotate_x, rotate_y};

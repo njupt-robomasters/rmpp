@@ -54,8 +54,8 @@ void Referee::OnLoop(const UnitFloat<>& imu_yaw, const UnitFloat<>& gimbal_yaw) 
             break;
     }
 
-    // 伤害数据
-    if (parser.hurt_data.HP_deduction_reason == 0 && hurt.dwt != parser.dwt_hurt_data) {
+    // 伤害方向
+    if (parser.hurt_data.HP_deduction_reason == 0 && hurt.dwt != parser.dwt_hurt_data) { // 0：装甲模块被弹丸攻击导致扣血
         hurt.dwt = parser.dwt_hurt_data;
         hurt.cnt++;
 
@@ -76,8 +76,8 @@ void Referee::OnLoop(const UnitFloat<>& imu_yaw, const UnitFloat<>& gimbal_yaw) 
             default:
                 break;
         }
-    } else {
-        // 更新伤害方向
-        hurt.dir.by_gimbal = hurt.dir.by_world - imu_yaw;
     }
+
+    // 更新伤害方向
+    hurt.dir.by_gimbal = hurt.dir.by_world - imu_yaw;
 }

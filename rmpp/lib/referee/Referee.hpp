@@ -92,7 +92,7 @@ public:
     // 0x0209 rfid_status
     center_buff_e center_buff = EMPTY;
 
-    // 伤害数据
+    // 伤害方向
     struct {
         uint32_t cnt = 0;
         BSP::Dwt dwt;

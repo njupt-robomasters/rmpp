@@ -40,7 +40,7 @@ void Gimbal::OnLoop() {
     forward();
     backward();
 
-    // 这里计算电机PID
+    // 这里更新电机
 }
 
 void Gimbal::handleMotion() {

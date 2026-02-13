@@ -260,27 +260,36 @@ void Infantry::handle_referee() {
 }
 
 void Infantry::handle_ui() {
-    // yaw
-    device.ui.yaw = device.gimbal.yaw.ecd.measure;
+    // 云台相对底盘角度
+    device.ui.yaw_ecd = device.gimbal.yaw.ecd.measure;
 
-    // hit
-    if (device.referee.hurt.dwt.GetDT() < HIT_TIMEOUT) {
+    // 云台角度
+    device.ui.yaw = device.gimbal.yaw.imu.measure;
+    device.ui.pitch = device.gimbal.pitch.imu.measure;
+
+    // 伤害方向
+    if (device.referee.hurt.dwt.GetDT() < HURT_TIMEOUT) {
         device.ui.is_hurt = true;
         device.ui.hurt_dir = device.referee.hurt.dir.by_gimbal;
     } else {
         device.ui.is_hurt = false;
     }
 
-    // bullet_speed
-    device.ui.bullet_speed_1 = device.shooter.bullet_speed.measure;
-    device.ui.bullet_speed_2 = device.shooter.bullet_speed.measure;
+    // 电容剩余能量比例
+    device.ui.cap_ratio = 0 * ratio;
 
-    // shoot_current
-    device.ui.shoot_current = device.shooter.GetShootCurrentMeasure();
+    // 底盘旋转速度
+    device.ui.chassis_wr = device.chassis.wr.measure;
 
-    // aim
-    device.ui.aim.is_detect = device.mavlink.aim.is_detect;
+    // 弹频
+    device.ui.shoot_freq = config.bullet_freq;
+
+    // 拨弹电机电流
+    device.ui.shoot_current = device.shooter.shoot_current;
+
+    // 自瞄状态
     device.ui.aim.is_connect = device.mavlink.is_connect;
+    device.ui.aim.is_detect = device.mavlink.aim.is_detect;
 
     device.ui.OnLoop();
 }

@@ -24,6 +24,9 @@ public:
         UnitFloat<Hz> ref, measure;
     } bullet_freq;
 
+    // 拨弹电机电流
+    UnitFloat<A> shoot_current;
+
     Shooter(const config_t& config);
 
     // 设置发射结构使能/失能
@@ -41,16 +44,13 @@ public:
     // 设置拨弹电机
     void SetShoot(bool is_shoot);
 
-    // 读取拨弹电机电流，显示在自定义UI上判断堵转
-    virtual UnitFloat<> GetShootCurrentMeasure() = 0;
-
     // 需要在循环中调用
     virtual void OnLoop();
 
 protected:
-    // 速度正解：弹速、弹频 -> 电机速度
-    virtual void speedForward() = 0;
+    // 正解：电机速度 -> 弹速、弹频
+    virtual void forward() = 0;
 
-    // 速度逆解：电机速度 -> 弹速、弹频
-    virtual void speedBackward() = 0;
+    // 逆解：弹速、弹频 -> 电机速度
+    virtual void backward() = 0;
 };

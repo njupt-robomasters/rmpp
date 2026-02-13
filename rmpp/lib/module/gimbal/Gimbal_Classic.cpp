@@ -11,14 +11,9 @@ void Gimbal_Classic::SetEnable(const bool is_enable) {
 }
 
 void Gimbal_Classic::OnLoop() {
-    // 更新云台转动
-    handleMotion();
+    Gimbal::OnLoop();
 
-    // 角度正逆解
-    forward();
-    backward();
-
-    // 电机PID计算
+    // 更新电机
     motor.yaw.OnLoop();
     motor.pitch.OnLoop();
 }

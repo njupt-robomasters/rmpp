@@ -32,9 +32,9 @@ void Shooter::SetShoot(const bool is_shoot) {
 }
 
 void Shooter::OnLoop() {
-    // 速度解算
-    speedBackward();
-    speedForward();
+    // 正逆解
+    forward();
+    backward();
 
     // 这里更新电机
 }
