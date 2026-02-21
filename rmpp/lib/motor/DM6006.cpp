@@ -1,7 +1,7 @@
-#include "DM4310.hpp"
+#include "DM6006.hpp"
 #include <algorithm>
 
-DM4310::DM4310(const config_t& config) : Motor(config) {
+DM6006::DM6006(const config_t& config) : Motor(config) {
     // 设置电机默认参数
     if (this->config.reduction == 0) this->config.reduction = REDUCTION;
     if (this->config.Kt == 0) this->config.Kt = Kt;
@@ -14,7 +14,7 @@ DM4310::DM4310(const config_t& config) : Motor(config) {
     BSP::CAN::RegisterCallback(callback);
 }
 
-void DM4310::SendCanCmd() {
+void DM6006::SendCanCmd() {
     send_cnt++;
     if (is_connect && is_enable) {
         if (send_cnt % 100 == 0) { // 每100次调用重新发送使能
@@ -27,7 +27,7 @@ void DM4310::SendCanCmd() {
     }
 }
 
-void DM4310::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
+void DM6006::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
     // 端口、ID、长度校验
     if (port != config.can_port) return;
     if (id != config.master_id) return;
@@ -57,29 +57,29 @@ void DM4310::callback(const uint8_t port, const uint32_t id, const uint8_t data[
     Motor::callback(raw);
 }
 
-float DM4310::uint_to_float(const int x_int, const float x_min, const float x_max, const int bits) {
+float DM6006::uint_to_float(const int x_int, const float x_min, const float x_max, const int bits) {
     const float span = x_max - x_min;
     const float offset = x_min;
     return (float)x_int * span / (float)((1 << bits) - 1) + offset;
 }
 
-uint16_t DM4310::float_to_uint(const float x, const float x_min, const float x_max, const int bits) {
+uint16_t DM6006::float_to_uint(const float x, const float x_min, const float x_max, const int bits) {
     const float span = x_max - x_min;
     const float offset = x_min;
     return (uint16_t)((x - offset) * (float)((1 << bits) - 1) / span);
 }
 
-void DM4310::sendEnable() const {
+void DM6006::sendEnable() const {
     uint8_t data[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfc};
     BSP::CAN::TransmitStd(config.can_port, config.slave_id, data, 8);
 }
 
-void DM4310::sendDisable() const {
+void DM6006::sendDisable() const {
     uint8_t data[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfd};
     BSP::CAN::TransmitStd(config.can_port, config.slave_id, data, 8);
 }
 
-void DM4310::sendTorque(const UnitFloat<>& torque) const {
+void DM6006::sendTorque(const UnitFloat<>& torque) const {
     uint16_t angle_u16 = float_to_uint(0, -P_MAX, P_MAX, 16); // 位置
     uint16_t speed_u12 = float_to_uint(0, -V_MAX, V_MAX, 12); // 速度
     uint16_t kp_u12 = float_to_uint(0, 0, KP_MAX, 12);        // 位置比例系数

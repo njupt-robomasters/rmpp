@@ -13,7 +13,8 @@ file(GLOB_RECURSE USER_SOURCES
         # 底盘
         # "examples/motor/m3508_chassis/*.*"
         # "examples/module/chassis/chassis_omni/*.*"
-        # "examples/module/chassis/chassis_mecanum/*.*"
+        # "examples/module/chassis/chassis_mecanum_hero/*.*"
+        # "examples/module/chassis/chassis_mecanum_engineer/*.*"
         # "examples/module/chassis/chassis_dualsteer/*.*"
 
         # 云台
@@ -21,6 +22,7 @@ file(GLOB_RECURSE USER_SOURCES
         # "examples/motor/gm6020_yaw/*.*"
         # "examples/motor/gm6020_yaw_limit/*.*"
         # "examples/motor/dm4310_pitch/*.*"
+        "examples/motor/dm6006_pitch/*.*"
         # "examples/module/gimbal/gimbal_classic/*.*"
         # "examples/module/gimbal/gimbal_dualyaw/*.*"
 

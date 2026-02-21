@@ -2,7 +2,7 @@
 
 #include "Motor.hpp"
 
-class DM4310 : public Motor {
+class DM6006 : public Motor {
 public:
     static constexpr float REDUCTION = 1.0f;
     static constexpr UnitFloat<> Kt = 1.0f * Nm_A;
@@ -22,7 +22,7 @@ public:
         OVERLOAD  = 0x0E  // 过载
     } err_code = NONE;
 
-    DM4310(const config_t& config);
+    DM6006(const config_t& config);
 
     void SendCanCmd();
 
