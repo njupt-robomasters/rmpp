@@ -71,7 +71,7 @@ public:
         uint16_t heat_current = 0;
 
         // 剩余射击热量
-        int16_t heat_remain = 0;
+        int32_t heat_remain = 0;
 
         // 射击频率
         // 0x0207 shoot_data.launching_frequency

@@ -22,7 +22,7 @@ inline GM6020 yaw({
     .master_id = 0x205,
     .slave_id = 0x1FF,
     .is_invert = true,
-    .offset = 117.77f * deg,
+    .offset = -32.5f * deg,
     .control_mode = Motor::ANGLE_SPEED_MODE,
     .pid_out_type = Motor::CURRENT_OUTPUT,
     .speed_pid_config = &yaw_speed_pid,

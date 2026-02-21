@@ -34,7 +34,7 @@ void Referee::OnLoop() {
         shooter.heat_current = parser.power_heat_data.shooter_17mm_1_barrel_heat;         // 当前射击热量
         shooter.bullet_allowance = parser.projectile_allowance.projectile_allowance_17mm; // 允许发弹量
     }
-    shooter.heat_remain = (int16_t)(shooter.heat_limit - shooter.heat_current); // 剩余射击热量
+    shooter.heat_remain = shooter.heat_limit - shooter.heat_current; // 剩余射击热量
     shooter.bullet_freq = parser.shoot_data.launching_frequency * Hz;           // 射击频率
     shooter.bullet_speed = parser.shoot_data.initial_speed * m_s;               // 弹丸初速度
 

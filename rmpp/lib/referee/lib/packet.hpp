@@ -91,7 +91,7 @@ struct __attribute__((packed)) robot_status_t {
     uint16_t maximum_HP;                         // 机器人血量上限
     uint16_t shooter_barrel_cooling_value;       // 机器人射击热量每秒冷却值
     uint16_t shooter_barrel_heat_limit = 65535;  // 机器人射击热量上限
-    uint16_t chassis_power_limit = 65535;        // 机器人底盘功率上限
+    uint16_t chassis_power_limit = 120;          // 机器人底盘功率上限
     uint8_t power_management_gimbal_output : 1;  // gimbal口输出，0为无输出，1为24V输出
     uint8_t power_management_chassis_output : 1; // chassis口输出，0为无输出，1为24V输出
     uint8_t power_management_shooter_output : 1; // shooter口输出，0为无输出，1为24V输出
