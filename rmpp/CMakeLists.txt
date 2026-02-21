@@ -24,7 +24,7 @@ file(GLOB_RECURSE USER_SOURCES
         # "examples/motor/dm4310_pitch/*.*"
         # "examples/motor/dm6006_pitch/*.*"
         # "examples/module/gimbal/gimbal_classic_infantry/*.*"
-        "examples/module/gimbal/gimbal_classic_hero/*.*"
+        # "examples/module/gimbal/gimbal_classic_hero/*.*"
         # "examples/module/gimbal/gimbal_dualyaw/*.*"
 
         # 发射机构
@@ -43,6 +43,7 @@ file(GLOB_RECURSE USER_SOURCES
         # 整车代码
         # "app/infantry/*.*"
         # "app/sentry/*.*"
+        "app/hero/*.*"
 )
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE

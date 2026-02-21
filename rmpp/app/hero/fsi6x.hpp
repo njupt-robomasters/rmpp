@@ -2,4 +2,4 @@
 
 #include "rc/FSi6X.hpp"
 
-inline FSi6X rc({});
+inline FSi6X fsi6x({});
