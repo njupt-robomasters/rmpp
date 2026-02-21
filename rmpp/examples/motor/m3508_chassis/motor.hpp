@@ -14,7 +14,7 @@ inline PID::config_t speed_pid = {
     .max_out = 20 * A,
 };
 inline M3508 motor({
-    .can_port = 2,
+    .can_port = 1,
     .master_id = 0x201,
     .slave_id = 0x200,
     .reduction = REDUCTION,

@@ -15,7 +15,7 @@ void send_can_cmd() {
     data[5] = 0;
     data[6] = 0;
     data[7] = 0;
-    BSP::CAN::TransmitStd(1, 0x200, data, 8);
+    BSP::CAN::TransmitStd(motor.config.can_port, 0x200, data, 8);
 }
 
 void setup() {
