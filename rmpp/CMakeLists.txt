@@ -22,8 +22,9 @@ file(GLOB_RECURSE USER_SOURCES
         # "examples/motor/gm6020_yaw/*.*"
         # "examples/motor/gm6020_yaw_limit/*.*"
         # "examples/motor/dm4310_pitch/*.*"
-        "examples/motor/dm6006_pitch/*.*"
-        # "examples/module/gimbal/gimbal_classic/*.*"
+        # "examples/motor/dm6006_pitch/*.*"
+        # "examples/module/gimbal/gimbal_classic_infantry/*.*"
+        "examples/module/gimbal/gimbal_classic_hero/*.*"
         # "examples/module/gimbal/gimbal_dualyaw/*.*"
 
         # 发射机构
@@ -40,7 +41,7 @@ file(GLOB_RECURSE USER_SOURCES
         # "examples/referee/*.*"
 
         # 整车代码
-        "app/infantry/*.*"
+        # "app/infantry/*.*"
         # "app/sentry/*.*"
 )
 
