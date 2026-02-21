@@ -7,7 +7,7 @@ void setup() {
 
 void loop() {
     led.OnLoop();
-    rc.OnLoop();
+    fsi6x.OnLoop();
 }
 
 extern "C" void rmpp_main() {

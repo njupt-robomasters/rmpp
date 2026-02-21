@@ -57,21 +57,19 @@ public:
     void OnLoop();
 
 private:
-    static constexpr float HURT_TIMEOUT = 1;
-
     // 底盘
     struct {
-        UnitFloat<m_s> fsi6x, vt13, client, mavlink, sum;
+        UnitFloat<m_s> fsi6x, vt13_rc, vt13_client, mavlink, sum;
     } vx, vy, wr;
 
     // 云台
     struct {
-        UnitFloat<deg_s> fsi6x, vt13, client, mavlink, sum;
+        UnitFloat<deg_s> fsi6x, vt13_rc, vt13_client, mavlink, sum;
     } yaw_speed, pitch_speed;
 
     // 发射机构
     struct {
-        bool fsi6x = false, vt13 = false, client = false;
+        bool fsi6x = false, vt13_rc = false, vt13_client = false;
     } is_rub, is_shoot;
 
     // 用于缓加减速
@@ -79,23 +77,22 @@ private:
 
     void setEnable(bool is_enable);
 
-    void handle_disconnect();
+    void handleConnect();
 
     // 控制器
-    void handle_fsi6x();
-    void handle_vt13_rc();
-    void handle_vt13_client();
-    void handle_mavlink();
+    void handleFSi6X();
+    void handleVT13();
+    void handleMavlink();
 
     // 传感器
-    void handle_imu();
+    void handleIMU();
 
     // 执行器
-    void handle_chassis();
-    void handle_gimbal();
-    void handle_shooter();
+    void handleChassis();
+    void handleGimbal();
+    void handleShooter();
 
     // 裁判系统
-    void handle_referee();
-    void handle_ui();
+    void handleReferee();
+    void handleUI();
 };

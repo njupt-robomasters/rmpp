@@ -15,6 +15,9 @@ public:
     // 设置底盘使能/失能
     void SetEnable(bool is_enable) override;
 
+    // 在自定义UI上显示电机连接状态
+    void HandleUI(UI& ui) override;
+
     // 需要在循环中调用
     void OnLoop() override;
 

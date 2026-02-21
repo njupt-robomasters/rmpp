@@ -2,4 +2,4 @@
 
 #include "rc/VT13.hpp"
 
-inline VT13 rc({});
+inline VT13 vt13({});

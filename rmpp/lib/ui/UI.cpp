@@ -1,42 +1,7 @@
 #include "UI.hpp"
 #include <algorithm>
 #include <cstring>
-#include "lib/ui.h"
-
-// 适配rmui
-extern "C" void print_message(const uint8_t* message, const int length) {
-    UI::AddCanData(message, length);
-}
-
-static void (*ui_init_g[])() = {
-    ui_init_g_00,
-    ui_init_g_01,
-    ui_init_g_02,
-    ui_init_g_03,
-    ui_init_g_04,
-    ui_init_g_05,
-
-    ui_init_g_1,
-    ui_init_g_2,
-
-    ui_init_g_30,
-    ui_init_g_31,
-    ui_init_g_32,
-};
-
-static void (*ui_update_g[])() = {
-    ui_update_g_1,
-    ui_update_g_2,
-
-    ui_update_g_1,
-    ui_update_g_30,
-
-    ui_update_g_1,
-    ui_update_g_31,
-
-    ui_update_g_1,
-    ui_update_g_32,
-};
+#include "rmui_adapter.hpp"
 
 // CAN发送队列
 uint8_t UI::txbuf[TXBUF_SIZE];
@@ -59,6 +24,8 @@ void UI::Init() {
 }
 
 void UI::OnLoop() {
+    update_rmui_robot_id();
+
     updateLib(); // 更新UI库
 
     if (dwt.PollTimeout(1 / SEND_FREQ)) { // 发送频率控制
@@ -104,7 +71,7 @@ void UI::updateLib() const {
     ui_g_1_dir->start_angle = start_angle;
     ui_g_1_dir->end_angle = end_angle;
 
-    // 云台角度
+    // 云台IMu角度
     ui_g_2_yaw->number = (int32_t)yaw.toFloat(deg);
     ui_g_2_pitch->number = (int32_t)pitch.toFloat(deg);
 

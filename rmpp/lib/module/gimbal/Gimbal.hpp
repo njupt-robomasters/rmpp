@@ -1,6 +1,7 @@
 #pragma once
 
 #include "imu/IMU.hpp"
+#include "ui/UI.hpp"
 
 class Gimbal {
 public:
@@ -39,6 +40,9 @@ public:
 
     // 设置底盘旋转速度，用于yaw轴前馈
     void SetChassisWr(const UnitFloat<>& chassis_wr);
+
+    // 在自定义UI上显示电机连接状态
+    virtual void HandleUI(UI& ui) = 0;
 
     // 需要在循环中调用
     virtual void OnLoop();

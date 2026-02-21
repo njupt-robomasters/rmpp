@@ -7,7 +7,7 @@ void setup() {
 
 void loop() {
     led.OnLoop();
-    rc.OnLoop();
+    vt13.OnLoop();
 }
 
 extern "C" void rmpp_main() {

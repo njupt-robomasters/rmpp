@@ -17,17 +17,15 @@ public:
         UnitFloat<> max_shoot_current = 10 * A;
     } config;
 
-    // 云台相对底盘角度
-    Angle<deg> yaw_ecd;
-
     // 云台角度
-    Angle<deg> yaw, pitch;
+    Angle<deg> yaw_ecd; // 云台相对底盘角度
+    Angle<deg> yaw, pitch; // 云台IMU角度
 
     // 伤害方向
     bool is_hurt = false;
     Angle<deg> hurt_dir;
 
-    // 电容剩余能量比例
+    // 超级电容剩余能量比例
     UnitFloat<ratio> cap_ratio;
 
     // 底盘旋转速度

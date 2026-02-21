@@ -7,7 +7,9 @@ void setup() {
 
 void loop() {
     led.OnLoop();
-    referee.OnLoop(0 * deg, 0 * deg);
+
+    referee.SetYaw(0 * deg, 0 * deg);
+    referee.OnLoop();
 }
 
 extern "C" void rmpp_main() {

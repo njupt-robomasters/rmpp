@@ -1,7 +1,7 @@
 #pragma once
 
-#include "unit/include_me.hpp"
 #include "algorithm/PID.hpp"
+#include "ui/UI.hpp"
 
 class Chassis {
 public:
@@ -75,6 +75,9 @@ public:
 
     // 设置底盘缓冲能量
     void SetBufferEnergy(const UnitFloat<>& buffer_energy);
+
+    // 在自定义UI上显示电机连接状态
+    virtual void HandleUI(UI& ui) = 0;
 
     // 需要在循环中调用
     virtual void OnLoop();

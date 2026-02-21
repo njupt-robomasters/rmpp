@@ -1,6 +1,6 @@
 #pragma once
 
-#include "algorithm/PID.hpp"
+#include "ui/UI.hpp"
 
 class Shooter {
 public:
@@ -17,7 +17,6 @@ public:
     // 弹速
     struct {
         UnitFloat<m_s> ref, measure;
-        UnitFloat<m_s> measure_left1, measure_right1, measure_left2, measure_right2;
     } bullet_speed;
 
     // 弹频
@@ -44,6 +43,9 @@ public:
 
     // 设置拨弹电机
     void SetShoot(bool is_shoot);
+
+    // 在自定义UI上显示电机连接状态
+    virtual void HandleUI(UI& ui) = 0;
 
     // 需要在循环中调用
     virtual void OnLoop();

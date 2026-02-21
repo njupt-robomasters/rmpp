@@ -17,6 +17,26 @@ void Shooter_17mm::SetEnable(const bool is_enable) {
     motor.shoot.SetEnable(is_enable);
 }
 
+void Shooter_17mm::HandleUI(UI& ui) {
+    if (motor.rub_left.is_connect == false) {
+        ui.robot.rub_left1 = UI::PINK;
+    } else if (unit::abs(bullet_speed.ref - rub_left_measure) < 1) {
+        ui.robot.rub_left1 = UI::GREEN;
+    } else {
+        ui.robot.rub_left1 = UI::ORANGE;
+    }
+
+    if (motor.rub_right.is_connect == false) {
+        ui.robot.rub_right1 = UI::PINK;
+    } else if (unit::abs(bullet_speed.ref - rub_right_measure) < 1) {
+        ui.robot.rub_right1 = UI::GREEN;
+    } else {
+        ui.robot.rub_right1 = UI::ORANGE;
+    }
+
+    ui.robot.shoot = motor.shoot.is_connect ? UI::GREEN : UI::PINK;
+}
+
 void Shooter_17mm::OnLoop() {
     Shooter::OnLoop();
 
@@ -48,9 +68,9 @@ void Shooter_17mm::backward() {
 
 void Shooter_17mm::forward() {
     // 摩擦轮
-    bullet_speed.measure_left1 = motor.rub_left.speed.measure * config.rub_radius;
-    bullet_speed.measure_right1 = motor.rub_right.speed.measure * config.rub_radius;
-    bullet_speed.measure = (motor.rub_left.speed.measure + motor.rub_right.speed.measure) / 2.0f * config.rub_radius;
+    rub_left_measure = motor.rub_left.speed.measure * config.rub_radius;
+    rub_right_measure = motor.rub_right.speed.measure * config.rub_radius;
+    bullet_speed.measure = (rub_left_measure + rub_right_measure) / 2.0f;
 
     // 拨弹电机
     bullet_freq.measure = motor.shoot.speed.measure * config.bullet_per_rev;

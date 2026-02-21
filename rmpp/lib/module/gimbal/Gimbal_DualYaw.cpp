@@ -11,6 +11,12 @@ void Gimbal_DualYaw::SetEnable(const bool is_enable) {
     motor.pitch.SetEnable(is_enable);
 }
 
+void Gimbal_DualYaw::HandleUI(UI& ui) {
+    ui.robot.yaw1 = motor.yaw1.is_connect ? UI::GREEN : UI::PINK;
+    ui.robot.yaw2 = motor.yaw2.is_connect ? UI::GREEN : UI::PINK;
+    ui.robot.pitch = motor.pitch.is_connect ? UI::GREEN : UI::PINK;
+}
+
 void Gimbal_DualYaw::OnLoop() {
     Gimbal::OnLoop();
 

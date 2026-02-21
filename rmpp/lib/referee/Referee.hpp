@@ -25,11 +25,11 @@ public:
         BOTH,
     };
 
-    // 本机器人ID
+    // 机器人ID
     // 0x0201 robot_status.robot_id
     uint8_t robot_id = 3;
 
-    // 机器人当前血量
+    // 当前血量
     // 0x0201 robot_status.current_HP
     uint16_t hp = 0;
 
@@ -50,18 +50,18 @@ public:
 
     // 底盘数据
     struct {
-        // 机器人底盘功率上限
+        // 底盘功率上限
         // 0x0201 robot_status.chassis_power_limit
         UnitFloat<W> power_limit;
 
-        // 缓冲能量（单位：J）
+        // 缓冲能量
         // 0x0202 power_heat_data.buffer_energy
         UnitFloat<J> buffer_energy;
     } chassis;
 
     // 发射机构数据
     struct {
-        // 机器人射击热量上限
+        // 射击热量上限
         // 0x0201 robot_status.shooter_barrel_heat_limit
         uint16_t heat_limit = 0;
 
@@ -93,21 +93,24 @@ public:
     center_buff_e center_buff = EMPTY;
 
     // 伤害方向
-    struct {
-        uint32_t cnt = 0;
-        BSP::Dwt dwt;
-
-        struct {
-            Angle<deg> by_world;
-            Angle<deg> by_gimbal;
-        } dir;
-    } hurt;
+    bool is_hurt;
+    Angle<deg> hurt_dir; // 伤害方向，相对于云台参考系
 
     Referee(const config_t& config);
 
+    // 设置yaw角度，用于计算伤害方向
+    void SetYaw(const UnitFloat<>& imu_yaw, const UnitFloat<>& gimbal_yaw);
+
     // 需要在循环中调用
-    void OnLoop(const UnitFloat<>& imu_yaw, const UnitFloat<>& gimbal_yaw);
+    void OnLoop();
 
 private:
+    static constexpr float HURT_TIMEOUT = 1;
+
     RefereeParser parser; // 裁判系统报文解析库
+
+    // 用于伤害方向
+    UnitFloat<deg> imu_yaw, gimbal_yaw;
+    BSP::Dwt hurt_dwt;
+    Angle<deg> hurt_dir_by_imu; // 伤害方向，相对于IMu参考系
 };

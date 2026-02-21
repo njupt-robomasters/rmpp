@@ -11,10 +11,15 @@ public:
         Motor& shoot;                                           // 拨弹电机
     } motor;
 
+    UnitFloat<m_s> rub_left1_measure, rub_right1_measure, rub_left2_measure, rub_right2_measure;
+
     Shooter_42mm(const config_t& config, const motor_t& motor);
 
     // 设置发射结构使能/失能
     void SetEnable(bool is_enable) override;
+
+    // 在自定义UI上显示电机连接状态
+    void HandleUI(UI& ui) override;
 
     // 需要在循环中调用
     void OnLoop() override;

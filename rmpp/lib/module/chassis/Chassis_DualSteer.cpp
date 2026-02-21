@@ -20,6 +20,13 @@ void Chassis_DualSteer::SetEnable(const bool is_enable) {
     motor.s2.SetEnable(is_enable);
 }
 
+void Chassis_DualSteer::HandleUI(UI& ui) {
+    ui.robot.w1 = motor.w1.is_connect ? UI::GREEN : UI::PINK;
+    ui.robot.w4 = motor.w2.is_connect ? UI::GREEN : UI::PINK;
+    ui.robot.s1 = motor.s1.is_connect ? UI::GREEN : UI::PINK;
+    ui.robot.s4 = motor.s2.is_connect ? UI::GREEN : UI::PINK;
+}
+
 void Chassis_DualSteer::OnLoop() {
     Chassis::OnLoop();
 
