@@ -1,10 +1,14 @@
 #pragma once
 
 #include "bsp/bsp.hpp" // dwt
-#include "RC.hpp"
 
-class FSi6X : public RC {
+class FSi6X {
 public:
+    struct config_t {
+        UnitFloat<> connect_timeout = 100 * ms;  // 断联检测超时时间
+        UnitFloat<> joystick_deadline = 5 * pct; // 摇杆死区，小于此值认为是0
+    } config;
+
     enum switch_e {
         DOWN,
         MID,
@@ -12,13 +16,15 @@ public:
         ERR
     };
 
-    // 除父类外其他通道
+    bool is_connect = false; // 连接标志
+
+    UnitFloat<ratio> x, y, pitch, yaw;                   // 摇杆
     UnitFloat<ratio> vra, vrb;                           // 旋钮
     switch_e swa = ERR, swb = ERR, swc = ERR, swd = ERR; // 拨杆
 
     FSi6X(const config_t& config);
 
-    void OnLoop() override;
+    void OnLoop();
 
 private:
     // 通道原始值
@@ -48,6 +54,8 @@ private:
 
         uint8_t tail : 8; // 0x00
     } raw{};
+
+    BSP::Dwt dwt_connect; // 用于断联检测
 
     // 串口接收回调
     void callback(const uint8_t data[], uint16_t size);

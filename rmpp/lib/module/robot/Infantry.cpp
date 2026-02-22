@@ -6,8 +6,8 @@ void Infantry::OnLoop() {
     handleConnect();
 
     // 控制器
-    handleFSi6X();
-    handleVT13();
+    handleRC();
+    handleClient();
     handleMavlink();
 
     // 传感器
@@ -23,174 +23,116 @@ void Infantry::OnLoop() {
     handleUI();
 }
 
-void Infantry::setEnable(const bool is_enable) {
-    device.chassis.SetEnable(is_enable);
-    device.gimbal.SetEnable(is_enable);
-    device.shooter.SetEnable(is_enable);
-}
-
 void Infantry::handleConnect() {
-    if (device.vt13.is_connect) { // VT13遥控器优先
-        if (device.vt13.is_protect) {
-            setEnable(false);
-        } else {
-            setEnable(true);
-        }
-    } else if (device.fsi6x.is_connect) {
-        if (device.fsi6x.is_protect) {
-            setEnable(false);
-        } else {
-            setEnable(true);
-        }
-    } else {
-        setEnable(false);
+    // 比赛时候忽略断联保护
+    if (device.referee.game.progress == Referee::COUNTDOWN_5SEC || device.referee.game.progress == Referee::GAMING) {
+        device.chassis.SetEnable(true);
+        device.gimbal.SetEnable(true);
+        device.shooter.SetEnable(true);
+        return;
+    }
+
+    device.chassis.SetEnable(device.rc.is_enable);
+    device.gimbal.SetEnable(device.rc.is_enable);
+    device.shooter.SetEnable(device.rc.is_enable);
+
+    // 断联关小陀螺
+    if (device.rc.is_enable == false) {
+        wr.client = 0 * default_unit;
     }
 }
 
-void Infantry::handleFSi6X() {
-    vx.fsi6x = device.fsi6x.x * config.vxy_max;
-    vy.fsi6x = device.fsi6x.y * config.vxy_max;
-    yaw_speed.fsi6x = device.fsi6x.yaw * config.yaw_max;
-    pitch_speed.fsi6x = device.fsi6x.pitch * config.pitch_max;
+void Infantry::handleRC() {
+    device.rc.OnLoop();
 
-    // 小陀螺
-    if (device.fsi6x.swb == FSi6X::DOWN) {
-        wr.fsi6x = device.fsi6x.vra * config.wr_max;
-    } else {
-        wr.fsi6x = 0 * default_unit;
+    vx.rc = device.rc.x * config.vxy_max;
+    vy.rc = device.rc.y * config.vxy_max;
+    wr.rc = device.rc.r * config.wr_max;
+    yaw_speed.rc = device.rc.yaw * config.yaw_max;
+    pitch_speed.rc = device.rc.pitch * config.pitch_max;
+    is_rub.rc = device.rc.is_rub;;
+    is_shoot.rc = device.rc.is_shoot;
+
+    // 左fn键：底盘分离模式
+    if (device.rc.vt13.fn_left) {
+        device.chassis.SetMode(Chassis::DETACH_MODE);
     }
 
-    // 发射机构
-    switch (device.fsi6x.swc) {
-        case FSi6X::ERR:
-            is_rub.fsi6x = false;
-            is_shoot.fsi6x = false;
-        case FSi6X::UP:
-            is_rub.fsi6x = false;
-            is_shoot.fsi6x = false;
-            break;
-        case FSi6X::MID:
-            is_rub.fsi6x = true;
-            is_shoot.fsi6x = false;
-            break;
-        case FSi6X::DOWN:
-            is_rub.fsi6x = true;
-            is_shoot.fsi6x = true;
-            break;
+    // 右fn键：底盘跟随模式
+    if (device.rc.vt13.fn_right) {
+        device.chassis.SetMode(Chassis::FOLLOW_MODE);
     }
-
-    device.fsi6x.OnLoop();
 }
 
-void Infantry::handleVT13() {
-    auto handleRC = [this]() {
-        // 摇杆
-        vx.vt13_rc = device.vt13.x * config.vxy_max;
-        vy.vt13_rc = device.vt13.y * config.vxy_max;
-        wr.vt13_rc = device.vt13.wheel * config.wr_max;
-        yaw_speed.vt13_rc = device.vt13.yaw * config.yaw_max;
-        pitch_speed.vt13_rc = device.vt13.pitch * config.pitch_max;
-
-        // 左fn键：底盘分离模式
-        if (device.vt13.fn_left) {
-            device.chassis.SetMode(Chassis::DETACH_MODE);
+void Infantry::handleClient() {
+    // wsad控制底盘
+    // ws控制前后
+    const UnitFloat dt = dwt_acc.UpdateDT();
+    if (device.rc.vt13.key.w) { // 前
+        if (vx.client < 0) vx.client = 0 * default_unit;
+        vx.client += config.axy * dt;
+        vx.client = unit::clamp(vx.client, config.vxy_max);
+    } else if (device.rc.vt13.key.s) { // 后
+        if (vx.client > 0) vx.client = 0 * default_unit;
+        vx.client -= config.axy * dt;
+        vx.client = unit::clamp(vx.client, config.vxy_max);
+    } else { // 松开减速
+        if (vx.client > 0) {
+            vx.client -= config.dxy * dt;
+            if (vx.client < 0) vx.client = 0 * default_unit;
         }
-
-        // 右fn键：底盘跟随模式
-        if (device.vt13.fn_right) {
-            device.chassis.SetMode(Chassis::FOLLOW_MODE);
+        if (vx.client < 0) {
+            vx.client += config.dxy * dt;
+            if (vx.client > 0) vx.client = 0 * default_unit;
         }
-
-        // S挡：开摩擦轮
-        if (device.vt13.mode == VT13::S) {
-            is_rub.vt13_rc = true;
-        } else {
-            is_rub.vt13_rc = false;
+    }
+    // ad控制水平
+    if (device.rc.vt13.key.a) { // 左
+        if (vy.client < 0) vy.client = 0 * default_unit;
+        vy.client += config.axy * dt;
+        vy.client = unit::clamp(vy.client, config.vxy_max);
+    } else if (device.rc.vt13.key.d) { // 右
+        if (vy.client > 0) vy.client = 0 * default_unit;
+        vy.client -= config.axy * dt;
+        vy.client = unit::clamp(vy.client, config.vxy_max);
+    } else { // 松开减速
+        if (vy.client > 0) {
+            vy.client -= config.dxy * dt;
+            if (vy.client < 0) vy.client = 0 * default_unit;
         }
-    };
-
-    auto handleClient = [this]() {
-        // 扳机键：射击
-        is_shoot.vt13_rc = device.vt13.trigger;
-
-        // wsad控制底盘
-        // ws控制前后
-        const UnitFloat dt = dwt_acc.UpdateDT();
-        if (device.vt13.key.w) { // 前
-            if (vx.vt13_client < 0) vx.vt13_client = 0 * default_unit;
-            vx.vt13_client += config.axy * dt;
-            vx.vt13_client = unit::clamp(vx.vt13_client, config.vxy_max);
-        } else if (device.vt13.key.s) { // 后
-            if (vx.vt13_client > 0) vx.vt13_client = 0 * default_unit;
-            vx.vt13_client -= config.axy * dt;
-            vx.vt13_client = unit::clamp(vx.vt13_client, config.vxy_max);
-        } else { // 松开减速
-            if (vx.vt13_client > 0) {
-                vx.vt13_client -= config.dxy * dt;
-                if (vx.vt13_client < 0) vx.vt13_client = 0 * default_unit;
-            }
-            if (vx.vt13_client < 0) {
-                vx.vt13_client += config.dxy * dt;
-                if (vx.vt13_client > 0) vx.vt13_client = 0 * default_unit;
-            }
+        if (vy.client < 0) {
+            vy.client += config.dxy * dt;
+            if (vy.client > 0) vy.client = 0 * default_unit;
         }
-        // ad控制水平
-        if (device.vt13.key.a) { // 左
-            if (vy.vt13_client < 0) vy.vt13_client = 0 * default_unit;
-            vy.vt13_client += config.axy * dt;
-            vy.vt13_client = unit::clamp(vy.vt13_client, config.vxy_max);
-        } else if (device.vt13.key.d) { // 右
-            if (vy.vt13_client > 0) vy.vt13_client = 0 * default_unit;
-            vy.vt13_client -= config.axy * dt;
-            vy.vt13_client = unit::clamp(vy.vt13_client, config.vxy_max);
-        } else { // 松开减速
-            if (vy.vt13_client > 0) {
-                vy.vt13_client -= config.dxy * dt;
-                if (vy.vt13_client < 0) vy.vt13_client = 0 * default_unit;
-            }
-            if (vy.vt13_client < 0) {
-                vy.vt13_client += config.dxy * dt;
-                if (vy.vt13_client > 0) vy.vt13_client = 0 * default_unit;
-            }
-        }
+    }
 
-        // f刷新ui
-        if (device.vt13.key.f) {
-            device.ui.Init();
-        }
+    // 鼠标控制云台
+    yaw_speed.client = device.rc.vt13.mouse.yaw * config.yaw_max;
+    pitch_speed.client = device.rc.vt13.mouse.pitch * config.pitch_max;
 
-        // 鼠标控制云台
-        yaw_speed.vt13_client = device.vt13.mouse.yaw * config.yaw_max;
-        pitch_speed.vt13_client = device.vt13.mouse.pitch * config.pitch_max;
+    // 鼠标左键开火
+    is_shoot.client = device.rc.vt13.mouse.left;
 
-        // 鼠标左键开火
-        is_shoot.vt13_client = device.vt13.mouse.left;
+    // 鼠标右键自瞄
+    if (device.rc.vt13.mouse.right && device.mavlink.aim.is_detect) {
+        yaw_speed.client = 0 * default_unit;
+        pitch_speed.client = 0 * default_unit;
+        device.gimbal.SetAngle(device.mavlink.aim.yaw, device.mavlink.aim.pitch);
+    }
 
-        // 鼠标右键自瞄
-        if (device.vt13.mouse.right && device.mavlink.aim.is_detect) {
-            yaw_speed.vt13_client = 0 * default_unit;
-            pitch_speed.vt13_client = 0 * default_unit;
-            device.gimbal.SetAngle(device.mavlink.aim.yaw, device.mavlink.aim.pitch);
-        }
+    // shift开小陀螺
+    if (device.rc.vt13.key.shift) {
+        wr.client = config.wr_max;
+    }
+    // ctrl关小陀螺
+    if (device.rc.vt13.key.ctrl) {
+        wr.client = 0 * default_unit;
+    }
 
-        // shift开小陀螺
-        if (device.vt13.key.shift) {
-            wr.vt13_client = config.wr_max;
-        }
-        // ctrl关小陀螺
-        if (device.vt13.key.ctrl) {
-            wr.vt13_client = 0 * default_unit;
-        }
-        // 失能/断联关小陀螺
-        if (device.vt13.is_connect == false || device.vt13.is_protect == true) {
-            wr.vt13_client = 0 * default_unit;
-        }
-    };
-
-    handleRC();
-    handleClient();
-
-    device.vt13.OnLoop();
+    // f刷新ui
+    if (device.rc.vt13.key.f) {
+        device.ui.Init();
+    }
 }
 
 void Infantry::handleMavlink() {
@@ -213,9 +155,9 @@ void Infantry::handleIMU() {
 
 void Infantry::handleChassis() {
     // 设置底盘速度
-    vx.sum = unit::clamp(vx.fsi6x + vx.vt13_rc + vx.vt13_client + vx.mavlink, config.vxy_max);
-    vy.sum = unit::clamp(vy.fsi6x + vy.vt13_rc + vy.vt13_client + vy.mavlink, config.vxy_max);
-    wr.sum = unit::clamp(wr.fsi6x + wr.vt13_rc + wr.vt13_client + wr.mavlink, config.wr_max);
+    vx.sum = unit::clamp(vx.rc + vx.client + vx.mavlink, config.vxy_max);
+    vy.sum = unit::clamp(vy.rc + vy.client + vy.mavlink, config.vxy_max);
+    wr.sum = unit::clamp(wr.rc + wr.client + wr.mavlink, config.wr_max);
     device.chassis.SetSpeed(vx.sum, vy.sum, wr.sum);
 
     // 设置前进正方向
@@ -232,8 +174,8 @@ void Infantry::handleChassis() {
 
 void Infantry::handleGimbal() {
     // 设置云台速度
-    pitch_speed.sum = unit::clamp(pitch_speed.fsi6x + pitch_speed.vt13_rc + pitch_speed.vt13_client + pitch_speed.mavlink, config.pitch_max);
-    yaw_speed.sum = unit::clamp(yaw_speed.fsi6x + yaw_speed.vt13_rc + yaw_speed.vt13_client + yaw_speed.mavlink, config.yaw_max);
+    pitch_speed.sum = unit::clamp(pitch_speed.rc + pitch_speed.client + pitch_speed.mavlink, config.pitch_max);
+    yaw_speed.sum = unit::clamp(yaw_speed.rc + yaw_speed.client + yaw_speed.mavlink, config.yaw_max);
     device.gimbal.SetSpeed(yaw_speed.sum, pitch_speed.sum);
 
     // 设置小陀螺前馈
@@ -247,13 +189,13 @@ void Infantry::handleShooter() {
     device.shooter.SetBulletFreq(config.bullet_freq);   // 设置弹频
 
     // 摩擦轮
-    device.shooter.SetRub(is_rub.fsi6x || is_rub.vt13_rc || is_rub.vt13_client);
+    device.shooter.SetRub(is_rub.fsi6x || is_rub.rc || is_rub.client);
 
     // 拨弹电机
     if (device.referee.shooter.heat_remain < config.heat_protect) { // 枪口热量保护
         device.shooter.SetShoot(false);
     } else {
-        device.shooter.SetShoot(is_shoot.fsi6x || is_shoot.vt13_rc || is_shoot.vt13_client);
+        device.shooter.SetShoot(is_shoot.fsi6x || is_shoot.rc || is_shoot.client);
     }
 
     device.shooter.OnLoop();

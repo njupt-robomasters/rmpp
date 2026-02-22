@@ -1,0 +1,20 @@
+
+GraphedExpression="yaw.raw.angle.value", Color=#a00909
+OpenDocument="main.c", FilePath="E:/workspace/rm/code/embedded/rmpp/Core/Src/main.c", Line=46
+OpenDocument="Unit.hpp", FilePath="E:/workspace/rm/code/embedded/rmpp/rmpp/lib/unit/Unit.hpp", Line=133
+OpenToolbar="Debug", Floating=0, x=0, y=0
+OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=0, w=1202, h=939, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1204, h=458, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=RIGHT, x=0, y=0, w=1204, h=480, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="70;319", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="961;-65", CodeGraphLegendShown=0, CodeGraphLegendPosition="979;0"
+OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=2560, h=337, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+TableHeader="Data Sampling Table", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" yaw.raw.angle.value"], ColWidths=[100;100;100]
+TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="DESCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[540;106;174;100;174;174;176;204;129]
+TableHeader="Power Sampling", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
+TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Refresh"], ColWidths=[447;187;222;346]
+TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
+WatchedExpression="s1.raw.angle.value", Window=Watched Data 1
+WatchedExpression="s2.raw.angle.value", Window=Watched Data 1
+WatchedExpression="yaw.raw.angle.value", Window=Watched Data 1
+WatchedExpression="yaw1.raw.angle.value", Window=Watched Data 1
+WatchedExpression="yaw2.raw.angle.value", Window=Watched Data 1
+WatchedExpression="pitch.raw.angle.value", Window=Watched Data 1

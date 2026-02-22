@@ -38,10 +38,10 @@ void send_can_cmd() {
 
     // CAN2
     pitch.SendCanCmd();
-    rub_left1.SendCanCmd();
-    rub_right1.SendCanCmd();
-    rub_left2.SendCanCmd();
-    rub_right2.SendCanCmd();
+    rub1.SendCanCmd();
+    rub2.SendCanCmd();
+    rub3.SendCanCmd();
+    rub4.SendCanCmd();
 }
 
 void setup() {

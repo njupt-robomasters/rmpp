@@ -1,7 +1,7 @@
 #include "FSi6X.hpp"
 #include <cstring> // memcpy
 
-FSi6X::FSi6X(const config_t& config) : RC(config) {
+FSi6X::FSi6X(const config_t& config) : config(config) {
     // 注册串口回调
     auto callback = [this](const uint8_t data[], const uint16_t size) {
         this->callback(data, size);
@@ -44,13 +44,6 @@ void FSi6X::callback(const uint8_t data[], const uint16_t size) {
     swb = getSwitch(raw.ch5);
     vra = -getJoystick(raw.ch6);
     swc = getSwitch(raw.ch7);
-
-    // 保护模式
-    if (swa == DOWN) {
-        is_protect = false;
-    } else {
-        is_protect = true;
-    }
 }
 
 UnitFloat<> FSi6X::getJoystick(const uint16_t value) const {
@@ -69,7 +62,6 @@ FSi6X::switch_e FSi6X::getSwitch(const uint16_t value) {
 
 void FSi6X::resetData() {
     is_connect = false;
-    is_protect = true;
     x = y = pitch = yaw = 0 * ratio;
     vra = vrb = 0 * ratio;
     swb = swc = ERR;

@@ -1,0 +1,26 @@
+
+OpenDocument="main.c", FilePath="E:/workspace/rm/code/embedded/rmpp/Core/Src/main.c", Line=46
+OpenDocument="Unit.hpp", FilePath="E:/workspace/rm/code/embedded/rmpp/rmpp/lib/unit/Unit.hpp", Line=133
+OpenToolbar="Debug", Floating=0, x=0, y=0
+OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=0, w=1202, h=939, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1204, h=458, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=RIGHT, x=0, y=0, w=1204, h=480, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="703;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="973;-65", CodeGraphLegendShown=0, CodeGraphLegendPosition="979;0"
+OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=2560, h=337, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time"], ColWidths=[100;100]
+TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="DESCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[540;100;114;100;114;114;111;129;129]
+TableHeader="Power Sampling", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
+TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Refresh"], ColWidths=[588;258;206;150]
+TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
+TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[26;26;26;26]
+WatchedExpression="led.dwt.freq.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="w1.dwt_connect.freq.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="w2.dwt_connect.freq.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="w3.dwt_connect.freq.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="w4.dwt_connect.freq.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="s1.dwt_connect.freq.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="s2.dwt_connect.freq.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="yaw.dwt_connect.freq.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="yaw1.dwt_connect.freq.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="yaw2.dwt_connect.freq.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="pitch.dwt_connect.freq.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="referee.parser.dwt_connect.freq.value", RefreshRate=1, Window=Watched Data 1

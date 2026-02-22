@@ -6,6 +6,18 @@
 #include "module/gimbal/Gimbal_DualYaw.hpp"
 #include "imu.hpp"
 
+// 用于Ozone调参
+// #define yaw1_pid angle_pid
+// #define yaw1 motor
+//
+// #define yaw2_speed_pid motor_pid
+// #define yaw2_angle_pid angle_pid
+// #define yaw2 motor
+//
+// #define pitch_speed_pid motor_pid
+// #define pitch_angle_pid angle_pid
+// #define pitch motor
+
 // 大yaw电机
 inline PID::config_t yaw1_pid = {
     .kp = 0.75 * (A / deg),

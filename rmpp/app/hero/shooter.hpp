@@ -4,27 +4,31 @@
 #include "motor/DM4310.hpp"
 #include "module/shooter/Shooter_42mm.hpp"
 
+// 用于Ozone调参
+// #define shoot_pid motor_speed_pid
+// #define shoot motor
+
 // 摩擦轮
-inline VESC rub_left1({
-                          .can_port = 2,
-                          .master_id = 0x20,
-                          .slave_id = 0x20,
-                      }, {});
-inline VESC rub_right1({
-                           .can_port = 2,
-                           .master_id = 0x21,
-                           .slave_id = 0x21,
-                       }, {});
-inline VESC rub_left2({
-                          .can_port = 2,
-                          .master_id = 0x22,
-                          .slave_id = 0x22,
-                      }, {});
-inline VESC rub_right2({
-                           .can_port = 2,
-                           .master_id = 0x23,
-                           .slave_id = 0x23,
-                       }, {});
+inline VESC rub1({
+                     .can_port = 2,
+                     .master_id = 0x20,
+                     .slave_id = 0x20,
+                 }, {});
+inline VESC rub2({
+                     .can_port = 2,
+                     .master_id = 0x21,
+                     .slave_id = 0x21,
+                 }, {});
+inline VESC rub3({
+                     .can_port = 2,
+                     .master_id = 0x22,
+                     .slave_id = 0x22,
+                 }, {});
+inline VESC rub4({
+                     .can_port = 2,
+                     .master_id = 0x23,
+                     .slave_id = 0x23,
+                 }, {});
 
 // 拨弹电机PID参数
 inline PID::config_t shoot_pid = {
@@ -51,4 +55,4 @@ inline DM4310 shoot({
 inline Shooter_42mm shooter({
                                 .bullet_per_rev = 6 * (Hz / rps),
                             },
-                            {rub_left1, rub_right1, rub_left2, rub_right2, shoot});
+                            {rub1, rub2, rub3, rub4, shoot});

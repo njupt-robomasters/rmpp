@@ -4,25 +4,27 @@
 #include "motor/M2006.hpp"
 #include "module/shooter/Shooter_17mm.hpp"
 
+// 用于Ozone调参
+// #define shoot_pid motor_speed_pid
+// #define shoot motor
+
 // 摩擦轮
-inline VESC rub_left({
-                         .can_port = 2,
-                         .master_id = 0x20,
-                         .slave_id = 0x20,
-                     }, {});
+inline VESC rub1({
+                     .can_port = 2,
+                     .master_id = 0x20,
+                     .slave_id = 0x20,
+                 }, {});
+inline VESC rub2({
+                     .can_port = 2,
+                     .master_id = 0x21,
+                     .slave_id = 0x21,
+                 }, {});
 
-inline VESC rub_right({
-                          .can_port = 2,
-                          .master_id = 0x21,
-                          .slave_id = 0x21,
-                      }, {});
-
-// 拨弹电机PID参数
+// 拨弹电机
 inline PID::config_t shoot_pid = {
     .kp = (10 * A) / (20 * rpm),
     .max_out = 10 * A,
 };
-// 拨弹电机
 inline M2006 shoot({
     .can_port = 1,
     .master_id = 0x207,
@@ -37,4 +39,4 @@ inline M2006 shoot({
 inline Shooter_17mm shooter({
                                 .bullet_per_rev = 9.0f / 2.5f * (Hz / rev),
                             },
-                            {rub_left, rub_right, shoot});
+                            {rub1, rub2, shoot});

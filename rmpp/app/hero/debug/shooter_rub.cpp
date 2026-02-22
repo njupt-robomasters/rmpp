@@ -1,0 +1,56 @@
+#include "../led.hpp"
+#include "../rc.hpp"
+#include "../shooter.hpp"
+
+static constexpr UnitFloat BULLET_SPEED = 12 * m_s;
+static constexpr UnitFloat<rpm> RUB_SPEED = BULLET_SPEED / (3 * cm);
+
+void send_can_cmd() {
+    rub1.SendCanCmd();
+    rub2.SendCanCmd();
+    rub3.SendCanCmd();
+    rub4.SendCanCmd();
+}
+
+void setup() {
+    BSP::Init();
+}
+
+void loop() {
+    led.OnLoop();
+
+    rc.OnLoop();
+
+    rub1.SetEnable(rc.is_enable);
+    rub2.SetEnable(rc.is_enable);
+    rub3.SetEnable(rc.is_enable);
+    rub4.SetEnable(rc.is_enable);
+
+    if (rc.is_enable) {
+        rub1.SetSpeed(RUB_SPEED);
+        rub2.SetSpeed(RUB_SPEED);
+        rub3.SetSpeed(RUB_SPEED);
+        rub4.SetSpeed(RUB_SPEED);
+    } else {
+        rub1.SetSpeed(0 * rpm);
+        rub2.SetSpeed(0 * rpm);
+        rub3.SetSpeed(0 * rpm);
+        rub4.SetSpeed(0 * rpm);
+    }
+
+    rub1.OnLoop();
+    rub2.OnLoop();
+
+    send_can_cmd();
+}
+
+extern "C" void rmpp_main() {
+    setup();
+
+    BSP::Dwt dwt;
+    while (true) {
+        if (dwt.PollTimeout(1 * ms)) {
+            loop();
+        }
+    }
+}

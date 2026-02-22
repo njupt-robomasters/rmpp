@@ -1,49 +1,58 @@
 file(GLOB_RECURSE USER_SOURCES
         "lib/*.*"
 
-        # "examples/module/led/*.*"
+        # 步兵
+        # "app/infantry/debug/led.cpp"
+        # "app/infantry/debug/rc.cpp"
+        # "app/infantry/debug/imu.cpp"
+        # "app/infantry/debug/referee.cpp"
+        # "app/infantry/debug/chassis_motor.cpp"
+        # "app/infantry/debug/chassis.cpp"
+        # "app/infantry/debug/gimbal_yaw.cpp"
+        # "app/infantry/debug/gimbal_pitch.cpp"
+        # "app/infantry/debug/gimbal.cpp"
+        # "app/infantry/debug/shooter_rub.cpp"
+        # "app/infantry/debug/shooter_shoot.cpp"
+        # "app/infantry/debug/shooter.cpp"
+        "app/infantry/app.cpp"
 
-        # 遥控器
-        # "examples/rc/fsi6x/*.*"
-        # "examples/rc/vt13/*.*"
+        # 哨兵
+        # "app/sentry/debug/led.cpp"
+        # "app/sentry/debug/rc.cpp"
+        # "app/sentry/debug/imu.cpp"
+        # "app/sentry/debug/referee.cpp"
+        # "app/sentry/debug/chassis_motor.cpp"
+        # "app/sentry/debug/chassis.cpp"
+        # "app/sentry/debug/gimbal_yaw1.cpp"
+        # "app/sentry/debug/gimbal_yaw2.cpp"
+        # "app/sentry/debug/gimbal_pitch.cpp"
+        # "app/sentry/debug/gimbal.cpp"
+        # "app/sentry/debug/shooter_rub.cpp"
+        # "app/sentry/debug/shooter_shoot.cpp"
+        # "app/sentry/debug/shooter.cpp"
+        # "app/sentry/app.cpp"
 
-        # IMU
-        # "examples/imu/*.*"
+        # 英雄
+        # "app/hero/debug/led.cpp"
+        # "app/sentry/debug/rc.cpp"
+        # "app/sentry/debug/imu.cpp"
+        # "app/sentry/debug/referee.cpp"
+        # "app/hero/debug/chassis_motor.cpp"
+        # "app/hero/debug/chassis.cpp"
+        # "app/hero/debug/gimbal.cpp"
+        # "app/hero/debug/gimbal_yaw2.cpp"
+        # "app/hero/debug/gimbal_pitch.cpp"
+        # "app/hero/debug/shooter_rub.cpp"
+        # "app/hero/debug/shooter_shoot.cpp"
+        # "app/hero/debug/shooter.cpp"
+        # "app/hero/app.cpp"
 
-        # 底盘
-        # "examples/motor/m3508_chassis/*.*"
-        # "examples/module/chassis/chassis_omni/*.*"
-        # "examples/module/chassis/chassis_mecanum_hero/*.*"
-        # "examples/module/chassis/chassis_mecanum_engineer/*.*"
-        # "examples/module/chassis/chassis_dualsteer/*.*"
-
-        # 云台
-        # "examples/motor/mf9025_yaw/*.*"
-        # "examples/motor/gm6020_yaw/*.*"
-        # "examples/motor/gm6020_yaw_limit/*.*"
-        # "examples/motor/dm4310_pitch/*.*"
-        # "examples/motor/dm6006_pitch/*.*"
-        # "examples/module/gimbal/gimbal_classic_infantry/*.*"
-        # "examples/module/gimbal/gimbal_classic_hero/*.*"
-        # "examples/module/gimbal/gimbal_dualyaw/*.*"
-
-        # 发射机构
-        # "examples/motor/vesc_2rub/*.*"
-        # "examples/motor/vesc_4rub/*.*"
-        # "examples/motor/m2006_shoot/*.*"
-        # "examples/motor/m3508_shoot/*.*"
-        # "examples/motor/dm4310_shoot/*.*"
-        # "examples/module/shooter/shooter_17mm_m2006/*.*"
-        # "examples/module/shooter/shooter_17mm_m3508/*.*"
-        # "examples/module/shooter/shooter_42mm_dm4310/*.*"
-
-        # 裁判系统
-        # "examples/referee/*.*"
-
-        # 整车代码
-        # "app/infantry/*.*"
-        # "app/sentry/*.*"
-        "app/hero/*.*"
+        # 工程
+        # "app/engineer/debug/led.cpp"
+        # "app/engineer/debug/rc.cpp"
+        # "app/sentry/debug/referee.cpp"
+        # "app/engineer/debug/chassis_motor.cpp"
+        # "app/engineer/debug/chassis.cpp"
 )
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE

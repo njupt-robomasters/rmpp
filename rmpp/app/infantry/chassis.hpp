@@ -3,14 +3,14 @@
 #include "motor/M3508.hpp"
 #include "module/chassis/Chassis_Omni.hpp"
 
-// 底盘电机参数
+// 电机参数
 static constexpr float REDUCTION = 268.0f / 17.0f;
 static constexpr UnitFloat<Nm_A> Kt = M3508::Kt / M3508::REDUCTION * REDUCTION;
 static constexpr bool IS_INVERT = false;
 
 // 底盘参数
-static constexpr UnitFloat CHASSIS_RADIUS = 19.8f * cm;
-static constexpr UnitFloat WHEEL_RADIUS = 7.65f * cm;
+static constexpr UnitFloat CHASSIS_RADIUS = 198.0f * mm;
+static constexpr UnitFloat WHEEL_RADIUS = 76.5f * mm;
 static constexpr UnitFloat<N> MAX_F = M3508::MAX_CURRENT * Kt / WHEEL_RADIUS * 4;
 
 // 底盘PID参数

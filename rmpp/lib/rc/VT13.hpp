@@ -1,10 +1,14 @@
 #pragma once
 
 #include "bsp/bsp.hpp" // dwt
-#include "RC.hpp"
 
-class VT13 : public RC {
+class VT13 {
 public:
+    struct config_t {
+        UnitFloat<> connect_timeout = 100 * ms;  // 断联检测超时时间
+        UnitFloat<> joystick_deadline = 5 * pct; // 摇杆死区，小于此值认为是0
+    } config;
+
     enum mode_e {
         C,
         N,
@@ -12,7 +16,9 @@ public:
         ERR,
     };
 
-    // 除父类外其他通道
+    bool is_connect = false; // 连接标志
+
+    UnitFloat<ratio> x, y, pitch, yaw;                                      // 摇杆
     UnitFloat<ratio> wheel;                                                 // 左上角拨轮
     mode_e mode = ERR;                                                      // 模式切换开关
     bool pause = false, trigger = false, fn_left = false, fn_right = false; // 按钮
@@ -36,7 +42,7 @@ public:
 
     VT13(const config_t& config);
 
-    void OnLoop() override;
+    void OnLoop();
 
 private:
     static constexpr uint16_t MOUSE_MAX = 500; // 鼠标xy最大速度
@@ -70,6 +76,8 @@ private:
         uint16_t key : 16;   // 键盘按键
         uint16_t crc16 : 16; // CRC校验，CRC-16/CCITT-FALSE多项式 P(x) = x^16 + x^12 + x^5 + 1（对应0x1021），初始值0xFFFF，无输入输出反转，无异或
     } raw{};
+
+    BSP::Dwt dwt_connect; // 用于断联检测
 
     // 串口接收回调
     void callback(const uint8_t data[], uint16_t size);

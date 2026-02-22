@@ -4,15 +4,19 @@
 #include "motor/M3508.hpp"
 #include "module/shooter/Shooter_17mm.hpp"
 
+// 用于Ozone调参
+// #define shoot_pid motor_speed_pid
+// #define shoot motor
+
 // 摩擦轮
-inline VESC rub_left({
+inline VESC rub1({
                          .can_port = 2,
                          .master_id = 0x20,
                          .slave_id = 0x20,
                      },
                      {});
 
-inline VESC rub_right({
+inline VESC rub2({
                           .can_port = 2,
                           .master_id = 0x21,
                           .slave_id = 0x21,
@@ -40,4 +44,4 @@ inline M3508 shoot({
 inline Shooter_17mm shooter({
                                 .bullet_per_rev = 9.0f * (41.0f / 50.0f) * (Hz / rps),
                             },
-                            {rub_left, rub_right, shoot});
+                            {rub1, rub2, shoot});

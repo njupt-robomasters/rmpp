@@ -7,12 +7,12 @@ class Shooter_17mm : public Shooter {
 public:
     // 发射机构电机
     struct motor_t {
-        Motor &rub_left, &rub_right; // 摩擦轮
-        Motor& shoot;                // 拨弹电机
+        Motor &rub1, &rub2; // 摩擦轮
+        Motor& shoot;       // 拨弹电机
     } motor;
 
     // 摩擦轮线速度
-    UnitFloat<m_s> rub_left_measure, rub_right_measure;
+    UnitFloat<m_s> rub1_measure, rub2_measure;
 
     Shooter_17mm(const config_t& config, const motor_t& motor);
 

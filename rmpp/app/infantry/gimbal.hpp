@@ -5,6 +5,15 @@
 #include "module/gimbal/Gimbal_Classic.hpp"
 #include "imu.hpp"
 
+// 用于Ozone调参
+// #define yaw_speed_pid speed_pid
+// #define yaw_angle_pid angle_pid
+// #define yaw motor
+//
+// #define pitch_speed_pid motor_pid
+// #define pitch_angle_pid angle_pid
+// #define pitch motor
+
 // yaw电机
 inline PID::config_t yaw_speed_pid = {
     .kp = 0.04f * (A / deg_s),

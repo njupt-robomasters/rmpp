@@ -1,25 +1,20 @@
 #pragma once
 
-#include "bsp/bsp.hpp" // dwt
+#include "FSi6X.hpp"
+#include "VT13.hpp"
 
 class RC {
 public:
-    struct config_t {
-        UnitFloat<> connect_timeout = 100 * ms;  // 断联检测超时时间
-        UnitFloat<> joystick_deadline = 5 * pct; // 摇杆死区，小于此值认为是0
-    };
+    bool is_enable = false;
 
-    bool is_connect = false; // 连接标志
-    bool is_protect = true;  // 保护标志
+    UnitFloat<ratio> x, y, r, pitch, yaw;
+    bool is_rub = false, is_shoot = false;
 
-    UnitFloat<ratio> x, y, pitch, yaw; // 摇杆
+    FSi6X fsi6x;
+    VT13 vt13;
 
-    RC(const config_t& config);
+    RC(const FSi6X::config_t& fsi6x_config, const VT13::config_t& vt13_config);
 
-    virtual void OnLoop() = 0;
-
-protected:
-    config_t config;
-
-    BSP::Dwt dwt_connect; // 用于断联检测
+    // 需要在循环中调用
+    void OnLoop();
 };

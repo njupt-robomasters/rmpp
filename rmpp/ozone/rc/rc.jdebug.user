@@ -1,0 +1,32 @@
+
+GraphedExpression="rc.x.value", Color=#a00909
+GraphedExpression="rc.y.value", Color=#09a01b
+GraphedExpression="rc.r.value", Color=#09a087
+GraphedExpression="rc.yaw.value", Color=#0984a0
+GraphedExpression="rc.pitch.value", Color=#0964a0
+OpenDocument="main.c", FilePath="E:/workspace/rm/code/embedded/rmpp/Core/Src/main.c", Line=46
+OpenToolbar="Debug", Floating=0, x=0, y=0
+OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=0, w=1202, h=939, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1204, h=452, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=RIGHT, x=0, y=0, w=1204, h=486, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="802;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="973;-65", CodeGraphLegendShown=0, CodeGraphLegendPosition="979;0"
+OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=2560, h=337, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+TableHeader="Data Sampling Table", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" rc.x.value";" rc.y.value";" rc.r.value";" rc.yaw.value";" rc.pitch.value"], ColWidths=[100;100;100;100;100;100;100]
+TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="DESCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[540;100;100;100;100;154;111;134;129]
+TableHeader="Power Sampling", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
+TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Refresh";"Location"], ColWidths=[420;187;373;222]
+TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
+WatchedExpression="rc.is_enable", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="rc.vt13.is_connect", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="rc.vt13.dwt_connect.freq.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="rc.fsi6x.is_connect", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="rc.fsi6x.dwt_connect.freq.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="rc.x.value", Window=Watched Data 1
+WatchedExpression="rc.y.value", Window=Watched Data 1
+WatchedExpression="rc.r.value", Window=Watched Data 1
+WatchedExpression="rc.yaw.value", Window=Watched Data 1
+WatchedExpression="rc.pitch.value", Window=Watched Data 1
+WatchedExpression="rc.is_rub", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="rc.is_shoot", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="rc.vt13.mouse.yaw.value", Window=Watched Data 1
+WatchedExpression="rc.vt13.mouse.pitch.value", Window=Watched Data 1
+WatchedExpression="rc", Window=Watched Data 1

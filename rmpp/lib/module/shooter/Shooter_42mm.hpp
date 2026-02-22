@@ -7,11 +7,11 @@ class Shooter_42mm : public Shooter {
 public:
     // 发射机构电机
     struct motor_t {
-        Motor &rub_left1, &rub_right1, &rub_left2, &rub_right2; // 摩擦轮
-        Motor& shoot;                                           // 拨弹电机
+        Motor &rub1, &rub2, &rub3, &rub4; // 摩擦轮
+        Motor& shoot;                     // 拨弹电机
     } motor;
 
-    UnitFloat<m_s> rub_left1_measure, rub_right1_measure, rub_left2_measure, rub_right2_measure;
+    UnitFloat<m_s> rub1_measure, rub2_measure, rub3_measure, rub4_measure;
 
     Shooter_42mm(const config_t& config, const motor_t& motor);
 

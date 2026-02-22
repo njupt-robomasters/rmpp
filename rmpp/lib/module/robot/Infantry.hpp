@@ -1,8 +1,7 @@
 #pragma once
 
 // 控制器
-#include "rc/FSi6X.hpp"
-#include "rc/VT13.hpp"
+#include "rc/RC.hpp"
 #include "mavlink/Mavlink.hpp"
 
 // 传感器
@@ -37,8 +36,7 @@ public:
     } config;
 
     struct device_t {
-        FSi6X& fsi6x;
-        VT13& vt13;
+        RC& rc;
         Mavlink& mavlink;
 
         IMU& imu;
@@ -59,29 +57,27 @@ public:
 private:
     // 底盘
     struct {
-        UnitFloat<m_s> fsi6x, vt13_rc, vt13_client, mavlink, sum;
+        UnitFloat<m_s> rc, client, mavlink, sum;
     } vx, vy, wr;
 
     // 云台
     struct {
-        UnitFloat<deg_s> fsi6x, vt13_rc, vt13_client, mavlink, sum;
+        UnitFloat<deg_s> rc, client, mavlink, sum;
     } yaw_speed, pitch_speed;
 
     // 发射机构
     struct {
-        bool fsi6x = false, vt13_rc = false, vt13_client = false;
+        bool fsi6x = false, rc = false, client = false;
     } is_rub, is_shoot;
 
     // 用于缓加减速
     BSP::Dwt dwt_acc;
 
-    void setEnable(bool is_enable);
-
     void handleConnect();
 
     // 控制器
-    void handleFSi6X();
-    void handleVT13();
+    void handleRC();
+    void handleClient();
     void handleMavlink();
 
     // 传感器

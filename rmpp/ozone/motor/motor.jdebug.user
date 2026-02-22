@@ -1,16 +1,18 @@
 
+GraphedExpression="motor.angle.ref.value", Color=#a00909
+GraphedExpression="motor.angle.measure.value", Color=#09a01b
 OpenDocument="main.c", FilePath="E:/workspace/rm/code/embedded/rmpp/Core/Src/main.c", Line=43
 OpenToolbar="Debug", Floating=0, x=0, y=0
 OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=0, w=1202, h=939, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
 OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1204, h=462, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
 OpenWindow="Timeline", DockArea=RIGHT, x=0, y=0, w=1204, h=476, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="68;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="795;-65", CodeGraphLegendShown=0, CodeGraphLegendPosition="823;0"
 OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=2560, h=337, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-TableHeader="Data Sampling Table", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time"], ColWidths=[100;100]
-TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="DESCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[540;100;124;124;100;124;111;129;129]
+TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" motor.angle.ref.value";" motor.angle.measure.value"], ColWidths=[100;100;100;100]
+TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="DESCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[540;100;124;124;114;124;111;129;129]
 TableHeader="Power Sampling", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
 TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Refresh"], ColWidths=[623;231;222;126]
 TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
-WatchedExpression="motor", Window=Watched Data 1
+TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[26;26;26;26]
 WatchedExpression="motor.is_connect", RefreshRate=1, Window=Watched Data 1
 WatchedExpression="motor.is_enable", RefreshRate=1, Window=Watched Data 1
 WatchedExpression="motor.dwt_connect.freq.value", RefreshRate=1, Window=Watched Data 1
@@ -27,3 +29,4 @@ WatchedExpression="motor.angle.ref.value", Window=Watched Data 1
 WatchedExpression="motor.angle.measure.value", Window=Watched Data 1
 WatchedExpression="speed_pid", Window=Watched Data 1
 WatchedExpression="angle_pid", Window=Watched Data 1
+WatchedExpression="motor", Window=Watched Data 1

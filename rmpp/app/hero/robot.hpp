@@ -2,8 +2,7 @@
 
 #include "module/robot/Infantry.hpp"
 
-#include "fsi6x.hpp"
-#include "vt13.hpp"
+#include "rc.hpp"
 #include "mavlink.hpp"
 
 #include "imu.hpp"
@@ -16,8 +15,8 @@
 #include "ui.hpp"
 
 inline Infantry::config_t robot_config = {
-    .vxy_max = 1 * m_s,
-    .wr_max = 60 * rpm,
+    .vxy_max = 1 * m_s, // 极限4.5m/s
+    .wr_max = 60 * rpm, // 极限130rpm
     .axy = 10 * m_ss,
     .dxy = 10 * m_ss,
 
@@ -30,8 +29,7 @@ inline Infantry::config_t robot_config = {
 };
 inline Infantry robot(robot_config,
                       {
-                          fsi6x,
-                          vt13,
+                          rc,
                           mavlink,
 
                           imu,

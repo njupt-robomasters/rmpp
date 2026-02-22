@@ -2,7 +2,7 @@
 #include <cstring> // memcpy
 #include "referee/lib/crc.hpp"
 
-VT13::VT13(const config_t& config) : RC(config) {
+VT13::VT13(const config_t& config) : config(config) {
     // 注册串口回调
     auto callback = [this](const uint8_t data[], const uint16_t size) {
         this->callback(data, size);
@@ -74,13 +74,6 @@ void VT13::callback(const uint8_t data[], const uint16_t size) {
     key.c = raw.key & (1 << 13);
     key.v = raw.key & (1 << 14);
     key.b = raw.key & (1 << 15);
-
-    // 保护模式
-    if (mode == N || mode == S) {
-        is_protect = false;
-    } else {
-        is_protect = true;
-    }
 }
 
 UnitFloat<> VT13::getJoyStick(const uint16_t value) const {
@@ -92,7 +85,6 @@ UnitFloat<> VT13::getJoyStick(const uint16_t value) const {
 
 void VT13::resetData() {
     is_connect = false;
-    is_protect = true;
 
     // 遥控器
     x = y = pitch = yaw = 0 * ratio;
