@@ -12,8 +12,8 @@ void send_can_cmd() {
     const int16_t cmd3 = w3.GetCanCmd();
     const int16_t cmd4 = w4.GetCanCmd();
     const int16_t cmd5 = yaw.GetCanCmd();
-    const int16_t cmd6 = 0;
-    const int16_t cmd7 = shoot.GetCanCmd();
+    const int16_t cmd6 = shoot.GetCanCmd();
+    const int16_t cmd7 = 0;
     const int16_t cmd8 = 0;
 
     uint8_t data[8];
