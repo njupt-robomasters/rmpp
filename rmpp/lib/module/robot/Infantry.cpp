@@ -62,6 +62,11 @@ void Infantry::handleRC() {
     if (device.rc.vt13.fn_right) {
         device.chassis.SetMode(Chassis::FOLLOW_MODE);
     }
+
+    // 停止键：复位单片机
+    // if (device.rc.vt13.pause) {
+    //     NVIC_SystemReset();
+    // }
 }
 
 void Infantry::handleClient() {
