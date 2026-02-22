@@ -1,6 +1,8 @@
 #include "led.hpp"
 #include "robot.hpp"
 
+static UnitFloat<pct> cpu_usage;
+
 void send_can_cmd() {
     // CAN1
     ui.SendCanCmd();
@@ -58,6 +60,8 @@ extern "C" void rmpp_main() {
     while (true) {
         if (dwt.PollTimeout(1 * ms)) {
             loop();
+            const UnitFloat<ms> running_time = dwt.GetDT();
+            cpu_usage = running_time / (1 * ms);
         }
     }
 }

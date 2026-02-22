@@ -4,7 +4,7 @@
 using namespace BSP;
 
 std::vector<CAN::CallbackFunc>* CAN::callbacks;
-Dwt CAN::dwt;
+Dwt CAN::dwt(0 * ms);
 UnitFloat<pct> CAN::cpu_usage;
 uint32_t CAN::bus_off_cnt = 0;
 
@@ -21,16 +21,17 @@ void CAN::Init() {
     can_filter_st.FilterMaskIdLow = 0x0000;
     can_filter_st.FilterBank = 0;
     can_filter_st.FilterFIFOAssignment = CAN_RX_FIFO0;
+    can_filter_st.SlaveStartFilterBank = 14;
     HAL_CAN_ConfigFilter(&hcan1, &can_filter_st);
-    HAL_CAN_Start(&hcan1);
     HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_ERROR | CAN_IT_BUSOFF); // 开启中断
+    HAL_CAN_Start(&hcan1);
 
     // CAN2
-    can_filter_st.SlaveStartFilterBank = 14;
     can_filter_st.FilterBank = 14;
+    can_filter_st.FilterFIFOAssignment = CAN_RX_FIFO1;
     HAL_CAN_ConfigFilter(&hcan2, &can_filter_st);
+    HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO1_MSG_PENDING | CAN_IT_ERROR | CAN_IT_BUSOFF); // 开启中断
     HAL_CAN_Start(&hcan2);
-    HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_ERROR | CAN_IT_BUSOFF); // 开启中断
 }
 
 void CAN::TransmitStd(const uint8_t port, const uint32_t id, uint8_t data[8], const uint8_t dlc) {
@@ -75,13 +76,13 @@ void CAN::RegisterCallback(const CallbackFunc& callback) {
 }
 
 void CAN::InvokeCallback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
-    const UnitFloat interval_time = dwt.UpdateDT();
+    const UnitFloat<ms> interval_time = dwt.UpdateDT();
     if (callbacks) {
         for (const auto& callback : *callbacks) {
             callback(port, id, data, dlc);
         }
     }
-    const UnitFloat running_time = dwt.GetDT();
+    const UnitFloat<ms> running_time = dwt.GetDT();
     cpu_usage = running_time / interval_time;
 }
 
@@ -99,11 +100,22 @@ extern "C" void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
         id = header.ExtId;
     }
 
-    if (hcan->Instance == hcan1.Instance) {
-        CAN::InvokeCallback(1, id, data, header.DLC);
-    } else if (hcan->Instance == hcan2.Instance) {
-        CAN::InvokeCallback(2, id, data, header.DLC);
+    CAN::InvokeCallback(1, id, data, header.DLC);
+}
+
+extern "C" void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef* hcan) {
+    CAN_RxHeaderTypeDef header;
+    uint8_t data[8];
+    HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &header, data);
+
+    uint32_t id = 0;
+    if (header.IDE == CAN_ID_STD) {
+        id = header.StdId;
+    } else if (header.IDE == CAN_ID_EXT) {
+        id = header.ExtId;
     }
+
+    CAN::InvokeCallback(2, id, data, header.DLC);
 }
 
 extern "C" void HAL_CAN_ErrorCallback(CAN_HandleTypeDef* hcan) {

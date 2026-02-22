@@ -21,7 +21,7 @@ extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t S
     if (huart->Instance == USART3) {
         const uint8_t event_type = HAL_UARTEx_GetRxEventType(huart);
         if (event_type == HAL_UART_RXEVENT_IDLE) {      // 串口空闲中断
-            HAL_UART_DMAStop(huart);                    // 停止接收
+            HAL_UART_AbortReceive(huart);               // 停止接收
             UART3::InvokeCallback(Size);                // 调用回调函数
             UART3::Init();                              // 继续接收
         } else if (event_type == HAL_UART_RXEVENT_TC) { // 串口DMA完成中断
@@ -33,7 +33,7 @@ extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t S
     if (huart->Instance == USART6) {
         const uint8_t event_type = HAL_UARTEx_GetRxEventType(huart);
         if (event_type == HAL_UART_RXEVENT_IDLE) {      // 串口空闲中断
-            HAL_UART_DMAStop(huart);                    // 停止接收
+            HAL_UART_AbortReceive(huart);               // 停止接收
             UART6::InvokeCallback(Size);                // 调用回调函数
             UART6::Init();                              // 继续接收
         } else if (event_type == HAL_UART_RXEVENT_TC) { // 串口DMA完成中断
@@ -45,11 +45,11 @@ extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t S
 extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef* huart) {
     if (huart->Instance == USART3) { // 遥控器串口
         UART3::err_cnt++;
-        HAL_UART_DMAStop(&huart3);
+        HAL_UART_AbortReceive(&huart3);
         UART3::Init();                      // 继续接收
     } else if (huart->Instance == USART6) { // 裁判系统图传串口
         UART6::err_cnt++;
-        HAL_UART_DMAStop(&huart6);
+        HAL_UART_AbortReceive(&huart6);
         UART6::Init(); // 继续接收
     }
 }
