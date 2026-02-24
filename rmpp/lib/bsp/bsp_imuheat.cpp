@@ -1,7 +1,5 @@
 #include "bsp_imuheat.hpp"
-
 #include <algorithm>
-
 #include "tim.h"
 
 using namespace BSP;

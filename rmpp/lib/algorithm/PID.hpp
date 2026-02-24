@@ -16,7 +16,7 @@ public:
 
     UnitFloat<> out; // PID输出
 
-    PID();
+    PID() = default;
 
     PID(const config_t* config);
 
@@ -25,7 +25,7 @@ public:
     void Clear();
 
 private:
-    const config_t* config; // PID参数
+    const config_t* config = nullptr; // PID参数
 
     UnitFloat<> out_no_filter, p_out, i_out, d_out; // PID输出分量
     UnitFloat<> err, last_err;                      // 误差值 err = ref - measure

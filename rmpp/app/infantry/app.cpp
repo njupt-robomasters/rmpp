@@ -1,4 +1,5 @@
 #include "led.hpp"
+#include "buzzer.hpp"
 #include "robot.hpp"
 
 static UnitFloat<pct> cpu_usage;
@@ -45,10 +46,12 @@ void send_can_cmd() {
 void setup() {
     BSP::Init();
     // imu.Calibrate();
+    buzzer.Play(Buzzer::C5D5G5);
 }
 
 void loop() {
     led.OnLoop();
+    buzzer.OnLoop();
     robot.OnLoop();
     send_can_cmd();
 }

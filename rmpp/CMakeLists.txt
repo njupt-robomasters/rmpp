@@ -3,6 +3,7 @@ file(GLOB_RECURSE USER_SOURCES
 
         # 步兵
         # "app/infantry/debug/led.cpp"
+        # "app/infantry/buzzer.cpp"
         # "app/infantry/debug/rc.cpp"
         # "app/infantry/debug/imu.cpp"
         # "app/infantry/debug/referee.cpp"

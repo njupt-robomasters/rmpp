@@ -8,8 +8,6 @@
 #define max_out (config->max_out)
 #define fc (config->fc)
 
-PID::PID() : config(nullptr) {}
-
 PID::PID(const config_t* config) : config(config) {}
 
 UnitFloat<> PID::Calculate(const UnitFloat<>& err, std::optional<UnitFloat<>> derr) {

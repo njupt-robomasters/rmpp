@@ -1,6 +1,7 @@
 #include "bsp.hpp"
 
 void BSP::Init() {
+    BUZZER::Init();
     CAN::Init();
     CDC::Init();
     Dwt::Init();

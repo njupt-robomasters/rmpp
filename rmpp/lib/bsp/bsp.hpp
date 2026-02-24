@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bsp_buzzer.hpp"
 #include "bsp_can.hpp"
 #include "bsp_cdc.hpp"
 #include "bsp_dwt.h"
