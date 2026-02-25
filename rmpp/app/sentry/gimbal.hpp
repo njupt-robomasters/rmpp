@@ -30,7 +30,6 @@ inline MF9025 yaw1({
     .master_id = 0x141,
     .slave_id = 0x141,
     .is_invert = false,
-    .offset = 166.4 * deg,
     .control_mode = Motor::ANGLE_MODE,
     .pid_out_type = Motor::CURRENT_OUTPUT,
     .angle_pid_config = &yaw1_pid,

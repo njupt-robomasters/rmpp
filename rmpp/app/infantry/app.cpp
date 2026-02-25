@@ -1,8 +1,5 @@
-#include "led.hpp"
-#include "buzzer.hpp"
+#include "misc.hpp"
 #include "robot.hpp"
-
-static UnitFloat<pct> cpu_usage;
 
 void send_can_cmd() {
     // CAN1
@@ -43,6 +40,27 @@ void send_can_cmd() {
     rub2.SendCanCmd();
 }
 
+void handle_yaw_offset() {
+    static uint8_t flag = 0;
+
+    if (flag == 0) {
+        flashdb.Init("infantry");
+        yaw.config.offset = flashdb.Read("yaw_offset") * deg;
+        flag = 1;
+    } else if (flag == 1) {
+        if (rc.vt13.mode == VT13::C && rc.vt13.fn_left && rc.vt13.fn_right) { // 等待按下
+            flag = 2;
+        }
+    } else if (flag == 2) {
+        if (!(rc.vt13.mode == VT13::C && rc.vt13.fn_left && rc.vt13.fn_right)) { // 等待松开
+            yaw.config.offset += yaw.angle.measure;
+            flashdb.Write("yaw_offset", yaw.config.offset.toFloat(deg));
+            buzzer.Play(Buzzer::G5G5G5);
+            flag = 1;
+        }
+    }
+}
+
 void setup() {
     BSP::Init();
     // imu.Calibrate();
@@ -50,6 +68,7 @@ void setup() {
 }
 
 void loop() {
+    handle_yaw_offset();
     led.OnLoop();
     buzzer.OnLoop();
     robot.OnLoop();
@@ -59,6 +78,7 @@ void loop() {
 extern "C" void rmpp_main() {
     setup();
 
+    static UnitFloat<pct> cpu_usage;
     BSP::Dwt dwt;
     while (true) {
         if (dwt.PollTimeout(1 * ms)) {

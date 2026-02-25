@@ -58,7 +58,7 @@ public:
         color_e s1 = GREEN, s2 = GREEN, s3 = GREEN, s4 = GREEN;
         color_e cap = GREEN;
         color_e yaw1 = GREEN, yaw2 = GREEN, pitch = GREEN;
-        color_e rub_left1 = GREEN, rub_right1 = GREEN, rub_left2 = GREEN, rub_right2 = GREEN;
+        color_e rub1 = GREEN, rub2 = GREEN, rub3 = GREEN, rub4 = GREEN;
         color_e shoot = GREEN;
         color_e aim = GREEN;
     } robot;

@@ -21,7 +21,7 @@ void OnProjectLoad (void) {
   // Dialog-generated settings
   //
   Project.SetDevice ("Cortex-M4");
-  Project.SetHostIF ("USB", "1043843174");
+  Project.SetHostIF ("USB", "1040849617");
   Project.SetTargetIF ("SWD");
   Project.SetTIFSpeed ("4 MHz");
   Project.AddPathSubstitute ("../../../", "$(ProjectDir)");

@@ -6,7 +6,7 @@
 
 // 用于Ozone调参
 // #define shoot_pid motor_speed_pid
-// #define shoot motor
+// #define m_shoot motor
 
 // 摩擦轮
 inline VESC rub1({

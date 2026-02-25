@@ -50,8 +50,8 @@ inline PID::config_t pitch_angle_pid = {
 };
 inline DM6006 pitch({
     .can_port = 2,
-    .master_id = 0x12,
-    .slave_id = 0x13,
+    .master_id = 0x10,
+    .slave_id = 0x11,
     .is_invert = false,
     .offset = 172.5f * deg,
     .is_limit = true,

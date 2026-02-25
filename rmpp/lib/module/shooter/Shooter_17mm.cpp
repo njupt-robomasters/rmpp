@@ -19,19 +19,25 @@ void Shooter_17mm::SetEnable(const bool is_enable) {
 
 void Shooter_17mm::HandleUI(UI& ui) {
     if (motor.rub1.is_connect == false) {
-        ui.robot.rub_left1 = UI::PINK;
-    } else if (unit::abs(bullet_speed.ref - rub1_measure) < 1) {
-        ui.robot.rub_left1 = UI::GREEN;
+        ui.robot.rub1 = UI::PINK;
+        ui.robot.rub3 = UI::PINK;
+    } else if (unit::abs(bullet_speed.ref - rub1_measure) > 1) {
+        ui.robot.rub1 = UI::ORANGE;
+        ui.robot.rub3 = UI::ORANGE;
     } else {
-        ui.robot.rub_left1 = UI::ORANGE;
+        ui.robot.rub1 = UI::GREEN;
+        ui.robot.rub3 = UI::GREEN;
     }
 
     if (motor.rub2.is_connect == false) {
-        ui.robot.rub_right1 = UI::PINK;
-    } else if (unit::abs(bullet_speed.ref - rub2_measure) < 1) {
-        ui.robot.rub_right1 = UI::GREEN;
+        ui.robot.rub2 = UI::PINK;
+        ui.robot.rub4 = UI::PINK;
+    } else if (unit::abs(bullet_speed.ref - rub2_measure) > 1) {
+        ui.robot.rub2 = UI::ORANGE;
+        ui.robot.rub4 = UI::ORANGE;
     } else {
-        ui.robot.rub_right1 = UI::ORANGE;
+        ui.robot.rub2 = UI::GREEN;
+        ui.robot.rub4 = UI::GREEN;
     }
 
     ui.robot.shoot = motor.shoot.is_connect ? UI::GREEN : UI::PINK;

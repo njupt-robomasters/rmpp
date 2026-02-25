@@ -2,17 +2,11 @@
 
 #include "module/robot/Infantry.hpp"
 
-#include "rc.hpp"
-#include "mavlink.hpp"
-
+#include "misc.hpp"
 #include "imu.hpp"
-
 #include "chassis.hpp"
 #include "gimbal.hpp"
 #include "shooter.hpp"
-
-#include "referee.hpp"
-#include "ui.hpp"
 
 inline Infantry::config_t robot_config = {
     .vxy_max = 1 * m_s, // 极限4.5m/s

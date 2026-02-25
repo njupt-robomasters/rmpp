@@ -12,6 +12,7 @@ void Gimbal_Classic::SetEnable(const bool is_enable) {
 
 void Gimbal_Classic::HandleUI(UI& ui) {
     ui.robot.yaw1 = motor.yaw.is_connect ? UI::GREEN : UI::PINK;
+    ui.robot.yaw2 = motor.yaw.is_connect ? UI::GREEN : UI::PINK;
     ui.robot.pitch = motor.pitch.is_connect ? UI::GREEN : UI::PINK;
 }
 

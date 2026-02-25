@@ -141,11 +141,11 @@ void UI::updateLib() const {
     ui_g_31_yaw1->color = robot.yaw1;
     ui_g_31_yaw2->color = robot.yaw2;
     ui_g_31_pitch->color = robot.pitch;
-    ui_g_31_rub_left1->color = robot.rub_left1;
-    ui_g_31_rub_right1->color = robot.rub_right1;
+    ui_g_31_rub_left1->color = robot.rub1;
+    ui_g_31_rub_right1->color = robot.rub2;
 
-    ui_g_32_rub_left2->color = robot.rub_left2;
-    ui_g_32_rub_right2->color = robot.rub_right2;
+    ui_g_32_rub_left2->color = robot.rub3;
+    ui_g_32_rub_right2->color = robot.rub4;
     ui_g_32_shoot->color = robot.shoot;
     ui_g_32_aim->color = robot.aim;
 }
