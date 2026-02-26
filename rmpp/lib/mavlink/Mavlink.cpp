@@ -18,6 +18,7 @@ void Mavlink::OnLoop() {
     if (dwt_send_freq.PollTimeout(1 / SEND_FREQ)) {
         sendImu();
         sendReferee();
+        sendPos();
     }
 }
 
@@ -66,6 +67,15 @@ void Mavlink::parse(const mavlink_message_t& msg) {
                 .y4 = ui.y4
             };
         }
+        case MAVLINK_MSG_ID_nav_cmd_vel: {
+            mavlink_nav_cmd_vel_t cmd_vel_t;
+            mavlink_msg_nav_cmd_vel_decode(&msg, &cmd_vel_t);
+            this->cmd_vel = {
+                .vel_x = cmd_vel_t.vel_x * m_s,
+                .vel_y = cmd_vel_t.vel_y * m_s
+            };
+        }
+
         break;
 
         default:
@@ -103,6 +113,18 @@ void Mavlink::sendReferee() const {
         &msg,
         referee.is_red,
         referee.bullet_speed.toFloat(m_s)
+    );
+    send(msg);
+}
+
+void Mavlink::sendPos() const {
+    mavlink_message_t msg;
+    mavlink_msg_target_pose_pack(
+        SYSTEM_ID,
+        COMPONENT_ID,
+        &msg,
+        pos.pos_x.toFloat(m),
+        pos.pos_y.toFloat(m)
     );
     send(msg);
 }

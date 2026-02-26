@@ -21,6 +21,12 @@ public:
         UnitFloat<m_s> bullet_speed = 24.0f * m_s;
     } referee;
 
+    //发送
+    struct {
+        UnitFloat<m> pos_x;
+        UnitFloat<m> pos_y;
+    } pos;
+
     // 接收
     struct {
         bool is_detect = false;
@@ -36,6 +42,12 @@ public:
         float x0 = 0, y0 = 0;
         float x1 = 0, y1 = 0, x2 = 0, y2 = 0, x3 = 0, y3 = 0, x4 = 0, y4 = 0;
     } ui;
+
+    // 接收
+    struct {
+        UnitFloat<m_s> vel_x;
+        UnitFloat<m_s> vel_y;
+    } cmd_vel;
 
     Mavlink();
 
@@ -64,4 +76,5 @@ private:
     static void send(const mavlink_message_t& msg);
     void sendImu() const;
     void sendReferee() const;
+    void sendPos() const;
 };
