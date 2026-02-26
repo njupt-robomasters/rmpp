@@ -54,6 +54,9 @@ inline GM6020 s1({
     .slave_id = 0x1FF,
     .is_invert = IS_SERVO_INVERT,
     .offset = 135 * deg,
+    .control_mode = Motor::ANGLE_MODE,
+    .pid_out_type = Motor::CURRENT_OUTPUT,
+    .angle_pid_config = &servo_pid,
 });
 inline GM6020 s2({
     .can_port = 1,
@@ -61,6 +64,9 @@ inline GM6020 s2({
     .slave_id = 0x1FF,
     .is_invert = IS_SERVO_INVERT,
     .offset = -165 * deg,
+    .control_mode = Motor::ANGLE_MODE,
+    .pid_out_type = Motor::CURRENT_OUTPUT,
+    .angle_pid_config = &servo_pid,
 });
 
 // 底盘

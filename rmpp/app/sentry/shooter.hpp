@@ -25,7 +25,7 @@ inline VESC rub2({
 
 // 拨弹电机
 inline PID::config_t shoot_pid = {
-    .kp = (20 * A) / (40 * rpm),
+    .kp = (20 * A) / (60 * rpm),
     .max_out = 20 * A,
 };
 inline M3508 shoot({
