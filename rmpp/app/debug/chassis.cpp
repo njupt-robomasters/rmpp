@@ -19,7 +19,7 @@ void send_can_cmd() {
     data[5] = cmd3;
     data[6] = cmd4 >> 8;
     data[7] = cmd4;
-    BSP::CAN::TransmitStd(1, 0x200, data, 8);
+    BSP::CAN::Transmit(1, 0x200, data, 8);
 
     // 哨兵
     // const int16_t cmd1 = w1.GetCanCmd();
@@ -35,7 +35,7 @@ void send_can_cmd() {
     // data[5] = 0;
     // data[6] = 0;
     // data[7] = 0;
-    // BSP::CAN::TransmitStd(1, 0x200, data, 8);
+    // BSP::CAN::Transmit(1, 0x200, data, 8);
     // data[0] = 0;
     // data[1] = 0;
     // data[2] = 0;
@@ -44,7 +44,7 @@ void send_can_cmd() {
     // data[5] = cmd7;
     // data[6] = cmd8 >> 8;
     // data[7] = cmd8;
-    // BSP::CAN::TransmitStd(1, 0x1FF, data, 8);
+    // BSP::CAN::Transmit(1, 0x1FF, data, 8);
 }
 
 void setup() {

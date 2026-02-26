@@ -54,7 +54,7 @@ public:
     // 需要在循环中调用
     void OnLoop();
 
-private:
+protected:
     // 底盘
     struct {
         UnitFloat<m_s> rc, client, sum;
@@ -77,6 +77,7 @@ private:
         bool rc = false, client = false;
     } is_rub, is_shoot;
 
+private:
     // 用于缓加减速
     BSP::Dwt dwt_acc;
 

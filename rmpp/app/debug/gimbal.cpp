@@ -1,8 +1,8 @@
 #include "../infantry/misc.hpp"
 #include "../infantry/gimbal.hpp"
 
-static constexpr UnitFloat YAW_MAX_SPEED = 360 * deg_s;
-static constexpr UnitFloat PITCH_MAX_SPEED = 360 * deg_s;
+static constexpr UnitFloat YAW_SPEED_MAX = 360 * deg_s;
+static constexpr UnitFloat PITCH_SPEED_MAX = 360 * deg_s;
 
 void send_can_cmd() {
     // 步兵、英雄
@@ -16,7 +16,7 @@ void send_can_cmd() {
     data[5] = 0;
     data[6] = 0;
     data[7] = 0;
-    BSP::CAN::TransmitStd(1, 0x1FF, data);
+    BSP::CAN::Transmit(1, 0x1FF, data);
     pitch.SendCanCmd();
 
     // 哨兵
@@ -31,7 +31,7 @@ void send_can_cmd() {
     // data[5] = 0;
     // data[6] = 0;
     // data[7] = 0;
-    // BSP::CAN::TransmitStd(1, 0x1FF, data);
+    // BSP::CAN::Transmit(1, 0x1FF, data);
     // m_pitch.SendCanCmd();
 }
 
@@ -45,8 +45,8 @@ void loop() {
     rc.OnLoop();
 
     gimbal.SetEnable(rc.is_enable);
-    const UnitFloat<deg_s> yaw_speed = rc.yaw * YAW_MAX_SPEED;
-    const UnitFloat<deg_s> pitch_speed = rc.pitch * PITCH_MAX_SPEED;
+    const UnitFloat<deg_s> yaw_speed = rc.yaw * YAW_SPEED_MAX;
+    const UnitFloat<deg_s> pitch_speed = rc.pitch * PITCH_SPEED_MAX;
     gimbal.SetSpeed(yaw_speed, pitch_speed);
     imu.OnLoop();
     gimbal.OnLoop();

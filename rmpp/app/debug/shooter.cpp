@@ -16,7 +16,7 @@ void send_can_cmd() {
     data[5] = 0;
     data[6] = 0;
     data[7] = 0;
-    BSP::CAN::TransmitStd(1, 0x1FF, data, 8);
+    BSP::CAN::Transmit(1, 0x1FF, data, 8);
     rub1.SendCanCmd();
     rub2.SendCanCmd();
 

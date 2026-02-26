@@ -23,7 +23,7 @@ void send_can_cmd() {
     data[5] = cmd3;
     data[6] = cmd4 >> 8;
     data[7] = cmd4;
-    BSP::CAN::TransmitStd(1, 0x200, data);
+    BSP::CAN::Transmit(1, 0x200, data);
     data[0] = cmd5 >> 8;
     data[1] = cmd5;
     data[2] = cmd6 >> 8;
@@ -32,7 +32,7 @@ void send_can_cmd() {
     data[5] = cmd7;
     data[6] = cmd8 >> 8;
     data[7] = cmd8;
-    BSP::CAN::TransmitStd(1, 0x1FF, data);
+    BSP::CAN::Transmit(1, 0x1FF, data);
 
     yaw1.SendCanCmd();
 
