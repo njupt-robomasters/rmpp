@@ -1,5 +1,7 @@
 #include "Gimbal.hpp"
 
+#include "../../../app/infantry/gimbal.hpp"
+
 Gimbal::Gimbal(const IMU& imu) : imu(imu) {}
 
 void Gimbal::SetEnable(const bool is_enable) {
@@ -21,6 +23,7 @@ void Gimbal::SetAngle(const Angle<>& yaw, const Angle<>& pitch) {
         this->yaw.imu.ref = yaw;
         this->pitch.imu.ref = pitch;
     }
+    yaw_speed = pitch_speed = 0 * default_unit;
 }
 
 void Gimbal::SetSpeed(const UnitFloat<>& yaw_speed, const UnitFloat<>& pitch_speed) {

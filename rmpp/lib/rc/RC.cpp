@@ -18,7 +18,7 @@ void RC::OnLoop() {
 
         is_rub = vt13.mode == VT13::S;
         is_shoot = vt13.trigger;
-    } else if (fsi6x.is_connect) {
+    } else if (fsi6x.is_connect) { // FSi6X遥控器备用
         is_enable = fsi6x.swa == FSi6X::DOWN;
 
         x = fsi6x.x;
@@ -34,7 +34,7 @@ void RC::OnLoop() {
 
         is_rub = fsi6x.swc == FSi6X::MID || fsi6x.swc == FSi6X::DOWN;
         is_shoot = fsi6x.swc == FSi6X::DOWN;
-    } else {
+    } else { // 都未连接，复位控制量
         is_enable = false;
         x = y = r = yaw = pitch = 0 * ratio;
         is_rub = is_shoot = false;

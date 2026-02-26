@@ -29,16 +29,15 @@ void Infantry::handleConnect() {
         device.chassis.SetEnable(true);
         device.gimbal.SetEnable(true);
         device.shooter.SetEnable(true);
-        return;
-    }
+    } else {
+        device.chassis.SetEnable(device.rc.is_enable);
+        device.gimbal.SetEnable(device.rc.is_enable);
+        device.shooter.SetEnable(device.rc.is_enable);
 
-    device.chassis.SetEnable(device.rc.is_enable);
-    device.gimbal.SetEnable(device.rc.is_enable);
-    device.shooter.SetEnable(device.rc.is_enable);
-
-    // 断联关小陀螺
-    if (device.rc.is_enable == false) {
-        wr.client = 0 * default_unit;
+        // 断联关小陀螺
+        if (device.rc.is_enable == false) {
+            wr.client = 0 * default_unit;
+        }
     }
 }
 
@@ -48,8 +47,8 @@ void Infantry::handleRC() {
     vx.rc = device.rc.x * config.vxy_max;
     vy.rc = device.rc.y * config.vxy_max;
     wr.rc = device.rc.r * config.wr_max;
-    yaw_speed.rc = device.rc.yaw * config.yaw_max;
-    pitch_speed.rc = device.rc.pitch * config.pitch_max;
+    yaw_speed.rc = device.rc.yaw * config.yaw_speed_max;
+    pitch_speed.rc = device.rc.pitch * config.pitch_speed_max;
     is_rub.rc = device.rc.is_rub;;
     is_shoot.rc = device.rc.is_shoot;
 
@@ -62,11 +61,6 @@ void Infantry::handleRC() {
     if (device.rc.vt13.fn_right) {
         device.chassis.SetMode(Chassis::FOLLOW_MODE);
     }
-
-    // 停止键：复位单片机
-    // if (device.rc.vt13.pause) {
-    //     NVIC_SystemReset();
-    // }
 }
 
 void Infantry::handleClient() {
@@ -112,17 +106,19 @@ void Infantry::handleClient() {
     }
 
     // 鼠标控制云台
-    yaw_speed.client = device.rc.vt13.mouse.yaw * config.yaw_max;
-    pitch_speed.client = device.rc.vt13.mouse.pitch * config.pitch_max;
+    yaw_speed.client = device.rc.vt13.mouse.yaw * config.yaw_speed_max;
+    pitch_speed.client = device.rc.vt13.mouse.pitch * config.pitch_speed_max;
 
     // 鼠标左键开火
     is_shoot.client = device.rc.vt13.mouse.left;
 
     // 鼠标右键自瞄
     if (device.rc.vt13.mouse.right && device.mavlink.aim.is_detect) {
-        yaw_speed.client = 0 * default_unit;
-        pitch_speed.client = 0 * default_unit;
-        device.gimbal.SetAngle(device.mavlink.aim.yaw, device.mavlink.aim.pitch);
+        gimbal_control_mode = ANGLE_MODE;
+        yaw_angle = device.mavlink.aim.yaw;
+        pitch_angle = device.mavlink.aim.pitch;
+    } else {
+        gimbal_control_mode = SPEED_MODE;
     }
 
     // shift开小陀螺
@@ -160,9 +156,9 @@ void Infantry::handleIMU() {
 
 void Infantry::handleChassis() {
     // 设置底盘速度
-    vx.sum = unit::clamp(vx.rc + vx.client + vx.mavlink, config.vxy_max);
-    vy.sum = unit::clamp(vy.rc + vy.client + vy.mavlink, config.vxy_max);
-    wr.sum = unit::clamp(wr.rc + wr.client + wr.mavlink, config.wr_max);
+    vx.sum = unit::clamp(vx.rc + vx.client, config.vxy_max);
+    vy.sum = unit::clamp(vy.rc + vy.client, config.vxy_max);
+    wr.sum = unit::clamp(wr.rc + wr.client, config.wr_max);
     device.chassis.SetSpeed(vx.sum, vy.sum, wr.sum);
 
     // 设置前进正方向
@@ -178,10 +174,14 @@ void Infantry::handleChassis() {
 }
 
 void Infantry::handleGimbal() {
-    // 设置云台速度
-    pitch_speed.sum = unit::clamp(pitch_speed.rc + pitch_speed.client + pitch_speed.mavlink, config.pitch_max);
-    yaw_speed.sum = unit::clamp(yaw_speed.rc + yaw_speed.client + yaw_speed.mavlink, config.yaw_max);
-    device.gimbal.SetSpeed(yaw_speed.sum, pitch_speed.sum);
+    pitch_speed.sum = unit::clamp(pitch_speed.rc + pitch_speed.client, config.pitch_speed_max);
+    yaw_speed.sum = unit::clamp(yaw_speed.rc + yaw_speed.client, config.yaw_speed_max);
+
+    if (gimbal_control_mode == SPEED_MODE) { // 设置云台速度
+        device.gimbal.SetSpeed(yaw_speed.sum, pitch_speed.sum);
+    } else if (gimbal_control_mode == ANGLE_MODE) { // 设置云台角度
+        device.gimbal.SetAngle(yaw_angle, pitch_angle);
+    }
 
     // 设置小陀螺前馈
     device.gimbal.SetChassisWr(device.chassis.wr.measure);
@@ -194,13 +194,13 @@ void Infantry::handleShooter() {
     device.shooter.SetBulletFreq(config.bullet_freq);   // 设置弹频
 
     // 摩擦轮
-    device.shooter.SetRub(is_rub.fsi6x || is_rub.rc || is_rub.client);
+    device.shooter.SetRub(is_rub.rc || is_rub.client);
 
     // 拨弹电机
     if (device.referee.shooter.heat_remain < config.heat_protect) { // 枪口热量保护
         device.shooter.SetShoot(false);
     } else {
-        device.shooter.SetShoot(is_shoot.fsi6x || is_shoot.rc || is_shoot.client);
+        device.shooter.SetShoot(is_shoot.rc || is_shoot.client);
     }
 
     device.shooter.OnLoop();

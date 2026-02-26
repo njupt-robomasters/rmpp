@@ -26,8 +26,8 @@ public:
         UnitFloat<m_ss> dxy;    // 减速度（仅键盘操作有效）
 
         // 云台速度
-        UnitFloat<deg_s> yaw_max;
-        UnitFloat<deg_s> pitch_max;
+        UnitFloat<deg_s> yaw_speed_max;
+        UnitFloat<deg_s> pitch_speed_max;
 
         // 发射机构
         UnitFloat<m_s> bullet_speed; // 弹速
@@ -57,17 +57,24 @@ public:
 private:
     // 底盘
     struct {
-        UnitFloat<m_s> rc, client, mavlink, sum;
+        UnitFloat<m_s> rc, client, sum;
     } vx, vy, wr;
+
+    enum {
+        SPEED_MODE,
+        ANGLE_MODE,
+    } gimbal_control_mode = SPEED_MODE;
 
     // 云台
     struct {
-        UnitFloat<deg_s> rc, client, mavlink, sum;
+        UnitFloat<deg_s> rc, client, sum;
     } yaw_speed, pitch_speed;
+
+    UnitFloat<deg_s> yaw_angle, pitch_angle;
 
     // 发射机构
     struct {
-        bool fsi6x = false, rc = false, client = false;
+        bool rc = false, client = false;
     } is_rub, is_shoot;
 
     // 用于缓加减速
