@@ -68,17 +68,17 @@ int CyberDogMotor::float_to_uint(const float x, const float x_min, const float x
 
 void CyberDogMotor::sendEnable() const {
     uint8_t data[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfc};
-    BSP::CAN::TransmitStd(config.can_port, config.slave_id, data, 8);
+    BSP::CAN::Transmit(config.can_port, config.slave_id, data, 8);
 }
 
 void CyberDogMotor::sendDisable() const {
     uint8_t data[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfd};
-    BSP::CAN::TransmitStd(config.can_port, config.slave_id, data, 8);
+    BSP::CAN::Transmit(config.can_port, config.slave_id, data, 8);
 }
 
 void CyberDogMotor::sendZero() const {
     uint8_t data[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe};
-    BSP::CAN::TransmitStd(config.can_port, config.slave_id, data, 8);
+    BSP::CAN::Transmit(config.can_port, config.slave_id, data, 8);
 }
 
 void CyberDogMotor::sendMIT() const {
@@ -103,5 +103,5 @@ void CyberDogMotor::sendMIT() const {
     data[6] = ((kd_U12 & 0x0F) << 4) | (current_u12 >> 8);
     data[7] = current_u12;
 
-    BSP::CAN::TransmitStd(config.can_port, config.slave_id, data, 8);
+    BSP::CAN::Transmit(config.can_port, config.slave_id, data, 8);
 }

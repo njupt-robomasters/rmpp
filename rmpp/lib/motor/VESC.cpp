@@ -81,12 +81,12 @@ void VESC::sendERPM(const float erpm) const {
     const uint32_t ext_id = config.slave_id | (CAN_PACKET_SET_RPM << 8);
     uint8_t data[8];
     makeCANData(data, erpm, 1);
-    BSP::CAN::TransmitExt(config.can_port, ext_id, data, 4);
+    BSP::CAN::Transmit(config.can_port, ext_id, data, 4, true);
 }
 
 void VESC::sendCurrentBrake(const float current) const {
     const uint32_t ext_id = config.slave_id | (CAN_PACKET_SET_CURRENT_BRAKE << 8);
     uint8_t data[8];
     makeCANData(data, current, 1000);
-    BSP::CAN::TransmitExt(config.can_port, ext_id, data, 4);
+    BSP::CAN::Transmit(config.can_port, ext_id, data, 4, true);
 }

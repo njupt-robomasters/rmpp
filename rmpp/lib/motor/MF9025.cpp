@@ -67,5 +67,5 @@ void MF9025::sendCurrent(const UnitFloat<>& current) const {
     data[5] = cmd >> 8;
     data[6] = 0;
     data[7] = 0;
-    BSP::CAN::TransmitStd(config.can_port, config.slave_id, data);
+    BSP::CAN::Transmit(config.can_port, config.slave_id, data);
 }

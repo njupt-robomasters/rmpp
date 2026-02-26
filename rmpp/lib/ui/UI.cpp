@@ -55,7 +55,7 @@ void UI::SendCanCmd() {
             head = (head + 1) % TXBUF_SIZE; // 后移队首指针
             dlc++;
         }
-        BSP::CAN::TransmitStd(config.can_port, config.slave_id, data, dlc);
+        BSP::CAN::Transmit(config.can_port, config.slave_id, data, dlc);
     }
 }
 

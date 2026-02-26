@@ -71,12 +71,12 @@ uint16_t DM4310::float_to_uint(const float x, const float x_min, const float x_m
 
 void DM4310::sendEnable() const {
     uint8_t data[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfc};
-    BSP::CAN::TransmitStd(config.can_port, config.slave_id, data, 8);
+    BSP::CAN::Transmit(config.can_port, config.slave_id, data, 8);
 }
 
 void DM4310::sendDisable() const {
     uint8_t data[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfd};
-    BSP::CAN::TransmitStd(config.can_port, config.slave_id, data, 8);
+    BSP::CAN::Transmit(config.can_port, config.slave_id, data, 8);
 }
 
 void DM4310::sendTorque(const UnitFloat<>& torque) const {
@@ -102,5 +102,5 @@ void DM4310::sendTorque(const UnitFloat<>& torque) const {
     data[5] = kd_u12 >> 4;
     data[6] = ((kd_u12 & 0x0F) << 4) | (torque_u12 >> 8);
     data[7] = torque_u12;
-    BSP::CAN::TransmitStd(config.can_port, config.slave_id, data, 8);
+    BSP::CAN::Transmit(config.can_port, config.slave_id, data, 8);
 }

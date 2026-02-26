@@ -29,7 +29,7 @@ int16_t RM6623::GetCanCmd() const {
 
 void RM6623::SendCalibrateCmd() const {
     uint8_t data[8] = {'c', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    BSP::CAN::TransmitStd(config.can_port, 0x3F0, data, 8); // 校准指令固定ID=0x3F0
+    BSP::CAN::Transmit(config.can_port, 0x3F0, data, 8); // 校准指令固定ID=0x3F0
 }
 
 void RM6623::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {

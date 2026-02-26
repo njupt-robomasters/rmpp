@@ -34,27 +34,15 @@ void CAN::Init() {
     HAL_CAN_Start(&hcan2);
 }
 
-void CAN::TransmitStd(const uint8_t port, const uint32_t id, uint8_t data[8], const uint8_t dlc) {
+void CAN::Transmit(const uint8_t port, const uint32_t id, uint8_t data[8], const uint8_t dlc, const bool is_ext) {
     CAN_TxHeaderTypeDef header;
-    header.StdId = id;
-    header.IDE = CAN_ID_STD;
-    header.RTR = CAN_RTR_DATA;
-    header.DLC = dlc;
-
-    uint32_t send_mail_box;
-    if (port == 1) {
-        while (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) == 0) {} // 等待发送邮箱有空余位置
-        HAL_CAN_AddTxMessage(&hcan1, &header, data, &send_mail_box);
-    } else if (port == 2) {
-        while (HAL_CAN_GetTxMailboxesFreeLevel(&hcan2) == 0) {} // 等待发送邮箱有空余位置
-        HAL_CAN_AddTxMessage(&hcan2, &header, data, &send_mail_box);
+    if (is_ext) {
+        header.ExtId = id;
+        header.IDE = CAN_ID_EXT;
+    } else {
+        header.StdId = id;
+        header.IDE = CAN_ID_STD;
     }
-}
-
-void CAN::TransmitExt(const uint8_t port, const uint32_t id, uint8_t data[8], const uint8_t dlc) {
-    CAN_TxHeaderTypeDef header;
-    header.ExtId = id;
-    header.IDE = CAN_ID_EXT;
     header.RTR = CAN_RTR_DATA;
     header.DLC = dlc;
 

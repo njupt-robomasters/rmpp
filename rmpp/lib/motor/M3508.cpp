@@ -30,7 +30,7 @@ int16_t M3508::GetCanCmd() const {
 
 void M3508::SendQuickSetID() const {
     uint8_t data[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    BSP::CAN::TransmitStd(config.can_port, 0x700, data, 8);
+    BSP::CAN::Transmit(config.can_port, 0x700, data, 8);
 }
 
 void M3508::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {

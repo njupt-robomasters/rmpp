@@ -19,9 +19,7 @@ namespace BSP {
 
         static void Init();
 
-        static void TransmitStd(uint8_t port, uint32_t id, uint8_t data[8], uint8_t dlc = 8);
-
-        static void TransmitExt(uint8_t port, uint32_t id, uint8_t data[8], uint8_t dlc = 8);
+        static void Transmit(uint8_t port, uint32_t id, uint8_t data[8], uint8_t dlc = 8, bool is_ext = false);
 
         static void RegisterCallback(const CallbackFunc& callback);
 
