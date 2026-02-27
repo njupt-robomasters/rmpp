@@ -53,7 +53,7 @@ void handle_yaw_offset() {
         }
     } else if (flag == 2) {
         if (!(rc.vt13.mode == VT13::C && rc.vt13.fn_left && rc.vt13.fn_right)) { // 等待松开
-            yaw.config.offset += yaw.angle.measure;
+            yaw.config.offset = yaw.raw.angle;
             flashdb.Write("yaw_offset", yaw.config.offset.toFloat(deg));
             buzzer.Play(Buzzer::G5G5G5);
             flag = 1;

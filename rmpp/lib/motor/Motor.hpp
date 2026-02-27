@@ -71,6 +71,14 @@ public:
         UnitFloat<C> mos, motor;
     } temperature;
 
+    // 电机反转、偏移修正之前的值
+    struct raw_t {
+        UnitFloat<A> current;
+        UnitFloat<Nm> torque;
+        UnitFloat<rpm> speed;
+        Angle<deg> angle;
+    } raw;
+
     Motor(const config_t& config);
 
     // 设置电机使能/失能
@@ -92,14 +100,6 @@ public:
     virtual void OnLoop();
 
 protected:
-    // 电机反转、偏移修正之前的值
-    struct raw_t {
-        UnitFloat<A> current;
-        UnitFloat<Nm> torque;
-        UnitFloat<rpm> speed;
-        Angle<deg> angle;
-    };
-
     BSP::Dwt dwt_connect; // 用于电机断联检测
 
     // CAN接收回调，子类重写后要调用
@@ -107,7 +107,6 @@ protected:
 
 private:
     PID speed_pid, angle_pid;       // PID控制器
-    raw_t raw;                      // 用于debug校正电机
     Angle<deg> last_angle;          // 用于多圈计数
     bool is_first_setangle = false; // 断联/使能后第一次设置角度标志，防止电机一下子飞起来
 };
