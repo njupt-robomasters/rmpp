@@ -1,6 +1,6 @@
 #pragma once
 
-#include "module/robot/Infantry.hpp"
+#include "module/robot/Sentry.hpp"
 
 #include "misc.hpp"
 #include "imu.hpp"
@@ -8,7 +8,7 @@
 #include "gimbal.hpp"
 #include "shooter.hpp"
 
-inline Infantry::config_t robot_config = {
+inline Sentry::config_t robot_config = {
     .vxy_max = 3 * m_s,  // 极限3.2m/s
     .wr_max = 150 * rpm, // 极限155rpm
     .axy = 10 * m_ss,
@@ -21,7 +21,7 @@ inline Infantry::config_t robot_config = {
     .bullet_freq = 5 * Hz,
     .heat_protect = 0
 };
-inline Infantry robot(robot_config,
+inline Sentry robot(robot_config,
                       {
                           rc,
                           mavlink,
