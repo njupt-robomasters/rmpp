@@ -34,8 +34,9 @@ void Sentry::handleDebug() {
 
 void Sentry::handleChassis() {
 
+
     //旋转vx.mavlink
-    auto [vx_mavlink_transformed,vy_mavlink_transformed] = rotate(nav_vx.mavlink, nav_vy.mavlink, yaw2.angle.measure);
+    auto [vx_mavlink_transformed,vy_mavlink_transformed] = rotate(device.mavlink.cmd_vel.vel_x, device.mavlink.cmd_vel.vel_y, yaw2.angle.measure);
 
     // 设置底盘速度
     vx.sum = unit::clamp(vx.rc + vx.client + vx_mavlink_transformed, config.vxy_max);
