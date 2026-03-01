@@ -56,7 +56,7 @@ public:
 
 private:
     static constexpr UnitFloat<> CONNECT_TIMEOUT = 100 * ms; // 断联检测超时时间
-    static constexpr UnitFloat<> SEND_FREQ = 100 * Hz;
+    static constexpr UnitFloat<> SEND_FREQ = 50 * Hz;
     static constexpr uint8_t SYSTEM_ID = 1;    // mavlink参数
     static constexpr uint8_t COMPONENT_ID = 1; // mavlink参数
 

@@ -9,15 +9,20 @@ public:
     void OnLoop();
 
 private:
-    enum {
-        RC_MODE,
-        DEBUG_MODE,
-        GAME_MODE,
-    } mode = RC_MODE;
 
-    void handleMode();
+
+    //底盘扩展mavlink速度控制
+    struct Nav_Vel{
+        UnitFloat<m_s> mavlink;
+    }nav_vx, nav_vy;
+
+    enum {
+        ORIGIN,
+        POS1,
+        POS2
+    } nav_status = ORIGIN;
 
     void handleDebug();
 
-    void handleGame();
+    void handleChassis() override;
 };

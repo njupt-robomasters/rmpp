@@ -56,7 +56,7 @@ public:
 
 protected:
     // 底盘
-    struct {
+    struct VelInfo {
         UnitFloat<m_s> rc, client, sum;
     } vx, vy, wr;
 
@@ -92,7 +92,7 @@ private:
     void handleIMU();
 
     // 执行器
-    void handleChassis();
+    virtual void handleChassis();
     void handleGimbal();
     void handleShooter();
 
