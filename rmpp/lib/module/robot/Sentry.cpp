@@ -3,29 +3,25 @@
 void Sentry::OnLoop() {
     Infantry::OnLoop();
 
-    handleMode();
-    handleDebug();
-    handleGame();
-}
+    // 按下停止键忽略上位机指令
+    if (device.rc.vt13.pause) {
+        is_ignore_mavlink = true;
+    }
 
-void Sentry::handleMode() {
-    if (device.referee.game.progress == Referee::COUNTDOWN_5SEC || device.referee.game.progress == Referee::GAMING) {
-        mode = GAME_MODE;
-    } else {
-        if (device.rc.is_enable == false) {
-            mode = RC_MODE;
-        }
+    // 失能释放忽略上位机指令
+    if (device.rc.is_enable == false) {
+        is_ignore_mavlink = false;
+    }
 
-        if (device.rc.is_enable && device.rc.vt13.pause) {
-            mode = DEBUG_MODE;
+    if (is_ignore_mavlink == false) {
+        if (device.referee.game.progress == Referee::GAMING) {
+            handleGame();
+        } else {
+            handleTest();
         }
     }
 }
 
-void Sentry::handleDebug() {
+void Sentry::handleGame() {}
 
-}
-
-void Sentry::handleGame() {
-
-}
+void Sentry::handleTest() {}

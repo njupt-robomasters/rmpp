@@ -2,16 +2,20 @@
 
 Infantry::Infantry(const config_t& config, const device_t& device) : config(config), device(device) {}
 
+void Infantry::Init() {
+    device.buzzer.Play(Buzzer::C5D5G5);
+}
+
 void Infantry::OnLoop() {
     handleConnect();
+
+    device.led.OnLoop();
+    device.buzzer.OnLoop();
 
     // 控制器
     handleRC();
     handleClient();
     handleMavlink();
-
-    // 传感器
-    handleIMU();
 
     // 执行器
     handleChassis();
@@ -25,7 +29,7 @@ void Infantry::OnLoop() {
 
 void Infantry::handleConnect() {
     // 比赛时候忽略断联保护
-    if (device.referee.game.progress == Referee::COUNTDOWN_5SEC || device.referee.game.progress == Referee::GAMING) {
+    if (device.referee.game.progress == Referee::GAMING) {
         device.chassis.SetEnable(true);
         device.gimbal.SetEnable(true);
         device.shooter.SetEnable(true);
@@ -61,6 +65,16 @@ void Infantry::handleRC() {
     if (device.rc.vt13.fn_right) {
         device.chassis.SetMode(Chassis::FOLLOW_MODE);
     }
+
+    // 校准yaw偏移
+    static bool set_yaw_zero_last = false;
+    const bool set_yaw_zero = device.rc.vt13.mode == VT13::C && device.rc.vt13.fn_left && device.rc.vt13.fn_right;
+    if (set_yaw_zero && !set_yaw_zero_last) {
+        device.gimbal.SetYawZero();
+        device.gimbal.SaveYawOffset(device.flashdb);
+        device.buzzer.Play(Buzzer::G5G5G5);
+    }
+    set_yaw_zero_last = set_yaw_zero;
 }
 
 void Infantry::handleClient() {
@@ -138,9 +152,9 @@ void Infantry::handleClient() {
 
 void Infantry::handleMavlink() {
     device.mavlink.imu = {
-        .yaw = device.imu.yaw,
-        .pitch = device.imu.pitch,
-        .roll = device.imu.roll
+        .yaw = device.gimbal.imu.yaw,
+        .pitch = device.gimbal.imu.pitch,
+        .roll = device.gimbal.imu.roll
     };
     device.mavlink.referee = {
         .is_red = device.referee.game.is_red,
@@ -148,10 +162,6 @@ void Infantry::handleMavlink() {
     };
 
     device.mavlink.OnLoop();
-}
-
-void Infantry::handleIMU() {
-    device.imu.OnLoop();
 }
 
 void Infantry::handleChassis() {
@@ -207,7 +217,7 @@ void Infantry::handleShooter() {
 }
 
 void Infantry::handleReferee() {
-    device.referee.SetYaw(device.imu.yaw, device.gimbal.yaw.ecd.measure);
+    device.referee.SetYaw(device.gimbal.yaw.ecd.measure, device.gimbal.yaw.imu.measure);
     device.referee.OnLoop();
 }
 
@@ -239,9 +249,9 @@ void Infantry::handleUI() {
     device.ui.is_detect = device.mavlink.aim.is_detect;
 
     // 电机连接状态
-    device.chassis.HandleUI(device.ui);
-    device.gimbal.HandleUI(device.ui);
-    device.shooter.HandleUI(device.ui);
+    device.chassis.UpdateUI(device.ui);
+    device.gimbal.UpdateUI(device.ui);
+    device.shooter.UpdateUI(device.ui);
 
     device.ui.OnLoop();
 }

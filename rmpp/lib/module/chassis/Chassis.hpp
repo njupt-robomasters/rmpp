@@ -77,7 +77,7 @@ public:
     void SetBufferEnergy(const UnitFloat<>& buffer_energy);
 
     // 在自定义UI上显示电机连接状态
-    virtual void HandleUI(UI& ui) = 0;
+    virtual void UpdateUI(UI& ui) = 0;
 
     // 需要在循环中调用
     virtual void OnLoop();

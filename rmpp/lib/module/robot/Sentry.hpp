@@ -9,15 +9,9 @@ public:
     void OnLoop();
 
 private:
-    enum {
-        RC_MODE,
-        DEBUG_MODE,
-        GAME_MODE,
-    } mode = RC_MODE;
-
-    void handleMode();
-
-    void handleDebug();
+    bool is_ignore_mavlink = false;
 
     void handleGame();
+
+    void handleTest();
 };

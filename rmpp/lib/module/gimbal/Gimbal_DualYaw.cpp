@@ -1,6 +1,6 @@
 #include "Gimbal_DualYaw.hpp"
 
-Gimbal_DualYaw::Gimbal_DualYaw(const IMU& imu, const motor_t& motor) : Gimbal(imu), motor(motor) {}
+Gimbal_DualYaw::Gimbal_DualYaw(IMU& imu, const motor_t& motor) : Gimbal(imu), motor(motor) {}
 
 void Gimbal_DualYaw::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable) return;
@@ -11,7 +11,19 @@ void Gimbal_DualYaw::SetEnable(const bool is_enable) {
     motor.pitch.SetEnable(is_enable);
 }
 
-void Gimbal_DualYaw::HandleUI(UI& ui) {
+void Gimbal_DualYaw::LoadYawOffset(FlashDB& flashdb) {
+    motor.yaw1.config.offset = flashdb.Read("yaw_offset") * deg;
+}
+
+void Gimbal_DualYaw::SaveYawOffset(FlashDB& flashdb) {
+    flashdb.Write("yaw_offset", motor.yaw1.config.offset.toFloat(deg));
+}
+
+void Gimbal_DualYaw::SetYawZero() {
+    motor.yaw1.config.offset = motor.yaw1.raw.angle;
+}
+
+void Gimbal_DualYaw::UpdateUI(UI& ui) {
     ui.robot.yaw1 = motor.yaw1.is_connect ? UI::GREEN : UI::PINK;
     ui.robot.yaw2 = motor.yaw2.is_connect ? UI::GREEN : UI::PINK;
     ui.robot.pitch = motor.pitch.is_connect ? UI::GREEN : UI::PINK;

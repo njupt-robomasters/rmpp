@@ -1,11 +1,13 @@
 #pragma once
 
+// 杂项
+#include "misc/LED.hpp"
+#include "misc/Buzzer.hpp"
+#include "flashdb/FlashDB.hpp"
+
 // 控制器
 #include "rc/RC.hpp"
 #include "mavlink/Mavlink.hpp"
-
-// 传感器
-#include "imu/IMU.hpp"
 
 // 执行器
 #include "module/chassis/Chassis.hpp"
@@ -36,10 +38,12 @@ public:
     } config;
 
     struct device_t {
+        LED& led;
+        Buzzer& buzzer;
+        FlashDB& flashdb;
+
         RC& rc;
         Mavlink& mavlink;
-
-        IMU& imu;
 
         Chassis& chassis;
         Gimbal& gimbal;
@@ -50,6 +54,8 @@ public:
     } device;
 
     Infantry(const config_t& config, const device_t& device);
+
+    void Init();
 
     // 需要在循环中调用
     void OnLoop();
@@ -87,9 +93,6 @@ private:
     void handleRC();
     void handleClient();
     void handleMavlink();
-
-    // 传感器
-    void handleIMU();
 
     // 执行器
     void handleChassis();

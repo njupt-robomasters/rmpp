@@ -19,7 +19,7 @@ void Shooter_42mm::SetEnable(const bool is_enable) {
     motor.shoot.SetEnable(is_enable);
 }
 
-void Shooter_42mm::HandleUI(UI& ui) {
+void Shooter_42mm::UpdateUI(UI& ui) {
     if (motor.rub1.is_connect == false) {
         ui.robot.rub1 = UI::PINK;
     } else if (unit::abs(bullet_speed.ref - rub1_measure) < 1) {

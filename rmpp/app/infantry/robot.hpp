@@ -3,7 +3,6 @@
 #include "module/robot/Infantry.hpp"
 
 #include "misc.hpp"
-#include "imu.hpp"
 #include "chassis.hpp"
 #include "gimbal.hpp"
 #include "shooter.hpp"
@@ -19,14 +18,16 @@ inline Infantry::config_t robot_config = {
 
     .bullet_speed = 20 * m_s,
     .bullet_freq = 5 * Hz,
-    .heat_protect = 0
+    .heat_protect = 0,
 };
 inline Infantry robot(robot_config,
                       {
+                          led,
+                          buzzer,
+                          flashdb,
+
                           rc,
                           mavlink,
-
-                          imu,
 
                           chassis,
                           gimbal,

@@ -5,7 +5,6 @@ file(GLOB_RECURSE USER_SOURCES
         "app/infantry/app.cpp"
         # "app/sentry/app.cpp"
         # "app/hero/app.cpp"
-        # "app/engineer/debug/chassis.cpp"
 
         # 调试代码
         # "app/debug/led.cpp"

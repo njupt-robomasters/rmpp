@@ -15,13 +15,19 @@ public:
         Angle<deg> ref, measure;
     } yaw1, yaw2; // yaw1-大yaw，yaw2-小yaw
 
-    Gimbal_DualYaw(const IMU& imu, const motor_t& motor);
+    Gimbal_DualYaw(IMU& imu, const motor_t& motor);
 
     // 云台使能/失能
     void SetEnable(bool is_enable) override;
 
+    void LoadYawOffset(FlashDB& flashdb) override;
+
+    void SaveYawOffset(FlashDB& flashdb) override;
+
+    void SetYawZero() override;
+
     // 在自定义UI上显示电机连接状态
-    void HandleUI(UI& ui) override;
+    void UpdateUI(UI& ui) override;
 
     // 需要在循环中调用
     void OnLoop() override;

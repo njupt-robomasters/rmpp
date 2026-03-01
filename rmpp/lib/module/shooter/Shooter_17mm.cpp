@@ -17,7 +17,7 @@ void Shooter_17mm::SetEnable(const bool is_enable) {
     motor.shoot.SetEnable(is_enable);
 }
 
-void Shooter_17mm::HandleUI(UI& ui) {
+void Shooter_17mm::UpdateUI(UI& ui) {
     if (motor.rub1.is_connect == false) {
         ui.robot.rub1 = UI::PINK;
         ui.robot.rub3 = UI::PINK;

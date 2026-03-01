@@ -1,6 +1,6 @@
 #include "Gimbal_Classic.hpp"
 
-Gimbal_Classic::Gimbal_Classic(const IMU& imu, const motor_t& motor) : Gimbal(imu), motor(motor) {}
+Gimbal_Classic::Gimbal_Classic(IMU& imu, const motor_t& motor) : Gimbal(imu), motor(motor) {}
 
 void Gimbal_Classic::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable) return;
@@ -10,7 +10,19 @@ void Gimbal_Classic::SetEnable(const bool is_enable) {
     motor.pitch.SetEnable(is_enable);
 }
 
-void Gimbal_Classic::HandleUI(UI& ui) {
+void Gimbal_Classic::LoadYawOffset(FlashDB& flashdb) {
+    motor.yaw.config.offset = flashdb.Read("yaw_offset") * deg;
+}
+
+void Gimbal_Classic::SaveYawOffset(FlashDB& flashdb) {
+    flashdb.Write("yaw_offset", motor.yaw.config.offset.toFloat(deg));
+}
+
+void Gimbal_Classic::SetYawZero() {
+    motor.yaw.config.offset = motor.yaw.raw.angle;
+}
+
+void Gimbal_Classic::UpdateUI(UI& ui) {
     ui.robot.yaw1 = motor.yaw.is_connect ? UI::GREEN : UI::PINK;
     ui.robot.yaw2 = motor.yaw.is_connect ? UI::GREEN : UI::PINK;
     ui.robot.pitch = motor.pitch.is_connect ? UI::GREEN : UI::PINK;
