@@ -38,5 +38,17 @@
             <field type="float" name="x4">x4</field>
             <field type="float" name="y4">y4</field>
         </message>
+
+        <message id="20" name="nav_cmd_vel">
+            <description>nav_cmd_vel(mini pc -> c board reference yaw1)</description>
+            <field type="float" name="vel_x" units="m_s">x</field>
+            <field type="float" name="vel_y" units="m_s">y</field>
+        </message>
+
+        <message id="21" name="target_pose">
+            <description>target_pose(c board -> mini pc)</description>
+            <field type="float" name="pos_x" units="m">x</field>
+            <field type="float" name="pos_y" units="m">y</field>
+        </message>
     </messages>
 </mavlink>

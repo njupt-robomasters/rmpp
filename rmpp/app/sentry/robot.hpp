@@ -17,8 +17,8 @@ inline Sentry::config_t robot_config = {
     .pitch_speed_max = 360 * deg_s,
 
     .bullet_speed = 20 * m_s,
-    .bullet_freq = 5 * Hz,
-    .heat_protect = 0,
+    .bullet_freq = 10 * Hz,
+    .heat_protect = 0
 };
 inline Sentry robot(robot_config,
                     {

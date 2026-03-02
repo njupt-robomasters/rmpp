@@ -90,12 +90,12 @@ private:
     void handleConnect();
 
     // 控制器
-    void handleRC();
+    virtual void handleRC();
     void handleClient();
     void handleMavlink();
 
     // 执行器
-    void handleChassis();
+    virtual void handleChassis();
     void handleGimbal();
     void handleShooter();
 

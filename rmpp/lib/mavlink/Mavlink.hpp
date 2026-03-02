@@ -7,6 +7,7 @@
 class Mavlink {
 public:
     bool is_connect = false;
+    bool is_enable = false;
 
     // 发送
     struct {
@@ -20,6 +21,12 @@ public:
         bool is_red = true;
         UnitFloat<m_s> bullet_speed = 24.0f * m_s;
     } referee;
+
+    //发送
+    struct {
+        UnitFloat<m> pos_x;
+        UnitFloat<m> pos_y;
+    } pos;
 
     // 接收
     struct {
@@ -37,6 +44,12 @@ public:
         float x1 = 0, y1 = 0, x2 = 0, y2 = 0, x3 = 0, y3 = 0, x4 = 0, y4 = 0;
     } ui;
 
+    // 接收
+    struct {
+        UnitFloat<m_s> vel_x;
+        UnitFloat<m_s> vel_y;
+    } cmd_vel;
+
     Mavlink();
 
     // 需要在循环中调用
@@ -44,7 +57,7 @@ public:
 
 private:
     static constexpr UnitFloat<> CONNECT_TIMEOUT = 100 * ms; // 断联检测超时时间
-    static constexpr UnitFloat<> SEND_FREQ = 100 * Hz;
+    static constexpr UnitFloat<> SEND_FREQ = 50 * Hz;
     static constexpr uint8_t SYSTEM_ID = 1;    // mavlink参数
     static constexpr uint8_t COMPONENT_ID = 1; // mavlink参数
 
@@ -64,4 +77,5 @@ private:
     static void send(const mavlink_message_t& msg);
     void sendImu() const;
     void sendReferee() const;
+    void sendPos() const;
 };

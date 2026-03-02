@@ -50,7 +50,7 @@ inline GM6020 yaw2({
     .can_port = 1,
     .master_id = 0x205,
     .slave_id = 0x1FF,
-    .offset = -120 * deg,
+    .offset = 0 * deg,
     .is_limit = true,
     .limit_min = -90 * deg,
     .limit_max = 90 * deg,
