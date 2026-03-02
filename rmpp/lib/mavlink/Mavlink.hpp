@@ -7,7 +7,6 @@
 class Mavlink {
 public:
     bool is_connect = false;
-    bool is_enable = false;
 
     // 发送
     struct {

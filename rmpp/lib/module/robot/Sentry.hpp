@@ -9,6 +9,7 @@ public:
     void OnLoop();
 
 private:
+    bool is_pause = false;
 
     enum {
         ORIGIN,
@@ -18,7 +19,5 @@ private:
 
     void handleGame();
     void handleTest();
-
-    void handleRC() override;
-    void handleChassis() override;
+    void handlePause();
 };

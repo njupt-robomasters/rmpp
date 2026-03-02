@@ -8,8 +8,8 @@
 #include "shooter.hpp"
 
 inline Infantry::config_t robot_config = {
-    .vxy_max = 2 * m_s,  // 极限4.5m/s
-    .wr_max = 60 * rpm, // 极限130rpm
+    .vxy_max = 5 * m_s,  // 极限4.5m/s
+    .wr_max = 120 * rpm, // 极限130rpm
     .axy = 10 * m_ss,
     .dxy = 10 * m_ss,
 

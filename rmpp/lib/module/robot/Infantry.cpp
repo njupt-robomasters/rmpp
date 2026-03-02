@@ -3,6 +3,7 @@
 Infantry::Infantry(const config_t& config, const device_t& device) : config(config), device(device) {}
 
 void Infantry::Init() {
+    device.gimbal.LoadYawOffset(device.flashdb);
     device.buzzer.Play(Buzzer::C5D5G5);
 }
 
@@ -166,9 +167,9 @@ void Infantry::handleMavlink() {
 
 void Infantry::handleChassis() {
     // 设置底盘速度
-    vx.sum = unit::clamp(vx.rc + vx.client, config.vxy_max);
-    vy.sum = unit::clamp(vy.rc + vy.client, config.vxy_max);
-    wr.sum = unit::clamp(wr.rc + wr.client, config.wr_max);
+    vx.sum = unit::clamp(vx.rc + vx.client + vx.sentry, config.vxy_max);
+    vy.sum = unit::clamp(vy.rc + vy.client + vy.sentry, config.vxy_max);
+    wr.sum = unit::clamp(wr.rc + wr.client + wr.sentry, config.wr_max);
     device.chassis.SetSpeed(vx.sum, vy.sum, wr.sum);
 
     // 设置前进正方向

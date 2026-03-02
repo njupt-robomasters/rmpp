@@ -14,21 +14,22 @@ void Mavlink::OnLoop() {
         is_connect = false;
     }
 
-    // // 发送频率控制
-    // if (dwt_send_freq.PollTimeout(1 / SEND_FREQ)) {
-    //     sendPos();
-    //     sendImu();
-    //     sendReferee();
-    //
-    // }
-    static uint8_t step = 0;
     // 假设发送频率是 100Hz，我们将三个包分摊在不同的时间点发送
     // 这样上位机收到的数据流在时间上是均匀的
+    static uint8_t step = 0;
     if (dwt_send_freq.PollTimeout(1 / (SEND_FREQ * 3))) {
-        switch(step) {
-            case 0: sendPos();     break;
-            case 1: sendImu();     break;
-            case 2: sendReferee(); break;
+        switch (step) {
+            case 0:
+                sendPos();
+                break;
+            case 1:
+                sendImu();
+                break;
+            case 2:
+                sendReferee();
+                break;
+            default:
+                break;;
         }
         step = (step + 1) % 3;
     }
@@ -80,6 +81,7 @@ void Mavlink::parse(const mavlink_message_t& msg) {
             };
             break;
         }
+
         case MAVLINK_MSG_ID_nav_cmd_vel: {
             mavlink_nav_cmd_vel_t cmd_vel_t;
             mavlink_msg_nav_cmd_vel_decode(&msg, &cmd_vel_t);

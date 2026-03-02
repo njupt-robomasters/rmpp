@@ -63,7 +63,7 @@ public:
 protected:
     // 底盘
     struct {
-        UnitFloat<m_s> rc, client, sum;
+        UnitFloat<m_s> rc, client, sentry, sum;
     } vx, vy, wr;
 
     enum {
@@ -90,12 +90,12 @@ private:
     void handleConnect();
 
     // 控制器
-    virtual void handleRC();
+    void handleRC();
     void handleClient();
     void handleMavlink();
 
     // 执行器
-    virtual void handleChassis();
+    void handleChassis();
     void handleGimbal();
     void handleShooter();
 

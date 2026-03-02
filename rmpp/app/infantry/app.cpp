@@ -43,7 +43,7 @@ void send_can_cmd() {
 void setup() {
     BSP::Init();
     // imu.Calibrate();
-    buzzer.Play(Buzzer::C5D5G5);
+    robot.Init();
 }
 
 void loop() {
