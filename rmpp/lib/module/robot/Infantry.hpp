@@ -62,7 +62,7 @@ public:
 
 protected:
     // 底盘
-    struct VelInfo {
+    struct {
         UnitFloat<m_s> rc, client, sum;
     } vx, vy, wr;
 
