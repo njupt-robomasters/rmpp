@@ -90,7 +90,7 @@ private:
     void handleConnect();
 
     // 控制器
-    void handleRC();
+    virtual void handleRC();
     void handleClient();
     void handleMavlink();
 

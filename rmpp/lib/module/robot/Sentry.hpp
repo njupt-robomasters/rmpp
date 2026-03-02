@@ -9,8 +9,6 @@ public:
     void OnLoop();
 
 private:
-    bool is_ignore_mavlink = false;
-
 
     enum {
         ORIGIN,
@@ -18,11 +16,9 @@ private:
         POS2
     } nav_status = ORIGIN;
 
-
-
     void handleGame();
-
     void handleTest();
 
+    void handleRC() override;
     void handleChassis() override;
 };
