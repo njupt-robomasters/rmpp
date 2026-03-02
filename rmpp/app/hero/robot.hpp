@@ -3,13 +3,12 @@
 #include "module/robot/Infantry.hpp"
 
 #include "misc.hpp"
-#include "imu.hpp"
 #include "chassis.hpp"
 #include "gimbal.hpp"
 #include "shooter.hpp"
 
 inline Infantry::config_t robot_config = {
-    .vxy_max = 1 * m_s, // 极限4.5m/s
+    .vxy_max = 2 * m_s,  // 极限4.5m/s
     .wr_max = 60 * rpm, // 极限130rpm
     .axy = 10 * m_ss,
     .dxy = 10 * m_ss,
@@ -23,10 +22,12 @@ inline Infantry::config_t robot_config = {
 };
 inline Infantry robot(robot_config,
                       {
+                          led,
+                          buzzer,
+                          flashdb,
+
                           rc,
                           mavlink,
-
-                          imu,
 
                           chassis,
                           gimbal,

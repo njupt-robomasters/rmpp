@@ -6,11 +6,30 @@ extern GM6020 yaw2;
 void Sentry::OnLoop() {
     Infantry::OnLoop();
 
-    handleDebug();
+    // 按下停止键忽略上位机指令
+    if (device.rc.vt13.pause) {
+        is_ignore_mavlink = true;
+    }
+
+    // 失能释放忽略上位机指令
+    if (device.rc.is_enable == false) {
+        is_ignore_mavlink = false;
+    }
+
+    if (is_ignore_mavlink == false) {
+        if (device.referee.game.progress == Referee::GAMING) {
+            handleGame();
+        } else {
+            handleTest();
+        }
+    }
 }
 
+void Sentry::handleGame() {
 
-void Sentry::handleDebug() {
+}
+
+void Sentry::handleTest() {
     static bool last_pause = false;
 
     if (device.rc.vt13.pause && !last_pause) {
@@ -30,8 +49,6 @@ void Sentry::handleDebug() {
     }
     last_pause = device.rc.vt13.pause;
 }
-
-
 void Sentry::handleChassis() {
 
 

@@ -6,8 +6,7 @@ class FlashDB {
 public:
     FlashDB() = default;
 
-    // 初始化数据库
-    void Init(const char* name);
+    FlashDB(const char* name);
 
     // 读取数据库
     float Read(const char* key);
@@ -16,6 +15,10 @@ public:
     void Write(const char* key, float value);
 
 private:
+    const char* name;
     fdb_kvdb kvdb{};
     bool is_init = false;
+
+    // 初始化数据库
+    void init();
 };

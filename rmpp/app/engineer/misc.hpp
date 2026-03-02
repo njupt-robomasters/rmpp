@@ -14,4 +14,4 @@ inline RC rc({}, {});
 inline Mavlink mavlink;
 inline Referee referee({});
 inline UI ui({});
-inline FlashDB flashdb;
+inline FlashDB flashdb("engineer");

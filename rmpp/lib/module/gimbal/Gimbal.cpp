@@ -1,8 +1,6 @@
 #include "Gimbal.hpp"
 
-#include "../../../app/infantry/gimbal.hpp"
-
-Gimbal::Gimbal(const IMU& imu) : imu(imu) {}
+Gimbal::Gimbal(IMU& imu) : imu(imu) {}
 
 void Gimbal::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable) return;
@@ -36,6 +34,8 @@ void Gimbal::SetChassisWr(const UnitFloat<>& chassis_wr) {
 }
 
 void Gimbal::OnLoop() {
+    imu.OnLoop();
+
     // 更新云台转动
     handleMotion();
 

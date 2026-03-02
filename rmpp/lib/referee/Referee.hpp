@@ -99,7 +99,7 @@ public:
     Referee(const config_t& config);
 
     // 设置yaw角度，用于计算伤害方向
-    void SetYaw(const UnitFloat<>& imu_yaw, const UnitFloat<>& gimbal_yaw);
+    void SetYaw(const UnitFloat<>& yaw_ecd, const UnitFloat<>& yaw_imu);
 
     // 需要在循环中调用
     void OnLoop();
@@ -110,7 +110,7 @@ private:
     RefereeParser parser; // 裁判系统报文解析库
 
     // 用于伤害方向
-    UnitFloat<deg> imu_yaw, gimbal_yaw;
+    UnitFloat<deg> yaw_ecd, yaw_imu;
     BSP::Dwt hurt_dwt;
     Angle<deg> hurt_dir_by_imu; // 伤害方向，相对于IMu参考系
 };

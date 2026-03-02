@@ -2,9 +2,9 @@
 
 Referee::Referee(const config_t& config) : config(config), parser(config) {}
 
-void Referee::SetYaw(const UnitFloat<>& imu_yaw, const UnitFloat<>& gimbal_yaw) {
-    this->imu_yaw = imu_yaw;
-    this->gimbal_yaw = gimbal_yaw;
+void Referee::SetYaw(const UnitFloat<>& yaw_ecd, const UnitFloat<>& yaw_imu) {
+    this->yaw_ecd = yaw_ecd;
+    this->yaw_imu = yaw_imu;
 }
 
 void Referee::OnLoop() {
@@ -68,16 +68,16 @@ void Referee::OnLoop() {
             // 计算伤害方向
             switch (parser.hurt_data.armor_id) {
                 case 0:
-                    hurt_dir_by_imu = 0 * deg - gimbal_yaw + imu_yaw;
+                    hurt_dir_by_imu = 0 * deg + (yaw_imu - yaw_ecd);
                     break;
                 case 1:
-                    hurt_dir_by_imu = 90 * deg - gimbal_yaw + imu_yaw;
+                    hurt_dir_by_imu = 90 * deg + (yaw_imu - yaw_ecd);
                     break;
                 case 2:
-                    hurt_dir_by_imu = 180 * deg - gimbal_yaw + imu_yaw;
+                    hurt_dir_by_imu = 180 * deg + (yaw_imu - yaw_ecd);
                     break;
                 case 3:
-                    hurt_dir_by_imu = 270 * deg - gimbal_yaw + imu_yaw;
+                    hurt_dir_by_imu = 270 * deg + (yaw_imu - yaw_ecd);
                     break;
                 default:
                     break;
@@ -87,5 +87,5 @@ void Referee::OnLoop() {
 
     // 更新伤害方向
     is_hurt = hurt_dwt.GetDT() < HURT_TIMEOUT;
-    hurt_dir = hurt_dir_by_imu - imu_yaw;
+    hurt_dir = hurt_dir_by_imu - yaw_imu;
 }

@@ -23,7 +23,7 @@ void Chassis_Mecanum::SetEnable(const bool is_enable) {
     motor.w4.SetEnable(is_enable);
 }
 
-void Chassis_Mecanum::HandleUI(UI& ui) {
+void Chassis_Mecanum::UpdateUI(UI& ui) {
     ui.robot.w1 = motor.w1.is_connect ? UI::GREEN : UI::PINK;
     ui.robot.w2 = motor.w2.is_connect ? UI::GREEN : UI::PINK;
     ui.robot.w3 = motor.w3.is_connect ? UI::GREEN : UI::PINK;
