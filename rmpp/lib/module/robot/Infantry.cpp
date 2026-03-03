@@ -57,14 +57,13 @@ void Infantry::handleRC() {
     is_rub.rc = device.rc.is_rub;;
     is_shoot.rc = device.rc.is_shoot;
 
-    // 左fn键：底盘分离模式
-    if (device.rc.vt13.fn_left) {
-        device.chassis.SetMode(Chassis::DETACH_MODE);
-    }
-
-    // 右fn键：底盘跟随模式
-    if (device.rc.vt13.fn_right) {
-        device.chassis.SetMode(Chassis::FOLLOW_MODE);
+    // 右fn键自瞄
+    if (device.rc.vt13.fn_right && device.mavlink.aim.is_detect) {
+        gimbal_mode.rc = GIMBAL_ANGLE_MODE;
+        yaw_angle.rc = device.mavlink.aim.yaw;
+        pitch_angle.rc = device.mavlink.aim.pitch;
+    } else {
+        gimbal_mode.rc = GIMBAL_SPEED_MODE;
     }
 
     // 校准yaw偏移
@@ -129,11 +128,11 @@ void Infantry::handleClient() {
 
     // 鼠标右键自瞄
     if (device.rc.vt13.mouse.right && device.mavlink.aim.is_detect) {
-        gimbal_control_mode = ANGLE_MODE;
-        yaw_angle = device.mavlink.aim.yaw;
-        pitch_angle = device.mavlink.aim.pitch;
+        gimbal_mode.client = GIMBAL_ANGLE_MODE;
+        yaw_angle.client = device.mavlink.aim.yaw;
+        pitch_angle.client = device.mavlink.aim.pitch;
     } else {
-        gimbal_control_mode = SPEED_MODE;
+        gimbal_mode.client = GIMBAL_SPEED_MODE;
     }
 
     // shift开小陀螺
@@ -167,10 +166,10 @@ void Infantry::handleMavlink() {
 
 void Infantry::handleChassis() {
     // 设置底盘速度
-    vx.sum = unit::clamp(vx.rc + vx.client + vx.sentry, config.vxy_max);
-    vy.sum = unit::clamp(vy.rc + vy.client + vy.sentry, config.vxy_max);
-    wr.sum = unit::clamp(wr.rc + wr.client + wr.sentry, config.wr_max);
-    device.chassis.SetSpeed(vx.sum, vy.sum, wr.sum);
+    const UnitFloat<> vx = unit::clamp(this->vx.rc + this->vx.client + this->vx.software, config.vxy_max);
+    const UnitFloat<> vy = unit::clamp(this->vy.rc + this->vy.client + this->vy.software, config.vxy_max);
+    const UnitFloat<> wr = unit::clamp(this->wr.rc + this->wr.client + this->wr.software, config.wr_max);
+    device.chassis.SetSpeed(vx, vy, wr);
 
     // 设置前进正方向
     device.chassis.SetGimbalYaw(device.gimbal.yaw.ecd.measure);
@@ -185,13 +184,16 @@ void Infantry::handleChassis() {
 }
 
 void Infantry::handleGimbal() {
-    pitch_speed.sum = unit::clamp(pitch_speed.rc + pitch_speed.client, config.pitch_speed_max);
-    yaw_speed.sum = unit::clamp(yaw_speed.rc + yaw_speed.client, config.yaw_speed_max);
-
-    if (gimbal_control_mode == SPEED_MODE) { // 设置云台速度
-        device.gimbal.SetSpeed(yaw_speed.sum, pitch_speed.sum);
-    } else if (gimbal_control_mode == ANGLE_MODE) { // 设置云台角度
-        device.gimbal.SetAngle(yaw_angle, pitch_angle);
+    if (gimbal_mode.rc == GIMBAL_ANGLE_MODE) {
+        device.gimbal.SetAngle(yaw_angle.rc, pitch_angle.rc);
+    } else if (gimbal_mode.client == GIMBAL_ANGLE_MODE) {
+        device.gimbal.SetAngle(yaw_angle.client, pitch_angle.client);
+    } else if (gimbal_mode.software == GIMBAL_ANGLE_MODE) {
+        device.gimbal.SetAngle(yaw_angle.software, pitch_angle.software);
+    } else {
+        const UnitFloat<> yaw_speed = unit::clamp(this->yaw_speed.rc + this->yaw_speed.client + this->yaw_speed.software, config.yaw_speed_max);
+        const UnitFloat<> pitch_speed = unit::clamp(this->pitch_speed.rc + this->pitch_speed.client + this->pitch_speed.software, config.pitch_speed_max);
+        device.gimbal.SetSpeed(yaw_speed, pitch_speed);
     }
 
     // 设置小陀螺前馈
@@ -202,16 +204,19 @@ void Infantry::handleGimbal() {
 
 void Infantry::handleShooter() {
     device.shooter.SetBulletSpeed(config.bullet_speed); // 设置弹速
-    device.shooter.SetBulletFreq(config.bullet_freq);   // 设置弹频
 
     // 摩擦轮
-    device.shooter.SetRub(is_rub.rc || is_rub.client);
+    device.shooter.SetRub(is_rub.rc || is_rub.client || is_rub.software);
 
     // 拨弹电机
-    if (device.referee.shooter.heat_remain < config.heat_protect) { // 枪口热量保护
-        device.shooter.SetShoot(false);
+    if (is_shoot.rc) {
+        device.shooter.SetShoot(true);
+        device.shooter.SetBulletFreq(config.bullet_freq * device.rc.pitch); // 设置弹频
+    } else if (is_shoot.client || is_shoot.software) {
+        device.shooter.SetShoot(device.referee.shooter.heat_remain < config.heat_protect); // 枪口热量保护
+        device.shooter.SetBulletFreq(config.bullet_freq);                                  // 设置弹频
     } else {
-        device.shooter.SetShoot(is_shoot.rc || is_shoot.client);
+        device.shooter.SetShoot(false);
     }
 
     device.shooter.OnLoop();

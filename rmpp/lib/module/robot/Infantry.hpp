@@ -63,24 +63,32 @@ public:
 protected:
     // 底盘
     struct {
-        UnitFloat<m_s> rc, client, sentry, sum;
+        UnitFloat<m_s> rc, client, software;
     } vx, vy, wr;
 
-    enum {
-        SPEED_MODE,
-        ANGLE_MODE,
-    } gimbal_control_mode = SPEED_MODE;
+    enum gimbal_mode_e {
+        GIMBAL_SPEED_MODE,
+        GIMBAL_ANGLE_MODE,
+    };
 
-    // 云台
+    // 云台控制模式
     struct {
-        UnitFloat<deg_s> rc, client, sum;
+        gimbal_mode_e rc = GIMBAL_SPEED_MODE, client = GIMBAL_SPEED_MODE, software = GIMBAL_SPEED_MODE;
+    } gimbal_mode;
+
+    // 云台速度
+    struct {
+        UnitFloat<deg_s> rc, client, software;
     } yaw_speed, pitch_speed;
 
-    UnitFloat<deg_s> yaw_angle, pitch_angle;
+    // 云台角度
+    struct {
+        UnitFloat<deg_s> rc, client, software;
+    } yaw_angle, pitch_angle;
 
     // 发射机构
     struct {
-        bool rc = false, client = false;
+        bool rc = false, client = false, software = false;
     } is_rub, is_shoot;
 
 private:

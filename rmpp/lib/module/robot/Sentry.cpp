@@ -28,7 +28,10 @@ void Sentry::OnLoop() {
 }
 
 void Sentry::handlePause() {
-    vx.sentry = vy.sentry = 0 * default_unit;
+    vx.software = vy.software = wr.software = 0 * default_unit;
+    gimbal_mode.software = GIMBAL_SPEED_MODE;
+    yaw_speed.software = pitch_speed.software = 0 * default_unit;
+    is_rub.software = is_shoot.software = false;
 }
 
 void Sentry::handleGame() {}
@@ -52,5 +55,5 @@ void Sentry::handleTest() {
     }
     fn_left_last = device.rc.vt13.fn_left;
 
-    std::tie(vx.sentry, vy.sentry) = rotate(device.mavlink.cmd_vel.vel_x, device.mavlink.cmd_vel.vel_y, yaw2.angle.measure);
+    std::tie(vx.software, vy.software) = rotate(device.mavlink.cmd_vel.vel_x, device.mavlink.cmd_vel.vel_y, yaw2.angle.measure);
 }
