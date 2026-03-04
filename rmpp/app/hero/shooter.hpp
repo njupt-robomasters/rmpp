@@ -11,23 +11,23 @@
 // 摩擦轮
 inline VESC rub1({
                      .can_port = 2,
-                     .master_id = 0x20,
-                     .slave_id = 0x20,
-                 }, {});
-inline VESC rub2({
-                     .can_port = 2,
                      .master_id = 0x21,
                      .slave_id = 0x21,
                  }, {});
-inline VESC rub3({
+inline VESC rub2({
                      .can_port = 2,
                      .master_id = 0x22,
                      .slave_id = 0x22,
                  }, {});
-inline VESC rub4({
+inline VESC rub3({
                      .can_port = 2,
                      .master_id = 0x23,
                      .slave_id = 0x23,
+                 }, {});
+inline VESC rub4({
+                     .can_port = 2,
+                     .master_id = 0x24,
+                     .slave_id = 0x24,
                  }, {});
 
 // 拨弹电机
