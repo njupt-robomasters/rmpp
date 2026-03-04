@@ -70,8 +70,8 @@ void Shooter_42mm::backward() {
     // 摩擦轮
     if (is_rub) {
         const UnitFloat<rpm> speed = bullet_speed.ref / config.rub_radius;
-        motor.rub1.SetSpeed(speed);
-        motor.rub2.SetSpeed(speed);
+        motor.rub1.SetSpeed(speed / 2);
+        motor.rub2.SetSpeed(speed / 2);
         motor.rub3.SetSpeed(speed);
         motor.rub4.SetSpeed(speed);
     } else {
@@ -82,24 +82,46 @@ void Shooter_42mm::backward() {
     }
 
     // 拨弹电机
-    if (is_rub && is_shoot) {
-        const UnitFloat<rpm> shoot_speed = bullet_freq.ref / config.bullet_per_rev;
-        motor.shoot.SetSpeed(shoot_speed);
+    if (is_rub) {
+        // 发射信号上升沿，启动拨弹
+        if (is_shoot && !is_shoot_last) {
+            dwt_shoot.UpdateDT();
+
+            // 增加角度
+            const UnitFloat<deg> angle_per_bullet = 1 / config.bullet_per_angle;
+            UnitFloat<> target_angle = motor.shoot.angle.measure + angle_per_bullet;
+
+            // 对齐相位
+            const int8_t index = (int8_t)std::round((target_angle / angle_per_bullet).toFloat());
+            target_angle = index * angle_per_bullet;
+
+            // 设置电机角度
+            motor.shoot.config.control_mode = Motor::ANGLE_MODE;
+            motor.shoot.SetAngle(target_angle);
+        }
+        is_shoot_last = is_shoot;
+
+        // 一段时间后停止拨弹
+        if (dwt_shoot.GetDT() > SHOOT_TIME) {
+            motor.shoot.config.control_mode = Motor::OPEN_LOOP_MODE;
+            motor.shoot.SetTorque(0 * default_unit);
+        }
     } else {
-        motor.shoot.SetSpeed(0 * default_unit);
+        motor.shoot.config.control_mode = Motor::OPEN_LOOP_MODE;
+        motor.shoot.SetTorque(0 * default_unit);
     }
 }
 
 void Shooter_42mm::forward() {
     // 摩擦轮
     rub1_measure = motor.rub1.speed.measure * config.rub_radius;
-    rub2_measure= motor.rub2.speed.measure * config.rub_radius;
+    rub2_measure = motor.rub2.speed.measure * config.rub_radius;
     rub3_measure = motor.rub3.speed.measure * config.rub_radius;
     rub4_measure = motor.rub4.speed.measure * config.rub_radius;
     bullet_speed.measure = (rub3_measure + rub4_measure) / 2.0f;
 
     // 拨弹电机
-    bullet_freq.measure = motor.shoot.speed.measure * config.bullet_per_rev;
+    bullet_freq.measure = motor.shoot.speed.measure * config.bullet_per_angle;
 
     // 拨弹电机电流
     shoot_current = motor.shoot.current.measure;

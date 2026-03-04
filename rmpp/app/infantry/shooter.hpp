@@ -37,6 +37,6 @@ inline M2006 shoot({
 
 // 发射机构
 inline Shooter_17mm shooter({
-                                .bullet_per_rev = 9.0f / 2.5f * (Hz / rev),
+                                .bullet_per_angle = 9.0f / 2.5f * (default_unit / rev),
                             },
                             {rub1, rub2, shoot});

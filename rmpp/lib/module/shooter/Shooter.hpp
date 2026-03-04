@@ -6,8 +6,8 @@ class Shooter {
 public:
     // 发射机构配置
     struct config_t {
-        UnitFloat<> bullet_per_rev = 1.0f * (Hz / rev); // 拨弹盘转一圈的发弹数
-        UnitFloat<> rub_radius = 3.0f * cm;             // 摩擦轮半径
+        UnitFloat<> bullet_per_angle = 1.0f * (default_unit / rev); // 拨弹盘转一圈的发弹数
+        UnitFloat<> rub_radius = 3.0f * cm;                         // 摩擦轮半径
     } config;
 
     bool is_enable = false; // 使能标志

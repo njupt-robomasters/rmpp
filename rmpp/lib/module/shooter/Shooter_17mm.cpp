@@ -65,7 +65,7 @@ void Shooter_17mm::backward() {
 
     // 拨弹电机
     if (is_rub && is_shoot) {
-        const UnitFloat<rpm> shoot_speed = bullet_freq.ref / config.bullet_per_rev;
+        const UnitFloat<rpm> shoot_speed = bullet_freq.ref / config.bullet_per_angle;
         motor.shoot.SetSpeed(shoot_speed);
     } else {
         motor.shoot.SetSpeed(0 * default_unit);
@@ -79,7 +79,7 @@ void Shooter_17mm::forward() {
     bullet_speed.measure = (rub1_measure + rub2_measure) / 2.0f;
 
     // 拨弹电机
-    bullet_freq.measure = motor.shoot.speed.measure * config.bullet_per_rev;
+    bullet_freq.measure = motor.shoot.speed.measure * config.bullet_per_angle;
 
     // 拨弹电机电流
     shoot_current = motor.shoot.current.measure;

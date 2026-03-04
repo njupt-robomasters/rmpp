@@ -42,6 +42,6 @@ inline M3508 shoot({
 
 // 发射机构
 inline Shooter_17mm shooter({
-                                .bullet_per_rev = 9.0f * (41.0f / 50.0f) * (Hz / rps),
+                                .bullet_per_angle = 9.0f * (41.0f / 50.0f) * (default_unit / rev),
                             },
                             {rub1, rub2, shoot});

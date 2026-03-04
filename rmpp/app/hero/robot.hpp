@@ -16,7 +16,7 @@ inline Infantry::config_t robot_config = {
     .yaw_speed_max = 360 * deg_s,
     .pitch_speed_max = 360 * deg_s,
 
-    .bullet_speed = 12 * m_s,
+    .bullet_speed = 15 * m_s,
     .bullet_freq = 1 * Hz,
     .heat_protect = 0
 };
