@@ -34,6 +34,7 @@ inline constexpr Unit Nm("Nm", 1.0f); // 扭矩
 // 电学
 inline constexpr Unit V("V", 1.0f);     // 电压
 inline constexpr Unit A("A", 1.0f);     // 电流
+inline constexpr Unit mA("mA", 0.001f); // 电流
 inline constexpr Unit W("W", 1.0f);     // 功率
 inline constexpr Unit Ohm("Ohm", 1.0f); // 电阻
 inline constexpr Unit J("J", 1.0f);     // 能量

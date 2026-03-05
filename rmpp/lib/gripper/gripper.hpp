@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdint>
-#include "bsp/bsp_can.hpp"
+#include "bsp/bsp.hpp"
+
 /**
  * @brief 夹爪控制类
  * 
@@ -9,8 +9,8 @@
  * CAN协议格式：
  * - data[0]: 状态（0=松开，1=夹紧）
  * - data[1]: 最大速度（度/秒）
- * - data[2]: 电流高位
- * - data[3]: 电流低位
+ * - data[2]: 电流高位（毫安）
+ * - data[3]: 电流低位（毫安）
  * - data[4-7]: 保留（0x00）
  */
 class Gripper {
@@ -24,31 +24,30 @@ public:
 
     bool is_connect = false;
     bool is_enable = false;
-    bool is_open = false;
+    bool is_close = false;
+
+    UnitFloat<deg_s> speed;
 
     struct {
-        bool is_open = false;
-        uint16_t servo1_current = 0;
-        uint16_t servo2_current = 0;
-    } feedback;
+        UnitFloat<A> ref, measure1, measure2;
+    } current;
 
     Gripper(const config_t& config);
 
     void SetEnable(bool is_enable);
 
     // 松开夹爪
-    void Open(uint8_t speed);
+    void Open(const UnitFloat<>& speed);
 
     // 夹紧夹爪
-    void Close(uint8_t speed, uint16_t current);
+    void Close(const UnitFloat<>& speed, const UnitFloat<>& current);
+
+    void SendCanCmd();
 
     // 需要在循环中调用
     void OnLoop();
 
 private:
-    uint8_t speed = 0;
-    uint16_t current = 0;
-
     BSP::Dwt dwt_connect;
 
     // CAN接收回调

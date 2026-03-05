@@ -8,7 +8,6 @@ public:
     static constexpr UnitFloat<> Kt = 0.9f * Nm_A;
     static constexpr UnitFloat<> R = 0.17f * Ohm;
 
-
     CyberDogMotor(const config_t& config);
 
     void SendCanCmd();

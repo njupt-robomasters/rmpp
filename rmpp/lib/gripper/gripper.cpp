@@ -1,5 +1,4 @@
 #include "gripper.hpp"
-#include "bsp/bsp_can.hpp"
 
 Gripper::Gripper(const config_t& config) : config(config) {
     auto callback = [this](const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
@@ -8,49 +7,36 @@ Gripper::Gripper(const config_t& config) : config(config) {
     BSP::CAN::RegisterCallback(callback);
 }
 
-void Gripper::SetEnable(bool is_enable) {
+void Gripper::SetEnable(const bool is_enable) {
     this->is_enable = is_enable;
 }
 
-void Gripper::Open(uint8_t speed) {
-    this->speed = speed;
-    this->is_open = true;
-    this->current = 0;  // 松开时不需要电流控制
-    
+void Gripper::SendCanCmd() {
     // 构造CAN数据帧
-    // data[0]: 0x00 表示松开
-    // data[1]: 速度（度/秒）
-    // data[2-3]: 电流为0（松开时不控制电流）
-    // data[4-7]: 保留字节
-    uint8_t data[8] = {
-        0x00,
-        speed,
-        0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00
-    };
+    // data[0]: 状态（0=松开，1=夹紧）
+    // data[1]: 最大速度（度/秒）
+    // data[2]: 电流高位（毫安）
+    // data[3]: 电流低位（毫安）
+    // data[4-7]: 保留（0x00）
+    uint8_t data[8]{};
+    data[0] = is_close;
+    data[1] = (int8_t)speed.toFloat(deg_s);
+    data[2] = (int16_t)current.ref.toFloat(mA) >> 8;
+    data[3] = (int8_t)current.ref.toFloat(mA);
 
-    BSP::CAN::Transmit(config.can_port, config.cmd_id, data, 8);
+    BSP::CAN::Transmit(config.can_port, config.cmd_id, data, 4);
 }
 
-void Gripper::Close(uint8_t speed, uint16_t current) {
+void Gripper::Open(const UnitFloat<>& speed) {
+    this->is_close = false;
     this->speed = speed;
-    this->is_open = false;
-    this->current = current;
-    
-    // 构造CAN数据帧
-    // data[0]: 0x01 表示夹紧
-    // data[1]: 速度（度/秒）
-    // data[2-3]: 电流值（高位在前）
-    // data[4-7]: 保留字节
-    uint8_t data[8] = {
-        0x01,
-        speed,
-        static_cast<uint8_t>(current >> 8),
-        static_cast<uint8_t>(current & 0xFF),
-        0x00, 0x00, 0x00, 0x00
-    };
+    this->current.ref = 0 * A; // 松开时不需要电流控制
+}
 
-    BSP::CAN::Transmit(config.can_port, config.cmd_id, data, 8);
+void Gripper::Close(const UnitFloat<>& speed, const UnitFloat<>& current) {
+    this->is_close = true;
+    this->speed = speed;
+    this->current.ref = current;
 }
 
 void Gripper::OnLoop() {
@@ -62,11 +48,11 @@ void Gripper::OnLoop() {
 void Gripper::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
     if (port != config.can_port) return;
     if (id != config.feedback_id) return;
+    if (data[0] != 0x00 && data[0] != 0x01) return;
 
     is_connect = true;
     dwt_connect.UpdateDT();
 
-    feedback.is_open = (data[0] == 0x00);
-    feedback.servo1_current = (static_cast<uint16_t>(data[1]) << 8) | data[2];
-    feedback.servo2_current = (static_cast<uint16_t>(data[3]) << 8) | data[4];
+    current.measure1 = (int16_t)((data[1] << 8) | data[2]) * mA;
+    current.measure2 = (int16_t)((data[3] << 8) | data[4]) * mA;
 }
