@@ -21,6 +21,10 @@ inline PID::config_t vxyz_pid = {
     .max_out = MAX_F,
     .fc = 10 * Hz,
 };
+inline PID::config_t follow_pid = {
+    .kp = 10 * default_unit,
+    .max_out = 360 * deg,
+};
 
 // 底盘电机
 inline M3508 w1({
@@ -61,5 +65,6 @@ inline Chassis_Mecanum chassis({
                                    .chassis_radius = CHASSIS_RADIUS,
                                    .wheel_radius = WHEEL_RADIUS,
                                    .vxyz_pid_config = &vxyz_pid,
+                                   .follow_pid_config = &follow_pid,
                                },
                                {w1, w2, w3, w4});

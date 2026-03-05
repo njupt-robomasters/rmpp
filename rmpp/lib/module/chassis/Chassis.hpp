@@ -19,7 +19,7 @@ public:
     enum mode_e {
         DETACH_MODE, // 底盘分离模式
         FOLLOW_MODE, // 底盘跟随模式
-    } mode = DETACH_MODE;;
+    } mode = DETACH_MODE;
 
     // 移动速度
     // vx-前正后负，vy-左正右负

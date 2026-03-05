@@ -4,7 +4,7 @@ Chassis::Chassis(const config_t& config) : config(config),
                                            vx_pid(config.vxyz_pid_config), vy_pid(config.vxyz_pid_config), vz_pid(config.vxyz_pid_config),
                                            follow_pid(config.follow_pid_config) {}
 
-void Chassis::SetEnable(bool is_enable) {
+void Chassis::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable) return;
     this->is_enable = is_enable;
 
@@ -13,7 +13,7 @@ void Chassis::SetEnable(bool is_enable) {
     // 这里设置电机
 }
 
-void Chassis::SetMode(mode_e mode) {
+void Chassis::SetMode(const mode_e mode) {
     this->mode = mode;
 }
 

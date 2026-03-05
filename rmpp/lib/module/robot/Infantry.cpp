@@ -61,6 +61,11 @@ void Infantry::handleRC() {
     is_rub.rc = device.rc.is_rub;;
     is_shoot.rc = device.rc.is_shoot;
 
+    // 左fn底盘跟随
+    if (device.rc.vt13.fn_left) {
+        device.chassis.SetMode(Chassis::FOLLOW_MODE);
+    }
+
     // 右fn键自瞄
     if (device.rc.vt13.fn_right && device.mavlink.aim.is_detect) {
         gimbal_mode.rc = GIMBAL_ANGLE_MODE;
