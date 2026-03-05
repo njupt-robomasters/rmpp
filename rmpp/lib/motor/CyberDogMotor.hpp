@@ -8,7 +8,6 @@ public:
     static constexpr UnitFloat<> Kt = 0.9f * Nm_A;
     static constexpr UnitFloat<> R = 0.17f * Ohm;
 
-    UnitFloat<V> vbus; // 母线电压
 
     CyberDogMotor(const config_t& config);
 
@@ -20,7 +19,6 @@ private:
     constexpr static float KP_MAX = 500.0f; // Kp最大值 Nm/rad
     constexpr static float KD_MAX = 5.0f;   // Kd最大值 Mm*s/rad
     constexpr static float I_MAX = 40.0f;   // 最大电流 A
-    constexpr static float VB_MAX = 40.0f;  // 母体电压最大值 V
 
     // 用于定期发送使能命令
     uint32_t send_cnt = 0;

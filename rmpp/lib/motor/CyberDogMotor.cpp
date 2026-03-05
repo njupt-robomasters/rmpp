@@ -30,7 +30,7 @@ void CyberDogMotor::callback(const uint8_t port, const uint32_t id, const uint8_
     // 端口、ID、长度校验
     if (port != config.can_port) return;
     if (id != config.master_id) return;
-    if (dlc != 7) return;
+    if (dlc != 8) return;
 
     // slave_id校验
     if (data[0] != config.slave_id) return;
@@ -39,7 +39,6 @@ void CyberDogMotor::callback(const uint8_t port, const uint32_t id, const uint8_
     const uint16_t angle_u16 = (data[1] << 8) | data[2];
     const uint16_t speed_u12 = (data[3] << 4) | (data[4] >> 4);
     const uint16_t current_u12 = ((data[4] & 0x0F) << 8) | data[5];
-    const uint8_t vbus_u8 = data[6];
 
     // 单位标准化
     raw_t raw = {
@@ -48,7 +47,6 @@ void CyberDogMotor::callback(const uint8_t port, const uint32_t id, const uint8_
         .speed = uint_to_float(speed_u12, -V_MAX, V_MAX, 12) * rad_s,
         .angle = uint_to_float(angle_u16, -P_MAX, P_MAX, 16) * rad
     };
-    vbus = uint_to_float(vbus_u8, 0, VB_MAX, 8) * V;
 
     // 调用父类公共回调函数
     Motor::callback(raw);
