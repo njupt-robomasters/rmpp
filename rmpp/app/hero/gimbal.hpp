@@ -10,20 +10,21 @@
 // #define yaw_angle_pid angle_pid
 // #define yaw motor
 //
-// #define pitch_speed_pid motor_pid
+// #define pitch_speed_pid speed_pid
 // #define pitch_angle_pid angle_pid
 // #define pitch motor
 
 // yaw电机
 inline PID::config_t yaw_speed_pid = {
     .kp = (3 * A) / (100 * deg_s),
-    .ki = (3 * A) / (60 * deg),
+    .ki = (3 * A) / (10 * deg),
     .max_i = 3 * A,
     .max_out = 3 * A,
     .fc = 10 * Hz,
 };
 inline PID::config_t yaw_angle_pid = {
-    .kp = 14 * default_unit,
+    .kp = 25 * default_unit,
+    .kd = 2 * default_unit,
     .max_out = 720 * deg_s,
 };
 inline GM6020 yaw({
@@ -40,7 +41,7 @@ inline GM6020 yaw({
 
 // pitch电机
 inline PID::config_t pitch_speed_pid = {
-    .kp = (4 * Nm) / (150 * deg_s),
+    .kp = (4 * Nm) / (80 * deg_s),
     .max_out = 4 * Nm,
     .fc = 10 * Hz,
 };

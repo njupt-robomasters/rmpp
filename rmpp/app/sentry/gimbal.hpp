@@ -10,11 +10,11 @@
 // #define yaw1_pid angle_pid
 // #define yaw1 motor
 //
-// #define yaw2_speed_pid motor_pid
+// #define yaw2_speed_pid speed_pid
 // #define yaw2_angle_pid angle_pid
 // #define yaw2 motor
 //
-// #define pitch_speed_pid motor_pid
+// #define pitch_speed_pid speed_pid
 // #define pitch_angle_pid angle_pid
 // #define pitch motor
 

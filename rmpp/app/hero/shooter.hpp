@@ -32,8 +32,8 @@ inline VESC rub4({
 
 // 拨弹电机
 inline PID::config_t shoot_angle_pid = {
-    .kp = (10 * Nm) / (20 * deg),
-    .kd = (10 * Nm) / (1000 * deg_s),
+    .kp = (3 * Nm) / (6 * deg),
+    .kd = (3 * Nm) / (600 * deg_s),
     .max_i = 3 * Nm,
     .max_out = 3 * Nm,
 };

@@ -30,13 +30,15 @@ void loop() {
     const UnitFloat<rpm> speed = rc.x * MAX_SPEED;
 
     // 速度闭环
-    // pitch.SetSpeed(speed);
+    // motor.config.control_mode = Motor::SPEED_MODE;
+    // motor.SetSpeed(speed);
 
     // 角度闭环
     static BSP::Dwt dwt;
     static Angle<deg> angle;
     const UnitFloat dt = dwt.UpdateDT();
     angle += speed * dt;
+    motor.config.control_mode = Motor::ANGLE_SPEED_MODE;
     angle = motor.SetAngle(angle, speed);
 
     motor.OnLoop();
