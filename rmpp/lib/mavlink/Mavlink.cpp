@@ -89,6 +89,17 @@ void Mavlink::parse(const mavlink_message_t& msg) {
                 .vel_x = cmd_vel_t.vel_x * m_s,
                 .vel_y = cmd_vel_t.vel_y * m_s
             };
+            break;
+        }
+
+        case MAVLINK_MSG_ID_odometry: {
+            mavlink_odometry_t odometry_t;
+            mavlink_msg_odometry_decode(&msg,&odometry_t);
+            this->odom = {
+                .x =  odometry_t.pos_x * m,
+                .y = odometry_t.pos_y * m,
+                .yaw = odometry_t.yaw * deg
+            };
         }
 
         default:

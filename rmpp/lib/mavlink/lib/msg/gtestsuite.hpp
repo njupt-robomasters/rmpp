@@ -318,3 +318,196 @@ TEST(msg_interop, ui)
 #endif
 }
 #endif
+
+TEST(msg, nav_cmd_vel)
+{
+    mavlink::mavlink_message_t msg;
+    mavlink::MsgMap map1(msg);
+    mavlink::MsgMap map2(msg);
+
+    mavlink::msg::msg::nav_cmd_vel packet_in{};
+    packet_in.vel_x = 17.0;
+    packet_in.vel_y = 45.0;
+
+    mavlink::msg::msg::nav_cmd_vel packet1{};
+    mavlink::msg::msg::nav_cmd_vel packet2{};
+
+    packet1 = packet_in;
+
+    //std::cout << packet1.to_yaml() << std::endl;
+
+    packet1.serialize(map1);
+
+    mavlink::mavlink_finalize_message(&msg, 1, 1, packet1.MIN_LENGTH, packet1.LENGTH, packet1.CRC_EXTRA);
+
+    packet2.deserialize(map2);
+
+    EXPECT_EQ(packet1.vel_x, packet2.vel_x);
+    EXPECT_EQ(packet1.vel_y, packet2.vel_y);
+}
+
+#ifdef TEST_INTEROP
+TEST(msg_interop, nav_cmd_vel)
+{
+    mavlink_message_t msg;
+
+    // to get nice print
+    memset(&msg, 0, sizeof(msg));
+
+    mavlink_nav_cmd_vel_t packet_c {
+         17.0, 45.0
+    };
+
+    mavlink::msg::msg::nav_cmd_vel packet_in{};
+    packet_in.vel_x = 17.0;
+    packet_in.vel_y = 45.0;
+
+    mavlink::msg::msg::nav_cmd_vel packet2{};
+
+    mavlink_msg_nav_cmd_vel_encode(1, 1, &msg, &packet_c);
+
+    // simulate message-handling callback
+    [&packet2](const mavlink_message_t *cmsg) {
+        MsgMap map2(cmsg);
+
+        packet2.deserialize(map2);
+    } (&msg);
+
+    EXPECT_EQ(packet_in.vel_x, packet2.vel_x);
+    EXPECT_EQ(packet_in.vel_y, packet2.vel_y);
+
+#ifdef PRINT_MSG
+    PRINT_MSG(msg);
+#endif
+}
+#endif
+
+TEST(msg, target_pose)
+{
+    mavlink::mavlink_message_t msg;
+    mavlink::MsgMap map1(msg);
+    mavlink::MsgMap map2(msg);
+
+    mavlink::msg::msg::target_pose packet_in{};
+    packet_in.pos_x = 17.0;
+    packet_in.pos_y = 45.0;
+
+    mavlink::msg::msg::target_pose packet1{};
+    mavlink::msg::msg::target_pose packet2{};
+
+    packet1 = packet_in;
+
+    //std::cout << packet1.to_yaml() << std::endl;
+
+    packet1.serialize(map1);
+
+    mavlink::mavlink_finalize_message(&msg, 1, 1, packet1.MIN_LENGTH, packet1.LENGTH, packet1.CRC_EXTRA);
+
+    packet2.deserialize(map2);
+
+    EXPECT_EQ(packet1.pos_x, packet2.pos_x);
+    EXPECT_EQ(packet1.pos_y, packet2.pos_y);
+}
+
+#ifdef TEST_INTEROP
+TEST(msg_interop, target_pose)
+{
+    mavlink_message_t msg;
+
+    // to get nice print
+    memset(&msg, 0, sizeof(msg));
+
+    mavlink_target_pose_t packet_c {
+         17.0, 45.0
+    };
+
+    mavlink::msg::msg::target_pose packet_in{};
+    packet_in.pos_x = 17.0;
+    packet_in.pos_y = 45.0;
+
+    mavlink::msg::msg::target_pose packet2{};
+
+    mavlink_msg_target_pose_encode(1, 1, &msg, &packet_c);
+
+    // simulate message-handling callback
+    [&packet2](const mavlink_message_t *cmsg) {
+        MsgMap map2(cmsg);
+
+        packet2.deserialize(map2);
+    } (&msg);
+
+    EXPECT_EQ(packet_in.pos_x, packet2.pos_x);
+    EXPECT_EQ(packet_in.pos_y, packet2.pos_y);
+
+#ifdef PRINT_MSG
+    PRINT_MSG(msg);
+#endif
+}
+#endif
+
+TEST(msg, odometry)
+{
+    mavlink::mavlink_message_t msg;
+    mavlink::MsgMap map1(msg);
+    mavlink::MsgMap map2(msg);
+
+    mavlink::msg::msg::odometry packet_in{};
+    packet_in.pos_x = 17.0;
+    packet_in.pos_y = 45.0;
+    packet_in.yaw = 73.0;
+
+    mavlink::msg::msg::odometry packet1{};
+    mavlink::msg::msg::odometry packet2{};
+
+    packet1 = packet_in;
+
+    //std::cout << packet1.to_yaml() << std::endl;
+
+    packet1.serialize(map1);
+
+    mavlink::mavlink_finalize_message(&msg, 1, 1, packet1.MIN_LENGTH, packet1.LENGTH, packet1.CRC_EXTRA);
+
+    packet2.deserialize(map2);
+
+    EXPECT_EQ(packet1.pos_x, packet2.pos_x);
+    EXPECT_EQ(packet1.pos_y, packet2.pos_y);
+    EXPECT_EQ(packet1.yaw, packet2.yaw);
+}
+
+#ifdef TEST_INTEROP
+TEST(msg_interop, odometry)
+{
+    mavlink_message_t msg;
+
+    // to get nice print
+    memset(&msg, 0, sizeof(msg));
+
+    mavlink_odometry_t packet_c {
+         17.0, 45.0, 73.0
+    };
+
+    mavlink::msg::msg::odometry packet_in{};
+    packet_in.pos_x = 17.0;
+    packet_in.pos_y = 45.0;
+    packet_in.yaw = 73.0;
+
+    mavlink::msg::msg::odometry packet2{};
+
+    mavlink_msg_odometry_encode(1, 1, &msg, &packet_c);
+
+    // simulate message-handling callback
+    [&packet2](const mavlink_message_t *cmsg) {
+        MsgMap map2(cmsg);
+
+        packet2.deserialize(map2);
+    } (&msg);
+
+    EXPECT_EQ(packet_in.pos_x, packet2.pos_x);
+    EXPECT_EQ(packet_in.pos_y, packet2.pos_y);
+    EXPECT_EQ(packet_in.yaw, packet2.yaw);
+
+#ifdef PRINT_MSG
+    PRINT_MSG(msg);
+#endif
+}
+#endif

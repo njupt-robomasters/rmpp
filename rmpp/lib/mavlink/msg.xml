@@ -50,5 +50,12 @@
             <field type="float" name="pos_x" units="m">x</field>
             <field type="float" name="pos_y" units="m">y</field>
         </message>
+
+        <message id="22" name="odometry">
+            <description>current position and yaw(mini pc -> c)</description>
+            <field type="float" name="pos_x" units="m">x</field>
+            <field type="float" name="pos_y" units="m">y</field>
+            <field type="float" name="yaw" units="rad">yaw</field>
+        </message>
     </messages>
 </mavlink>

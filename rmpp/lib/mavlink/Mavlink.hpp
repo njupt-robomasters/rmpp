@@ -49,6 +49,13 @@ public:
         UnitFloat<m_s> vel_y;
     } cmd_vel;
 
+    //接收
+    struct {
+        UnitFloat<m> x;
+        UnitFloat<m> y;
+        UnitFloat<deg> yaw;
+    } odom;
+
     Mavlink();
 
     // 需要在循环中调用
