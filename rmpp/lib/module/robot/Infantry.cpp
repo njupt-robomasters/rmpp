@@ -38,11 +38,6 @@ void Infantry::handleConnect() {
         device.chassis.SetEnable(device.rc.is_enable);
         device.gimbal.SetEnable(device.rc.is_enable);
         device.shooter.SetEnable(device.rc.is_enable);
-
-        // 断联关小陀螺
-        if (device.rc.is_enable == false) {
-            wr.client = 0 * default_unit;
-        }
     }
 }
 
@@ -87,9 +82,8 @@ void Infantry::handleRC() {
 }
 
 void Infantry::handleClient() {
-    // wsad控制底盘
-    // ws控制前后
     const UnitFloat dt = dwt_acc.UpdateDT();
+    // ws控制前后
     if (device.rc.vt13.key.w) { // 前
         if (vx.client < 0) vx.client = 0 * default_unit;
         vx.client += config.axy * dt;
@@ -127,6 +121,25 @@ void Infantry::handleClient() {
             if (vy.client > 0) vy.client = 0 * default_unit;
         }
     }
+    // shift ctrl控制旋转
+    if (device.rc.vt13.key.shift) { // 逆时针旋转
+        if (wr.client < 0) wr.client = 0 * default_unit;
+        wr.client += config.ar * dt;
+        wr.client = unit::clamp(wr.client, config.wr_max);
+    } else if (device.rc.vt13.key.ctrl) { // 顺逆时针旋转
+        if (wr.client > 0) wr.client = 0 * default_unit;
+        wr.client -= config.ar * dt;
+        wr.client = unit::clamp(wr.client, config.wr_max);
+    } else { // 松开减速
+        if (wr.client > 0) {
+            wr.client -= config.dr * dt;
+            if (wr.client < 0) wr.client = 0 * default_unit;
+        }
+        if (wr.client < 0) {
+            wr.client += config.dr * dt;
+            if (wr.client > 0) wr.client = 0 * default_unit;
+        }
+    }
 
     // 鼠标控制云台
     yaw_speed.client = device.rc.vt13.mouse.yaw * config.yaw_speed_max;
@@ -144,19 +157,18 @@ void Infantry::handleClient() {
         gimbal_mode.client = GIMBAL_SPEED_MODE;
     }
 
-    // shift开小陀螺
-    if (device.rc.vt13.key.shift) {
-        wr.client = config.wr_max;
-    }
-    // ctrl关小陀螺
-    if (device.rc.vt13.key.ctrl) {
-        wr.client = 0 * default_unit;
-    }
-
     // f刷新ui
     if (device.rc.vt13.key.f) {
         device.ui.Init();
     }
+
+    // r一键掉头
+    static bool last_r = false;
+    if (!last_r && device.rc.vt13.key.r) { // 上升沿
+        device.gimbal.yaw.ecd.ref = device.gimbal.yaw.ecd.ref + 180 * deg;
+        device.gimbal.yaw.imu.ref = device.gimbal.yaw.imu.ref + 180 * deg;
+    }
+    last_r = device.rc.vt13.key.r;
 }
 
 void Infantry::handleMavlink() {

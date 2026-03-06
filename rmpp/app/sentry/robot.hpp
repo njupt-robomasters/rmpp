@@ -8,16 +8,18 @@
 #include "shooter.hpp"
 
 inline Sentry::config_t robot_config = {
-    .vxy_max = 5 * m_s, // 极限3.2m/s
-    .wr_max = 120 * rpm, // 极限155rpm
-    .axy = 10 * m_ss,
-    .dxy = 10 * m_ss,
+    .vxy_max = 3 * m_s,  // 极限3.2m/s
+    .wr_max = 150 * rpm, // 极限155rpm
+    .axy = 100 * m_ss,
+    .dxy = 100 * m_ss,
+    .ar = 1000 * rpm,
+    .dr = 1000 * rpm,
 
     .yaw_speed_max = 360 * deg_s,
     .pitch_speed_max = 360 * deg_s,
 
     .bullet_speed = 20 * m_s,
-    .bullet_freq = 5 * Hz,
+    .bullet_freq = 20 * Hz,
     .heat_protect = 0
 };
 inline Sentry robot(robot_config,

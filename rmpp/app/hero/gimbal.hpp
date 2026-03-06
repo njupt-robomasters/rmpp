@@ -54,7 +54,7 @@ inline DM6006 pitch({
     .master_id = 0x10,
     .slave_id = 0x11,
     .is_invert = false,
-    .offset = 172.5f * deg,
+    .offset = 85 * deg,
     .is_limit = true,
     .limit_min = -10 * deg,
     .limit_max = 15 * deg,

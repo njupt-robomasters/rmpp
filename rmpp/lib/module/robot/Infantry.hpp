@@ -22,10 +22,12 @@ class Infantry {
 public:
     struct config_t {
         // 底盘速度
-        UnitFloat<m_s> vxy_max; // 前后左右平移速度
+        UnitFloat<m_s> vxy_max; // 移动速度
         UnitFloat<rpm> wr_max;  // 旋转角速度
-        UnitFloat<m_ss> axy;    // 加速度（仅键盘操作有效）
-        UnitFloat<m_ss> dxy;    // 减速度（仅键盘操作有效）
+        UnitFloat<m_ss> axy;    // 移动加速度（仅键盘操作有效）
+        UnitFloat<m_ss> dxy;    // 移动减速度（仅键盘操作有效）
+        UnitFloat<rpm> ar;      // 旋转角加速度（仅键盘操作有效）
+        UnitFloat<rpm> dr;      // 旋转角减速度（仅键盘操作有效）
 
         // 云台速度
         UnitFloat<deg_s> yaw_speed_max;
