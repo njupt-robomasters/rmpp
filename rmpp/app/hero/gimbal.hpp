@@ -42,6 +42,8 @@ inline GM6020 yaw({
 // pitch电机
 inline PID::config_t pitch_speed_pid = {
     .kp = (4 * Nm) / (80 * deg_s),
+    .ki = (4 * Nm) / (4 * deg),
+    .max_i = 4 * Nm,
     .max_out = 4 * Nm,
     .fc = 10 * Hz,
 };
@@ -56,8 +58,8 @@ inline DM6006 pitch({
     .is_invert = false,
     .offset = 85 * deg,
     .is_limit = true,
-    .limit_min = -10 * deg,
-    .limit_max = 15 * deg,
+    .limit_min = -12 * deg,
+    .limit_max = 22 * deg,
     .control_mode = Motor::ANGLE_SPEED_MODE,
     .pid_out_type = Motor::TORQUE_OUTPUT,
     .speed_pid_config = &pitch_speed_pid,
