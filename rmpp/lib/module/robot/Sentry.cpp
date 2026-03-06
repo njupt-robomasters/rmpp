@@ -19,7 +19,7 @@ void Sentry::OnLoop() {
     if (is_pause) {
         handlePause();
     } else {
-        if (device.referee.game.progress == Referee::GAMING) {
+        if (device.referee.game.game_progress == Referee::GAMING) {
             handleGame();
         } else {
             handleTest();
@@ -40,20 +40,20 @@ void Sentry::handleTest() {
     static bool fn_left_last = false;
     if (device.rc.vt13.fn_left && !fn_left_last) {
         if (nav_status == ORIGIN) {
-            device.mavlink.pos.pos_x = 0 * m_s;
-            device.mavlink.pos.pos_y = 0 * m_s;
+            device.mavlink.target_position.x = 0 * m_s;
+            device.mavlink.target_position.y = 0 * m_s;
             nav_status = POS1;
         } else if (nav_status == POS1) {
-            device.mavlink.pos.pos_x = 1 * m_s;
-            device.mavlink.pos.pos_y = 0 * m_s;
+            device.mavlink.target_position.x = 1 * m_s;
+            device.mavlink.target_position.y = 0 * m_s;
             nav_status = POS2;
         } else if (nav_status == POS2) {
-            device.mavlink.pos.pos_x = 1 * m_s;
-            device.mavlink.pos.pos_y = 1 * m_s;
+            device.mavlink.target_position.x = 1 * m_s;
+            device.mavlink.target_position.y = 1 * m_s;
             nav_status = ORIGIN;
         }
     }
     fn_left_last = device.rc.vt13.fn_left;
 
-    std::tie(vx.software, vy.software) = rotate(device.mavlink.cmd_vel.vel_x, device.mavlink.cmd_vel.vel_y, yaw2.angle.measure);
+    std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
 }

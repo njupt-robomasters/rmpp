@@ -9,7 +9,7 @@ namespace msg {
 /**
  * @brief imu message
  *
- * imu report(c board -> mini pc)
+ * imu(c -> pc)
  */
 struct imu : mavlink::Message {
     static constexpr msgid_t MSG_ID = 0;
@@ -19,9 +19,9 @@ struct imu : mavlink::Message {
     static constexpr auto NAME = "imu";
 
 
-    float yaw; /*< [deg] yaw */
-    float pitch; /*< [deg] pitch */
-    float roll; /*< [deg] roll */
+    float yaw; /*< [deg] yaw(left is positive) */
+    float pitch; /*< [deg] pitch(up is positive) */
+    float roll; /*< [deg] roll(clockwise is positive) */
 
 
     inline std::string get_name(void) const override

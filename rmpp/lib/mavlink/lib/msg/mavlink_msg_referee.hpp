@@ -9,18 +9,20 @@ namespace msg {
 /**
  * @brief referee message
  *
- * referee report(c board -> mini pc)
+ * referee(c -> pc)
  */
 struct referee : mavlink::Message {
     static constexpr msgid_t MSG_ID = 1;
-    static constexpr size_t LENGTH = 5;
-    static constexpr size_t MIN_LENGTH = 5;
-    static constexpr uint8_t CRC_EXTRA = 20;
+    static constexpr size_t LENGTH = 8;
+    static constexpr size_t MIN_LENGTH = 8;
+    static constexpr uint8_t CRC_EXTRA = 9;
     static constexpr auto NAME = "referee";
 
 
-    uint8_t is_red; /*<  is_red(1 is red, 0 is blue) */
-    float bullet_speed; /*< [m/s] bullet_speed */
+    uint8_t is_red; /*<  is_red */
+    uint8_t game_progress; /*<  game_progress(see robomaster serial manual) */
+    uint16_t stage_remain_time; /*<  stage_remain_time(see robomaster serial manual) */
+    float bullet_speed; /*< [m/s] bullet_speed(referee measure value) */
 
 
     inline std::string get_name(void) const override
@@ -39,6 +41,8 @@ struct referee : mavlink::Message {
 
         ss << NAME << ":" << std::endl;
         ss << "  is_red: " << +is_red << std::endl;
+        ss << "  game_progress: " << +game_progress << std::endl;
+        ss << "  stage_remain_time: " << stage_remain_time << std::endl;
         ss << "  bullet_speed: " << bullet_speed << std::endl;
 
         return ss.str();
@@ -49,13 +53,17 @@ struct referee : mavlink::Message {
         map.reset(MSG_ID, LENGTH);
 
         map << bullet_speed;                  // offset: 0
-        map << is_red;                        // offset: 4
+        map << stage_remain_time;             // offset: 4
+        map << is_red;                        // offset: 6
+        map << game_progress;                 // offset: 7
     }
 
     inline void deserialize(mavlink::MsgMap &map) override
     {
         map >> bullet_speed;                  // offset: 0
-        map >> is_red;                        // offset: 4
+        map >> stage_remain_time;             // offset: 4
+        map >> is_red;                        // offset: 6
+        map >> game_progress;                 // offset: 7
     }
 };
 

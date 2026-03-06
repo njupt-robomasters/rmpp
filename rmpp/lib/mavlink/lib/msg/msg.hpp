@@ -21,7 +21,7 @@ namespace msg {
 /**
  * Array of msg_entry needed for @p mavlink_parse_char() (through @p mavlink_get_msg_entry())
  */
-constexpr std::array<mavlink_msg_entry_t, 7> MESSAGE_ENTRIES {{ {0, 178, 12, 12, 0, 0, 0}, {1, 20, 5, 5, 0, 0, 0}, {10, 133, 10, 10, 0, 0, 0}, {11, 84, 45, 45, 0, 0, 0}, {20, 58, 8, 8, 0, 0, 0}, {21, 63, 8, 8, 0, 0, 0}, {22, 129, 12, 12, 0, 0, 0} }};
+constexpr std::array<mavlink_msg_entry_t, 7> MESSAGE_ENTRIES {{ {0, 178, 12, 12, 0, 0, 0}, {1, 9, 8, 8, 0, 0, 0}, {2, 152, 19, 19, 0, 0, 0}, {3, 149, 32, 32, 0, 0, 0}, {4, 2, 8, 8, 0, 0, 0}, {5, 178, 12, 12, 0, 0, 0}, {6, 207, 8, 8, 0, 0, 0} }};
 
 //! MAVLINK VERSION
 constexpr auto MAVLINK_VERSION = 2;
@@ -38,11 +38,11 @@ constexpr auto MAVLINK_VERSION = 2;
 // MESSAGE DEFINITIONS
 #include "./mavlink_msg_imu.hpp"
 #include "./mavlink_msg_referee.hpp"
-#include "./mavlink_msg_aim.hpp"
+#include "./mavlink_msg_auto_aim.hpp"
 #include "./mavlink_msg_ui.hpp"
-#include "./mavlink_msg_nav_cmd_vel.hpp"
-#include "./mavlink_msg_target_pose.hpp"
-#include "./mavlink_msg_odometry.hpp"
+#include "./mavlink_msg_target_position.hpp"
+#include "./mavlink_msg_current_position.hpp"
+#include "./mavlink_msg_chassis_speed.hpp"
 
 // base include
 

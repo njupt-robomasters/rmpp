@@ -5,9 +5,9 @@
 
 
 typedef struct __mavlink_imu_t {
- float yaw; /*< [deg] yaw*/
- float pitch; /*< [deg] pitch*/
- float roll; /*< [deg] roll*/
+ float yaw; /*< [deg] yaw(left is positive)*/
+ float pitch; /*< [deg] pitch(up is positive)*/
+ float roll; /*< [deg] roll(clockwise is positive)*/
 } mavlink_imu_t;
 
 #define MAVLINK_MSG_ID_imu_LEN 12
@@ -47,9 +47,9 @@ typedef struct __mavlink_imu_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param yaw [deg] yaw
- * @param pitch [deg] pitch
- * @param roll [deg] roll
+ * @param yaw [deg] yaw(left is positive)
+ * @param pitch [deg] pitch(up is positive)
+ * @param roll [deg] roll(clockwise is positive)
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_imu_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -82,9 +82,9 @@ static inline uint16_t mavlink_msg_imu_pack(uint8_t system_id, uint8_t component
  * @param status MAVLink status structure
  * @param msg The MAVLink message to compress the data into
  *
- * @param yaw [deg] yaw
- * @param pitch [deg] pitch
- * @param roll [deg] roll
+ * @param yaw [deg] yaw(left is positive)
+ * @param pitch [deg] pitch(up is positive)
+ * @param roll [deg] roll(clockwise is positive)
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_imu_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
@@ -120,9 +120,9 @@ static inline uint16_t mavlink_msg_imu_pack_status(uint8_t system_id, uint8_t co
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param yaw [deg] yaw
- * @param pitch [deg] pitch
- * @param roll [deg] roll
+ * @param yaw [deg] yaw(left is positive)
+ * @param pitch [deg] pitch(up is positive)
+ * @param roll [deg] roll(clockwise is positive)
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_imu_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -194,9 +194,9 @@ static inline uint16_t mavlink_msg_imu_encode_status(uint8_t system_id, uint8_t 
  * @brief Send a imu message
  * @param chan MAVLink channel to send the message
  *
- * @param yaw [deg] yaw
- * @param pitch [deg] pitch
- * @param roll [deg] roll
+ * @param yaw [deg] yaw(left is positive)
+ * @param pitch [deg] pitch(up is positive)
+ * @param roll [deg] roll(clockwise is positive)
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -269,7 +269,7 @@ static inline void mavlink_msg_imu_send_buf(mavlink_message_t *msgbuf, mavlink_c
 /**
  * @brief Get field yaw from imu message
  *
- * @return [deg] yaw
+ * @return [deg] yaw(left is positive)
  */
 static inline float mavlink_msg_imu_get_yaw(const mavlink_message_t* msg)
 {
@@ -279,7 +279,7 @@ static inline float mavlink_msg_imu_get_yaw(const mavlink_message_t* msg)
 /**
  * @brief Get field pitch from imu message
  *
- * @return [deg] pitch
+ * @return [deg] pitch(up is positive)
  */
 static inline float mavlink_msg_imu_get_pitch(const mavlink_message_t* msg)
 {
@@ -289,7 +289,7 @@ static inline float mavlink_msg_imu_get_pitch(const mavlink_message_t* msg)
 /**
  * @brief Get field roll from imu message
  *
- * @return [deg] roll
+ * @return [deg] roll(clockwise is positive)
  */
 static inline float mavlink_msg_imu_get_roll(const mavlink_message_t* msg)
 {

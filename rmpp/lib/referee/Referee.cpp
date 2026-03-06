@@ -18,7 +18,7 @@ void Referee::OnLoop() {
 
     // 比赛数据
     game.is_red = robot_id < 100;                                      // 红蓝方
-    game.progress = game_progress_e(parser.game_status.game_progress); // 当前比赛阶段
+    game.game_progress = game_progress_e(parser.game_status.game_progress); // 当前比赛阶段
     game.stage_remain_time = parser.game_status.stage_remain_time * s; // 当前阶段剩余时间
 
     // 底盘数据

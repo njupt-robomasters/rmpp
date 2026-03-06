@@ -1,11 +1,10 @@
 #pragma once
 // MESSAGE ui PACKING
 
-#define MAVLINK_MSG_ID_ui 11
+#define MAVLINK_MSG_ID_ui 3
 
 
 typedef struct __mavlink_ui_t {
- float speed; /*< [rpm] rpm*/
  float x0; /*<  x0*/
  float y0; /*<  y0*/
  float x1; /*<  x1*/
@@ -14,56 +13,45 @@ typedef struct __mavlink_ui_t {
  float y2; /*<  y2*/
  float x3; /*<  x3*/
  float y3; /*<  y3*/
- float x4; /*<  x4*/
- float y4; /*<  y4*/
- uint8_t num; /*<  num*/
 } mavlink_ui_t;
 
-#define MAVLINK_MSG_ID_ui_LEN 45
-#define MAVLINK_MSG_ID_ui_MIN_LEN 45
-#define MAVLINK_MSG_ID_11_LEN 45
-#define MAVLINK_MSG_ID_11_MIN_LEN 45
+#define MAVLINK_MSG_ID_ui_LEN 32
+#define MAVLINK_MSG_ID_ui_MIN_LEN 32
+#define MAVLINK_MSG_ID_3_LEN 32
+#define MAVLINK_MSG_ID_3_MIN_LEN 32
 
-#define MAVLINK_MSG_ID_ui_CRC 84
-#define MAVLINK_MSG_ID_11_CRC 84
+#define MAVLINK_MSG_ID_ui_CRC 149
+#define MAVLINK_MSG_ID_3_CRC 149
 
 
 
 #if MAVLINK_COMMAND_24BIT
 #define MAVLINK_MESSAGE_INFO_ui { \
-    11, \
+    3, \
     "ui", \
-    12, \
-    {  { "num", NULL, MAVLINK_TYPE_UINT8_T, 0, 44, offsetof(mavlink_ui_t, num) }, \
-         { "speed", NULL, MAVLINK_TYPE_FLOAT, 0, 0, offsetof(mavlink_ui_t, speed) }, \
-         { "x0", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_ui_t, x0) }, \
-         { "y0", NULL, MAVLINK_TYPE_FLOAT, 0, 8, offsetof(mavlink_ui_t, y0) }, \
-         { "x1", NULL, MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_ui_t, x1) }, \
-         { "y1", NULL, MAVLINK_TYPE_FLOAT, 0, 16, offsetof(mavlink_ui_t, y1) }, \
-         { "x2", NULL, MAVLINK_TYPE_FLOAT, 0, 20, offsetof(mavlink_ui_t, x2) }, \
-         { "y2", NULL, MAVLINK_TYPE_FLOAT, 0, 24, offsetof(mavlink_ui_t, y2) }, \
-         { "x3", NULL, MAVLINK_TYPE_FLOAT, 0, 28, offsetof(mavlink_ui_t, x3) }, \
-         { "y3", NULL, MAVLINK_TYPE_FLOAT, 0, 32, offsetof(mavlink_ui_t, y3) }, \
-         { "x4", NULL, MAVLINK_TYPE_FLOAT, 0, 36, offsetof(mavlink_ui_t, x4) }, \
-         { "y4", NULL, MAVLINK_TYPE_FLOAT, 0, 40, offsetof(mavlink_ui_t, y4) }, \
+    8, \
+    {  { "x0", NULL, MAVLINK_TYPE_FLOAT, 0, 0, offsetof(mavlink_ui_t, x0) }, \
+         { "y0", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_ui_t, y0) }, \
+         { "x1", NULL, MAVLINK_TYPE_FLOAT, 0, 8, offsetof(mavlink_ui_t, x1) }, \
+         { "y1", NULL, MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_ui_t, y1) }, \
+         { "x2", NULL, MAVLINK_TYPE_FLOAT, 0, 16, offsetof(mavlink_ui_t, x2) }, \
+         { "y2", NULL, MAVLINK_TYPE_FLOAT, 0, 20, offsetof(mavlink_ui_t, y2) }, \
+         { "x3", NULL, MAVLINK_TYPE_FLOAT, 0, 24, offsetof(mavlink_ui_t, x3) }, \
+         { "y3", NULL, MAVLINK_TYPE_FLOAT, 0, 28, offsetof(mavlink_ui_t, y3) }, \
          } \
 }
 #else
 #define MAVLINK_MESSAGE_INFO_ui { \
     "ui", \
-    12, \
-    {  { "num", NULL, MAVLINK_TYPE_UINT8_T, 0, 44, offsetof(mavlink_ui_t, num) }, \
-         { "speed", NULL, MAVLINK_TYPE_FLOAT, 0, 0, offsetof(mavlink_ui_t, speed) }, \
-         { "x0", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_ui_t, x0) }, \
-         { "y0", NULL, MAVLINK_TYPE_FLOAT, 0, 8, offsetof(mavlink_ui_t, y0) }, \
-         { "x1", NULL, MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_ui_t, x1) }, \
-         { "y1", NULL, MAVLINK_TYPE_FLOAT, 0, 16, offsetof(mavlink_ui_t, y1) }, \
-         { "x2", NULL, MAVLINK_TYPE_FLOAT, 0, 20, offsetof(mavlink_ui_t, x2) }, \
-         { "y2", NULL, MAVLINK_TYPE_FLOAT, 0, 24, offsetof(mavlink_ui_t, y2) }, \
-         { "x3", NULL, MAVLINK_TYPE_FLOAT, 0, 28, offsetof(mavlink_ui_t, x3) }, \
-         { "y3", NULL, MAVLINK_TYPE_FLOAT, 0, 32, offsetof(mavlink_ui_t, y3) }, \
-         { "x4", NULL, MAVLINK_TYPE_FLOAT, 0, 36, offsetof(mavlink_ui_t, x4) }, \
-         { "y4", NULL, MAVLINK_TYPE_FLOAT, 0, 40, offsetof(mavlink_ui_t, y4) }, \
+    8, \
+    {  { "x0", NULL, MAVLINK_TYPE_FLOAT, 0, 0, offsetof(mavlink_ui_t, x0) }, \
+         { "y0", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_ui_t, y0) }, \
+         { "x1", NULL, MAVLINK_TYPE_FLOAT, 0, 8, offsetof(mavlink_ui_t, x1) }, \
+         { "y1", NULL, MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_ui_t, y1) }, \
+         { "x2", NULL, MAVLINK_TYPE_FLOAT, 0, 16, offsetof(mavlink_ui_t, x2) }, \
+         { "y2", NULL, MAVLINK_TYPE_FLOAT, 0, 20, offsetof(mavlink_ui_t, y2) }, \
+         { "x3", NULL, MAVLINK_TYPE_FLOAT, 0, 24, offsetof(mavlink_ui_t, x3) }, \
+         { "y3", NULL, MAVLINK_TYPE_FLOAT, 0, 28, offsetof(mavlink_ui_t, y3) }, \
          } \
 }
 #endif
@@ -74,8 +62,6 @@ typedef struct __mavlink_ui_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param num  num
- * @param speed [rpm] rpm
  * @param x0  x0
  * @param y0  y0
  * @param x1  x1
@@ -84,32 +70,25 @@ typedef struct __mavlink_ui_t {
  * @param y2  y2
  * @param x3  x3
  * @param y3  y3
- * @param x4  x4
- * @param y4  y4
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_ui_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
-                               uint8_t num, float speed, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4)
+                               float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_ui_LEN];
-    _mav_put_float(buf, 0, speed);
-    _mav_put_float(buf, 4, x0);
-    _mav_put_float(buf, 8, y0);
-    _mav_put_float(buf, 12, x1);
-    _mav_put_float(buf, 16, y1);
-    _mav_put_float(buf, 20, x2);
-    _mav_put_float(buf, 24, y2);
-    _mav_put_float(buf, 28, x3);
-    _mav_put_float(buf, 32, y3);
-    _mav_put_float(buf, 36, x4);
-    _mav_put_float(buf, 40, y4);
-    _mav_put_uint8_t(buf, 44, num);
+    _mav_put_float(buf, 0, x0);
+    _mav_put_float(buf, 4, y0);
+    _mav_put_float(buf, 8, x1);
+    _mav_put_float(buf, 12, y1);
+    _mav_put_float(buf, 16, x2);
+    _mav_put_float(buf, 20, y2);
+    _mav_put_float(buf, 24, x3);
+    _mav_put_float(buf, 28, y3);
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_ui_LEN);
 #else
     mavlink_ui_t packet;
-    packet.speed = speed;
     packet.x0 = x0;
     packet.y0 = y0;
     packet.x1 = x1;
@@ -118,9 +97,6 @@ static inline uint16_t mavlink_msg_ui_pack(uint8_t system_id, uint8_t component_
     packet.y2 = y2;
     packet.x3 = x3;
     packet.y3 = y3;
-    packet.x4 = x4;
-    packet.y4 = y4;
-    packet.num = num;
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_ui_LEN);
 #endif
@@ -136,8 +112,6 @@ static inline uint16_t mavlink_msg_ui_pack(uint8_t system_id, uint8_t component_
  * @param status MAVLink status structure
  * @param msg The MAVLink message to compress the data into
  *
- * @param num  num
- * @param speed [rpm] rpm
  * @param x0  x0
  * @param y0  y0
  * @param x1  x1
@@ -146,32 +120,25 @@ static inline uint16_t mavlink_msg_ui_pack(uint8_t system_id, uint8_t component_
  * @param y2  y2
  * @param x3  x3
  * @param y3  y3
- * @param x4  x4
- * @param y4  y4
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_ui_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
-                               uint8_t num, float speed, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4)
+                               float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_ui_LEN];
-    _mav_put_float(buf, 0, speed);
-    _mav_put_float(buf, 4, x0);
-    _mav_put_float(buf, 8, y0);
-    _mav_put_float(buf, 12, x1);
-    _mav_put_float(buf, 16, y1);
-    _mav_put_float(buf, 20, x2);
-    _mav_put_float(buf, 24, y2);
-    _mav_put_float(buf, 28, x3);
-    _mav_put_float(buf, 32, y3);
-    _mav_put_float(buf, 36, x4);
-    _mav_put_float(buf, 40, y4);
-    _mav_put_uint8_t(buf, 44, num);
+    _mav_put_float(buf, 0, x0);
+    _mav_put_float(buf, 4, y0);
+    _mav_put_float(buf, 8, x1);
+    _mav_put_float(buf, 12, y1);
+    _mav_put_float(buf, 16, x2);
+    _mav_put_float(buf, 20, y2);
+    _mav_put_float(buf, 24, x3);
+    _mav_put_float(buf, 28, y3);
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_ui_LEN);
 #else
     mavlink_ui_t packet;
-    packet.speed = speed;
     packet.x0 = x0;
     packet.y0 = y0;
     packet.x1 = x1;
@@ -180,9 +147,6 @@ static inline uint16_t mavlink_msg_ui_pack_status(uint8_t system_id, uint8_t com
     packet.y2 = y2;
     packet.x3 = x3;
     packet.y3 = y3;
-    packet.x4 = x4;
-    packet.y4 = y4;
-    packet.num = num;
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_ui_LEN);
 #endif
@@ -201,8 +165,6 @@ static inline uint16_t mavlink_msg_ui_pack_status(uint8_t system_id, uint8_t com
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param num  num
- * @param speed [rpm] rpm
  * @param x0  x0
  * @param y0  y0
  * @param x1  x1
@@ -211,33 +173,26 @@ static inline uint16_t mavlink_msg_ui_pack_status(uint8_t system_id, uint8_t com
  * @param y2  y2
  * @param x3  x3
  * @param y3  y3
- * @param x4  x4
- * @param y4  y4
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_ui_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
                                mavlink_message_t* msg,
-                                   uint8_t num,float speed,float x0,float y0,float x1,float y1,float x2,float y2,float x3,float y3,float x4,float y4)
+                                   float x0,float y0,float x1,float y1,float x2,float y2,float x3,float y3)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_ui_LEN];
-    _mav_put_float(buf, 0, speed);
-    _mav_put_float(buf, 4, x0);
-    _mav_put_float(buf, 8, y0);
-    _mav_put_float(buf, 12, x1);
-    _mav_put_float(buf, 16, y1);
-    _mav_put_float(buf, 20, x2);
-    _mav_put_float(buf, 24, y2);
-    _mav_put_float(buf, 28, x3);
-    _mav_put_float(buf, 32, y3);
-    _mav_put_float(buf, 36, x4);
-    _mav_put_float(buf, 40, y4);
-    _mav_put_uint8_t(buf, 44, num);
+    _mav_put_float(buf, 0, x0);
+    _mav_put_float(buf, 4, y0);
+    _mav_put_float(buf, 8, x1);
+    _mav_put_float(buf, 12, y1);
+    _mav_put_float(buf, 16, x2);
+    _mav_put_float(buf, 20, y2);
+    _mav_put_float(buf, 24, x3);
+    _mav_put_float(buf, 28, y3);
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_ui_LEN);
 #else
     mavlink_ui_t packet;
-    packet.speed = speed;
     packet.x0 = x0;
     packet.y0 = y0;
     packet.x1 = x1;
@@ -246,9 +201,6 @@ static inline uint16_t mavlink_msg_ui_pack_chan(uint8_t system_id, uint8_t compo
     packet.y2 = y2;
     packet.x3 = x3;
     packet.y3 = y3;
-    packet.x4 = x4;
-    packet.y4 = y4;
-    packet.num = num;
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_ui_LEN);
 #endif
@@ -267,7 +219,7 @@ static inline uint16_t mavlink_msg_ui_pack_chan(uint8_t system_id, uint8_t compo
  */
 static inline uint16_t mavlink_msg_ui_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_ui_t* ui)
 {
-    return mavlink_msg_ui_pack(system_id, component_id, msg, ui->num, ui->speed, ui->x0, ui->y0, ui->x1, ui->y1, ui->x2, ui->y2, ui->x3, ui->y3, ui->x4, ui->y4);
+    return mavlink_msg_ui_pack(system_id, component_id, msg, ui->x0, ui->y0, ui->x1, ui->y1, ui->x2, ui->y2, ui->x3, ui->y3);
 }
 
 /**
@@ -281,7 +233,7 @@ static inline uint16_t mavlink_msg_ui_encode(uint8_t system_id, uint8_t componen
  */
 static inline uint16_t mavlink_msg_ui_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_ui_t* ui)
 {
-    return mavlink_msg_ui_pack_chan(system_id, component_id, chan, msg, ui->num, ui->speed, ui->x0, ui->y0, ui->x1, ui->y1, ui->x2, ui->y2, ui->x3, ui->y3, ui->x4, ui->y4);
+    return mavlink_msg_ui_pack_chan(system_id, component_id, chan, msg, ui->x0, ui->y0, ui->x1, ui->y1, ui->x2, ui->y2, ui->x3, ui->y3);
 }
 
 /**
@@ -295,15 +247,13 @@ static inline uint16_t mavlink_msg_ui_encode_chan(uint8_t system_id, uint8_t com
  */
 static inline uint16_t mavlink_msg_ui_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_ui_t* ui)
 {
-    return mavlink_msg_ui_pack_status(system_id, component_id, _status, msg,  ui->num, ui->speed, ui->x0, ui->y0, ui->x1, ui->y1, ui->x2, ui->y2, ui->x3, ui->y3, ui->x4, ui->y4);
+    return mavlink_msg_ui_pack_status(system_id, component_id, _status, msg,  ui->x0, ui->y0, ui->x1, ui->y1, ui->x2, ui->y2, ui->x3, ui->y3);
 }
 
 /**
  * @brief Send a ui message
  * @param chan MAVLink channel to send the message
  *
- * @param num  num
- * @param speed [rpm] rpm
  * @param x0  x0
  * @param y0  y0
  * @param x1  x1
@@ -312,32 +262,25 @@ static inline uint16_t mavlink_msg_ui_encode_status(uint8_t system_id, uint8_t c
  * @param y2  y2
  * @param x3  x3
  * @param y3  y3
- * @param x4  x4
- * @param y4  y4
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
-static inline void mavlink_msg_ui_send(mavlink_channel_t chan, uint8_t num, float speed, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4)
+static inline void mavlink_msg_ui_send(mavlink_channel_t chan, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_ui_LEN];
-    _mav_put_float(buf, 0, speed);
-    _mav_put_float(buf, 4, x0);
-    _mav_put_float(buf, 8, y0);
-    _mav_put_float(buf, 12, x1);
-    _mav_put_float(buf, 16, y1);
-    _mav_put_float(buf, 20, x2);
-    _mav_put_float(buf, 24, y2);
-    _mav_put_float(buf, 28, x3);
-    _mav_put_float(buf, 32, y3);
-    _mav_put_float(buf, 36, x4);
-    _mav_put_float(buf, 40, y4);
-    _mav_put_uint8_t(buf, 44, num);
+    _mav_put_float(buf, 0, x0);
+    _mav_put_float(buf, 4, y0);
+    _mav_put_float(buf, 8, x1);
+    _mav_put_float(buf, 12, y1);
+    _mav_put_float(buf, 16, x2);
+    _mav_put_float(buf, 20, y2);
+    _mav_put_float(buf, 24, x3);
+    _mav_put_float(buf, 28, y3);
 
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_ui, buf, MAVLINK_MSG_ID_ui_MIN_LEN, MAVLINK_MSG_ID_ui_LEN, MAVLINK_MSG_ID_ui_CRC);
 #else
     mavlink_ui_t packet;
-    packet.speed = speed;
     packet.x0 = x0;
     packet.y0 = y0;
     packet.x1 = x1;
@@ -346,9 +289,6 @@ static inline void mavlink_msg_ui_send(mavlink_channel_t chan, uint8_t num, floa
     packet.y2 = y2;
     packet.x3 = x3;
     packet.y3 = y3;
-    packet.x4 = x4;
-    packet.y4 = y4;
-    packet.num = num;
 
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_ui, (const char *)&packet, MAVLINK_MSG_ID_ui_MIN_LEN, MAVLINK_MSG_ID_ui_LEN, MAVLINK_MSG_ID_ui_CRC);
 #endif
@@ -362,7 +302,7 @@ static inline void mavlink_msg_ui_send(mavlink_channel_t chan, uint8_t num, floa
 static inline void mavlink_msg_ui_send_struct(mavlink_channel_t chan, const mavlink_ui_t* ui)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-    mavlink_msg_ui_send(chan, ui->num, ui->speed, ui->x0, ui->y0, ui->x1, ui->y1, ui->x2, ui->y2, ui->x3, ui->y3, ui->x4, ui->y4);
+    mavlink_msg_ui_send(chan, ui->x0, ui->y0, ui->x1, ui->y1, ui->x2, ui->y2, ui->x3, ui->y3);
 #else
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_ui, (const char *)ui, MAVLINK_MSG_ID_ui_MIN_LEN, MAVLINK_MSG_ID_ui_LEN, MAVLINK_MSG_ID_ui_CRC);
 #endif
@@ -376,27 +316,22 @@ static inline void mavlink_msg_ui_send_struct(mavlink_channel_t chan, const mavl
   is usually the receive buffer for the channel, and allows a reply to an
   incoming message with minimum stack space usage.
  */
-static inline void mavlink_msg_ui_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint8_t num, float speed, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4)
+static inline void mavlink_msg_ui_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char *buf = (char *)msgbuf;
-    _mav_put_float(buf, 0, speed);
-    _mav_put_float(buf, 4, x0);
-    _mav_put_float(buf, 8, y0);
-    _mav_put_float(buf, 12, x1);
-    _mav_put_float(buf, 16, y1);
-    _mav_put_float(buf, 20, x2);
-    _mav_put_float(buf, 24, y2);
-    _mav_put_float(buf, 28, x3);
-    _mav_put_float(buf, 32, y3);
-    _mav_put_float(buf, 36, x4);
-    _mav_put_float(buf, 40, y4);
-    _mav_put_uint8_t(buf, 44, num);
+    _mav_put_float(buf, 0, x0);
+    _mav_put_float(buf, 4, y0);
+    _mav_put_float(buf, 8, x1);
+    _mav_put_float(buf, 12, y1);
+    _mav_put_float(buf, 16, x2);
+    _mav_put_float(buf, 20, y2);
+    _mav_put_float(buf, 24, x3);
+    _mav_put_float(buf, 28, y3);
 
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_ui, buf, MAVLINK_MSG_ID_ui_MIN_LEN, MAVLINK_MSG_ID_ui_LEN, MAVLINK_MSG_ID_ui_CRC);
 #else
     mavlink_ui_t *packet = (mavlink_ui_t *)msgbuf;
-    packet->speed = speed;
     packet->x0 = x0;
     packet->y0 = y0;
     packet->x1 = x1;
@@ -405,9 +340,6 @@ static inline void mavlink_msg_ui_send_buf(mavlink_message_t *msgbuf, mavlink_ch
     packet->y2 = y2;
     packet->x3 = x3;
     packet->y3 = y3;
-    packet->x4 = x4;
-    packet->y4 = y4;
-    packet->num = num;
 
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_ui, (const char *)packet, MAVLINK_MSG_ID_ui_MIN_LEN, MAVLINK_MSG_ID_ui_LEN, MAVLINK_MSG_ID_ui_CRC);
 #endif
@@ -420,33 +352,13 @@ static inline void mavlink_msg_ui_send_buf(mavlink_message_t *msgbuf, mavlink_ch
 
 
 /**
- * @brief Get field num from ui message
- *
- * @return  num
- */
-static inline uint8_t mavlink_msg_ui_get_num(const mavlink_message_t* msg)
-{
-    return _MAV_RETURN_uint8_t(msg,  44);
-}
-
-/**
- * @brief Get field speed from ui message
- *
- * @return [rpm] rpm
- */
-static inline float mavlink_msg_ui_get_speed(const mavlink_message_t* msg)
-{
-    return _MAV_RETURN_float(msg,  0);
-}
-
-/**
  * @brief Get field x0 from ui message
  *
  * @return  x0
  */
 static inline float mavlink_msg_ui_get_x0(const mavlink_message_t* msg)
 {
-    return _MAV_RETURN_float(msg,  4);
+    return _MAV_RETURN_float(msg,  0);
 }
 
 /**
@@ -456,7 +368,7 @@ static inline float mavlink_msg_ui_get_x0(const mavlink_message_t* msg)
  */
 static inline float mavlink_msg_ui_get_y0(const mavlink_message_t* msg)
 {
-    return _MAV_RETURN_float(msg,  8);
+    return _MAV_RETURN_float(msg,  4);
 }
 
 /**
@@ -466,7 +378,7 @@ static inline float mavlink_msg_ui_get_y0(const mavlink_message_t* msg)
  */
 static inline float mavlink_msg_ui_get_x1(const mavlink_message_t* msg)
 {
-    return _MAV_RETURN_float(msg,  12);
+    return _MAV_RETURN_float(msg,  8);
 }
 
 /**
@@ -476,7 +388,7 @@ static inline float mavlink_msg_ui_get_x1(const mavlink_message_t* msg)
  */
 static inline float mavlink_msg_ui_get_y1(const mavlink_message_t* msg)
 {
-    return _MAV_RETURN_float(msg,  16);
+    return _MAV_RETURN_float(msg,  12);
 }
 
 /**
@@ -486,7 +398,7 @@ static inline float mavlink_msg_ui_get_y1(const mavlink_message_t* msg)
  */
 static inline float mavlink_msg_ui_get_x2(const mavlink_message_t* msg)
 {
-    return _MAV_RETURN_float(msg,  20);
+    return _MAV_RETURN_float(msg,  16);
 }
 
 /**
@@ -496,7 +408,7 @@ static inline float mavlink_msg_ui_get_x2(const mavlink_message_t* msg)
  */
 static inline float mavlink_msg_ui_get_y2(const mavlink_message_t* msg)
 {
-    return _MAV_RETURN_float(msg,  24);
+    return _MAV_RETURN_float(msg,  20);
 }
 
 /**
@@ -506,7 +418,7 @@ static inline float mavlink_msg_ui_get_y2(const mavlink_message_t* msg)
  */
 static inline float mavlink_msg_ui_get_x3(const mavlink_message_t* msg)
 {
-    return _MAV_RETURN_float(msg,  28);
+    return _MAV_RETURN_float(msg,  24);
 }
 
 /**
@@ -516,27 +428,7 @@ static inline float mavlink_msg_ui_get_x3(const mavlink_message_t* msg)
  */
 static inline float mavlink_msg_ui_get_y3(const mavlink_message_t* msg)
 {
-    return _MAV_RETURN_float(msg,  32);
-}
-
-/**
- * @brief Get field x4 from ui message
- *
- * @return  x4
- */
-static inline float mavlink_msg_ui_get_x4(const mavlink_message_t* msg)
-{
-    return _MAV_RETURN_float(msg,  36);
-}
-
-/**
- * @brief Get field y4 from ui message
- *
- * @return  y4
- */
-static inline float mavlink_msg_ui_get_y4(const mavlink_message_t* msg)
-{
-    return _MAV_RETURN_float(msg,  40);
+    return _MAV_RETURN_float(msg,  28);
 }
 
 /**
@@ -548,7 +440,6 @@ static inline float mavlink_msg_ui_get_y4(const mavlink_message_t* msg)
 static inline void mavlink_msg_ui_decode(const mavlink_message_t* msg, mavlink_ui_t* ui)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-    ui->speed = mavlink_msg_ui_get_speed(msg);
     ui->x0 = mavlink_msg_ui_get_x0(msg);
     ui->y0 = mavlink_msg_ui_get_y0(msg);
     ui->x1 = mavlink_msg_ui_get_x1(msg);
@@ -557,9 +448,6 @@ static inline void mavlink_msg_ui_decode(const mavlink_message_t* msg, mavlink_u
     ui->y2 = mavlink_msg_ui_get_y2(msg);
     ui->x3 = mavlink_msg_ui_get_x3(msg);
     ui->y3 = mavlink_msg_ui_get_y3(msg);
-    ui->x4 = mavlink_msg_ui_get_x4(msg);
-    ui->y4 = mavlink_msg_ui_get_y4(msg);
-    ui->num = mavlink_msg_ui_get_num(msg);
 #else
         uint8_t len = msg->len < MAVLINK_MSG_ID_ui_LEN? msg->len : MAVLINK_MSG_ID_ui_LEN;
         memset(ui, 0, MAVLINK_MSG_ID_ui_LEN);

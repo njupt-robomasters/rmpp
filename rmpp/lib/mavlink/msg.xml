@@ -2,31 +2,34 @@
 <mavlink>
     <version>2</version>
     <messages>
-        <message id="00" name="imu">
-            <description>imu report(c board -> mini pc)</description>
-            <field type="float" name="yaw" units="deg">yaw</field>
-            <field type="float" name="pitch" units="deg">pitch</field>
-            <field type="float" name="roll" units="deg">roll</field>
+        <message id="0" name="imu">
+            <description>imu(c -> pc)</description>
+            <field type="float" name="yaw" units="deg">yaw(left is positive)</field>
+            <field type="float" name="pitch" units="deg">pitch(up is positive)</field>
+            <field type="float" name="roll" units="deg">roll(clockwise is positive)</field>
         </message>
 
-        <message id="01" name="referee">
-            <description>referee report(c board -> mini pc)</description>
-            <field type="uint8_t" name="is_red">is_red(1 is red, 0 is blue)</field>
-            <field type="float" name="bullet_speed" units="m/s">bullet_speed</field>
+        <message id="1" name="referee">
+            <description>referee(c -> pc)</description>
+            <field type="uint8_t" name="is_red">is_red</field>
+            <field type="uint8_t" name="game_progress">game_progress(see robomaster serial manual)</field>
+            <field type="uint16_t" name="stage_remain_time">stage_remain_time(see robomaster serial manual)</field>
+            <field type="float" name="bullet_speed" units="m/s">bullet_speed(referee measure value)</field>
         </message>
 
-        <message id="10" name="aim">
-            <description>aim control(mini pc -> c board)</description>
-            <field type="uint8_t" name="is_detected">is_detected</field>
-            <field type="uint8_t" name="is_fire_advise">is_fire_advise</field>
-            <field type="float" name="yaw" units="deg">yaw</field>
-            <field type="float" name="pitch" units="deg">pitch</field>
+        <message id="2" name="auto_aim">
+            <description>auto_aim(pc -> c)</description>
+            <field type="uint8_t" name="is_detect">is_detect</field>
+            <field type="float" name="yaw" units="deg">yaw(left is positive)</field>
+            <field type="float" name="pitch" units="deg">pitch(up is positive)</field>
+            <field type="uint8_t" name="is_fire">is_fire</field>
+            <field type="uint8_t" name="robot_id">robot_id(1-7, see robomaster manual)</field>
+            <field type="float" name="wr" units="rpm">rpm</field>
+            <field type="float" name="distance" units="m">distance</field>
         </message>
 
-        <message id="11" name="ui">
-            <description>ui(mini pc -> c board)</description>
-            <field type="uint8_t" name="num">num</field>
-            <field type="float" name="speed" units="rpm">rpm</field>
+        <message id="3" name="ui">
+            <description>ui(pc -> c)</description>
             <field type="float" name="x0">x0</field>
             <field type="float" name="y0">y0</field>
             <field type="float" name="x1">x1</field>
@@ -35,27 +38,25 @@
             <field type="float" name="y2">y2</field>
             <field type="float" name="x3">x3</field>
             <field type="float" name="y3">y3</field>
-            <field type="float" name="x4">x4</field>
-            <field type="float" name="y4">y4</field>
         </message>
 
-        <message id="20" name="nav_cmd_vel">
-            <description>nav_cmd_vel(mini pc -> c board reference yaw1)</description>
-            <field type="float" name="vel_x" units="m_s">x</field>
-            <field type="float" name="vel_y" units="m_s">y</field>
+        <message id="4" name="target_position">
+            <description>target_position(c -> pc)</description>
+            <field type="float" name="x" units="m">x</field>
+            <field type="float" name="y" units="m">y</field>
         </message>
 
-        <message id="21" name="target_pose">
-            <description>target_pose(c board -> mini pc)</description>
-            <field type="float" name="pos_x" units="m">x</field>
-            <field type="float" name="pos_y" units="m">y</field>
+        <message id="5" name="current_position">
+            <description>current_position(pc -> c)</description>
+            <field type="float" name="x" units="m">x</field>
+            <field type="float" name="y" units="m">y</field>
+            <field type="float" name="yaw" units="deg">yaw</field>
         </message>
 
-        <message id="22" name="odometry">
-            <description>current position and yaw(mini pc -> c)</description>
-            <field type="float" name="pos_x" units="m">x</field>
-            <field type="float" name="pos_y" units="m">y</field>
-            <field type="float" name="yaw" units="rad">yaw</field>
+        <message id="6" name="chassis_speed">
+            <description>chassis_speed(pc -> c, ref by yaw1)</description>
+            <field type="float" name="vx" units="m/s">x</field>
+            <field type="float" name="vy" units="m/s">y</field>
         </message>
     </messages>
 </mavlink>

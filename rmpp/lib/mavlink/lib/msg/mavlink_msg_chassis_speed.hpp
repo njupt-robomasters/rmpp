@@ -1,4 +1,4 @@
-// MESSAGE nav_cmd_vel support class
+// MESSAGE chassis_speed support class
 
 #pragma once
 
@@ -7,20 +7,20 @@ namespace msg {
 namespace msg {
 
 /**
- * @brief nav_cmd_vel message
+ * @brief chassis_speed message
  *
- * nav_cmd_vel(mini pc -> c board reference yaw1)
+ * chassis_speed(pc -> c, ref by yaw1)
  */
-struct nav_cmd_vel : mavlink::Message {
-    static constexpr msgid_t MSG_ID = 20;
+struct chassis_speed : mavlink::Message {
+    static constexpr msgid_t MSG_ID = 6;
     static constexpr size_t LENGTH = 8;
     static constexpr size_t MIN_LENGTH = 8;
-    static constexpr uint8_t CRC_EXTRA = 58;
-    static constexpr auto NAME = "nav_cmd_vel";
+    static constexpr uint8_t CRC_EXTRA = 207;
+    static constexpr auto NAME = "chassis_speed";
 
 
-    float vel_x; /*< [m_s] x */
-    float vel_y; /*< [m_s] y */
+    float vx; /*< [m/s] x */
+    float vy; /*< [m/s] y */
 
 
     inline std::string get_name(void) const override
@@ -38,8 +38,8 @@ struct nav_cmd_vel : mavlink::Message {
         std::stringstream ss;
 
         ss << NAME << ":" << std::endl;
-        ss << "  vel_x: " << vel_x << std::endl;
-        ss << "  vel_y: " << vel_y << std::endl;
+        ss << "  vx: " << vx << std::endl;
+        ss << "  vy: " << vy << std::endl;
 
         return ss.str();
     }
@@ -48,14 +48,14 @@ struct nav_cmd_vel : mavlink::Message {
     {
         map.reset(MSG_ID, LENGTH);
 
-        map << vel_x;                         // offset: 0
-        map << vel_y;                         // offset: 4
+        map << vx;                            // offset: 0
+        map << vy;                            // offset: 4
     }
 
     inline void deserialize(mavlink::MsgMap &map) override
     {
-        map >> vel_x;                         // offset: 0
-        map >> vel_y;                         // offset: 4
+        map >> vx;                            // offset: 0
+        map >> vy;                            // offset: 4
     }
 };
 

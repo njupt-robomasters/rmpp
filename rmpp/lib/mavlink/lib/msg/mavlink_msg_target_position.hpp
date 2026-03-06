@@ -1,4 +1,4 @@
-// MESSAGE target_pose support class
+// MESSAGE target_position support class
 
 #pragma once
 
@@ -7,20 +7,20 @@ namespace msg {
 namespace msg {
 
 /**
- * @brief target_pose message
+ * @brief target_position message
  *
- * target_pose(c board -> mini pc)
+ * target_position(c -> pc)
  */
-struct target_pose : mavlink::Message {
-    static constexpr msgid_t MSG_ID = 21;
+struct target_position : mavlink::Message {
+    static constexpr msgid_t MSG_ID = 4;
     static constexpr size_t LENGTH = 8;
     static constexpr size_t MIN_LENGTH = 8;
-    static constexpr uint8_t CRC_EXTRA = 63;
-    static constexpr auto NAME = "target_pose";
+    static constexpr uint8_t CRC_EXTRA = 2;
+    static constexpr auto NAME = "target_position";
 
 
-    float pos_x; /*< [m] x */
-    float pos_y; /*< [m] y */
+    float x; /*< [m] x */
+    float y; /*< [m] y */
 
 
     inline std::string get_name(void) const override
@@ -38,8 +38,8 @@ struct target_pose : mavlink::Message {
         std::stringstream ss;
 
         ss << NAME << ":" << std::endl;
-        ss << "  pos_x: " << pos_x << std::endl;
-        ss << "  pos_y: " << pos_y << std::endl;
+        ss << "  x: " << x << std::endl;
+        ss << "  y: " << y << std::endl;
 
         return ss.str();
     }
@@ -48,14 +48,14 @@ struct target_pose : mavlink::Message {
     {
         map.reset(MSG_ID, LENGTH);
 
-        map << pos_x;                         // offset: 0
-        map << pos_y;                         // offset: 4
+        map << x;                             // offset: 0
+        map << y;                             // offset: 4
     }
 
     inline void deserialize(mavlink::MsgMap &map) override
     {
-        map >> pos_x;                         // offset: 0
-        map >> pos_y;                         // offset: 4
+        map >> x;                             // offset: 0
+        map >> y;                             // offset: 4
     }
 };
 

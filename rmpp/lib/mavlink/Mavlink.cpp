@@ -10,17 +10,16 @@ Mavlink::Mavlink() {
 
 void Mavlink::OnLoop() {
     // 断联检测
-    if (dwt_is_connected.GetDT() > CONNECT_TIMEOUT) {
+    if (dwt_is_connect.GetDT() > CONNECT_TIMEOUT) {
         is_connect = false;
     }
 
-    // 假设发送频率是 100Hz，我们将三个包分摊在不同的时间点发送
-    // 这样上位机收到的数据流在时间上是均匀的
+    // 将三个包分摊在不同的时间点发送
     static uint8_t step = 0;
     if (dwt_send_freq.PollTimeout(1 / (SEND_FREQ * 3))) {
         switch (step) {
             case 0:
-                sendPos();
+                sendTargetPosition();
                 break;
             case 1:
                 sendImu();
@@ -43,21 +42,24 @@ void Mavlink::callback(const uint8_t data[], const uint32_t size) {
         if (mavlink_parse_char(MAVLINK_COMM_0, data[i], &msg, &status)) {
             parse(msg);
             is_connect = true;
-            dwt_is_connected.UpdateDT();
+            dwt_is_connect.UpdateDT();
         }
     }
 }
 
 void Mavlink::parse(const mavlink_message_t& msg) {
     switch (msg.msgid) {
-        case MAVLINK_MSG_ID_aim: {
-            mavlink_aim_t aim;
-            mavlink_msg_aim_decode(&msg, &aim);
-            this->aim = {
-                .is_detect = (bool)aim.is_detected,
-                .is_fire_advise = (bool)aim.is_fire_advise,
-                .yaw = aim.yaw * deg,
-                .pitch = aim.pitch * deg
+        case MAVLINK_MSG_ID_auto_aim: {
+            mavlink_auto_aim_t auto_aim;
+            mavlink_msg_auto_aim_decode(&msg, &auto_aim);
+            this->auto_aim = {
+                .is_detect = (bool)auto_aim.is_detect,
+                .yaw = auto_aim.yaw * deg,
+                .pitch = auto_aim.pitch * deg,
+                .is_fire = (bool)auto_aim.is_fire,
+                .robot_id = auto_aim.robot_id,
+                .wr = auto_aim.wr * rpm,
+                .distance = auto_aim.distance * m,
             };
             break;
         }
@@ -66,8 +68,6 @@ void Mavlink::parse(const mavlink_message_t& msg) {
             mavlink_ui_t ui;
             mavlink_msg_ui_decode(&msg, &ui);
             this->ui = {
-                .num = ui.num,
-                .speed = ui.speed * rpm,
                 .x0 = ui.x0,
                 .y0 = ui.y0,
                 .x1 = ui.x1,
@@ -76,29 +76,27 @@ void Mavlink::parse(const mavlink_message_t& msg) {
                 .y2 = ui.y2,
                 .x3 = ui.x3,
                 .y3 = ui.y3,
-                .x4 = ui.x4,
-                .y4 = ui.y4
             };
             break;
         }
 
-        case MAVLINK_MSG_ID_nav_cmd_vel: {
-            mavlink_nav_cmd_vel_t cmd_vel_t;
-            mavlink_msg_nav_cmd_vel_decode(&msg, &cmd_vel_t);
-            this->cmd_vel = {
-                .vel_x = cmd_vel_t.vel_x * m_s,
-                .vel_y = cmd_vel_t.vel_y * m_s
+        case MAVLINK_MSG_ID_current_position: {
+            mavlink_current_position_t current_position;
+            mavlink_msg_current_position_decode(&msg, &current_position);
+            this->current_position = {
+                .x = current_position.x * m_s,
+                .y = current_position.y * m_s,
+                .yaw = current_position.yaw * deg
             };
             break;
         }
 
-        case MAVLINK_MSG_ID_odometry: {
-            mavlink_odometry_t odometry_t;
-            mavlink_msg_odometry_decode(&msg,&odometry_t);
-            this->odom = {
-                .x =  odometry_t.pos_x * m,
-                .y = odometry_t.pos_y * m,
-                .yaw = odometry_t.yaw * deg
+        case MAVLINK_MSG_ID_chassis_speed: {
+            mavlink_chassis_speed_t chassis_speed;
+            mavlink_msg_chassis_speed_decode(&msg, &chassis_speed);
+            this->chassis_speed = {
+                .vx = chassis_speed.vx * m,
+                .vy = chassis_speed.vy * m,
             };
         }
 
@@ -136,19 +134,21 @@ void Mavlink::sendReferee() const {
         COMPONENT_ID,
         &msg,
         referee.is_red,
+        referee.game_progress,
+        referee.stage_remain_time,
         referee.bullet_speed.toFloat(m_s)
     );
     send(msg);
 }
 
-void Mavlink::sendPos() const {
+void Mavlink::sendTargetPosition() const {
     mavlink_message_t msg;
-    mavlink_msg_target_pose_pack(
+    mavlink_msg_target_position_pack(
         SYSTEM_ID,
         COMPONENT_ID,
         &msg,
-        pos.pos_x.toFloat(m),
-        pos.pos_y.toFloat(m)
+        target_position.x.toFloat(m),
+        target_position.y.toFloat(m)
     );
     send(msg);
 }

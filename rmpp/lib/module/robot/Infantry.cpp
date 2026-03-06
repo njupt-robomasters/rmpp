@@ -30,7 +30,7 @@ void Infantry::OnLoop() {
 
 void Infantry::handleConnect() {
     // 比赛时候忽略断联保护
-    if (device.referee.game.progress == Referee::GAMING) {
+    if (device.referee.game.game_progress == Referee::GAMING) {
         device.chassis.SetEnable(true);
         device.gimbal.SetEnable(true);
         device.shooter.SetEnable(true);
@@ -67,10 +67,10 @@ void Infantry::handleRC() {
     }
 
     // 右fn键自瞄
-    if (device.rc.vt13.fn_right && device.mavlink.aim.is_detect) {
+    if (device.rc.vt13.fn_right && device.mavlink.auto_aim.is_detect) {
         gimbal_mode.rc = GIMBAL_ANGLE_MODE;
-        yaw_angle.rc = device.mavlink.aim.yaw;
-        pitch_angle.rc = device.mavlink.aim.pitch;
+        yaw_angle.rc = device.mavlink.auto_aim.yaw;
+        pitch_angle.rc = device.mavlink.auto_aim.pitch;
     } else {
         gimbal_mode.rc = GIMBAL_SPEED_MODE;
     }
@@ -136,10 +136,10 @@ void Infantry::handleClient() {
     is_shoot.client = device.rc.vt13.mouse.left;
 
     // 鼠标右键自瞄
-    if (device.rc.vt13.mouse.right && device.mavlink.aim.is_detect) {
+    if (device.rc.vt13.mouse.right && device.mavlink.auto_aim.is_detect) {
         gimbal_mode.client = GIMBAL_ANGLE_MODE;
-        yaw_angle.client = device.mavlink.aim.yaw;
-        pitch_angle.client = device.mavlink.aim.pitch;
+        yaw_angle.client = device.mavlink.auto_aim.yaw;
+        pitch_angle.client = device.mavlink.auto_aim.pitch;
     } else {
         gimbal_mode.client = GIMBAL_SPEED_MODE;
     }
@@ -261,7 +261,7 @@ void Infantry::handleUI() {
 
     // 自瞄
     device.ui.robot.aim = device.mavlink.is_connect ? UI::GREEN : UI::PINK;
-    device.ui.is_detect = device.mavlink.aim.is_detect;
+    device.ui.is_detect = device.mavlink.auto_aim.is_detect;
 
     // 电机连接状态
     device.chassis.UpdateUI(device.ui);

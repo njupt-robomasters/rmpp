@@ -41,7 +41,7 @@ public:
 
         // 当前比赛阶段
         // 0x0001 game_status.game_progress
-        game_progress_e progress = NOT_STARTED;
+        game_progress_e game_progress = NOT_STARTED;
 
         // 当前阶段剩余时间
         // 0x0001 game_status.stage_remain_time

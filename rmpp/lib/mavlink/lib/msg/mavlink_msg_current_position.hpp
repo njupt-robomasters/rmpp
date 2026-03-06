@@ -1,4 +1,4 @@
-// MESSAGE odometry support class
+// MESSAGE current_position support class
 
 #pragma once
 
@@ -7,21 +7,21 @@ namespace msg {
 namespace msg {
 
 /**
- * @brief odometry message
+ * @brief current_position message
  *
- * current position and yaw(mini pc -> c)
+ * current_position(pc -> c)
  */
-struct odometry : mavlink::Message {
-    static constexpr msgid_t MSG_ID = 22;
+struct current_position : mavlink::Message {
+    static constexpr msgid_t MSG_ID = 5;
     static constexpr size_t LENGTH = 12;
     static constexpr size_t MIN_LENGTH = 12;
-    static constexpr uint8_t CRC_EXTRA = 129;
-    static constexpr auto NAME = "odometry";
+    static constexpr uint8_t CRC_EXTRA = 178;
+    static constexpr auto NAME = "current_position";
 
 
-    float pos_x; /*< [m] x */
-    float pos_y; /*< [m] y */
-    float yaw; /*< [rad] yaw */
+    float x; /*< [m] x */
+    float y; /*< [m] y */
+    float yaw; /*< [deg] yaw */
 
 
     inline std::string get_name(void) const override
@@ -39,8 +39,8 @@ struct odometry : mavlink::Message {
         std::stringstream ss;
 
         ss << NAME << ":" << std::endl;
-        ss << "  pos_x: " << pos_x << std::endl;
-        ss << "  pos_y: " << pos_y << std::endl;
+        ss << "  x: " << x << std::endl;
+        ss << "  y: " << y << std::endl;
         ss << "  yaw: " << yaw << std::endl;
 
         return ss.str();
@@ -50,15 +50,15 @@ struct odometry : mavlink::Message {
     {
         map.reset(MSG_ID, LENGTH);
 
-        map << pos_x;                         // offset: 0
-        map << pos_y;                         // offset: 4
+        map << x;                             // offset: 0
+        map << y;                             // offset: 4
         map << yaw;                           // offset: 8
     }
 
     inline void deserialize(mavlink::MsgMap &map) override
     {
-        map >> pos_x;                         // offset: 0
-        map >> pos_y;                         // offset: 4
+        map >> x;                             // offset: 0
+        map >> y;                             // offset: 4
         map >> yaw;                           // offset: 8
     }
 };
