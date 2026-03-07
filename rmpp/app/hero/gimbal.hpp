@@ -59,7 +59,7 @@ inline DM6006 pitch({
     .offset = 85 * deg,
     .is_limit = true,
     .limit_min = -12 * deg,
-    .limit_max = 22 * deg,
+    .limit_max = 10 * deg,
     .control_mode = Motor::ANGLE_SPEED_MODE,
     .pid_out_type = Motor::TORQUE_OUTPUT,
     .speed_pid_config = &pitch_speed_pid,
