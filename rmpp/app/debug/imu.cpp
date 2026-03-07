@@ -7,7 +7,6 @@ void setup() {
 }
 
 void loop() {
-    led.OnLoop();
     imu.OnLoop();
 }
 

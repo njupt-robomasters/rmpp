@@ -10,18 +10,18 @@
 
 // 摩擦轮
 inline VESC rub1({
-                         .can_port = 2,
-                         .master_id = 0x20,
-                         .slave_id = 0x20,
-                     },
-                     {});
+                     .can_port = 2,
+                     .master_id = 0x20,
+                     .slave_id = 0x20,
+                 },
+                 {});
 
 inline VESC rub2({
-                          .can_port = 2,
-                          .master_id = 0x21,
-                          .slave_id = 0x21,
-                      },
-                      {});
+                     .can_port = 2,
+                     .master_id = 0x21,
+                     .slave_id = 0x21,
+                 },
+                 {});
 
 // 拨弹电机
 inline PID::config_t shoot_pid = {
@@ -44,4 +44,5 @@ inline M3508 shoot({
 inline Shooter_17mm shooter({
                                 .bullet_per_angle = 9.0f * (41.0f / 50.0f) * (default_unit / rev),
                             },
-                            {rub1, rub2, shoot});
+                            {rub1, rub2, shoot},
+                            {});

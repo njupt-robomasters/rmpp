@@ -39,4 +39,5 @@ inline M2006 shoot({
 inline Shooter_17mm shooter({
                                 .bullet_per_angle = 9.0f / 2.5f * (default_unit / rev),
                             },
-                            {rub1, rub2, shoot});
+                            {rub1, rub2, shoot},
+                            {});

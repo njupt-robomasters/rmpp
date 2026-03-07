@@ -1,7 +1,7 @@
 #include "../infantry/misc.hpp"
 #include "../infantry/shooter.hpp"
 
-static constexpr UnitFloat BULLET_FREQ = 5 * Hz;
+static constexpr UnitFloat BULLET_FREQ = 20 * Hz;
 static const UnitFloat<rpm> SHOOT_SPEED = BULLET_FREQ / shooter.config.bullet_per_angle;
 
 void send_can_cmd() {

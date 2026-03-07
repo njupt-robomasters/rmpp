@@ -1,6 +1,6 @@
 #include "Shooter_17mm.hpp"
 
-Shooter_17mm::Shooter_17mm(const config_t& config, const motor_t& motor) : Shooter(config), motor(motor) {}
+Shooter_17mm::Shooter_17mm(const config_t& config, const motor_t& motor, const block_t& block_config) : Shooter(config), motor(motor), block(block_config) {}
 
 void Shooter_17mm::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable) return;
@@ -66,8 +66,32 @@ void Shooter_17mm::backward() {
     // 拨弹电机
     if (is_rub && is_shoot) {
         const UnitFloat<rpm> shoot_speed = bullet_freq.ref / config.bullet_per_angle;
-        motor.shoot.SetSpeed(shoot_speed);
+
+        if (is_block) { // 检测到卡弹
+            // 反转
+            motor.shoot.SetSpeed(-shoot_speed);
+
+            if (dwt_block.GetDT() > block.reverse_time) { // 反转计时
+                is_block = false;
+                dwt_block.UpdateDT(); // 重置计时器，用于卡弹计时
+            }
+        } else {
+            // 正转
+            motor.shoot.SetSpeed(shoot_speed);
+
+            // 卡弹检测
+            if (motor.shoot.current.ref >= motor.shoot.config.speed_pid_config->max_out) {
+                if (dwt_block.GetDT() > block.block_time) { // 卡弹计时
+                    is_block = true;
+                    dwt_block.UpdateDT(); // 重置计时器，用于倒转计时
+                }
+            } else {
+                dwt_block.UpdateDT(); // 未卡弹，重置计时器
+            }
+        }
     } else {
+        is_block = false;     // 清除卡弹状态
+        dwt_block.UpdateDT(); // 重置计时器
         motor.shoot.SetSpeed(0 * default_unit);
     }
 }

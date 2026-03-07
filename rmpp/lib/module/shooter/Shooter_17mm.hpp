@@ -11,10 +11,16 @@ public:
         Motor& shoot;       // 拨弹电机
     } motor;
 
+    // 用于卡弹检测
+    struct block_t {
+        UnitFloat<s> block_time = 500 * ms;
+        UnitFloat<s> reverse_time = 250 * ms;
+    } block;
+
     // 摩擦轮线速度
     UnitFloat<m_s> rub1_measure, rub2_measure;
 
-    Shooter_17mm(const config_t& config, const motor_t& motor);
+    Shooter_17mm(const config_t& config, const motor_t& motor, const block_t& block_config);
 
     // 设置发射结构使能/失能
     void SetEnable(bool is_enable) override;
@@ -26,6 +32,9 @@ public:
     void OnLoop() override;
 
 private:
+    bool is_block = false; // 堵转标志
+    BSP::Dwt dwt_block;
+
     // 正解：电机速度 -> 弹速、弹频
     void forward() override;
 
