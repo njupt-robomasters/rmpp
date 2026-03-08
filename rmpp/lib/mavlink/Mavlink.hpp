@@ -73,7 +73,7 @@ private:
     static constexpr uint8_t COMPONENT_ID = 1; // mavlink参数
 
     // 用于断联检测
-    BSP::Dwt dwt_is_connect;
+    BSP::Dwt dwt_connect;
 
     // 用于控制发送频率
     BSP::Dwt dwt_send_freq;

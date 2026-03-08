@@ -10,7 +10,7 @@ Mavlink::Mavlink() {
 
 void Mavlink::OnLoop() {
     // 断联检测
-    if (dwt_is_connect.GetDT() > CONNECT_TIMEOUT) {
+    if (dwt_connect.GetDT() > CONNECT_TIMEOUT) {
         is_connect = false;
     }
 
@@ -42,7 +42,7 @@ void Mavlink::callback(const uint8_t data[], const uint32_t size) {
         if (mavlink_parse_char(MAVLINK_COMM_0, data[i], &msg, &status)) {
             parse(msg);
             is_connect = true;
-            dwt_is_connect.UpdateDT();
+            dwt_connect.UpdateDT();
         }
     }
 }
