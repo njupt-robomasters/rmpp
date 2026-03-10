@@ -1,17 +1,17 @@
 #pragma once
 
-#include "module/LED.hpp"
-#include "buzzer/Buzzer.hpp"
+#include "misc/LED.hpp"
+#include "misc/Buzzer.hpp"
+#include "flashdb/FlashDB.hpp"
 #include "rc/RC.hpp"
 #include "mavlink/Mavlink.hpp"
 #include "referee/Referee.hpp"
 #include "ui/UI.hpp"
-#include "flashdb/FlashDB.hpp"
 
 inline LED led({});
 inline Buzzer buzzer;
+inline FlashDB flashdb("engineer");
 inline RC rc({}, {});
 inline Mavlink mavlink;
 inline Referee referee({});
 inline UI ui({});
-inline FlashDB flashdb("engineer");

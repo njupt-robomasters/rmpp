@@ -1,7 +1,7 @@
 #pragma once
 
 #include "motor/M3508.hpp"
-#include "motor/gm6020.hpp"
+#include "motor/GM6020.hpp"
 #include "module/chassis/Chassis_DualSteer.hpp"
 
 // 电机参数
