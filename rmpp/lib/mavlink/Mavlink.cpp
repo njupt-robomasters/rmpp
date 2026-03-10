@@ -12,6 +12,12 @@ void Mavlink::OnLoop() {
     // 断联检测
     if (dwt_connect.GetDT() > CONNECT_TIMEOUT) {
         is_connect = false;
+
+        // 复位接收数据
+        auto_aim = {};
+        ui = {};
+        current_position = {};
+        chassis_speed = {};
     }
 
     // 将三个包分摊在不同的时间点发送
