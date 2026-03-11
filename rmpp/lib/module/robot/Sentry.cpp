@@ -30,7 +30,7 @@ void Sentry::OnLoop() {
 void Sentry::handlePause() {
     vx.software = vy.software = wr.software = 0 * default_unit;
     gimbal_mode.software = GIMBAL_SPEED_MODE;
-    yaw_speed.software = pitch_speed.software = 0 * default_unit;
+    wyaw.software = wpitch.software = 0 * default_unit;
     is_rub.software = is_shoot.software = false;
 }
 

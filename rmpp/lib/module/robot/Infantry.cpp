@@ -47,11 +47,11 @@ void Infantry::handleRC() {
     vx.rc = device.rc.x * config.vxy_max;
     vy.rc = device.rc.y * config.vxy_max;
     wr.rc = device.rc.r * config.wr_max;
-    yaw_speed.rc = device.rc.yaw * config.yaw_speed_max;
+    wyaw.rc = device.rc.yaw * config.wyaw;
     if (device.rc.is_shoot) {
-        pitch_speed.rc = 0 * default_unit;
+        wpitch.rc = 0 * default_unit;
     } else {
-        pitch_speed.rc = device.rc.pitch * config.pitch_speed_max;
+        wpitch.rc = device.rc.pitch * config.wpitch;
     }
     is_rub.rc = device.rc.is_rub;;
     is_shoot.rc = device.rc.is_shoot;
@@ -64,8 +64,8 @@ void Infantry::handleRC() {
     // 右fn键自瞄
     if (device.rc.vt13.fn_right && device.mavlink.auto_aim.is_detect) {
         gimbal_mode.rc = GIMBAL_ANGLE_MODE;
-        yaw_angle.rc = device.mavlink.auto_aim.yaw;
-        pitch_angle.rc = device.mavlink.auto_aim.pitch;
+        yaw.rc = device.mavlink.auto_aim.yaw;
+        pitch.rc = device.mavlink.auto_aim.pitch;
     } else {
         gimbal_mode.rc = GIMBAL_SPEED_MODE;
     }
@@ -82,8 +82,11 @@ void Infantry::handleRC() {
 }
 
 void Infantry::handleClient() {
-    const UnitFloat dt = dwt_acc.UpdateDT();
-    // ws控制前后
+    // 维护dt
+    static BSP::Dwt dwt;
+    const UnitFloat dt = dwt.UpdateDT();
+
+    // ws控制前后，限制加速度
     if (device.rc.vt13.key.w) { // 前
         if (vx.client < 0) vx.client = 0 * default_unit;
         vx.client += config.axy * dt;
@@ -102,7 +105,7 @@ void Infantry::handleClient() {
             if (vx.client > 0) vx.client = 0 * default_unit;
         }
     }
-    // ad控制水平
+    // ad控制水平，限制加速度
     if (device.rc.vt13.key.a) { // 左
         if (vy.client < 0) vy.client = 0 * default_unit;
         vy.client += config.axy * dt;
@@ -141,9 +144,22 @@ void Infantry::handleClient() {
         }
     }
 
+    // 鼠标控制云台yaw，限制角加速度
+    UnitFloat<deg_s> dwyaw = device.rc.vt13.mouse.yaw * config.wyaw - wyaw.client;
+    const UnitFloat<deg_s> dwyaw_max = config.ayaw * dt;
+    if (dwyaw > dwyaw_max) dwyaw = dwyaw_max;
+    if (dwyaw < -dwyaw_max) dwyaw = -dwyaw_max;
+    wyaw.client += dwyaw;
+    // 鼠标控制云台pitch，限制角加速度
+    UnitFloat<deg_s> dwpitch = device.rc.vt13.mouse.pitch * config.wpitch - wpitch.client;
+    const UnitFloat<deg_s> dwpitch_max = config.apitch * dt;
+    if (dwpitch > dwpitch_max) dwpitch = dwpitch_max;
+    if (dwpitch < -dwpitch_max) dwpitch = -dwpitch_max;
+    wpitch.client += dwpitch;
+
     // 鼠标控制云台
-    yaw_speed.client = device.rc.vt13.mouse.yaw * config.yaw_speed_max;
-    pitch_speed.client = device.rc.vt13.mouse.pitch * config.pitch_speed_max;
+    // wyaw.client = device.rc.vt13.mouse.yaw * config.wyaw;
+    // wpitch.client = device.rc.vt13.mouse.pitch * config.wpitch;
 
     // 鼠标左键开火
     is_shoot.client = device.rc.vt13.mouse.left;
@@ -151,8 +167,8 @@ void Infantry::handleClient() {
     // 鼠标右键自瞄
     if (device.rc.vt13.mouse.right && device.mavlink.auto_aim.is_detect) {
         gimbal_mode.client = GIMBAL_ANGLE_MODE;
-        yaw_angle.client = device.mavlink.auto_aim.yaw;
-        pitch_angle.client = device.mavlink.auto_aim.pitch;
+        yaw.client = device.mavlink.auto_aim.yaw;
+        pitch.client = device.mavlink.auto_aim.pitch;
     } else {
         gimbal_mode.client = GIMBAL_SPEED_MODE;
     }
@@ -206,14 +222,14 @@ void Infantry::handleChassis() {
 
 void Infantry::handleGimbal() {
     if (gimbal_mode.rc == GIMBAL_ANGLE_MODE) {
-        device.gimbal.SetAngle(yaw_angle.rc, pitch_angle.rc);
+        device.gimbal.SetAngle(yaw.rc, pitch.rc);
     } else if (gimbal_mode.client == GIMBAL_ANGLE_MODE) {
-        device.gimbal.SetAngle(yaw_angle.client, pitch_angle.client);
+        device.gimbal.SetAngle(yaw.client, pitch.client);
     } else if (gimbal_mode.software == GIMBAL_ANGLE_MODE) {
-        device.gimbal.SetAngle(yaw_angle.software, pitch_angle.software);
+        device.gimbal.SetAngle(yaw.software, pitch.software);
     } else {
-        const UnitFloat<> yaw_speed = unit::clamp(this->yaw_speed.rc + this->yaw_speed.client + this->yaw_speed.software, config.yaw_speed_max);
-        const UnitFloat<> pitch_speed = unit::clamp(this->pitch_speed.rc + this->pitch_speed.client + this->pitch_speed.software, config.pitch_speed_max);
+        const UnitFloat<> yaw_speed = unit::clamp(this->wyaw.rc + this->wyaw.client + this->wyaw.software, config.wyaw);
+        const UnitFloat<> pitch_speed = unit::clamp(this->wpitch.rc + this->wpitch.client + this->wpitch.software, config.wpitch);
         device.gimbal.SetSpeed(yaw_speed, pitch_speed);
     }
 
@@ -231,10 +247,10 @@ void Infantry::handleShooter() {
 
     // 拨弹电机
     if (is_shoot.rc) {                                                                     // 遥控器射击，pitch摇杆控制弹频
-        device.shooter.SetShoot(device.referee.shooter.heat_remain > config.heat_protect); // 枪口热量保护
+        device.shooter.SetShoot(device.referee.shooter.heat_remain >= config.heat_protect); // 枪口热量保护
         device.shooter.SetBulletFreq(config.bullet_freq * device.rc.pitch);                // 设置弹频
     } else if (is_shoot.client || is_shoot.software) {
-        device.shooter.SetShoot(device.referee.shooter.heat_remain > config.heat_protect); // 枪口热量保护
+        device.shooter.SetShoot(device.referee.shooter.heat_remain >= config.heat_protect); // 枪口热量保护
         device.shooter.SetBulletFreq(config.bullet_freq);                                  // 设置弹频
     } else {
         device.shooter.SetShoot(false);

@@ -10,16 +10,18 @@
 inline Infantry::config_t robot_config = {
     .vxy_max = 4 * m_s,  // 极限4.5m/s
     .wr_max = 120 * rpm, // 极限130rpm
-    .axy = 100 * m_ss,
-    .dxy = 100 * m_ss,
-    .ar = 1000 * rpm,
-    .dr = 1000 * rpm,
+    .axy = 500 * m_ss,
+    .dxy = 500 * m_ss,
+    .ar = 12000 * rpm,
+    .dr = 12000 * rpm,
 
-    .yaw_speed_max = 360 * deg_s,
-    .pitch_speed_max = 360 * deg_s,
+    .wyaw = 360 * deg_s,
+    .wpitch = 360 * deg_s,
+    .ayaw = 36000 * deg_s,
+    .apitch = 36000 * deg_s,
 
     .bullet_speed = 15.2f * m_s,
-    .heat_protect = 0
+    .heat_protect = 100,
 };
 inline Infantry robot(robot_config,
                       {

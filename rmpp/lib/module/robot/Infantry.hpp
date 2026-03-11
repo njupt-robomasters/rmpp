@@ -30,8 +30,10 @@ public:
         UnitFloat<rpm> dr;      // 旋转角减速度（仅键盘操作有效）
 
         // 云台速度
-        UnitFloat<deg_s> yaw_speed_max;
-        UnitFloat<deg_s> pitch_speed_max;
+        UnitFloat<deg_s> wyaw;    // yaw角速度
+        UnitFloat<deg_s> wpitch;  // pitch角速度
+        UnitFloat<deg_ss> ayaw;   // yaw角加速度（仅鼠标操作有效）
+        UnitFloat<deg_ss> apitch; // pitch角加速度（仅鼠标操作有效）
 
         // 发射机构
         UnitFloat<m_s> bullet_speed; // 弹速
@@ -81,12 +83,12 @@ protected:
     // 云台速度
     struct {
         UnitFloat<deg_s> rc, client, software;
-    } yaw_speed, pitch_speed;
+    } wyaw, wpitch;
 
     // 云台角度
     struct {
         UnitFloat<deg_s> rc, client, software;
-    } yaw_angle, pitch_angle;
+    } yaw, pitch;
 
     // 发射机构
     struct {
@@ -94,9 +96,6 @@ protected:
     } is_rub, is_shoot;
 
 private:
-    // 用于缓加减速
-    BSP::Dwt dwt_acc;
-
     void handleConnect();
 
     // 控制器
