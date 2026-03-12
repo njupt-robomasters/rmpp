@@ -164,10 +164,6 @@ void Infantry::handleClient() {
     if (dwpitch < -dwpitch_max) dwpitch = -dwpitch_max;
     wpitch.client += dwpitch;
 
-    // 鼠标控制云台
-    // wyaw.client = device.rc.vt13.mouse.yaw * config.wyaw;
-    // wpitch.client = device.rc.vt13.mouse.pitch * config.wpitch;
-
     // 鼠标左键开火
     is_shoot.client = device.rc.vt13.mouse.left;
 

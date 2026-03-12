@@ -45,7 +45,7 @@ inline DM4310 shoot({
     .Kt = DM4310::Kt,
     .R = DM4310::R,
     .is_invert = true,
-    .offset = 8 * deg,
+    .offset = -4 * deg,
     .control_mode = Motor::ANGLE_MODE,
     .pid_out_type = Motor::TORQUE_OUTPUT,
     .angle_pid_config = &shoot_angle_pid,
