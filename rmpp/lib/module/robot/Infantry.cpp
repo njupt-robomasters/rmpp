@@ -53,8 +53,15 @@ void Infantry::handleRC() {
     } else {
         wpitch.rc = device.rc.pitch * config.wpitch;
     }
-    is_rub.rc = device.rc.is_rub;;
-    is_shoot.rc = device.rc.is_shoot;
+    is_rub.rc = device.rc.is_rub;
+
+    if (device.rc.is_shoot) { // 遥控器手动开火
+        is_shoot.rc = true;
+    } else if (device.rc.vt13.fn_right && device.mavlink.auto_aim.is_fire) { // 遥控器自瞄自动火控
+        is_shoot.rc = true;
+    } else {
+        is_shoot.rc = false;
+    }
 
     // 左fn底盘跟随
     if (device.rc.vt13.fn_left) {
@@ -246,12 +253,12 @@ void Infantry::handleShooter() {
     device.shooter.SetRub(is_rub.rc || is_rub.client || is_rub.software);
 
     // 拨弹电机
-    if (is_shoot.rc) {                                                                     // 遥控器射击，pitch摇杆控制弹频
+    if (is_shoot.rc) {                                                                      // 遥控器射击，pitch摇杆控制弹频
         device.shooter.SetShoot(device.referee.shooter.heat_remain >= config.heat_protect); // 枪口热量保护
-        device.shooter.SetBulletFreq(config.bullet_freq * device.rc.pitch);                // 设置弹频
+        device.shooter.SetBulletFreq(config.bullet_freq * device.rc.pitch);                 // 设置弹频
     } else if (is_shoot.client || is_shoot.software) {
         device.shooter.SetShoot(device.referee.shooter.heat_remain >= config.heat_protect); // 枪口热量保护
-        device.shooter.SetBulletFreq(config.bullet_freq);                                  // 设置弹频
+        device.shooter.SetBulletFreq(config.bullet_freq);                                   // 设置弹频
     } else {
         device.shooter.SetShoot(false);
     }
