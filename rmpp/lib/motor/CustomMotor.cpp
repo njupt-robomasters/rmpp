@@ -1,6 +1,6 @@
-#include "Custom.hpp"
+#include "CustomMotor.hpp"
 
-Custom::Custom(const config_t& config) : Motor(config) {
+CustomMotor::CustomMotor(const config_t& config) : Motor(config) {
     // 设置电机默认参数
     if (this->config.reduction == 0) this->config.reduction = 1;
 
@@ -11,7 +11,7 @@ Custom::Custom(const config_t& config) : Motor(config) {
     BSP::CAN::RegisterCallback(callback);
 }
 
-int16_t Custom::GetCanCmd() const {
+int16_t CustomMotor::GetCanCmd() const {
     if (is_enable == false) return 0;
 
     int16_t cmd;
@@ -26,7 +26,7 @@ int16_t Custom::GetCanCmd() const {
     return cmd;
 }
 
-void Custom::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
+void CustomMotor::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
     // 端口、ID、长度校验
     if (port != config.can_port) return;
     if (id != config.master_id) return;

@@ -2,9 +2,9 @@
 
 #include "Motor.hpp"
 
-class Custom : public Motor {
+class CustomMotor : public Motor {
 public:
-    Custom(const config_t& config);
+    CustomMotor(const config_t& config);
 
     int16_t GetCanCmd() const;
 

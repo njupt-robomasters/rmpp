@@ -7,6 +7,7 @@ file(GLOB_RECURSE USER_SOURCES
         # "app/hero/app.cpp"
 
         # 调试代码
+        # "app/debug/motor.cpp"
         # "app/debug/led.cpp"
         # "app/debug/buzzer.cpp"
         # "app/debug/rc.cpp"
