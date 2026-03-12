@@ -3,7 +3,7 @@
 
 void send_can_cmd() {
     // CAN1
-    // ui.SendCanCmd();
+    ui.SendCanCmd();
 
     const int16_t cmd1 = w1.GetCanCmd();
     const int16_t cmd2 = w2.GetCanCmd();
