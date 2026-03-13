@@ -27,7 +27,6 @@ public:
 private:
     static constexpr UnitFloat<> SHOOT_TIME = 1 * s;
 
-    BSP::Dwt dwt_shoot;
     bool is_shoot_last = false;
 
     // 正解：电机速度 -> 弹速、弹频

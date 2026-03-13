@@ -34,7 +34,6 @@ inline VESC rub4({
 inline PID::config_t shoot_angle_pid = {
     .kp = (3 * Nm) / (6 * deg),
     .kd = (3 * Nm) / (600 * deg_s),
-    .max_i = 3 * Nm,
     .max_out = 3 * Nm,
 };
 inline DM4310 shoot({
@@ -45,7 +44,7 @@ inline DM4310 shoot({
     .Kt = DM4310::Kt,
     .R = DM4310::R,
     .is_invert = true,
-    .offset = -4 * deg,
+    .offset = 39 * deg,
     .control_mode = Motor::ANGLE_MODE,
     .pid_out_type = Motor::TORQUE_OUTPUT,
     .angle_pid_config = &shoot_angle_pid,

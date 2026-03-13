@@ -83,10 +83,8 @@ void Shooter_42mm::backward() {
 
     // 拨弹电机
     if (is_rub) {
-        // 发射信号上升沿，启动拨弹
+        // 发射信号上升沿，拨弹
         if (is_shoot && !is_shoot_last) {
-            dwt_shoot.UpdateDT();
-
             // 增加角度
             const UnitFloat<deg> angle_per_bullet = 1 / config.bullet_per_angle;
             UnitFloat<> target_angle = motor.shoot.angle.measure + angle_per_bullet;
@@ -96,19 +94,12 @@ void Shooter_42mm::backward() {
             target_angle = index * angle_per_bullet;
 
             // 设置电机角度
-            motor.shoot.config.control_mode = Motor::ANGLE_MODE;
             motor.shoot.SetAngle(target_angle);
         }
         is_shoot_last = is_shoot;
-
-        // 一段时间后停止拨弹
-        if (dwt_shoot.GetDT() > SHOOT_TIME) {
-            motor.shoot.config.control_mode = Motor::OPEN_LOOP_MODE;
-            motor.shoot.SetTorque(0 * default_unit);
-        }
     } else {
-        motor.shoot.config.control_mode = Motor::OPEN_LOOP_MODE;
-        motor.shoot.SetTorque(0 * default_unit);
+        // 保持当前角度
+        motor.shoot.SetAngle(motor.shoot.angle.measure);
     }
 }
 
