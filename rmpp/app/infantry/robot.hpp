@@ -20,7 +20,7 @@ inline Infantry::config_t robot_config = {
     .ayaw = 36000 * deg_s,
     .apitch = 36000 * deg_s,
 
-    .bullet_speed = 25 * m_s,
+    .bullet_speed = 20 * m_s,
     .bullet_freq = 20 * Hz,
     .heat_protect = 10,
 };

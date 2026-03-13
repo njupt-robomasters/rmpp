@@ -23,7 +23,7 @@ inline PID::config_t yaw_speed_pid = {
 inline PID::config_t yaw_angle_pid = {
     .kp = 70 * default_unit,
     .kd = 5 * default_unit,
-    .max_out = 720 * deg_s, // 500
+    .max_out = 720 * deg_s,
 };
 inline GM6020 yaw({
     .can_port = 1,
