@@ -44,40 +44,31 @@ void Robot::handleConnect() {
 void Robot::handleRC() {
     device.rc.OnLoop();
 
+    // 底盘
     vx.rc = device.rc.x * config.vxy_max;
     vy.rc = device.rc.y * config.vxy_max;
     wr.rc = device.rc.r * config.wr_max;
-    wyaw.rc = device.rc.yaw * config.wyaw;
-    if (device.rc.is_shoot) {
-        wpitch.rc = 0 * default_unit;
-    } else {
-        wpitch.rc = device.rc.pitch * config.wpitch;
-    }
-    is_rub.rc = device.rc.is_rub;
-
-    if (device.rc.is_shoot) { // 遥控器手动开火
-        is_shoot.rc = true;
-    } else if (device.rc.vt13.fn_right && device.mavlink.auto_aim.is_fire) { // 遥控器自瞄自动火控
-        is_shoot.rc = true;
-    } else {
-        is_shoot.rc = false;
-    }
-
-    // 左fn底盘跟随
+    // 底盘跟随（左fn）
     if (device.rc.vt13.fn_left) {
         device.chassis.SetMode(Chassis::FOLLOW_MODE);
     }
 
-    // 右fn键自瞄
-    if (device.rc.vt13.fn_right && device.mavlink.auto_aim.is_detect) {
-        gimbal_mode.rc = GIMBAL_ANGLE_MODE;
+    // 云台
+    wyaw.rc = device.rc.yaw * config.wyaw;
+    if (device.rc.is_shoot) { // 按住开火按钮后，pitch摇杆变成弹频控制
+        wpitch.rc = 0 * default_unit;
+    } else {
+        wpitch.rc = device.rc.pitch * config.wpitch;
+    }
+    // 自瞄（右fn）
+    if (device.rc.vt13.fn_right && device.mavlink.auto_aim.is_detect) { // 使能自瞄且识别到
+        gimbal_mode.rc = GIMBAL_ANGLE_MODE; // 云台角度控制
         yaw.rc = device.mavlink.auto_aim.yaw;
         pitch.rc = device.mavlink.auto_aim.pitch;
     } else {
-        gimbal_mode.rc = GIMBAL_SPEED_MODE;
+        gimbal_mode.rc = GIMBAL_SPEED_MODE; // 云台速度控制
     }
-
-    // 校准yaw偏移
+    // 校准yaw偏移（失能+左fn+右fn）
     static bool set_yaw_zero_last = false;
     const bool set_yaw_zero = device.rc.vt13.mode == VT13::C && device.rc.vt13.fn_left && device.rc.vt13.fn_right;
     if (set_yaw_zero && !set_yaw_zero_last) {
@@ -86,6 +77,18 @@ void Robot::handleRC() {
         device.buzzer.Play(Buzzer::G5G5G5);
     }
     set_yaw_zero_last = set_yaw_zero;
+
+    // 发射机构
+    // 摩擦轮（S挡开启）
+    is_rub.rc = device.rc.is_rub;
+    // 拨弹电机（发射键）
+    if (device.rc.is_shoot) {
+        if (device.rc.vt13.fn_right) { // 允许自瞄状态下，使用自动火控
+            is_shoot.rc = device.mavlink.auto_aim.is_fire;
+        } else { // 非自瞄状态直接开火
+            is_shoot.rc = true;
+        }
+    }
 }
 
 void Robot::handleClient() {
@@ -93,7 +96,8 @@ void Robot::handleClient() {
     static BSP::Dwt dwt;
     const UnitFloat dt = dwt.UpdateDT();
 
-    // ws控制前后，限制加速度
+    // 底盘
+    // 前后（w、s键），限制加速度
     if (device.rc.vt13.key.w) { // 前
         if (vx.client < 0) vx.client = 0 * default_unit;
         vx.client += config.axy * dt;
@@ -112,7 +116,7 @@ void Robot::handleClient() {
             if (vx.client > 0) vx.client = 0 * default_unit;
         }
     }
-    // ad控制水平，限制加速度
+    // 水平（a、d键），限制加速度
     if (device.rc.vt13.key.a) { // 左
         if (vy.client < 0) vy.client = 0 * default_unit;
         vy.client += config.axy * dt;
@@ -131,7 +135,7 @@ void Robot::handleClient() {
             if (vy.client > 0) vy.client = 0 * default_unit;
         }
     }
-    // shift ctrl控制旋转
+    // 旋转（shift、ctrl键），限制角加速度
     if (device.rc.vt13.key.shift) { // 逆时针旋转
         if (wr.client < 0) wr.client = 0 * default_unit;
         wr.client += config.ar * dt;
@@ -151,43 +155,49 @@ void Robot::handleClient() {
         }
     }
 
-    // 鼠标控制云台yaw，限制角加速度
+    // 云台
+    // yaw（鼠标上下），限制角加速度
     UnitFloat<deg_s> dwyaw = device.rc.vt13.mouse.yaw * config.wyaw - wyaw.client;
     const UnitFloat<deg_s> dwyaw_max = config.ayaw * dt;
     if (dwyaw > dwyaw_max) dwyaw = dwyaw_max;
     if (dwyaw < -dwyaw_max) dwyaw = -dwyaw_max;
     wyaw.client += dwyaw;
-    // 鼠标控制云台pitch，限制角加速度
+    // pitch（鼠标左右），限制角加速度
     UnitFloat<deg_s> dwpitch = device.rc.vt13.mouse.pitch * config.wpitch - wpitch.client;
     const UnitFloat<deg_s> dwpitch_max = config.apitch * dt;
     if (dwpitch > dwpitch_max) dwpitch = dwpitch_max;
     if (dwpitch < -dwpitch_max) dwpitch = -dwpitch_max;
     wpitch.client += dwpitch;
-
-    // 鼠标左键开火
-    is_shoot.client = device.rc.vt13.mouse.left;
-
-    // 鼠标右键自瞄
-    if (device.rc.vt13.mouse.right && device.mavlink.auto_aim.is_detect) {
-        gimbal_mode.client = GIMBAL_ANGLE_MODE;
+    // 自瞄（鼠标右键）
+    if (device.rc.vt13.mouse.right && device.mavlink.auto_aim.is_detect) { // 使能自瞄且识别到
+        gimbal_mode.client = GIMBAL_ANGLE_MODE; // 云台角度控制
         yaw.client = device.mavlink.auto_aim.yaw;
         pitch.client = device.mavlink.auto_aim.pitch;
     } else {
-        gimbal_mode.client = GIMBAL_SPEED_MODE;
+        gimbal_mode.client = GIMBAL_SPEED_MODE; // 云台速度控制
     }
-
-    // f刷新ui
-    if (device.rc.vt13.key.f) {
-        device.ui.Init();
-    }
-
-    // r一键掉头
+    // 一键掉头（r键）
     static bool last_r = false;
     if (!last_r && device.rc.vt13.key.r) { // 上升沿
         device.gimbal.yaw.ecd.ref = device.gimbal.yaw.ecd.ref + 180 * deg;
         device.gimbal.yaw.imu.ref = device.gimbal.yaw.imu.ref + 180 * deg;
     }
     last_r = device.rc.vt13.key.r;
+
+    // 发射机构
+    // 拨弹电机（鼠标左键）
+    if (device.rc.vt13.mouse.left) {
+        if (device.rc.vt13.mouse.right) { // 允许自瞄状态下，使用自动火控
+            is_shoot.rc = device.mavlink.auto_aim.is_fire;
+        } else { // 非自瞄状态直接开火
+            is_shoot.rc = true;
+        }
+    }
+
+    // 刷新ui（f键）
+    if (device.rc.vt13.key.f) {
+        device.ui.Init();
+    }
 }
 
 void Robot::handleMavlink() {
