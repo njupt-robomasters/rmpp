@@ -31,6 +31,10 @@ void Shooter::SetShoot(const bool is_shoot) {
     this->is_shoot = is_shoot;
 }
 
+void Shooter::SetHeatProtect(bool is_heat_protect) {
+    this->is_heat_protect = is_heat_protect;
+}
+
 void Shooter::OnLoop() {
     // 正逆解
     forward();

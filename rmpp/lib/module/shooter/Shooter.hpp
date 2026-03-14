@@ -10,9 +10,10 @@ public:
         UnitFloat<> rub_radius = 3.0f * cm;                         // 摩擦轮半径
     } config;
 
-    bool is_enable = false; // 使能标志
-    bool is_rub = false;    // 摩擦轮状态
-    bool is_shoot = false;  // 拨弹电机状态
+    bool is_enable = false;       // 使能标志
+    bool is_rub = false;          // 摩擦轮状态
+    bool is_shoot = false;        // 拨弹电机状态
+    bool is_heat_protect = false; // 热量保护状态
 
     // 弹速
     struct {
@@ -43,6 +44,9 @@ public:
 
     // 设置拨弹电机
     void SetShoot(bool is_shoot);
+
+    // 设置热量保护
+    void SetHeatProtect(bool is_heat_protect);
 
     // 在自定义UI上显示电机连接状态
     virtual void UpdateUI(UI& ui) = 0;

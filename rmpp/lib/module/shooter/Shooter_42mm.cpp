@@ -85,16 +85,18 @@ void Shooter_42mm::backward() {
     if (is_rub) {
         // 发射信号上升沿，拨弹
         if (is_shoot && !is_shoot_last) {
-            // 增加角度
-            const UnitFloat<deg> angle_per_bullet = 1 / config.bullet_per_angle;
-            UnitFloat<> target_angle = motor.shoot.angle.measure + angle_per_bullet;
+            if (!is_heat_protect) { // 枪口热量保护
+                // 增加角度
+                const UnitFloat<deg> angle_per_bullet = 1 / config.bullet_per_angle;
+                UnitFloat<> target_angle = motor.shoot.angle.measure + angle_per_bullet;
 
-            // 对齐相位
-            const int8_t index = (int8_t)std::round((target_angle / angle_per_bullet).toFloat());
-            target_angle = index * angle_per_bullet;
+                // 对齐相位
+                const int8_t index = (int8_t)std::round((target_angle / angle_per_bullet).toFloat());
+                target_angle = index * angle_per_bullet;
 
-            // 设置电机角度
-            motor.shoot.SetAngle(target_angle);
+                // 设置电机角度
+                motor.shoot.SetAngle(target_angle);
+            }
         }
         is_shoot_last = is_shoot;
     } else {

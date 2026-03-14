@@ -55,7 +55,7 @@ void Robot::handleRC() {
     }
     // 自瞄（右fn）
     if (device.rc.vt13.fn_right && device.mavlink.auto_aim.is_detect) { // 使能自瞄且识别到
-        gimbal_mode.rc = GIMBAL_ANGLE_MODE; // 云台角度控制
+        gimbal_mode.rc = GIMBAL_ANGLE_MODE;                             // 云台角度控制
         yaw.rc = device.mavlink.auto_aim.yaw;
         pitch.rc = device.mavlink.auto_aim.pitch;
     } else {
@@ -165,7 +165,7 @@ void Robot::handleClient() {
     wpitch.client += dwpitch;
     // 自瞄（鼠标右键）
     if (device.rc.vt13.mouse.right && device.mavlink.auto_aim.is_detect) { // 使能自瞄且识别到
-        gimbal_mode.client = GIMBAL_ANGLE_MODE; // 云台角度控制
+        gimbal_mode.client = GIMBAL_ANGLE_MODE;                            // 云台角度控制
         yaw.client = device.mavlink.auto_aim.yaw;
         pitch.client = device.mavlink.auto_aim.pitch;
     } else {
@@ -231,6 +231,7 @@ void Robot::handleChassis() {
 }
 
 void Robot::handleGimbal() {
+    // 设置角度或速度
     if (gimbal_mode.rc == GIMBAL_ANGLE_MODE) {
         device.gimbal.SetAngle(yaw.rc, pitch.rc);
     } else if (gimbal_mode.client == GIMBAL_ANGLE_MODE) {
@@ -250,21 +251,25 @@ void Robot::handleGimbal() {
 }
 
 void Robot::handleShooter() {
-    device.shooter.SetBulletSpeed(config.bullet_speed); // 设置弹速
-
     // 摩擦轮
     device.shooter.SetRub(is_rub.rc || is_rub.client || is_rub.software);
 
     // 拨弹电机
-    if (is_shoot.rc) {                                                                      // 遥控器射击，pitch摇杆控制弹频
-        device.shooter.SetShoot(device.referee.shooter.heat_remain >= config.heat_protect); // 枪口热量保护
-        device.shooter.SetBulletFreq(config.bullet_freq * device.rc.pitch);                 // 设置弹频
+    if (is_shoot.rc) { // 遥控器射击，pitch摇杆控制弹频
+        device.shooter.SetShoot(true);
+        device.shooter.SetBulletFreq(config.bullet_freq * device.rc.pitch); // 设置弹频
     } else if (is_shoot.client || is_shoot.software) {
-        device.shooter.SetShoot(device.referee.shooter.heat_remain >= config.heat_protect); // 枪口热量保护
-        device.shooter.SetBulletFreq(config.bullet_freq);                                   // 设置弹频
+        device.shooter.SetShoot(true);
+        device.shooter.SetBulletFreq(config.bullet_freq); // 设置弹频
     } else {
         device.shooter.SetShoot(false);
     }
+
+    // 设置弹速
+    device.shooter.SetBulletSpeed(config.bullet_speed);
+
+    // 枪口热量保护
+    device.shooter.SetHeatProtect(device.referee.shooter.heat_remain < config.heat_protect);
 
     device.shooter.OnLoop();
 }

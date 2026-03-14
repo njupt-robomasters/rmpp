@@ -64,7 +64,7 @@ void Shooter_17mm::backward() {
     }
 
     // 拨弹电机
-    if (is_rub && is_shoot) {
+    if (is_rub && is_shoot && !is_heat_protect) {
         const UnitFloat<rpm> shoot_speed = bullet_freq.ref / config.bullet_per_angle;
 
         if (is_block) { // 检测到卡弹
