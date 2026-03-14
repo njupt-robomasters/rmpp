@@ -81,6 +81,8 @@ void Robot::handleRC() {
         } else { // 非自瞄状态直接开火
             is_shoot.rc = true;
         }
+    } else {
+        is_shoot.rc = false;
     }
 }
 
@@ -181,10 +183,12 @@ void Robot::handleClient() {
     // 拨弹电机（鼠标左键）
     if (device.rc.vt13.mouse.left) {
         if (device.rc.vt13.mouse.right) { // 允许自瞄状态下，使用自动火控
-            is_shoot.rc = device.mavlink.auto_aim.is_fire;
+            is_shoot.client = device.mavlink.auto_aim.is_fire;
         } else { // 非自瞄状态直接开火
-            is_shoot.rc = true;
+            is_shoot.client = true;
         }
+    } else {
+        is_shoot.client = false;
     }
 
     // 刷新ui（f键）
