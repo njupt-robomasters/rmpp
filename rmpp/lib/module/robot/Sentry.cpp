@@ -44,12 +44,8 @@ void Sentry::handleTest() {
             device.mavlink.target_position.y = 0 * m_s;
             nav_status = POS1;
         } else if (nav_status == POS1) {
-            device.mavlink.target_position.x = 1 * m_s;
+            device.mavlink.target_position.x = 2 * m_s;
             device.mavlink.target_position.y = 0 * m_s;
-            nav_status = POS2;
-        } else if (nav_status == POS2) {
-            device.mavlink.target_position.x = 1 * m_s;
-            device.mavlink.target_position.y = 1 * m_s;
             nav_status = ORIGIN;
         }
     }
