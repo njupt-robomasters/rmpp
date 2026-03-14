@@ -18,11 +18,10 @@ public:
     };
 
     enum center_buff_e {
-        EMPTY,
-        SELF,
-        TEAM,
-        ENEMY,
-        BOTH,
+        EMPTY = 0,
+        WE  = 1,
+        ENEMY = 2,
+        BOTH  = 3,
     };
 
     // 机器人ID
@@ -87,9 +86,13 @@ public:
         uint16_t bullet_allowance = 0;
     } shooter;
 
+    // 机器人RFID模块状态
+    // 0x0209 rfid_status
+    bool in_home = false;   // bit 19
+    bool in_center = false; // bit 23
+
     // 中心增益点的占领状态
     // 0x0101 event_data
-    // 0x0209 rfid_status
     center_buff_e center_buff = EMPTY;
 
     // 伤害方向

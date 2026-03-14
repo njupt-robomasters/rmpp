@@ -38,27 +38,12 @@ void Referee::OnLoop() {
     shooter.bullet_freq = parser.shoot_data.launching_frequency * Hz;           // 射击频率
     shooter.bullet_speed = parser.shoot_data.initial_speed * m_s;               // 弹丸初速度
 
+    // 机器人RFID模块状态
+    in_home = parser.rfid_status.rfid_status & (1 << 19);
+    in_center = parser.rfid_status.rfid_status & (1 << 23);
+
     // 中心增益点的占领状态
-    switch ((parser.event_data.event_data >> 23) & 0b11) {
-        case 0: // 未被占领
-            center_buff = EMPTY;
-            break;
-        case 1: // 己方占领
-            if ((parser.rfid_status.rfid_status >> 23) & 0b1) {
-                center_buff = SELF; // 自己占领
-            } else {
-                center_buff = TEAM; // 队友占领
-            }
-            break;
-        case 2: // 对方占领
-            center_buff = ENEMY;
-            break;
-        case 3: // 双方占领
-            center_buff = BOTH;
-            break;
-        default:
-            break;
-    }
+    center_buff = center_buff_e((parser.event_data.event_data >> 23) & 0b11);
 
     // 伤害方向
     if (hurt_dwt != parser.dwt_hurt_data) {              // 有新的伤害
