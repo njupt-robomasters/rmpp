@@ -29,16 +29,9 @@ void Robot::OnLoop() {
 }
 
 void Robot::handleConnect() {
-    // 比赛时候忽略断联保护
-    if (device.referee.game.game_progress == Referee::GAMING) {
-        device.chassis.SetEnable(true);
-        device.gimbal.SetEnable(true);
-        device.shooter.SetEnable(true);
-    } else {
-        device.chassis.SetEnable(device.rc.is_enable);
-        device.gimbal.SetEnable(device.rc.is_enable);
-        device.shooter.SetEnable(device.rc.is_enable);
-    }
+    device.chassis.SetEnable(device.rc.is_enable);
+    device.gimbal.SetEnable(device.rc.is_enable);
+    device.shooter.SetEnable(device.rc.is_enable);
 }
 
 void Robot::handleRC() {

@@ -18,7 +18,11 @@ private:
     static constexpr pos_t CENTER = {4 * m, 6 * m};
     static constexpr UnitFloat<m> CENTER_R = 1 * m;
 
-    bool is_pause = false;
+    enum {
+        PAUSE,
+        GAME,
+        TEST,
+    } mode = PAUSE;
 
     enum {
         GO_CENTER,
@@ -28,10 +32,9 @@ private:
     } game_status = GO_CENTER;
 
     enum {
-        GO_ORIGIN,
         GO_POS1,
-        GO_POS2
-    } test_status = GO_ORIGIN;
+        GO_POS2,
+    } test_status = GO_POS1;
 
     bool checkPos(const pos_t& pos, const UnitFloat<>& r);
 
@@ -39,5 +42,5 @@ private:
 
     void handleGame();
 
-    void handleTest();
+    void handleTest(bool is_fn);
 };

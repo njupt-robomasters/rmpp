@@ -6,25 +6,39 @@ extern GM6020 yaw2;
 void Sentry::OnLoop() {
     Robot::OnLoop();
 
-    // 暂停
-    if (device.rc.vt13.pause) {
-        is_pause = true;
-    }
+    static bool fn_left_last = false;
+    switch (mode) {
+        case PAUSE:
+            handlePause();
 
-    // 失能复位暂停（断联除外）
-    if (device.rc.vt13.is_connect == true && device.rc.is_enable == false) {
-        is_pause = false;
-    }
+            // 比赛开始自动进入比赛模式
+            if (device.referee.game.game_progress == Referee::GAMING) {
+                mode = GAME;
+            }
 
-    if (is_pause) {
-        handlePause();
-    } else {
-        if (device.referee.game.game_progress == Referee::GAMING) {
+            // 使能+左fn，进入调试模式
+            if (device.rc.is_enable && device.rc.vt13.fn_left) {
+                mode = TEST;
+            }
+            break;
+
+        case GAME:
             handleGame();
-        } else {
-            handleTest();
-        }
+            break;
+
+        case TEST:
+            handleTest(device.rc.vt13.fn_left && !fn_left_last); // 左fn上升沿
+
+            // 失能 或 遥控器停止按钮，返回暂停模式
+            if (!device.rc.is_enable || device.rc.vt13.pause) {
+                mode = PAUSE;
+            }
+            break;
+
+        default:
+            break;
     }
+    fn_left_last = device.rc.vt13.fn_left;
 }
 
 bool Sentry::checkPos(const pos_t& pos, const UnitFloat<>& r) {
@@ -33,6 +47,11 @@ bool Sentry::checkPos(const pos_t& pos, const UnitFloat<>& r) {
 }
 
 void Sentry::handlePause() {
+    // 复位状态机
+    game_status = GO_CENTER;
+    test_status = GO_POS1;
+
+    // 复位控制量
     vx.software = vy.software = wr.software = 0 * default_unit;
     gimbal_mode.software = GIMBAL_SPEED_MODE;
     wyaw.software = wpitch.software = 0 * default_unit;
@@ -106,24 +125,29 @@ void Sentry::handleGame() {
     }
 }
 
-void Sentry::handleTest() {
-    static bool fn_left_last = false;
-    if (device.rc.vt13.fn_left && !fn_left_last) {
-        if (test_status == GO_ORIGIN) {
-            device.mavlink.target_position.x = 0 * m_s;
-            device.mavlink.target_position.y = 0 * m_s;
-            test_status = GO_POS1;
-        } else if (test_status == GO_POS1) {
-            device.mavlink.target_position.x = 1 * m_s;
-            device.mavlink.target_position.y = 0 * m_s;
+void Sentry::handleTest(const bool is_fn) {
+    // 改变目标点
+    if (is_fn) {
+        if (test_status == GO_POS1) {
             test_status = GO_POS2;
         } else if (test_status == GO_POS2) {
-            device.mavlink.target_position.x = 1 * m_s;
-            device.mavlink.target_position.y = 1 * m_s;
-            test_status = GO_ORIGIN;
+            test_status = GO_POS1;
         }
     }
-    fn_left_last = device.rc.vt13.fn_left;
 
+    // 导航目标点
+    if (test_status == GO_POS1) {
+        device.mavlink.target_position.x = 0 * m_s;
+        device.mavlink.target_position.y = 0 * m_s;
+    } else if (test_status == GO_POS2) {
+        device.mavlink.target_position.x = 1 * m_s;
+        device.mavlink.target_position.y = 0 * m_s;
+        test_status = GO_POS2;
+    }
+
+    // 响应导航
     std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
+
+    // 关闭小陀螺
+    wr.software = 0 * default_unit;
 }
