@@ -1,13 +1,13 @@
 #pragma once
 
-#include "module/robot/Infantry.hpp"
+#include "module/robot/Robot.hpp"
 
 #include "misc.hpp"
 #include "chassis.hpp"
 #include "gimbal.hpp"
 #include "shooter.hpp"
 
-inline Infantry::config_t robot_config = {
+inline Robot::config_t robot_config = {
     .vxy_max = 4 * m_s,  // 极限4.5m/s
     .wr_max = 120 * rpm, // 极限130rpm
     .axy = 500 * m_ss,
@@ -23,7 +23,7 @@ inline Infantry::config_t robot_config = {
     .bullet_speed = 15.2f * m_s,
     .heat_protect = 100,
 };
-inline Infantry robot(robot_config,
+inline Robot robot(robot_config,
                       {
                           led,
                           buzzer,

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Infantry.hpp"
+#include "Robot.hpp"
 
-class Sentry : public Infantry {
+class Sentry : public Robot {
 public:
-    using Infantry::Infantry;
+    using Robot::Robot;
 
     void OnLoop();
 

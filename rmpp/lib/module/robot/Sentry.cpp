@@ -4,7 +4,7 @@
 extern GM6020 yaw2;
 
 void Sentry::OnLoop() {
-    Infantry::OnLoop();
+    Robot::OnLoop();
 
     // 暂停
     if (device.rc.vt13.pause) {

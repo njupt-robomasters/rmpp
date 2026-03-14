@@ -18,7 +18,7 @@
 #include "referee/Referee.hpp"
 #include "ui/UI.hpp"
 
-class Infantry {
+class Robot {
 public:
     struct config_t {
         // 底盘速度
@@ -57,7 +57,7 @@ public:
         UI& ui;
     } device;
 
-    Infantry(const config_t& config, const device_t& device);
+    Robot(const config_t& config, const device_t& device);
 
     void Init();
 

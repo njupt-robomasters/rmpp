@@ -1,13 +1,13 @@
-#include "Infantry.hpp"
+#include "Robot.hpp"
 
-Infantry::Infantry(const config_t& config, const device_t& device) : config(config), device(device) {}
+Robot::Robot(const config_t& config, const device_t& device) : config(config), device(device) {}
 
-void Infantry::Init() {
+void Robot::Init() {
     device.gimbal.LoadYawOffset(device.flashdb);
     device.buzzer.Play(Buzzer::C5D5G5);
 }
 
-void Infantry::OnLoop() {
+void Robot::OnLoop() {
     handleConnect();
 
     device.led.OnLoop();
@@ -28,7 +28,7 @@ void Infantry::OnLoop() {
     handleUI();
 }
 
-void Infantry::handleConnect() {
+void Robot::handleConnect() {
     // 比赛时候忽略断联保护
     if (device.referee.game.game_progress == Referee::GAMING) {
         device.chassis.SetEnable(true);
@@ -41,7 +41,7 @@ void Infantry::handleConnect() {
     }
 }
 
-void Infantry::handleRC() {
+void Robot::handleRC() {
     device.rc.OnLoop();
 
     vx.rc = device.rc.x * config.vxy_max;
@@ -88,7 +88,7 @@ void Infantry::handleRC() {
     set_yaw_zero_last = set_yaw_zero;
 }
 
-void Infantry::handleClient() {
+void Robot::handleClient() {
     // 维护dt
     static BSP::Dwt dwt;
     const UnitFloat dt = dwt.UpdateDT();
@@ -190,7 +190,7 @@ void Infantry::handleClient() {
     last_r = device.rc.vt13.key.r;
 }
 
-void Infantry::handleMavlink() {
+void Robot::handleMavlink() {
     device.mavlink.imu = {
         .yaw = device.gimbal.imu.yaw,
         .pitch = device.gimbal.imu.pitch,
@@ -204,7 +204,7 @@ void Infantry::handleMavlink() {
     device.mavlink.OnLoop();
 }
 
-void Infantry::handleChassis() {
+void Robot::handleChassis() {
     // 设置底盘速度
     const UnitFloat<> vx = unit::clamp(this->vx.rc + this->vx.client + this->vx.software, config.vxy_max);
     const UnitFloat<> vy = unit::clamp(this->vy.rc + this->vy.client + this->vy.software, config.vxy_max);
@@ -223,7 +223,7 @@ void Infantry::handleChassis() {
     device.chassis.OnLoop();
 }
 
-void Infantry::handleGimbal() {
+void Robot::handleGimbal() {
     if (gimbal_mode.rc == GIMBAL_ANGLE_MODE) {
         device.gimbal.SetAngle(yaw.rc, pitch.rc);
     } else if (gimbal_mode.client == GIMBAL_ANGLE_MODE) {
@@ -242,7 +242,7 @@ void Infantry::handleGimbal() {
     device.gimbal.OnLoop();
 }
 
-void Infantry::handleShooter() {
+void Robot::handleShooter() {
     device.shooter.SetBulletSpeed(config.bullet_speed); // 设置弹速
 
     // 摩擦轮
@@ -262,12 +262,12 @@ void Infantry::handleShooter() {
     device.shooter.OnLoop();
 }
 
-void Infantry::handleReferee() {
+void Robot::handleReferee() {
     device.referee.SetYaw(device.gimbal.yaw.ecd.measure, device.gimbal.yaw.imu.measure);
     device.referee.OnLoop();
 }
 
-void Infantry::handleUI() {
+void Robot::handleUI() {
     // 云台角度
     device.ui.yaw_ecd = device.gimbal.yaw.ecd.measure; // 云台相对底盘角度
     device.ui.yaw = device.gimbal.yaw.imu.measure;
