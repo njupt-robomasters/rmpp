@@ -26,6 +26,7 @@ public:
 
 private:
     static constexpr UnitFloat<> SHOOT_TIME = 1 * s;
+    static constexpr UnitFloat<> RUB12_RATIO = 0.5f * ratio;
 
     bool is_shoot_last = false;
 

@@ -22,7 +22,7 @@ void Shooter_42mm::SetEnable(const bool is_enable) {
 void Shooter_42mm::UpdateUI(UI& ui) {
     if (motor.rub1.is_connect == false) {
         ui.robot.rub1 = UI::PINK;
-    } else if (unit::abs(bullet_speed.ref - rub1_measure) < 1) {
+    } else if (unit::abs(bullet_speed.ref * RUB12_RATIO - rub1_measure) < 1) {
         ui.robot.rub1 = UI::GREEN;
     } else {
         ui.robot.rub1 = UI::ORANGE;
@@ -30,7 +30,7 @@ void Shooter_42mm::UpdateUI(UI& ui) {
 
     if (motor.rub2.is_connect == false) {
         ui.robot.rub2 = UI::PINK;
-    } else if (unit::abs(bullet_speed.ref - rub2_measure) < 1) {
+    } else if (unit::abs(bullet_speed.ref * RUB12_RATIO - rub2_measure) < 1) {
         ui.robot.rub2 = UI::GREEN;
     } else {
         ui.robot.rub2 = UI::ORANGE;
@@ -70,8 +70,8 @@ void Shooter_42mm::backward() {
     // 摩擦轮
     if (is_rub) {
         const UnitFloat<rpm> speed = bullet_speed.ref / config.rub_radius;
-        motor.rub1.SetSpeed(speed / 2);
-        motor.rub2.SetSpeed(speed / 2);
+        motor.rub1.SetSpeed(speed * RUB12_RATIO);
+        motor.rub2.SetSpeed(speed * RUB12_RATIO);
         motor.rub3.SetSpeed(speed);
         motor.rub4.SetSpeed(speed);
     } else {
