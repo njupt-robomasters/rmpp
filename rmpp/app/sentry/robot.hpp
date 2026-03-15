@@ -22,7 +22,7 @@ inline Sentry::config_t robot_config = {
 
     .bullet_speed = 20 * m_s,
     .bullet_freq = 20 * Hz,
-    .heat_protect = 10,
+    .heat_protect = 80,
 };
 inline Sentry robot(robot_config,
                     {

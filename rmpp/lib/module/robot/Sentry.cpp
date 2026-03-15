@@ -23,7 +23,7 @@ void Sentry::OnLoop() {
             break;
 
         case GAME:
-            handleGame();
+            // handleGame();
             break;
 
         case TEST:
