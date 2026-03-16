@@ -70,7 +70,7 @@ void VESC::callback(const uint8_t port, const uint32_t id, const uint8_t data[8]
 }
 
 void VESC::makeCANData(uint8_t data[4], const float value, const float scale) {
-    const auto number = (uint32_t)(value * scale);
+    const auto number = (int32_t)(value * scale);
     data[0] = number >> 24;
     data[1] = number >> 16;
     data[2] = number >> 8;

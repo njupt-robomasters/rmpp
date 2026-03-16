@@ -17,7 +17,8 @@ file(GLOB_RECURSE USER_SOURCES
         # "app/debug/chassis.cpp"
         # "app/debug/gimbal_motor.cpp"
         # "app/debug/gimbal.cpp"
-        # "app/debug/shooter_rub.cpp"
+        # "app/debug/shooter_rub2.cpp"
+        # "app/debug/shooter_rub4.cpp"
         # "app/debug/shooter_shoot.cpp"
         # "app/debug/shooter.cpp"
 )

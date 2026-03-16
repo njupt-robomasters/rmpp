@@ -5,15 +5,8 @@ static constexpr UnitFloat BULLET_SPEED = 25 * m_s;
 static constexpr UnitFloat<rpm> RUB_SPEED = BULLET_SPEED / (3 * cm);
 
 void send_can_cmd() {
-    // 步兵、哨兵
     rub1.SendCanCmd();
     rub2.SendCanCmd();
-
-    // 英雄
-    // rub1.SendCanCmd();
-    // rub2.SendCanCmd();
-    // rub3.SendCanCmd();
-    // rub4.SendCanCmd();
 }
 
 void setup() {
@@ -26,7 +19,7 @@ void loop() {
     rub1.SetEnable(rc.is_enable);
     rub2.SetEnable(rc.is_enable);
 
-    if (rc.is_enable) {
+    if (rc.is_rub) {
         rub1.SetSpeed(RUB_SPEED);
         rub2.SetSpeed(RUB_SPEED);
     } else {
