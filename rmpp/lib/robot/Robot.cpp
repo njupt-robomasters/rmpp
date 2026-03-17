@@ -8,10 +8,13 @@ void Robot::Init() {
 }
 
 void Robot::OnLoop() {
-    handleConnect();
-
     device.led.OnLoop();
     device.buzzer.OnLoop();
+
+    // 断联检测
+    device.chassis.SetEnable(device.rc.is_enable);
+    device.gimbal.SetEnable(device.rc.is_enable);
+    device.shooter.SetEnable(device.rc.is_enable);
 
     // 控制器
     handleRC();
@@ -28,16 +31,10 @@ void Robot::OnLoop() {
     handleUI();
 }
 
-void Robot::handleConnect() {
-    device.chassis.SetEnable(device.rc.is_enable);
-    device.gimbal.SetEnable(device.rc.is_enable);
-    device.shooter.SetEnable(device.rc.is_enable);
-}
-
 void Robot::handleRC() {
     device.rc.OnLoop();
 
-    // 底盘
+    //【底盘】
     vx.rc = device.rc.x * config.vxy_max;
     vy.rc = device.rc.y * config.vxy_max;
     wr.rc = device.rc.r * config.wr_max;
@@ -46,7 +43,7 @@ void Robot::handleRC() {
         device.chassis.SetMode(Chassis::FOLLOW_MODE);
     }
 
-    // 云台
+    //【云台】
     wyaw.rc = device.rc.yaw * config.wyaw;
     if (device.rc.is_shoot) { // 按住开火按钮后，pitch摇杆变成弹频控制
         wpitch.rc = 0 * default_unit;
@@ -71,18 +68,14 @@ void Robot::handleRC() {
     }
     set_yaw_zero_last = set_yaw_zero;
 
-    // 发射机构
+    //【发射机构】
     // 摩擦轮（S挡开启）
     is_rub.rc = device.rc.is_rub;
-    // 拨弹电机（发射键）
-    if (device.rc.is_shoot) {
-        if (device.rc.vt13.fn_right) { // 允许自瞄状态下，使用自动火控
-            is_shoot.rc = device.mavlink.auto_aim.is_fire;
-        } else { // 非自瞄状态直接开火
-            is_shoot.rc = true;
-        }
-    } else {
-        is_shoot.rc = false;
+    // 拨弹电机
+    if (device.rc.vt13.fn_right) { // 自瞄状态下，使用自动火控
+        is_shoot.rc = device.mavlink.auto_aim.is_fire;
+    } else { // 非自瞄状态下，扳机键开火
+        is_shoot.rc = device.rc.is_shoot;
     }
 }
 
@@ -91,7 +84,7 @@ void Robot::handleClient() {
     static BSP::Dwt dwt;
     const UnitFloat dt = dwt.UpdateDT();
 
-    // 底盘
+    //【底盘】
     // 前后（w、s键），限制加速度
     if (device.rc.vt13.key.w) { // 前
         if (vx.client < 0) vx.client = 0 * default_unit;
@@ -150,7 +143,7 @@ void Robot::handleClient() {
         }
     }
 
-    // 云台
+    //【云台】
     // yaw（鼠标上下），限制角加速度
     UnitFloat<deg_s> dwyaw = device.rc.vt13.mouse.yaw * config.wyaw - wyaw.client;
     const UnitFloat<deg_s> dwyaw_max = config.ayaw * dt;
@@ -179,16 +172,34 @@ void Robot::handleClient() {
     }
     last_r = device.rc.vt13.key.r;
 
-    // 发射机构
-    // 拨弹电机（鼠标左键）
-    if (device.rc.vt13.mouse.left) {
-        if (device.rc.vt13.mouse.right) { // 允许自瞄状态下，使用自动火控
-            is_shoot.client = device.mavlink.auto_aim.is_fire;
-        } else { // 非自瞄状态直接开火
-            is_shoot.client = true;
+    //【发射机构】
+    // 拨弹电机
+    static bool force_fire = false;
+    static bool last_left = false;
+    static BSP::Dwt dwt_last_click;
+    if (device.rc.vt13.mouse.right) { // 允许自瞄状态下
+        // 双击左键强制开火
+        if (!last_left && device.rc.vt13.mouse.left) {
+            if (dwt_last_click.GetDT() < 250 * ms) {
+                force_fire = true;
+            }
+            dwt_last_click.UpdateDT();
         }
-    } else {
-        is_shoot.client = false;
+        last_left = device.rc.vt13.mouse.left;
+
+        if (device.rc.vt13.mouse.left) { // 按下左键
+            if (force_fire) {            // 强制开火
+                is_shoot.client = true;
+            } else { // 自动火控
+                is_shoot.client = device.mavlink.auto_aim.is_fire;
+            }
+        } else { // 释放左键
+            is_shoot.client = false;
+            force_fire = false; // 复位强制开火
+        }
+    } else { // 非自瞄状态下，鼠标左键开火
+        is_shoot.client = device.rc.vt13.mouse.left;
+        force_fire = false; // 复位强制开火
     }
 
     // 刷新ui（f键）

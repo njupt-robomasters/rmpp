@@ -96,8 +96,6 @@ protected:
     } is_rub, is_shoot;
 
 private:
-    void handleConnect();
-
     // 控制器
     void handleRC();
     void handleClient();
