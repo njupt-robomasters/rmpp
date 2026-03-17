@@ -9,6 +9,7 @@ public:
     struct config_t {
         UnitFloat<> chassis_radius;                       // 底盘半径
         UnitFloat<> wheel_radius;                         // 轮子半径
+        UnitFloat<> reserve_wr = 60 * rpm;                // 功率限制下，优先衰减旋转速度到保留值
         const PID::config_t* vxyz_pid_config = nullptr;   // 底盘运动PID参数
         const PID::config_t* follow_pid_config = nullptr; // 底盘跟随PID参数
     } config;

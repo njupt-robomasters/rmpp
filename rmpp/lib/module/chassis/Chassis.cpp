@@ -90,11 +90,18 @@ void Chassis::powerControl() {
     // 基于功率估计的功率控制
     const UnitFloat<W> power_xy = fx.ref * vx.measure + fy.ref * vy.measure;
     const UnitFloat<W> power_z = fz.ref * vz.measure;
-    if (power_xy > power.limit) { // 衰减移动功率，停止旋转
-        gain_xy *= power.limit / power_xy;
-        gain_z *= 0;
-    } else if (power_xy + power_z > power.limit) { // 只衰减旋转功率
-        gain_z *= (power.limit - power_xy) / power_z;
+    if (abs(wr.measure) > config.reserve_wr) { // 旋转速度 > 保留速度，优先衰减旋转
+        if (power_xy > power.limit) {          // 停止旋转，衰减移动
+            gain_xy *= power.limit / power_xy;
+            gain_z *= 0;
+        } else if (power_xy + power_z > power.limit) { // 衰减旋转
+            gain_z *= (power.limit - power_xy) / power_z;
+        }
+    } else {
+        if (power_xy + power_z > power.limit) { // 同时衰减
+            gain_xy *= power.limit / (power_xy + power_z);
+            gain_z *= power.limit / (power_xy + power_z);
+        }
     }
 
     // 基于缓冲能量的功率控制
@@ -102,11 +109,18 @@ void Chassis::powerControl() {
     if (buffer_energy < 30 * J) { // 停止移动和旋转
         gain_xy *= 0;
         gain_z *= 0;
-    } else if (buffer_energy < 45 * J) { // 衰减移动功率，停止旋转
-        gain_xy *= (buffer_energy - 30 * J) / (15 * J);
-        gain_z *= 0;
-    } else if (buffer_energy < 60 * J) { // 只衰减旋转功率
-        gain_z *= (buffer_energy - 45 * J) / (15 * J);
+    } else {
+        if (abs(wr.measure) > config.reserve_wr) { // 旋转速度 > 保留速度，优先衰减旋转
+            if (buffer_energy < 45 * J) {          // 停止旋转，衰减移动
+                gain_xy *= (buffer_energy - 30 * J) / (15 * J);
+                gain_z *= 0;
+            } else { // 衰减旋转
+                gain_z *= (buffer_energy - 45 * J) / (15 * J);
+            }
+        } else { // 同时衰减
+            gain_xy *= (buffer_energy - 30 * J) / (30 * J);
+            gain_z *= (buffer_energy - 30 * J) / (30 * J);
+        }
     }
 
     // 应用牵引力衰减
