@@ -82,13 +82,13 @@ void Shooter_42mm::backward() {
     }
 
     // 拨弹电机
-    if (is_rub) {
-        // 发射信号上升沿，拨弹
-        if (is_shoot && !is_shoot_last) {
-            if (!is_heat_protect) { // 枪口热量保护
+    if (is_rub) {        // 确保摩擦轮开启
+        if (!is_block) { // 未卡弹
+            // 发射信号上升沿、枪口热量保护
+            if (is_shoot && !is_shoot_last && !is_heat_protect) {
                 // 增加角度
-                const UnitFloat<deg> angle_per_bullet = 1 / config.bullet_per_angle;
-                UnitFloat<> target_angle = motor.shoot.angle.measure + angle_per_bullet;
+                const Angle<deg> angle_per_bullet = 1 / config.bullet_per_angle;
+                Angle<deg> target_angle = motor.shoot.angle.measure + angle_per_bullet;
 
                 // 对齐相位
                 const int8_t index = (int8_t)std::round((target_angle / angle_per_bullet).toFloat());
@@ -97,11 +97,43 @@ void Shooter_42mm::backward() {
                 // 设置电机角度
                 motor.shoot.SetAngle(target_angle);
             }
+            is_shoot_last = is_shoot;
+
+            // 卡弹检测
+            if (motor.shoot.torque.ref >= motor.shoot.config.angle_pid_config->max_out) { // 达到角度环最大输出
+                // 卡弹计时
+                if (dwt_block.GetDT() > config.block_time) {
+                    // 减小角度
+                    const Angle<deg> angle_per_bullet = 1 / config.bullet_per_angle;
+                    Angle<deg> target_angle = motor.shoot.angle.measure - angle_per_bullet;
+
+                    // 对齐相位
+                    const int8_t index = (int8_t)std::floor((target_angle / angle_per_bullet).toFloat());
+                    target_angle = index * angle_per_bullet;
+
+                    // 设置电机角度
+                    motor.shoot.SetAngle(target_angle);
+
+                    is_block = true;
+                    dwt_block.UpdateDT(); // 重置计时器，用于倒转计时
+                }
+            } else {
+                dwt_block.UpdateDT(); // 未卡弹，重置计时器
+            }
+        } else { // 卡弹
+            // 倒转计时
+            if (dwt_block.GetDT() > config.block_time) {
+                // 保持当前角度
+                motor.shoot.SetAngle(motor.shoot.angle.measure);
+
+                is_block = false;
+                dwt_block.UpdateDT(); // 重置计时器，用于卡弹计时
+            }
         }
-        is_shoot_last = is_shoot;
     } else {
-        // 保持当前角度
-        motor.shoot.SetAngle(motor.shoot.angle.measure);
+        is_block = false;                                // 清除卡弹状态
+        dwt_block.UpdateDT();                            // 重置计时器
+        motor.shoot.SetAngle(motor.shoot.angle.measure); // 保持当前角度
     }
 }
 

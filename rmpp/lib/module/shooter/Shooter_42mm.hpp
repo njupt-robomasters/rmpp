@@ -11,8 +11,6 @@ public:
         Motor& shoot;                     // 拨弹电机
     } motor;
 
-    UnitFloat<m_s> rub1_measure, rub2_measure, rub3_measure, rub4_measure;
-
     Shooter_42mm(const config_t& config, const motor_t& motor);
 
     // 设置发射结构使能/失能
@@ -28,6 +26,10 @@ private:
     static constexpr UnitFloat<> SHOOT_TIME = 1 * s;
     static constexpr UnitFloat<> RUB12_RATIO = 0.5f * ratio;
 
+    // 摩擦轮线速度
+    UnitFloat<m_s> rub1_measure, rub2_measure, rub3_measure, rub4_measure;
+
+    // 用于检测发送信号上升沿
     bool is_shoot_last = false;
 
     // 正解：电机速度 -> 弹速、弹频

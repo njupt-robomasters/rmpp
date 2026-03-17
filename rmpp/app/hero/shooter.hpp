@@ -53,5 +53,7 @@ inline DM4310 shoot({
 // 发射机构
 inline Shooter_42mm shooter({
                                 .bullet_per_angle = 6 * (default_unit / rev),
+                                .block_time = 500 * ms,
+                                .reverse_time = 250 * ms,
                             },
                             {rub1, rub2, rub3, rub4, shoot});

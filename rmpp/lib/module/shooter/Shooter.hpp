@@ -7,6 +7,8 @@ public:
     // 发射机构配置
     struct config_t {
         UnitFloat<> bullet_per_angle = 1.0f * (default_unit / rev); // 拨弹盘转一圈的发弹数
+        UnitFloat<s> block_time = 500 * ms;                         // 卡弹检测时间
+        UnitFloat<s> reverse_time = 250 * ms;                       // 卡弹倒转时间
         UnitFloat<> rub_radius = 3.0f * cm;                         // 摩擦轮半径
     } config;
 
@@ -55,6 +57,9 @@ public:
     virtual void OnLoop();
 
 protected:
+    bool is_block = false; // 堵转标志
+    BSP::Dwt dwt_block;
+
     // 正解：电机速度 -> 弹速、弹频
     virtual void forward() = 0;
 
