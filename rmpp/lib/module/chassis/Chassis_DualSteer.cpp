@@ -2,11 +2,7 @@
 
 static const float sqrt2div2 = std::sqrt(2.0f) / 2.0f;
 
-Chassis_DualSteer::Chassis_DualSteer(const config_t& config, const motor_t& motor) : Chassis(config), motor(motor) {
-    // 目前使用底盘速度PID，不使用轮速PID
-    motor.w1.config.control_mode = Motor::OPEN_LOOP_MODE;
-    motor.w2.config.control_mode = Motor::OPEN_LOOP_MODE;
-}
+Chassis_DualSteer::Chassis_DualSteer(const config_t& config, const motor_t& motor) : Chassis(config), motor(motor) {}
 
 void Chassis_DualSteer::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable) return;
@@ -35,6 +31,8 @@ void Chassis_DualSteer::OnLoop() {
     motor.w2.OnLoop();
     motor.s1.OnLoop();
     motor.s2.OnLoop();
+
+    powerControlAfterMotorUpdate();
 }
 
 void Chassis_DualSteer::forward() {
@@ -94,14 +92,33 @@ void Chassis_DualSteer::backward() {
     const UnitFloat<m_s> vx1 = vx - sqrt2div2 * vz;
     const UnitFloat<m_s> vy1 = vy + sqrt2div2 * vz;
     v1 = unit::sqrt(vx1 * vx1 + vy1 * vy1);
+    if (v1 > MIN_V) { // 最小转舵速度
+        s1.ref_v = unit::atan2(vy1, vx1);
+        if (unit::abs(Angle(s1.ref_v - s1.measure)) > 90 * deg) { // 就近转舵
+            s1.ref_v += 180 * deg;
+            is_invert_v1 = true;
+        } else {
+            is_invert_v1 = false;
+        }
+    }
     // 右后舵轮
     const UnitFloat<m_s> vx2 = vx + sqrt2div2 * vz;
     const UnitFloat<m_s> vy2 = vy - sqrt2div2 * vz;
     v2 = unit::sqrt(vx2 * vx2 + vy2 * vy2);
+    if (v2 > MIN_V) { // 最小转舵速度
+        s2.ref_v = unit::atan2(vy2, vx2);
+        if (unit::abs(Angle(s2.ref_v - s2.measure)) > 90 * deg) { // 就近转舵
+            s2.ref_v += 180 * deg;
+            is_invert_v2 = true;
+        } else {
+            is_invert_v2 = false;
+        }
+    }
     // 两舵轮速度逆解 end
 
     // 设置电机转速
-    // 目前使用底盘速度PID，不使用轮速PID，这里设置不会生效，仅用于调试
+    if (is_invert_v1) v1 = -v1;
+    if (is_invert_v2) v2 = -v2;
     motor.w1.SetSpeed(v1 / config.wheel_radius);
     motor.w2.SetSpeed(v2 / config.wheel_radius);
 
@@ -115,9 +132,9 @@ void Chassis_DualSteer::backward() {
     const UnitFloat<N> fy1 = (fy + sqrt2div2 * fz) / 2.0f;
     f1 = unit::sqrt(fx1 * fx1 + fy1 * fy1);
     if (f1 > MIN_F) { // 最小转舵力
-        s1.ref = unit::atan2(fy1, fx1);
-        if (unit::abs(Angle(s1.ref - s1.measure)) > 90 * deg) { // 就近转舵
-            s1.ref += 180 * deg;
+        s1.ref_f = unit::atan2(fy1, fx1);
+        if (unit::abs(Angle(s1.ref_f - s1.measure)) > 90 * deg) { // 就近转舵
+            s1.ref_f += 180 * deg;
             is_invert_f1 = true;
         } else {
             is_invert_f1 = false;
@@ -128,9 +145,9 @@ void Chassis_DualSteer::backward() {
     const UnitFloat<m_s> fy2 = (fy - sqrt2div2 * fz) / 2.0f;
     f2 = unit::sqrt(fx2 * fx2 + fy2 * fy2);
     if (f2 > MIN_F) { // 最小转舵力
-        s2.ref = unit::atan2(fy2, fx2);
-        if (unit::abs(Angle(s2.ref - s2.measure)) > 90 * deg) { // 就近转舵
-            s2.ref += 180 * deg;
+        s2.ref_f = unit::atan2(fy2, fx2);
+        if (unit::abs(Angle(s2.ref_f - s2.measure)) > 90 * deg) { // 就近转舵
+            s2.ref_f += 180 * deg;
             is_invert_f2 = true;
         } else {
             is_invert_f2 = false;
@@ -145,8 +162,10 @@ void Chassis_DualSteer::backward() {
     motor.w2.SetTorque(f2 * config.wheel_radius);
 
     // 设置舵向
-    motor.s1.SetAngle(s1.ref);
-    motor.s2.SetAngle(s2.ref);
+    motor.s1.SetAngle(s1.ref_v);
+    motor.s2.SetAngle(s2.ref_v);
+    // motor.s1.SetAngle(s1.ref_f);
+    // motor.s2.SetAngle(s2.ref_f);
 }
 
 void Chassis_DualSteer::powerControlAfterMotorUpdate() {
@@ -179,7 +198,7 @@ void Chassis_DualSteer::powerControlAfterMotorUpdate() {
     const auto& buffer_energy = power.buffer_energy;
     if (buffer_energy < 30 * J) {
         power.gain *= 0;
-    } else if (buffer_energy < 60 * J) {
+    } else {
         power.gain *= (buffer_energy - 30 * J) / (30 * J);
     }
 

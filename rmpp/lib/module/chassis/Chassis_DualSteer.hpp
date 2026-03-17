@@ -13,7 +13,7 @@ public:
 
     // 舵轮角度
     struct {
-        Angle<deg> measure, ref;
+        Angle<deg> measure, ref_v, ref_f;
     } s1, s2;
 
     Chassis_DualSteer(const config_t& config, const motor_t& motor);
@@ -28,8 +28,10 @@ public:
     void OnLoop() override;
 
 private:
-    static constexpr UnitFloat<> MIN_F = 1 * N; // 最小转舵力
+    static constexpr UnitFloat<> MIN_V = 1 * (cm / s); // 最小转舵速度
+    static constexpr UnitFloat<> MIN_F = 1 * N;        // 最小转舵力
 
+    bool is_invert_v1 = false, is_invert_v2 = false;
     bool is_invert_f1 = false, is_invert_f2 = false;
 
     // 速度和力学正解

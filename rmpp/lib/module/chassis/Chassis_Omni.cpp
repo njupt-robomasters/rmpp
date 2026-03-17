@@ -3,13 +3,7 @@
 static const float sqrt2 = std::sqrt(2.0f);
 static const float sqrt2div2 = sqrt2 / 2.0f;
 
-Chassis_Omni::Chassis_Omni(const config_t& config, const motor_t& motor) : Chassis(config), motor(motor) {
-    // 目前使用底盘速度PID，不使用轮速PID
-    motor.w1.config.control_mode = Motor::OPEN_LOOP_MODE;
-    motor.w2.config.control_mode = Motor::OPEN_LOOP_MODE;
-    motor.w3.config.control_mode = Motor::OPEN_LOOP_MODE;
-    motor.w4.config.control_mode = Motor::OPEN_LOOP_MODE;
-}
+Chassis_Omni::Chassis_Omni(const config_t& config, const motor_t& motor) : Chassis(config), motor(motor) {}
 
 void Chassis_Omni::SetEnable(const bool is_enable) {
     if (this->is_enable == is_enable) return;

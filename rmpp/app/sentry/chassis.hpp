@@ -15,9 +15,16 @@ static constexpr UnitFloat CHASSIS_RADIUS = 21.5f * cm;
 static constexpr UnitFloat WHEEL_RADIUS = 5.25f * cm;
 static constexpr UnitFloat<N> MAX_F = M3508::MAX_CURRENT * Kt / WHEEL_RADIUS * 2;
 
+// 轮电机PID参数
+inline PID::config_t wheel_pid = {
+    .kp = (20 * A) / (120 * rpm),
+    .ki = (20 * A) / (15 * deg),
+    .max_out = 20 * A,
+};
+
 // 舵电机PID参数
 inline PID::config_t servo_pid = {
-    .kp = (3 * A) / (180 * deg),
+    .kp = (3 * A) / (20 * deg),
     .max_out = 3 * A,
 };
 
@@ -37,6 +44,9 @@ inline M3508 w1({
     .reduction = REDUCTION,
     .Kt = Kt,
     .is_invert = IS_WHEEL_INVERT,
+    .control_mode = Motor::SPEED_MODE,
+    .pid_out_type = Motor::CURRENT_OUTPUT,
+    .speed_pid_config = &wheel_pid,
 });
 inline M3508 w2({
     .can_port = 1,
@@ -45,6 +55,9 @@ inline M3508 w2({
     .reduction = REDUCTION,
     .Kt = Kt,
     .is_invert = IS_WHEEL_INVERT,
+    .control_mode = Motor::SPEED_MODE,
+    .pid_out_type = Motor::CURRENT_OUTPUT,
+    .speed_pid_config = &wheel_pid,
 });
 
 // 舵电机
