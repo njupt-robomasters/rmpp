@@ -1,6 +1,6 @@
 #pragma once
 
-#include "module/robot/Sentry.hpp"
+#include "robot/Sentry.hpp"
 
 #include "misc.hpp"
 #include "chassis.hpp"

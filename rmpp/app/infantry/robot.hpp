@@ -1,6 +1,6 @@
 #pragma once
 
-#include "module/robot/Robot.hpp"
+#include "robot/Robot.hpp"
 
 #include "misc.hpp"
 #include "chassis.hpp"
