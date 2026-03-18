@@ -10,14 +10,16 @@ void Referee::SetYaw(const UnitFloat<>& yaw_ecd, const UnitFloat<>& yaw_imu) {
 void Referee::OnLoop() {
     parser.OnLoop();
 
+    is_connect = parser.is_connect;
+
     // 机器人ID
-    robot_id = parser.robot_status.robot_id;
+    robot.id = parser.robot_status.robot_id;
 
     // 当前血量
-    hp = parser.robot_status.current_HP;
+    robot.hp = parser.robot_status.current_HP;
 
     // 比赛数据
-    game.is_red = robot_id < 100;                                      // 红蓝方
+    game.is_red = robot.id < 100;                                      // 红蓝方
     game.game_progress = game_progress_e(parser.game_status.game_progress); // 当前比赛阶段
     game.stage_remain_time = parser.game_status.stage_remain_time * s; // 当前阶段剩余时间
 
@@ -27,7 +29,7 @@ void Referee::OnLoop() {
 
     // 发射机构数据
     shooter.heat_limit = parser.robot_status.shooter_barrel_heat_limit;                   // 射击热量上限
-    if (robot_id == 1 || robot_id == 101) {                                               // 英雄，使用的42mm弹丸数据
+    if (robot.id == 1 || robot.id == 101) {                                               // 英雄，使用的42mm弹丸数据
         shooter.heat_current = parser.power_heat_data.shooter_42mm_barrel_heat;           // 当前射击热量
         shooter.bullet_allowance = parser.projectile_allowance.projectile_allowance_42mm; // 允许发弹量
     } else {                                                                              // 其他默认使用17mm弹丸数据
@@ -39,16 +41,16 @@ void Referee::OnLoop() {
     shooter.bullet_speed = parser.shoot_data.initial_speed * m_s;               // 弹丸初速度
 
     // 机器人RFID模块状态
-    in_home = parser.rfid_status.rfid_status & (1 << 19);
-    in_center = parser.rfid_status.rfid_status & (1 << 23);
+    rfid.in_home = parser.rfid_status.rfid_status & (1 << 19);
+    rfid.in_center = parser.rfid_status.rfid_status & (1 << 23);
 
     // 中心增益点的占领状态
-    center_buff = center_buff_e((parser.event_data.event_data >> 23) & 0b11);
+    rfid.center_buff = center_buff_e((parser.event_data.event_data >> 23) & 0b11);
 
     // 伤害方向
-    if (hurt_dwt != parser.dwt_hurt_data) {              // 有新的伤害
+    if (dwt_hurt != parser.dwt_hurt_data) {              // 有新的伤害
         if (parser.hurt_data.HP_deduction_reason == 0) { // 0：装甲模块被弹丸攻击导致扣血
-            hurt_dwt = parser.dwt_hurt_data;
+            dwt_hurt = parser.dwt_hurt_data;
 
             // 计算伤害方向
             switch (parser.hurt_data.armor_id) {
@@ -71,6 +73,6 @@ void Referee::OnLoop() {
     }
 
     // 更新伤害方向
-    is_hurt = hurt_dwt.GetDT() < HURT_TIMEOUT;
-    hurt_dir = hurt_dir_by_imu - yaw_imu;
+    hurt.is_hurt = dwt_hurt.GetDT() < HURT_TIMEOUT;
+    hurt.dir = hurt_dir_by_imu - yaw_imu;
 }

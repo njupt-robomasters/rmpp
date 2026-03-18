@@ -85,7 +85,7 @@ void Sentry::handleGame() {
             wr.software = config.wr_max;
 
             // 等待血量小于等于20%（400 * 20% = 80)
-            if (device.referee.hp <= 80) {
+            if (device.referee.robot.hp <= 80) {
                 game_status = GO_HOME;
             }
             break;
@@ -115,7 +115,7 @@ void Sentry::handleGame() {
             wr.software = 0 * default_unit;
 
             // 等待血量恢复满
-            if (device.referee.hp >= 400) {
+            if (device.referee.robot.hp >= 400) {
                 game_status = GO_CENTER;
             }
             break;

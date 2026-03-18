@@ -17,29 +17,6 @@ public:
         UnitFloat<> max_shoot_current = 10 * A;
     } config;
 
-    // 云台角度
-    Angle<deg> yaw_ecd; // 云台相对底盘角度
-    Angle<deg> yaw, pitch; // 云台IMU角度
-
-    // 伤害方向
-    bool is_hurt = false;
-    Angle<deg> hurt_dir;
-
-    // 超级电容剩余能量比例
-    UnitFloat<ratio> cap_ratio;
-
-    // 底盘旋转速度
-    UnitFloat<rpm> chassis_wr;
-
-    // 弹频
-    UnitFloat<Hz> shoot_freq;
-
-    // 拨弹电机电流
-    UnitFloat<A> shoot_current;
-
-    // 自瞄识别
-    bool is_detect = false;
-
     enum color_e {
         MAIN   = 0, // 红/蓝（己方颜色）
         YELLOW = 1, // 黄色
@@ -52,14 +29,31 @@ public:
         WHITE  = 8, // 白色
     };
 
-    // 整车状态
+    // 云台角度
+    Angle<deg> yaw_ecd; // 云台相对底盘角度
+    Angle<deg> yaw, pitch; // 云台IMU角度
+
+    // 伤害方向
+    bool is_hurt = false;
+    Angle<deg> hurt_dir;
+
+    // 自瞄识别
+    bool is_detect = false;
+
+    // 提示条
+    UnitFloat<ratio> cap_ratio;     // 超级电容剩余能量比例
+    UnitFloat<rpm> chassis_wr;     // 底盘旋转速度
+    UnitFloat<Hz> shoot_freq;     // 弹频
+    UnitFloat<A> shoot_current;     // 拨弹电机电流
+
+    // 机器人状态
     struct {
         color_e w1 = GREEN, w2 = GREEN, w3 = GREEN, w4 = GREEN;
         color_e s1 = GREEN, s2 = GREEN, s3 = GREEN, s4 = GREEN;
-        color_e cap = GREEN;
         color_e yaw1 = GREEN, yaw2 = GREEN, pitch = GREEN;
         color_e rub1 = GREEN, rub2 = GREEN, rub3 = GREEN, rub4 = GREEN;
         color_e shoot = GREEN;
+        color_e referee = GREEN;
         color_e aim = GREEN;
     } robot;
 

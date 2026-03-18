@@ -71,7 +71,7 @@ void UI::updateLib() const {
     ui_g_1_dir->start_angle = start_angle;
     ui_g_1_dir->end_angle = end_angle;
 
-    // 云台IMu角度
+    // 云台IMU角度
     ui_g_2_yaw->number = (int32_t)yaw.toFloat(deg);
     ui_g_2_pitch->number = (int32_t)pitch.toFloat(deg);
 
@@ -86,6 +86,13 @@ void UI::updateLib() const {
         ui_g_1_hurt->end_angle = end_angle;
     } else {
         ui_g_1_hurt->width = 0;
+    }
+
+    // 自瞄识别
+    if (is_detect) {
+        ui_g_1_detect->width = 21;
+    } else {
+        ui_g_1_detect->width = 0;
     }
 
     // 电容剩余能量比例
@@ -120,14 +127,7 @@ void UI::updateLib() const {
     ui_g_1_bar3->end_angle = 85;
     ui_g_2_number3->number = (int32_t)shoot_current.toFloat(A);
 
-    // 自瞄识别
-    if (is_detect) {
-        ui_g_1_detect->width = 21;
-    } else {
-        ui_g_1_detect->width = 0;
-    }
-
-    // 整车状态
+    // 机器人状态
     ui_g_30_w1->color = robot.w1;
     ui_g_30_w2->color = robot.w2;
     ui_g_30_w3->color = robot.w3;
@@ -137,7 +137,7 @@ void UI::updateLib() const {
     ui_g_30_s3->color = robot.s3;
 
     ui_g_31_s4->color = robot.s4;
-    ui_g_31_cap->color = robot.cap;
+    ui_g_31_cap->color = robot.referee;
     ui_g_31_yaw1->color = robot.yaw1;
     ui_g_31_yaw2->color = robot.yaw2;
     ui_g_31_pitch->color = robot.pitch;

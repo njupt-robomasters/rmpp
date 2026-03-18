@@ -298,30 +298,24 @@ void Robot::handleUI() {
     device.ui.pitch = device.gimbal.pitch.imu.measure;
 
     // 伤害方向
-    device.ui.is_hurt = device.referee.is_hurt;
-    device.ui.hurt_dir = device.referee.hurt_dir;
+    device.ui.is_hurt = device.referee.hurt.is_hurt;
+    device.ui.hurt_dir = device.referee.hurt.dir;
 
-    // 超级电容
-    device.ui.robot.cap = UI::PINK;
-    device.ui.cap_ratio = 0 * ratio;
-
-    // 底盘旋转速度
-    device.ui.chassis_wr = device.chassis.wr.measure;
-
-    // 弹频
-    device.ui.shoot_freq = config.bullet_freq;
-
-    // 拨弹电机电流
-    device.ui.shoot_current = device.shooter.shoot_current;
-
-    // 自瞄
-    device.ui.robot.aim = device.mavlink.is_connect ? UI::GREEN : UI::PINK;
+    // 自瞄识别
     device.ui.is_detect = device.mavlink.auto_aim.is_detect;
 
-    // 电机连接状态
-    device.chassis.UpdateUI(device.ui);
-    device.gimbal.UpdateUI(device.ui);
-    device.shooter.UpdateUI(device.ui);
+    // 提示条
+    device.ui.cap_ratio = 0 * ratio;                        // 超级电容剩余能量比例
+    device.ui.chassis_wr = device.chassis.wr.measure;       // 底盘旋转速度
+    device.ui.shoot_freq = config.bullet_freq;              // 弹频
+    device.ui.shoot_current = device.shooter.shoot_current; // 拨弹电机电流
+
+    // 机器人状态
+    device.chassis.UpdateUI(device.ui);                                     // 底盘
+    device.gimbal.UpdateUI(device.ui);                                      // 云台
+    device.shooter.UpdateUI(device.ui);                                     // 发射机构
+    device.ui.robot.referee = device.referee.is_connect ? UI::GREEN : UI::PINK; // 裁判系统
+    device.ui.robot.aim = device.mavlink.is_connect ? UI::GREEN : UI::PINK; // 自瞄
 
     device.ui.OnLoop();
 }

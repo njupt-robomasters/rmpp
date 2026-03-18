@@ -19,18 +19,23 @@ public:
 
     enum center_buff_e {
         EMPTY = 0,
-        WE  = 1,
+        WE    = 1,
         ENEMY = 2,
         BOTH  = 3,
     };
 
-    // 机器人ID
-    // 0x0201 robot_status.robot_id
-    uint8_t robot_id = 3;
+    bool is_connect = false;
 
-    // 当前血量
-    // 0x0201 robot_status.current_HP
-    uint16_t hp = 0;
+    // 机器人数据
+    struct {
+        // 机器人ID
+        // 0x0201 robot_status.robot_id
+        uint8_t id = 3;
+
+        // 当前血量
+        // 0x0201 robot_status.current_HP
+        uint16_t hp = 0;
+    } robot;
 
     // 比赛数据
     struct {
@@ -86,18 +91,24 @@ public:
         uint16_t bullet_allowance = 0;
     } shooter;
 
-    // 机器人RFID模块状态
-    // 0x0209 rfid_status
-    bool in_home = false;   // bit 19
-    bool in_center = false; // bit 23
+    // RFID数据
+    struct {
+        // 机器人RFID模块状态
+        // 0x0209 rfid_status
+        bool in_home = false;   // bit 19
+        bool in_center = false; // bit 23
 
-    // 中心增益点的占领状态
-    // 0x0101 event_data
-    center_buff_e center_buff = EMPTY;
+        // 中心增益点的占领状态
+        // 0x0101 event_data
+        center_buff_e center_buff = EMPTY;
+    } rfid;
 
-    // 伤害方向
-    bool is_hurt;
-    Angle<deg> hurt_dir; // 伤害方向，相对于云台参考系
+    // 伤害数据
+    struct {
+        // 伤害方向
+        bool is_hurt = false;
+        Angle<deg> dir; // 伤害方向，相对于云台参考系
+    } hurt;
 
     Referee(const config_t& config);
 
@@ -112,8 +123,8 @@ private:
 
     RefereeParser parser; // 裁判系统报文解析库
 
-    // 用于伤害方向
-    UnitFloat<deg> yaw_ecd, yaw_imu;
-    BSP::Dwt hurt_dwt;
-    Angle<deg> hurt_dir_by_imu; // 伤害方向，相对于IMu参考系
+    // 用于维护伤害方向
+    BSP::Dwt dwt_hurt;
+    Angle<deg> yaw_ecd, yaw_imu;
+    Angle<deg> hurt_dir_by_imu; // 伤害方向，相对于IMU参考系
 };

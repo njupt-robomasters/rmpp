@@ -12,7 +12,7 @@ extern "C" void print_message(const uint8_t* message, const int length) {
 inline void update_rmui_robot_id() {
     extern int ui_self_id;
     extern Referee referee;
-    ui_self_id = referee.robot_id;
+    ui_self_id = referee.robot.id;
 }
 
 inline void (*ui_init_g[])() = {
