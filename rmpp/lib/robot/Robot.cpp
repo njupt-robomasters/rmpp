@@ -72,8 +72,8 @@ void Robot::handleRC() {
     // 摩擦轮（S挡开启）
     is_rub.rc = device.rc.is_rub;
     // 拨弹电机
-    if (device.rc.vt13.fn_right) { // 自瞄状态下，使用自动火控
-        is_shoot.rc = device.mavlink.auto_aim.is_fire;
+    if (device.rc.vt13.fn_right) { // 自瞄状态下，扳机键批准自动火控
+        is_shoot.rc = device.rc.is_shoot && device.mavlink.auto_aim.is_fire;
     } else { // 非自瞄状态下，扳机键开火
         is_shoot.rc = device.rc.is_shoot;
     }
