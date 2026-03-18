@@ -22,7 +22,7 @@ inline PID::config_t vxyz_pid = {
     .fc = 10 * Hz,
 };
 inline PID::config_t follow_pid = {
-    .kp = 5+ * default_unit,
+    .kp = 5 * default_unit,
     .max_out = 360 * deg,
 };
 

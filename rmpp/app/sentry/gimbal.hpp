@@ -20,8 +20,8 @@
 
 // 大yaw电机
 inline PID::config_t yaw1_pid = {
-    .kp = 0.75 * (A / deg),
-    .kd = 0.1 * (A / deg_s),
+    .kp = (7.45 * A) / (0.745 * deg),
+    .kd = (7.45 * A) / (8.28 * deg_s),
     .max_out = 7.45 * A,
     .fc = 10 * Hz,
 };
