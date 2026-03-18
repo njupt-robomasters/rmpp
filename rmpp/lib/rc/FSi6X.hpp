@@ -5,7 +5,7 @@
 class FSi6X {
 public:
     struct config_t {
-        UnitFloat<> connect_timeout = 100 * ms;  // 断联检测超时时间
+        UnitFloat<> connect_timeout = 200 * ms;  // 断联检测超时时间
         UnitFloat<> joystick_deadline = 5 * pct; // 摇杆死区，小于此值认为是0
     } config;
 

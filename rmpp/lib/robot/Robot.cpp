@@ -12,6 +12,7 @@ void Robot::OnLoop() {
     device.buzzer.OnLoop();
 
     // 断联检测
+    device.rc.SetIgnoreDisconnect(device.referee.game.game_progress == Referee::GAMING); // 比赛中忽略断联检测
     device.chassis.SetEnable(device.rc.is_enable);
     device.gimbal.SetEnable(device.rc.is_enable);
     device.shooter.SetEnable(device.rc.is_enable);

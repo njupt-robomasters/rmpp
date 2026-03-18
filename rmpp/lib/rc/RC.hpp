@@ -15,6 +15,12 @@ public:
 
     RC(const FSi6X::config_t& fsi6x_config, const VT13::config_t& vt13_config);
 
+    // 忽略断联保护
+    void SetIgnoreDisconnect(bool is_ignore_disconnect);
+
     // 需要在循环中调用
     void OnLoop();
+
+private:
+    bool is_ignore_disconnect = false;
 };

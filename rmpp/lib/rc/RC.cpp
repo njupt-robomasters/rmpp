@@ -2,6 +2,10 @@
 
 RC::RC(const FSi6X::config_t& fsi6x_config, const VT13::config_t& vt13_config) : fsi6x(fsi6x_config), vt13(vt13_config) {}
 
+void RC::SetIgnoreDisconnect(bool is_ignore_disconnect) {
+    this->is_ignore_disconnect = is_ignore_disconnect;
+}
+
 void RC::OnLoop() {
     fsi6x.OnLoop();
     vt13.OnLoop();
@@ -35,7 +39,7 @@ void RC::OnLoop() {
         is_rub = fsi6x.swc == FSi6X::MID || fsi6x.swc == FSi6X::DOWN;
         is_shoot = fsi6x.swc == FSi6X::DOWN;
     } else { // 都未连接，复位控制量
-        is_enable = false;
+        if (!is_ignore_disconnect) is_enable = false;
         x = y = r = yaw = pitch = 0 * ratio;
         is_rub = is_shoot = false;
     }
