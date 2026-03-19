@@ -20,9 +20,9 @@
 
 // 大yaw电机
 inline PID::config_t yaw1_pid = {
-    .kp = (7.45 * A) / (0.745 * deg),
-    .kd = (7.45 * A) / (8.28 * deg_s),
-    .max_out = 7.45 * A,
+    .kp = (9 * A) / (1.8 * deg),
+    .kd = (9 * A) / (18 * deg_s),
+    .max_out = 9 * A,
     .fc = 10 * Hz,
 };
 inline MF9025 yaw1({
