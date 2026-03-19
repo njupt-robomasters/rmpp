@@ -17,7 +17,7 @@ static constexpr UnitFloat<N> MAX_F = M3508::MAX_CURRENT * Kt / WHEEL_RADIUS * 2
 
 // 轮电机PID参数
 inline PID::config_t wheel_pid = {
-    .kp = (20 * A) / (120 * rpm),
+    .kp = (20 * A) / (360 * rpm),
     .ki = (20 * A) / (15 * deg),
     .max_out = 20 * A,
 };
