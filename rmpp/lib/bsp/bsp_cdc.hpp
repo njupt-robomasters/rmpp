@@ -8,19 +8,18 @@
 namespace BSP {
     class CDC {
         static constexpr int PRINTF_BUF_SIZE = 128;
+        static constexpr UnitFloat<s> RESTART_TIME = 1 * s;
 
         using CallbackFunc = std::function<void(const uint8_t data[], uint32_t size)>;
 
         static std::vector<CallbackFunc>* callbacks; // 保存注册的回调函数
 
-        static Dwt dwt;
+        static Dwt dwt, dwt_restart;
 
     public:
         static UnitFloat<pct> cpu_usage;
 
         static void Init();
-
-        static bool IsConnect();
 
         static void Transmit(uint8_t data[], uint16_t size);
 
