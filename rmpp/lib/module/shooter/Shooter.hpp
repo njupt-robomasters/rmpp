@@ -58,7 +58,7 @@ public:
 
 protected:
     bool is_block = false; // 堵转标志
-    BSP::Dwt dwt_block;
+    BSP::Dwt dwt_block; // 堵转计时器
 
     // 正解：电机速度 -> 弹速、弹频
     virtual void forward() = 0;

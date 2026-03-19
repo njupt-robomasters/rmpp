@@ -23,14 +23,26 @@ public:
     void OnLoop() override;
 
 private:
-    static constexpr UnitFloat<> SHOOT_TIME = 1 * s;
     static constexpr UnitFloat<> RUB12_RATIO = 0.5f * ratio;
+    static constexpr UnitFloat<> SHOOT_FINISH_ERR = 1 * deg; // 用于检查拨弹完成
+    static constexpr UnitFloat<> SHAKE_FREQ = 1 * Hz;        // 抖动频率
+    static constexpr float SHANE_AMP = 1;                    // 抖动幅度（一个弹 = 1）
 
     // 摩擦轮线速度
     UnitFloat<m_s> rub1_measure, rub2_measure, rub3_measure, rub4_measure;
 
     // 用于检测发送信号上升沿
     bool is_shoot_last = false;
+
+    // 用于抖动下弹
+    Angle<deg> shake_upper;
+    BSP::Dwt dwt_shake;
+
+    enum {
+        FREE,
+        SHOOT,
+        SHAKE,
+    } state = FREE;
 
     // 正解：电机速度 -> 弹速、弹频
     void forward() override;

@@ -82,59 +82,78 @@ void Shooter_42mm::backward() {
     }
 
     // 拨弹电机
-    if (is_rub) {        // 确保摩擦轮开启
-        if (!is_block) { // 未卡弹
-            // 发射信号上升沿、枪口热量保护
-            if (is_shoot && !is_shoot_last && !is_heat_protect) {
+    if (!is_rub) { // 关摩擦轮
+        state = FREE;
+    }
+
+    switch (state) {
+        case FREE: {
+            motor.shoot.SetAngle(motor.shoot.angle.measure); // 保持当前角度
+
+            if (is_rub) { // 开摩擦轮
+                state = SHAKE;
+                dwt_shake.UpdateDT();
+                shake_upper = motor.shoot.angle.measure;
+            }
+        }
+        break;
+
+        case SHAKE: {
+            const Angle<deg> angle_per_bullet = 1 / config.bullet_per_angle;
+            const UnitFloat<deg> a = angle_per_bullet * SHANE_AMP / 2;
+            const UnitFloat<deg> offset = shake_upper - a;
+            const UnitFloat<s> t = dwt_shake.GetDT();
+            const Angle<deg> angle = a * cos(2 * PI * SHAKE_FREQ * t) + offset;
+            motor.shoot.SetAngle(angle);
+
+            // 防止计时器溢出
+            if (SHAKE_FREQ * t > 1) {
+                dwt_shake.UpdateDT();
+            }
+
+            if (is_shoot && !is_shoot_last && !is_heat_protect) { // 发射信号上升沿，热量保护
                 // 增加角度
                 const Angle<deg> angle_per_bullet = 1 / config.bullet_per_angle;
-                Angle<deg> target_angle = motor.shoot.angle.measure + angle_per_bullet;
+                Angle<deg> target_angle = shake_upper + angle_per_bullet;
 
                 // 对齐相位
-                const int8_t index = (int8_t)std::round((target_angle / angle_per_bullet).toFloat());
+                const int8_t index = (int8_t)std::round((target_angle / angle_per_bullet).toFloat()); // 四舍五入
                 target_angle = index * angle_per_bullet;
 
                 // 设置电机角度
                 motor.shoot.SetAngle(target_angle);
+
+                state = SHOOT;
+                dwt_block.UpdateDT();
             }
-            is_shoot_last = is_shoot;
+        }
+        break;
+
+        case SHOOT: {
+            // 拨弹计时
+            if (abs(motor.shoot.angle.ref - motor.shoot.angle.measure) < SHOOT_FINISH_ERR) {
+                state = SHAKE;
+                dwt_shake.UpdateDT();
+                shake_upper = motor.shoot.angle.ref;
+            }
 
             // 卡弹检测
             if (motor.shoot.torque.ref >= motor.shoot.config.angle_pid_config->max_out) { // 达到角度环最大输出
-                // 卡弹计时
-                if (dwt_block.GetDT() > config.block_time) {
-                    // 减小角度
-                    const Angle<deg> angle_per_bullet = 1 / config.bullet_per_angle;
-                    Angle<deg> target_angle = motor.shoot.angle.measure - angle_per_bullet;
-
-                    // 对齐相位
-                    const int8_t index = (int8_t)std::floor((target_angle / angle_per_bullet).toFloat());
-                    target_angle = index * angle_per_bullet;
-
-                    // 设置电机角度
-                    motor.shoot.SetAngle(target_angle);
-
-                    is_block = true;
-                    dwt_block.UpdateDT(); // 重置计时器，用于倒转计时
+                if (dwt_block.GetDT() > config.block_time) {                              // 卡弹计时
+                    state = SHAKE;
+                    dwt_shake.UpdateDT();
+                    shake_upper = motor.shoot.angle.measure;
                 }
             } else {
                 dwt_block.UpdateDT(); // 未卡弹，重置计时器
             }
-        } else { // 卡弹
-            // 倒转计时
-            if (dwt_block.GetDT() > config.block_time) {
-                // 保持当前角度
-                motor.shoot.SetAngle(motor.shoot.angle.measure);
-
-                is_block = false;
-                dwt_block.UpdateDT(); // 重置计时器，用于卡弹计时
-            }
         }
-    } else {
-        is_block = false;                                // 清除卡弹状态
-        dwt_block.UpdateDT();                            // 重置计时器
-        motor.shoot.SetAngle(motor.shoot.angle.measure); // 保持当前角度
+        break;
+
+        default:
+            break;
     }
+    is_shoot_last = is_shoot;
 }
 
 void Shooter_42mm::forward() {
