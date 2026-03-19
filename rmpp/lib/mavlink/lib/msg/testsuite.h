@@ -213,51 +213,49 @@ static void mavlink_test_auto_aim(uint8_t system_id, uint8_t component_id, mavli
 #endif
 }
 
-static void mavlink_test_ui(uint8_t system_id, uint8_t component_id, mavlink_message_t *last_msg)
+static void mavlink_test_insta360(uint8_t system_id, uint8_t component_id, mavlink_message_t *last_msg)
 {
 #ifdef MAVLINK_STATUS_FLAG_OUT_MAVLINK1
     mavlink_status_t *status = mavlink_get_channel_status(MAVLINK_COMM_0);
-        if ((status->flags & MAVLINK_STATUS_FLAG_OUT_MAVLINK1) && MAVLINK_MSG_ID_ui >= 256) {
+        if ((status->flags & MAVLINK_STATUS_FLAG_OUT_MAVLINK1) && MAVLINK_MSG_ID_insta360 >= 256) {
             return;
         }
 #endif
     mavlink_message_t msg;
         uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
         uint16_t i;
-    mavlink_ui_t packet_in = {
-        17.0,45.0,73.0,101.0,129.0,157.0,185.0,213.0
+    mavlink_insta360_t packet_in = {
+        17.0,45.0,73.0,101.0,129.0,157.0
     };
-    mavlink_ui_t packet1, packet2;
+    mavlink_insta360_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
-        packet1.x0 = packet_in.x0;
-        packet1.y0 = packet_in.y0;
-        packet1.x1 = packet_in.x1;
-        packet1.y1 = packet_in.y1;
-        packet1.x2 = packet_in.x2;
-        packet1.y2 = packet_in.y2;
-        packet1.x3 = packet_in.x3;
-        packet1.y3 = packet_in.y3;
+        packet1.a0 = packet_in.a0;
+        packet1.c0 = packet_in.c0;
+        packet1.a1 = packet_in.a1;
+        packet1.c1 = packet_in.c1;
+        packet1.a2 = packet_in.a2;
+        packet1.c2 = packet_in.c2;
         
         
 #ifdef MAVLINK_STATUS_FLAG_OUT_MAVLINK1
         if (status->flags & MAVLINK_STATUS_FLAG_OUT_MAVLINK1) {
            // cope with extensions
-           memset(MAVLINK_MSG_ID_ui_MIN_LEN + (char *)&packet1, 0, sizeof(packet1)-MAVLINK_MSG_ID_ui_MIN_LEN);
+           memset(MAVLINK_MSG_ID_insta360_MIN_LEN + (char *)&packet1, 0, sizeof(packet1)-MAVLINK_MSG_ID_insta360_MIN_LEN);
         }
 #endif
         memset(&packet2, 0, sizeof(packet2));
-    mavlink_msg_ui_encode(system_id, component_id, &msg, &packet1);
-    mavlink_msg_ui_decode(&msg, &packet2);
+    mavlink_msg_insta360_encode(system_id, component_id, &msg, &packet1);
+    mavlink_msg_insta360_decode(&msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
         memset(&packet2, 0, sizeof(packet2));
-    mavlink_msg_ui_pack(system_id, component_id, &msg , packet1.x0 , packet1.y0 , packet1.x1 , packet1.y1 , packet1.x2 , packet1.y2 , packet1.x3 , packet1.y3 );
-    mavlink_msg_ui_decode(&msg, &packet2);
+    mavlink_msg_insta360_pack(system_id, component_id, &msg , packet1.a0 , packet1.c0 , packet1.a1 , packet1.c1 , packet1.a2 , packet1.c2 );
+    mavlink_msg_insta360_decode(&msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
         memset(&packet2, 0, sizeof(packet2));
-    mavlink_msg_ui_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.x0 , packet1.y0 , packet1.x1 , packet1.y1 , packet1.x2 , packet1.y2 , packet1.x3 , packet1.y3 );
-    mavlink_msg_ui_decode(&msg, &packet2);
+    mavlink_msg_insta360_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.a0 , packet1.c0 , packet1.a1 , packet1.c1 , packet1.a2 , packet1.c2 );
+    mavlink_msg_insta360_decode(&msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
         memset(&packet2, 0, sizeof(packet2));
@@ -265,17 +263,17 @@ static void mavlink_test_ui(uint8_t system_id, uint8_t component_id, mavlink_mes
         for (i=0; i<mavlink_msg_get_send_buffer_length(&msg); i++) {
             comm_send_ch(MAVLINK_COMM_0, buffer[i]);
         }
-    mavlink_msg_ui_decode(last_msg, &packet2);
+    mavlink_msg_insta360_decode(last_msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
         
         memset(&packet2, 0, sizeof(packet2));
-    mavlink_msg_ui_send(MAVLINK_COMM_1 , packet1.x0 , packet1.y0 , packet1.x1 , packet1.y1 , packet1.x2 , packet1.y2 , packet1.x3 , packet1.y3 );
-    mavlink_msg_ui_decode(last_msg, &packet2);
+    mavlink_msg_insta360_send(MAVLINK_COMM_1 , packet1.a0 , packet1.c0 , packet1.a1 , packet1.c1 , packet1.a2 , packet1.c2 );
+    mavlink_msg_insta360_decode(last_msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
 #ifdef MAVLINK_HAVE_GET_MESSAGE_INFO
-    MAVLINK_ASSERT(mavlink_get_message_info_by_name("ui") != NULL);
-    MAVLINK_ASSERT(mavlink_get_message_info_by_id(MAVLINK_MSG_ID_ui) != NULL);
+    MAVLINK_ASSERT(mavlink_get_message_info_by_name("insta360") != NULL);
+    MAVLINK_ASSERT(mavlink_get_message_info_by_id(MAVLINK_MSG_ID_insta360) != NULL);
 #endif
 }
 
@@ -465,7 +463,7 @@ static void mavlink_test_msg(uint8_t system_id, uint8_t component_id, mavlink_me
     mavlink_test_imu(system_id, component_id, last_msg);
     mavlink_test_referee(system_id, component_id, last_msg);
     mavlink_test_auto_aim(system_id, component_id, last_msg);
-    mavlink_test_ui(system_id, component_id, last_msg);
+    mavlink_test_insta360(system_id, component_id, last_msg);
     mavlink_test_target_position(system_id, component_id, last_msg);
     mavlink_test_current_position(system_id, component_id, last_msg);
     mavlink_test_chassis_speed(system_id, component_id, last_msg);

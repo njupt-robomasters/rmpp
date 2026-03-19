@@ -42,11 +42,10 @@ public:
 
     // 接收
     struct {
-        float x0 = 0, y0 = 0;
-        float x1 = 0, y1 = 0;
-        float x2 = 0, y2 = 0;
-        float x3 = 0, y3 = 0;
-    } ui;
+        float a0 = 0, c0 = 0;
+        float a1 = 0, c1 = 0;
+        float a2 = 0, c2 = 0;
+    } insta360;
 
     // 接收
     struct {

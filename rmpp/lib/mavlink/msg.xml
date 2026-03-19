@@ -28,16 +28,14 @@
             <field type="float" name="distance" units="m">distance</field>
         </message>
 
-        <message id="3" name="ui">
-            <description>ui(pc -> c)</description>
-            <field type="float" name="x0">x0</field>
-            <field type="float" name="y0">y0</field>
-            <field type="float" name="x1">x1</field>
-            <field type="float" name="y1">y1</field>
-            <field type="float" name="x2">x2</field>
-            <field type="float" name="y2">y2</field>
-            <field type="float" name="x3">x3</field>
-            <field type="float" name="y3">y3</field>
+        <message id="3" name="insta360">
+            <description>insta360(pc -> c)</description>
+            <field type="float" name="a0" units="deg">a0</field>
+            <field type="float" name="c0">c0</field>
+            <field type="float" name="a1" units="deg">a1</field>
+            <field type="float" name="c1">c1</field>
+            <field type="float" name="a2" units="deg">a2</field>
+            <field type="float" name="c2">c2</field>
         </message>
 
         <message id="4" name="target_position">

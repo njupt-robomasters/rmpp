@@ -15,7 +15,6 @@ void Mavlink::OnLoop() {
 
         // 复位接收数据
         auto_aim = {};
-        ui = {};
         current_position = {};
         chassis_speed = {};
     }
@@ -70,18 +69,16 @@ void Mavlink::parse(const mavlink_message_t& msg) {
             break;
         }
 
-        case MAVLINK_MSG_ID_ui: {
-            mavlink_ui_t ui;
-            mavlink_msg_ui_decode(&msg, &ui);
-            this->ui = {
-                .x0 = ui.x0,
-                .y0 = ui.y0,
-                .x1 = ui.x1,
-                .y1 = ui.y1,
-                .x2 = ui.x2,
-                .y2 = ui.y2,
-                .x3 = ui.x3,
-                .y3 = ui.y3,
+        case MAVLINK_MSG_ID_insta360: {
+            mavlink_insta360_t ui;
+            mavlink_msg_insta360_decode(&msg, &ui);
+            this->insta360 = {
+                .a0 = ui.a0,
+                .c0 = ui.c0,
+                .a1 = ui.a1,
+                .c1 = ui.c1,
+                .a2 = ui.a2,
+                .c2 = ui.c2,
             };
             break;
         }

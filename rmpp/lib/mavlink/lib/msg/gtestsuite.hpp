@@ -236,24 +236,22 @@ TEST(msg_interop, auto_aim)
 }
 #endif
 
-TEST(msg, ui)
+TEST(msg, insta360)
 {
     mavlink::mavlink_message_t msg;
     mavlink::MsgMap map1(msg);
     mavlink::MsgMap map2(msg);
 
-    mavlink::msg::msg::ui packet_in{};
-    packet_in.x0 = 17.0;
-    packet_in.y0 = 45.0;
-    packet_in.x1 = 73.0;
-    packet_in.y1 = 101.0;
-    packet_in.x2 = 129.0;
-    packet_in.y2 = 157.0;
-    packet_in.x3 = 185.0;
-    packet_in.y3 = 213.0;
+    mavlink::msg::msg::insta360 packet_in{};
+    packet_in.a0 = 17.0;
+    packet_in.c0 = 45.0;
+    packet_in.a1 = 73.0;
+    packet_in.c1 = 101.0;
+    packet_in.a2 = 129.0;
+    packet_in.c2 = 157.0;
 
-    mavlink::msg::msg::ui packet1{};
-    mavlink::msg::msg::ui packet2{};
+    mavlink::msg::msg::insta360 packet1{};
+    mavlink::msg::msg::insta360 packet2{};
 
     packet1 = packet_in;
 
@@ -265,41 +263,37 @@ TEST(msg, ui)
 
     packet2.deserialize(map2);
 
-    EXPECT_EQ(packet1.x0, packet2.x0);
-    EXPECT_EQ(packet1.y0, packet2.y0);
-    EXPECT_EQ(packet1.x1, packet2.x1);
-    EXPECT_EQ(packet1.y1, packet2.y1);
-    EXPECT_EQ(packet1.x2, packet2.x2);
-    EXPECT_EQ(packet1.y2, packet2.y2);
-    EXPECT_EQ(packet1.x3, packet2.x3);
-    EXPECT_EQ(packet1.y3, packet2.y3);
+    EXPECT_EQ(packet1.a0, packet2.a0);
+    EXPECT_EQ(packet1.c0, packet2.c0);
+    EXPECT_EQ(packet1.a1, packet2.a1);
+    EXPECT_EQ(packet1.c1, packet2.c1);
+    EXPECT_EQ(packet1.a2, packet2.a2);
+    EXPECT_EQ(packet1.c2, packet2.c2);
 }
 
 #ifdef TEST_INTEROP
-TEST(msg_interop, ui)
+TEST(msg_interop, insta360)
 {
     mavlink_message_t msg;
 
     // to get nice print
     memset(&msg, 0, sizeof(msg));
 
-    mavlink_ui_t packet_c {
-         17.0, 45.0, 73.0, 101.0, 129.0, 157.0, 185.0, 213.0
+    mavlink_insta360_t packet_c {
+         17.0, 45.0, 73.0, 101.0, 129.0, 157.0
     };
 
-    mavlink::msg::msg::ui packet_in{};
-    packet_in.x0 = 17.0;
-    packet_in.y0 = 45.0;
-    packet_in.x1 = 73.0;
-    packet_in.y1 = 101.0;
-    packet_in.x2 = 129.0;
-    packet_in.y2 = 157.0;
-    packet_in.x3 = 185.0;
-    packet_in.y3 = 213.0;
+    mavlink::msg::msg::insta360 packet_in{};
+    packet_in.a0 = 17.0;
+    packet_in.c0 = 45.0;
+    packet_in.a1 = 73.0;
+    packet_in.c1 = 101.0;
+    packet_in.a2 = 129.0;
+    packet_in.c2 = 157.0;
 
-    mavlink::msg::msg::ui packet2{};
+    mavlink::msg::msg::insta360 packet2{};
 
-    mavlink_msg_ui_encode(1, 1, &msg, &packet_c);
+    mavlink_msg_insta360_encode(1, 1, &msg, &packet_c);
 
     // simulate message-handling callback
     [&packet2](const mavlink_message_t *cmsg) {
@@ -308,14 +302,12 @@ TEST(msg_interop, ui)
         packet2.deserialize(map2);
     } (&msg);
 
-    EXPECT_EQ(packet_in.x0, packet2.x0);
-    EXPECT_EQ(packet_in.y0, packet2.y0);
-    EXPECT_EQ(packet_in.x1, packet2.x1);
-    EXPECT_EQ(packet_in.y1, packet2.y1);
-    EXPECT_EQ(packet_in.x2, packet2.x2);
-    EXPECT_EQ(packet_in.y2, packet2.y2);
-    EXPECT_EQ(packet_in.x3, packet2.x3);
-    EXPECT_EQ(packet_in.y3, packet2.y3);
+    EXPECT_EQ(packet_in.a0, packet2.a0);
+    EXPECT_EQ(packet_in.c0, packet2.c0);
+    EXPECT_EQ(packet_in.a1, packet2.a1);
+    EXPECT_EQ(packet_in.c1, packet2.c1);
+    EXPECT_EQ(packet_in.a2, packet2.a2);
+    EXPECT_EQ(packet_in.c2, packet2.c2);
 
 #ifdef PRINT_MSG
     PRINT_MSG(msg);
