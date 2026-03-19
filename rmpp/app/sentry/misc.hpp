@@ -12,6 +12,6 @@ inline LED led({});
 inline Buzzer buzzer;
 inline FlashDB flashdb("sentry");
 inline RC rc({}, {});
-inline Mavlink mavlink;
+inline Mavlink mavlink({});
 inline Referee referee({});
 inline UI ui({});

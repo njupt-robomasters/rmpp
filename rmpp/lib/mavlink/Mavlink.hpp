@@ -1,11 +1,16 @@
 #pragma once
 
-#include "unit/include_me.hpp"
 #include "bsp/bsp.hpp"
 #include "lib/msg/mavlink.h"
 
 class Mavlink {
 public:
+    struct config_t {
+        UnitFloat<> timeout = 100 * ms;     // 断联检测时间
+        UnitFloat<> reconnect_time = 1 * s; // 自动重连时间
+        UnitFloat<> send_freq = 100 * Hz;   // 报文频率
+    } config;
+
     bool is_connect = false;
 
     // 发送
@@ -20,7 +25,7 @@ public:
         bool is_red = true;
         uint8_t game_progress = 0;
         uint16_t stage_remain_time = 0;
-        UnitFloat<m_s> bullet_speed = 24.0f * m_s;
+        UnitFloat<m_s> bullet_speed;
     } referee;
 
     // 发送
@@ -60,22 +65,20 @@ public:
         UnitFloat<m_s> vy;
     } chassis_speed;
 
-    Mavlink();
+    Mavlink(const config_t& config);
 
     // 需要在循环中调用
     void OnLoop();
 
 private:
-    static constexpr UnitFloat<> CONNECT_TIMEOUT = 100 * ms; // 断联检测超时时间
-    static constexpr UnitFloat<> SEND_FREQ = 50 * Hz;
     static constexpr uint8_t SYSTEM_ID = 1;    // mavlink参数
     static constexpr uint8_t COMPONENT_ID = 1; // mavlink参数
 
-    // 用于断联检测
-    BSP::Dwt dwt_connect;
+    BSP::Dwt dwt_connect;   // 用于断联检测
+    BSP::Dwt dwt_reconnect;   // 用于断联重启
+    BSP::Dwt dwt_send_freq; // 用于控制发送频率
 
-    // 用于控制发送频率
-    BSP::Dwt dwt_send_freq;
+    uint8_t idx = 0; // 报文分散在不同的时间点发送
 
     // CDC接收回调
     void callback(const uint8_t data[], uint32_t size);

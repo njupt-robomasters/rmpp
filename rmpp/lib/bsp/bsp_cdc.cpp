@@ -16,16 +16,7 @@ void CDC::Init() {
 }
 
 void CDC::Transmit(uint8_t data[], const uint16_t size) {
-    const USBD_CDC_HandleTypeDef* hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
-    if (hcdc != nullptr) {
-        CDC_Transmit_FS(data, size);
-        dwt_restart.UpdateDT();
-    } else {
-        if (dwt_restart.GetDT() > RESTART_TIME) {
-            MX_USB_DEVICE_Init(); // 重启CDC串口
-            dwt_restart.UpdateDT();
-        }
-    }
+    CDC_Transmit_FS(data, size);
 }
 
 void CDC::printf(const char* format, ...) {

@@ -1,6 +1,6 @@
 #include "Mavlink.hpp"
 
-Mavlink::Mavlink() {
+Mavlink::Mavlink(const config_t& config) : config(config) {
     // 注册CDC接收回调
     auto callback = [this](const uint8_t data[], const uint32_t size) {
         this->callback(data, size);
@@ -10,7 +10,7 @@ Mavlink::Mavlink() {
 
 void Mavlink::OnLoop() {
     // 断联检测
-    if (dwt_connect.GetDT() > CONNECT_TIMEOUT) {
+    if (dwt_connect.GetDT() > config.timeout) {
         is_connect = false;
 
         // 复位接收数据
@@ -19,23 +19,30 @@ void Mavlink::OnLoop() {
         chassis_speed = {};
     }
 
-    // 将三个包分摊在不同的时间点发送
-    static uint8_t step = 0;
-    if (dwt_send_freq.PollTimeout(1 / (SEND_FREQ * 3))) {
-        switch (step) {
+    // 自动重连
+    if (is_connect) {
+        dwt_reconnect.UpdateDT();
+    } else if (dwt_reconnect.GetDT() > config.reconnect_time) {
+        BSP::CDC::Init();
+        dwt_reconnect.UpdateDT();
+    }
+
+    // 将三个包分散在不同的时间点发送
+    if (dwt_send_freq.PollTimeout(1 / (config.send_freq * 3))) {
+        switch (idx) {
             case 0:
-                sendTargetPosition();
-                break;
-            case 1:
                 sendImu();
                 break;
-            case 2:
+            case 1:
                 sendReferee();
+                break;
+            case 2:
+                sendTargetPosition();
                 break;
             default:
                 break;;
         }
-        step = (step + 1) % 3;
+        idx = (idx + 1) % 3;
     }
 }
 
