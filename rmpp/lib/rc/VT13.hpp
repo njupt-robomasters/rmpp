@@ -18,20 +18,20 @@ public:
 
     bool is_connect = false; // 连接标志
 
-    UnitFloat<ratio> x, y, pitch, yaw;                                      // 摇杆
-    UnitFloat<ratio> wheel;                                                 // 左上角拨轮
-    mode_e mode = ERR;                                                      // 模式切换开关
-    bool pause = false, trigger = false, fn_left = false, fn_right = false; // 按钮
+    UnitFloat<ratio> x, y, pitch, yaw;                              // 摇杆
+    UnitFloat<ratio> wheel;                                         // 左上角拨轮
+    mode_e mode = ERR;                                              // 模式切换开关
+    bool pause = false, trigger = false, fn = false, photo = false; // 按钮
 
     // 鼠标
-    struct {
+    struct mouse_t {
         UnitFloat<ratio> yaw, pitch;
         int16_t wheel = 0;
         bool left = false, right = false, middle = false;
     } mouse;
 
     // 键盘
-    struct {
+    struct key_t {
         bool w = false, s = false, a = false, d = false;
         bool shift = false, ctrl = false;
         bool q = false, e = false;

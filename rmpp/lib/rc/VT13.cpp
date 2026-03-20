@@ -46,8 +46,8 @@ void VT13::callback(const uint8_t data[], const uint16_t size) {
     mode = mode_e(raw.mode_sw);
     pause = raw.pause;
     trigger = raw.trigger;
-    fn_left = raw.fn_1;
-    fn_right = raw.fn_2;
+    fn = raw.fn_1;
+    photo = raw.fn_2;
 
     // 鼠标
     mouse.yaw = -(float)raw.mouse_x / (float)MOUSE_MAX * ratio;
@@ -90,7 +90,7 @@ void VT13::resetData() {
     x = y = pitch = yaw = 0 * ratio;
     wheel = 0 * ratio;
     mode = ERR;
-    pause = trigger = fn_left = fn_right = false;
+    pause = trigger = fn = photo = false;
 
     // 键鼠
     mouse = {};

@@ -9,26 +9,32 @@ Mavlink::Mavlink(const config_t& config) : config(config) {
 }
 
 void Mavlink::OnLoop() {
-    // 断联检测
-    if (dwt_connect.GetDT() > config.timeout) {
-        is_connect = false;
-
-        // 复位接收数据
-        auto_aim = {};
-        current_position = {};
-        chassis_speed = {};
-    }
-
-    // 自动重连
-    if (is_connect) {
-        dwt_reconnect.UpdateDT();
-    } else if (dwt_reconnect.GetDT() > config.reconnect_time) {
+    // CDC串口自动重连
+    if (dwt_reconnect.GetDT() > config.cdc_reconnect_time) {
         BSP::CDC::Init();
         dwt_reconnect.UpdateDT();
     }
 
-    // 将三个包分散在不同的时间点发送
-    if (dwt_send_freq.PollTimeout(1 / (config.send_freq * 3))) {
+    // 复位复位数据
+    if (dwt_auto_aim.GetDT() > config.message_timeout) {
+        is_connect_auto_aim = false;
+        auto_aim = {};
+    }
+    if (dwt_insta360.GetDT() > config.message_timeout) {
+        is_connect_insta360 = false;
+        insta360 = {};
+    }
+    if (dwt_current_position.GetDT() > config.message_timeout) {
+        is_connect_current_position = false;
+        current_position = {};
+    }
+    if (dwt_chassis_speed.GetDT() > config.message_timeout) {
+        is_connect_chassis_speed = false;
+        chassis_speed = {};
+    }
+
+    // 轮流发送
+    if (dwt_send_freq.PollTimeout(1 / config.send_freq)) {
         switch (idx) {
             case 0:
                 sendImu();
@@ -53,8 +59,7 @@ void Mavlink::callback(const uint8_t data[], const uint32_t size) {
         mavlink_status_t status;
         if (mavlink_parse_char(MAVLINK_COMM_0, data[i], &msg, &status)) {
             parse(msg);
-            is_connect = true;
-            dwt_connect.UpdateDT();
+            dwt_reconnect.UpdateDT();
         }
     }
 }
@@ -62,6 +67,8 @@ void Mavlink::callback(const uint8_t data[], const uint32_t size) {
 void Mavlink::parse(const mavlink_message_t& msg) {
     switch (msg.msgid) {
         case MAVLINK_MSG_ID_auto_aim: {
+            dwt_auto_aim.UpdateDT();
+            is_connect_auto_aim = true;
             mavlink_auto_aim_t auto_aim;
             mavlink_msg_auto_aim_decode(&msg, &auto_aim);
             this->auto_aim = {
@@ -77,6 +84,8 @@ void Mavlink::parse(const mavlink_message_t& msg) {
         }
 
         case MAVLINK_MSG_ID_insta360: {
+            dwt_insta360.UpdateDT();
+            is_connect_insta360 = true;
             mavlink_insta360_t ui;
             mavlink_msg_insta360_decode(&msg, &ui);
             this->insta360 = {
@@ -91,6 +100,8 @@ void Mavlink::parse(const mavlink_message_t& msg) {
         }
 
         case MAVLINK_MSG_ID_current_position: {
+            dwt_current_position.UpdateDT();
+            is_connect_current_position = true;
             mavlink_current_position_t current_position;
             mavlink_msg_current_position_decode(&msg, &current_position);
             this->current_position = {
@@ -102,6 +113,8 @@ void Mavlink::parse(const mavlink_message_t& msg) {
         }
 
         case MAVLINK_MSG_ID_chassis_speed: {
+            dwt_chassis_speed.UpdateDT();
+            is_connect_chassis_speed = true;
             mavlink_chassis_speed_t chassis_speed;
             mavlink_msg_chassis_speed_decode(&msg, &chassis_speed);
             this->chassis_speed = {

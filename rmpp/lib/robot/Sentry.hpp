@@ -19,12 +19,6 @@ private:
     static constexpr UnitFloat<m> CENTER_R = 1 * m;
 
     enum {
-        PAUSE,
-        GAME,
-        TEST,
-    } mode = PAUSE;
-
-    enum {
         GO_CENTER,
         IN_CENTER,
         GO_HOME,
@@ -42,5 +36,5 @@ private:
 
     void handleGame();
 
-    void handleTest(bool is_fn);
+    void handleTest();
 };

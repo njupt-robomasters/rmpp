@@ -42,8 +42,8 @@ void FSi6X::callback(const uint8_t data[], const uint16_t size) {
     yaw = -getJoystick(raw.ch3);  // 左手水平
     swa = getSwitch(raw.ch4);
     swb = getSwitch(raw.ch5);
-    vra = -getJoystick(raw.ch6);
-    swc = getSwitch(raw.ch7);
+    swc = getSwitch(raw.ch6);
+    swd = getSwitch(raw.ch7);
 }
 
 UnitFloat<> FSi6X::getJoystick(const uint16_t value) const {

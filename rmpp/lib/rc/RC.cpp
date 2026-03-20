@@ -1,46 +1,70 @@
 #include "RC.hpp"
 
-RC::RC(const FSi6X::config_t& fsi6x_config, const VT13::config_t& vt13_config) : fsi6x(fsi6x_config), vt13(vt13_config) {}
-
-void RC::SetIgnoreDisconnect(bool is_ignore_disconnect) {
-    this->is_ignore_disconnect = is_ignore_disconnect;
-}
+RC::RC(const FSi6X::config_t& fsi6x_config, const VT13::config_t& vt13_config) : vt13(vt13_config), fsi6x(fsi6x_config) {}
 
 void RC::OnLoop() {
-    fsi6x.OnLoop();
     vt13.OnLoop();
+    fsi6x.OnLoop();
 
-    if (vt13.is_connect) { // VT13遥控器优先
-        is_enable = vt13.mode == VT13::N || vt13.mode == VT13::S;
+    // 先复位，便于后面叠加控制
+    is_enable = false;
+    is_rub = is_shoot = is_auto_aim;
+    x = y = r = yaw = pitch = shoot = 0 * ratio;
 
-        x = vt13.x;
-        y = vt13.y;
-        r = vt13.wheel;
+    // VT13遥控器
+    if (vt13.is_connect) {
+        is_enable |= vt13.mode == VT13::N || vt13.mode == VT13::S;
 
-        yaw = vt13.yaw;
-        pitch = vt13.pitch;
+        is_rub |= vt13.mode == VT13::S;
+        is_shoot |= vt13.trigger;
+        is_auto_aim |= vt13.photo;
 
-        is_rub = vt13.mode == VT13::S;
-        is_shoot = vt13.trigger;
-    } else if (fsi6x.is_connect) { // FSi6X遥控器备用
-        is_enable = fsi6x.swa == FSi6X::DOWN;
+        x += vt13.x, y += vt13.y, r += vt13.wheel;
+        yaw += vt13.yaw;
 
-        x = fsi6x.x;
-        y = fsi6x.y;
-        if (fsi6x.swb == FSi6X::DOWN) {
-            r = fsi6x.vra;
-        } else {
-            r = 0 * ratio;
+        // pitch摇杆复用
+        if (is_shoot) { // 发弹模式，控制弹频
+            shoot += vt13.pitch;
+        } else { // 正常pitch作用
+            pitch += vt13.pitch;
         }
 
-        yaw = fsi6x.yaw;
-        pitch = fsi6x.pitch;
+        // 键鼠控制
+        mouse = vt13.mouse;
+        key = vt13.key;
+    } else {
+        mouse = {};
+        key = {};
+    }
 
-        is_rub = fsi6x.swc == FSi6X::MID || fsi6x.swc == FSi6X::DOWN;
-        is_shoot = fsi6x.swc == FSi6X::DOWN;
-    } else { // 都未连接，复位控制量
-        if (!is_ignore_disconnect) is_enable = false;
-        x = y = r = yaw = pitch = 0 * ratio;
-        is_rub = is_shoot = false;
+    // FSi6X遥控器
+    if (fsi6x.is_connect) {
+        is_enable |= true;
+
+        is_rub |= fsi6x.swc == FSi6X::MID || fsi6x.swc == FSi6X::DOWN;
+        is_shoot |= fsi6x.swc == FSi6X::DOWN;
+        is_auto_aim |= fsi6x.swd == FSi6X::DOWN;
+
+        x += fsi6x.x, y += fsi6x.y;
+        yaw += fsi6x.yaw;
+
+        // pitch摇杆复用
+        if (is_shoot) { // 发弹模式，控制弹频
+            shoot += fsi6x.pitch;
+        } else if (fsi6x.swb == FSi6X::DOWN) { // 小陀螺模式，控制转速
+            r += fsi6x.pitch;
+        } else { // 正常pitch作用
+            pitch += fsi6x.pitch;
+        }
+    }
+
+    // fn特殊处理
+    if (fsi6x.is_connect) {
+        is_fn = fsi6x.swa == FSi6X::DOWN;
+    } else if (vt13.is_connect) {
+        if (vt13.fn) is_fn = true;
+        if (vt13.pause) is_fn = false;
+    } else {
+        is_fn = false;
     }
 }

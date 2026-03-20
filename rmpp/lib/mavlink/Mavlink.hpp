@@ -6,12 +6,10 @@
 class Mavlink {
 public:
     struct config_t {
-        UnitFloat<> timeout = 100 * ms;     // 断联检测时间
-        UnitFloat<> reconnect_time = 1 * s; // 自动重连时间
-        UnitFloat<> send_freq = 100 * Hz;   // 报文频率
+        UnitFloat<> cdc_reconnect_time = 1 * s; // CDC重新连接时间
+        UnitFloat<> message_timeout = 200 * ms; // 每种报文断联时间
+        UnitFloat<> send_freq = 1000 * Hz;      // 发送频率
     } config;
-
-    bool is_connect = false;
 
     // 发送
     struct {
@@ -35,6 +33,7 @@ public:
     } target_position;
 
     // 接收
+    bool is_connect_auto_aim = false;
     struct {
         bool is_detect = false;
         Angle<deg> yaw;
@@ -46,13 +45,15 @@ public:
     } auto_aim;
 
     // 接收
+    bool is_connect_insta360 = false;
     struct {
-        float a0 = 0, c0 = 0;
-        float a1 = 0, c1 = 0;
-        float a2 = 0, c2 = 0;
+        float a0 = NAN, c0 = 0;
+        float a1 = NAN, c1 = 0;
+        float a2 = NAN, c2 = 0;
     } insta360;
 
     // 接收
+    bool is_connect_current_position = false;
     struct {
         UnitFloat<m> x;
         UnitFloat<m> y;
@@ -60,6 +61,7 @@ public:
     } current_position;
 
     // 接收
+    bool is_connect_chassis_speed = false;
     struct {
         UnitFloat<m_s> vx;
         UnitFloat<m_s> vy;
@@ -74,8 +76,8 @@ private:
     static constexpr uint8_t SYSTEM_ID = 1;    // mavlink参数
     static constexpr uint8_t COMPONENT_ID = 1; // mavlink参数
 
-    BSP::Dwt dwt_connect;   // 用于断联检测
-    BSP::Dwt dwt_reconnect;   // 用于断联重启
+    BSP::Dwt dwt_reconnect; // 用于断联检测
+    BSP::Dwt dwt_auto_aim, dwt_insta360, dwt_current_position, dwt_chassis_speed;
     BSP::Dwt dwt_send_freq; // 用于控制发送频率
 
     uint8_t idx = 0; // 报文分散在不同的时间点发送
