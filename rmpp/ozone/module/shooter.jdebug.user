@@ -4,11 +4,11 @@ OpenDocument="main.c", FilePath="E:/workspace/rm/code/embedded/rmpp/Core/Src/mai
 OpenDocument="Unit.hpp", FilePath="E:/workspace/rm/code/embedded/rmpp/rmpp/lib/unit/Unit.hpp", Line=133
 OpenToolbar="Debug", Floating=0, x=0, y=0
 OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=0, w=1837, h=1587, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1518, h=766, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
-OpenWindow="Timeline", DockArea=RIGHT, x=0, y=0, w=1518, h=820, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="858;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="961;-108", CodeGraphLegendShown=0, CodeGraphLegendPosition="979;0"
+OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1518, h=730, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=RIGHT, x=0, y=0, w=1518, h=856, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="84;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="844;-105", CodeGraphLegendShown=0, CodeGraphLegendPosition="872;0"
 OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=3840, h=337, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
 TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" referee.shooter.bullet_speed.value"], ColWidths=[100;100;100]
-TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[609;106;120;100;100;148;176;204;204]
+TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="DESCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[609;106;174;100;158;174;176;206;204]
 TableHeader="Power Sampling", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
 TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Refresh"], ColWidths=[600;187;222;828]
 TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
@@ -21,3 +21,4 @@ WatchedExpression="shooter.bullet_freq.measure.value", Window=Watched Data 1
 WatchedExpression="referee.shooter.bullet_freq.value", Window=Watched Data 1
 WatchedExpression="referee.shooter.bullet_speed.value", Window=Watched Data 1
 WatchedExpression="shoot.current.measure.value", Window=Watched Data 1
+WatchedExpression="shoot_pid", Window=Watched Data 1

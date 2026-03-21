@@ -54,7 +54,8 @@ void Sentry::handleAutoAim() {
         gimbal_mode.software = GIMBAL_ANGLE_MODE;
         yaw.software = device.mavlink.auto_aim.yaw;
         pitch.software = device.mavlink.auto_aim.pitch;
-    } else { // 360°巡视
+        dwt_auto_aim.UpdateDT();
+    } else if (dwt_auto_aim.GetDT() > AUTO_AIM_TIMEOUT) { // 360°巡视
         gimbal_mode.software = GIMBAL_SPEED_MODE;
         wyaw.software = YAW_SPEED;
         static bool is_up = false;
@@ -72,7 +73,6 @@ void Sentry::handleAutoAim() {
         is_shoot.software = device.mavlink.auto_aim.is_fire;
     } else {
         is_shoot.software = false;
-        device.buzzer.Play(Buzzer::G5);
     }
 }
 
@@ -95,7 +95,6 @@ void Sentry::handleGame() {
             // 检查是否到中心点
             if (checkPos(center, center_r)) {
                 status = IN_CENTER;
-                device.buzzer.Play(Buzzer::C5);
             }
             break;
 
@@ -112,7 +111,6 @@ void Sentry::handleGame() {
             // 血量小于等于20%回家（400 * 20% = 80)
             if (device.referee.robot.hp <= 80) {
                 status = GO_HOME;
-                device.buzzer.Play(Buzzer::C5);
             }
             break;
 
@@ -133,7 +131,6 @@ void Sentry::handleGame() {
             // 检查是否到家
             if (checkPos(home, home_r)) {
                 status = IN_HOME;
-                device.buzzer.Play(Buzzer::C5);
             }
             break;
 
@@ -152,7 +149,6 @@ void Sentry::handleGame() {
             // 血量恢复满去中心点
             if (device.referee.robot.hp >= 400) {
                 status = GO_CENTER;
-                device.buzzer.Play(Buzzer::C5);
             }
             break;
 

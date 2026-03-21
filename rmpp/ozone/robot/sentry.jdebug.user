@@ -1,0 +1,24 @@
+
+OpenDocument="main.c", FilePath="E:/workspace/rm/code/embedded/rmpp/Core/Src/main.c", Line=58
+OpenToolbar="Debug", Floating=0, x=0, y=0
+OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=0, w=1202, h=1587, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1204, h=777, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=RIGHT, x=0, y=0, w=1204, h=809, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="656;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="844;-108", CodeGraphLegendShown=0, CodeGraphLegendPosition="872;0"
+OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=3840, h=337, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+TableHeader="Data Sampling Table", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time"], ColWidths=[100;100]
+TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="DESCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[540;106;120;100;100;148;176;204;204]
+TableHeader="Power Sampling", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
+TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Refresh";"Location"], ColWidths=[546;187;230;239]
+TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
+TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[26;26;26;35]
+WatchedExpression="rc.is_enable", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="mavlink.is_connect_cdc", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="robot.status", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="robot.vx.software.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="robot.vy.software.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="robot.wr.software.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="robot.gimbal_mode.software", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="robot.wyaw.software.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="robot.wpitch.software.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="robot.yaw.software.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="robot.pitch.software.value", RefreshRate=1, Window=Watched Data 1

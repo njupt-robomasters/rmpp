@@ -7,7 +7,7 @@
 class Mavlink {
 public:
     struct config_t {
-        UnitFloat<> cdc_timeout = 200 * s;      // CDC串口断联时间
+        UnitFloat<> cdc_timeout = 200 * ms;     // CDC串口断联时间
         UnitFloat<> message_timeout = 200 * ms; // 每种报文断联时间
         UnitFloat<> send_freq = 1000 * Hz;      // 发送频率
     } config;

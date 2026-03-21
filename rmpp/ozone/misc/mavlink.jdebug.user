@@ -1,0 +1,25 @@
+
+GraphedExpression="mavlink.auto_aim.yaw.value", Color=#a00909
+GraphedExpression="mavlink.auto_aim.pitch.value", Color=#09a01b
+GraphedExpression="gimbal.yaw.imu.measure.value", Color=#09a087
+OpenDocument="main.c", FilePath="E:/workspace/rm/code/embedded/rmpp/Core/Src/main.c", Line=58
+OpenDocument="Mavlink.hpp", FilePath="E:/workspace/rm/code/embedded/rmpp/rmpp/lib/mavlink/Mavlink.hpp", Line=26
+OpenDocument="Mavlink.cpp", FilePath="E:/workspace/rm/code/embedded/rmpp/rmpp/lib/mavlink/Mavlink.cpp", Line=73
+OpenDocument="bsp_cdc.cpp", FilePath="E:/workspace/rm/code/embedded/rmpp/rmpp/lib/bsp/bsp_cdc.cpp", Line=4
+OpenToolbar="Debug", Floating=0, x=0, y=0
+OpenWindow="Source Files", DockArea=LEFT, x=0, y=0, w=1202, h=772, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=1, w=1202, h=814, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1204, h=773, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=RIGHT, x=0, y=0, w=1204, h=813, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="628;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="844;-108", CodeGraphLegendShown=0, CodeGraphLegendPosition="872;0"
+OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=3840, h=337, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+TableHeader="Source Files", SortCol="File", SortOrder="ASCENDING", VisibleCols=["File";"Status";"Size";"#Insts";"Path"], ColWidths=[350;116;100;116;1568]
+TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" mavlink.auto_aim.yaw.value";" mavlink.auto_aim.pitch.value";" gimbal.yaw.imu.measure.value"], ColWidths=[100;100;100;100;100]
+TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="DESCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[540;106;174;190;190;206;176;204;204]
+TableHeader="Power Sampling", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
+TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Refresh";"Location"], ColWidths=[546;187;373;158]
+TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
+TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[26;26;26;35]
+WatchedExpression="mavlink", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="mavlink.auto_aim.yaw.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="mavlink.auto_aim.pitch.value", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="gimbal.yaw.imu.measure.value", Window=Watched Data 1
