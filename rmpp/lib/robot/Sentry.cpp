@@ -6,25 +6,25 @@ extern GM6020 yaw2;
 void Sentry::OnLoop() {
     Robot::OnLoop();
 
-    if (device.referee.game.game_progress == Referee::GAMING) {
-        handleGame();
+    is_game = device.referee.game.game_progress == Referee::GAMING && (device.referee.robot.id == 7 || device.referee.robot.id == 107);
+
+    if (is_game) {
+        home = GAME_HOME;
+        home_r = GAME_HOME_R;
+        center = GAME_CENTER;
+        center_r = GAME_CENTER_R;
     } else {
-        if (device.rc.is_fn) {
-            handleTest();
-        } else {
-            handlePause();
-        }
+        home = TEST_HOME;
+        home_r = TEST_HOME_R;
+        center = TEST_CENTER;
+        center_r = TEST_CENTER_R;
     }
 
-    static bool is_fn_last;
-    if (!is_fn_last && device.rc.is_fn) { // fn上升沿，切换测试项目
-        if (test_status == GO_POS1) {
-            test_status = GO_POS2;
-        } else {
-            test_status = GO_POS1;
-        }
+    if (is_game || device.rc.is_fn) {
+        handleGame();
+    } else {
+        handlePause();
     }
-    is_fn_last = device.rc.is_fn;
 }
 
 bool Sentry::checkPos(const pos_t& pos, const UnitFloat<>& r) {
@@ -33,7 +33,7 @@ bool Sentry::checkPos(const pos_t& pos, const UnitFloat<>& r) {
 }
 
 void Sentry::handlePause() {
-    game_status = GO_CENTER;
+    status = GO_CENTER;
     vx.software = vy.software = wr.software = 0 * default_unit;
     gimbal_mode.software = GIMBAL_SPEED_MODE;
     wyaw.software = wpitch.software = 0 * default_unit;
@@ -41,22 +41,61 @@ void Sentry::handlePause() {
     is_rub.software = is_shoot.software = false;
 }
 
-void Sentry::handleGame() {
-    switch (game_status) {
-        case GO_CENTER:
-            // 导航目标点
-            device.mavlink.target_position.x = CENTER.x;
-            device.mavlink.target_position.y = CENTER.y;
+void Sentry::handleAutoAim() {
+    // 开摩擦轮
+    if (is_game) {
+        is_rub.software = true;
+    } else {
+        is_rub.software = false;
+    }
 
-            // 响应导航
+    // 自瞄
+    if (device.mavlink.auto_aim.is_detect) {
+        gimbal_mode.software = GIMBAL_ANGLE_MODE;
+        yaw.software = device.mavlink.auto_aim.yaw;
+        pitch.software = device.mavlink.auto_aim.pitch;
+    } else { // 360°巡视
+        gimbal_mode.software = GIMBAL_SPEED_MODE;
+        wyaw.software = YAW_SPEED;
+        static bool is_up = false;
+        if (is_up) {
+            wpitch.software = PITCH_SPEED;
+            if (device.gimbal.pitch.imu.measure > PITCH_MAX) is_up = false;
+        } else {
+            wpitch.software = -PITCH_SPEED;
+            if (device.gimbal.pitch.imu.measure < PITCH_MIN) is_up = true;
+        }
+    }
+
+    // 自动火控
+    if (is_game) {
+        is_shoot.software = device.mavlink.auto_aim.is_fire;
+    } else {
+        is_shoot.software = false;
+        device.buzzer.Play(Buzzer::G5);
+    }
+}
+
+void Sentry::handleGame() {
+    switch (status) {
+        case GO_CENTER:
+            // 导航
+            device.mavlink.target_position.x = center.x;
+            device.mavlink.target_position.y = center.y;
             std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
 
-            // 关闭小陀螺
-            wr.software = 0 * default_unit;
+            // 小陀螺
+            wr.software = GO_WR;
 
-            // 检查是否到达
-            if (checkPos(CENTER, CENTER_R)) {
-                game_status = IN_CENTER;
+            // 云台旋转
+            gimbal_mode.software = GIMBAL_SPEED_MODE;
+            wyaw.software = YAW_SPEED;
+            wpitch.software = 0 * default_unit;
+
+            // 检查是否到中心点
+            if (checkPos(center, center_r)) {
+                status = IN_CENTER;
+                device.buzzer.Play(Buzzer::C5);
             }
             break;
 
@@ -64,29 +103,37 @@ void Sentry::handleGame() {
             // 不响应导航
             vx.software = vy.software = 0 * default_unit;
 
-            // 开启小陀螺
-            wr.software = config.wr_max;
+            // 小陀螺
+            wr.software = CENTER_WR;
 
-            // 等待血量小于等于20%（400 * 20% = 80)
+            // 自瞄
+            handleAutoAim();
+
+            // 血量小于等于20%回家（400 * 20% = 80)
             if (device.referee.robot.hp <= 80) {
-                game_status = GO_HOME;
+                status = GO_HOME;
+                device.buzzer.Play(Buzzer::C5);
             }
             break;
 
         case GO_HOME:
-            // 导航目标点
-            device.mavlink.target_position.x = HOME.x;
-            device.mavlink.target_position.y = HOME.y;
-
-            // 响应导航
+            // 导航
+            device.mavlink.target_position.x = home.x;
+            device.mavlink.target_position.y = home.y;
             std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
 
-            // 关闭小陀螺
-            wr.software = 0 * default_unit;
+            // 小陀螺
+            wr.software = GO_WR;
 
-            // 检查是否到达
-            if (checkPos(HOME, HOME_R)) {
-                game_status = IN_HOME;
+            // 云台旋转
+            gimbal_mode.software = GIMBAL_SPEED_MODE;
+            wyaw.software = YAW_SPEED;
+            wpitch.software = 0 * default_unit;
+
+            // 检查是否到家
+            if (checkPos(home, home_r)) {
+                status = IN_HOME;
+                device.buzzer.Play(Buzzer::C5);
             }
             break;
 
@@ -94,34 +141,22 @@ void Sentry::handleGame() {
             // 不响应导航
             vx.software = vy.software = 0 * default_unit;
 
-            // 关闭小陀螺
-            wr.software = 0 * default_unit;
+            // 小陀螺
+            wr.software = HOME_WR;
 
-            // 等待血量恢复满
+            // 云台停止旋转
+            gimbal_mode.software = GIMBAL_SPEED_MODE;
+            wyaw.software = 0 * default_unit;
+            wpitch.software = 0 * default_unit;
+
+            // 血量恢复满去中心点
             if (device.referee.robot.hp >= 400) {
-                game_status = GO_CENTER;
+                status = GO_CENTER;
+                device.buzzer.Play(Buzzer::C5);
             }
             break;
 
         default:
             break;
     }
-}
-
-void Sentry::handleTest() {
-    // 导航目标点
-    if (test_status == GO_POS1) {
-        device.mavlink.target_position.x = 0 * m_s;
-        device.mavlink.target_position.y = 0 * m_s;
-    } else if (test_status == GO_POS2) {
-        device.mavlink.target_position.x = 1 * m_s;
-        device.mavlink.target_position.y = 0 * m_s;
-        test_status = GO_POS2;
-    }
-
-    // 响应导航
-    std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
-
-    // 关闭小陀螺
-    wr.software = 0 * default_unit;
 }

@@ -10,16 +10,28 @@ public:
         {784, 500},
     };
 
+    static constexpr float C5[][2] = {
+        {523, 250},
+    };
+
     static constexpr float C5C5C5[][2] = {
         {523, 250},
         {523, 250},
         {523, 250},
     };
 
+    static constexpr float D5[][2] = {
+        {587, 250},
+    };
+
     static constexpr float D5D5D5[][2] = {
         {587, 250},
         {587, 250},
         {587, 250},
+    };
+
+    static constexpr float G5[][2] = {
+        {784, 250},
     };
 
     static constexpr float G5G5G5[][2] = {

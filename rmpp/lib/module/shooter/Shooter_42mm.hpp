@@ -24,9 +24,9 @@ public:
 
 private:
     static constexpr UnitFloat<> RUB12_RATIO = 0.5f * ratio;
-    static constexpr UnitFloat<> SHOOT_FINISH_ERR = 1 * deg; // 用于检查拨弹完成
-    static constexpr UnitFloat<> SHAKE_FREQ = 1 * Hz;        // 抖动频率
-    static constexpr float SHANE_AMP = 1;                    // 抖动幅度（一个弹 = 1）
+    static constexpr UnitFloat<> SHOOT_FINISH_RATIO = 0.95 * ratio; // 用于检查拨弹完成
+    static constexpr UnitFloat<> SHAKE_FREQ = 1 * Hz;               // 抖动频率
+    static constexpr float SHANE_AMP = 1;                           // 抖动幅度（一个弹 = 1）
 
     // 摩擦轮线速度
     UnitFloat<m_s> rub1_measure, rub2_measure, rub3_measure, rub4_measure;

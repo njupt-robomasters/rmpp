@@ -9,13 +9,12 @@ Mavlink::Mavlink(const config_t& config) : config(config) {
 }
 
 void Mavlink::OnLoop() {
-    // CDC串口自动重连
-    if (dwt_reconnect.GetDT() > config.cdc_reconnect_time) {
-        BSP::CDC::Init();
-        dwt_reconnect.UpdateDT();
+    // CDC串口断联检测
+    if (dwt_cdc.GetDT() > config.cdc_timeout) {
+        is_connect_cdc = false;
     }
 
-    // 复位复位数据
+    // 各报文断联检测
     if (dwt_auto_aim.GetDT() > config.message_timeout) {
         is_connect_auto_aim = false;
         auto_aim = {};
@@ -58,8 +57,9 @@ void Mavlink::callback(const uint8_t data[], const uint32_t size) {
         mavlink_message_t msg;
         mavlink_status_t status;
         if (mavlink_parse_char(MAVLINK_COMM_0, data[i], &msg, &status)) {
+            dwt_cdc.UpdateDT();
+            is_connect_cdc = true;
             parse(msg);
-            dwt_reconnect.UpdateDT();
         }
     }
 }
@@ -158,7 +158,7 @@ void Mavlink::sendReferee() const {
         &msg,
         referee.is_red,
         referee.game_progress,
-        referee.stage_remain_time,
+        (uint16_t)referee.stage_remain_time.toFloat(s),
         referee.bullet_speed.toFloat(m_s)
     );
     send(msg);

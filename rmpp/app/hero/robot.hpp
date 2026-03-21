@@ -20,7 +20,7 @@ inline Robot::config_t robot_config = {
     .ayaw = 36000 * deg_s,
     .apitch = 36000 * deg_s,
 
-    .bullet_speed = 15 * m_s,
+    .bullet_speed = 14.7f * m_s,
     .heat_protect = 100,
 };
 inline Robot robot(robot_config,

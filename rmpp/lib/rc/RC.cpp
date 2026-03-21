@@ -62,8 +62,12 @@ void RC::OnLoop() {
     if (fsi6x.is_connect) {
         is_fn = fsi6x.swa == FSi6X::DOWN;
     } else if (vt13.is_connect) {
-        if (vt13.fn) is_fn = true;
-        if (vt13.pause) is_fn = false;
+        if (vt13.mode == VT13::N || vt13.mode == VT13::S) {
+            if (vt13.fn) is_fn = true;
+            if (vt13.pause) is_fn = false;
+        } else {
+            is_fn = false;
+        }
     } else {
         is_fn = false;
     }

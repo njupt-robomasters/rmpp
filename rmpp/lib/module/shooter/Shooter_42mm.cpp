@@ -131,7 +131,8 @@ void Shooter_42mm::backward() {
 
         case SHOOT: {
             // 拨弹计时
-            if (abs(motor.shoot.angle.ref - motor.shoot.angle.measure) < SHOOT_FINISH_ERR) {
+            const Angle<deg> angle_per_bullet = 1 / config.bullet_per_angle;
+            if (abs(motor.shoot.angle.ref - motor.shoot.angle.measure) < (1 * ratio - SHOOT_FINISH_RATIO) * angle_per_bullet) {
                 state = SHAKE;
                 dwt_shake.UpdateDT();
                 shake_upper = motor.shoot.angle.ref;

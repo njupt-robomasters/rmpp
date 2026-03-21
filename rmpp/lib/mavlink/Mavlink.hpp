@@ -2,14 +2,18 @@
 
 #include "bsp/bsp.hpp"
 #include "lib/msg/mavlink.h"
+#include "referee/Referee.hpp"
 
 class Mavlink {
 public:
     struct config_t {
-        UnitFloat<> cdc_reconnect_time = 1 * s; // CDC重新连接时间
+        UnitFloat<> cdc_timeout = 200 * s;      // CDC串口断联时间
         UnitFloat<> message_timeout = 200 * ms; // 每种报文断联时间
         UnitFloat<> send_freq = 1000 * Hz;      // 发送频率
     } config;
+
+    // CDC串口连接标志
+    bool is_connect_cdc = false;
 
     // 发送
     struct {
@@ -21,8 +25,8 @@ public:
     // 发送
     struct {
         bool is_red = true;
-        uint8_t game_progress = 0;
-        uint16_t stage_remain_time = 0;
+        Referee::game_progress_e game_progress = Referee::NOT_STARTED;
+        UnitFloat<s> stage_remain_time;
         UnitFloat<m_s> bullet_speed;
     } referee;
 
@@ -34,6 +38,7 @@ public:
 
     // 接收
     bool is_connect_auto_aim = false;
+
     struct {
         bool is_detect = false;
         Angle<deg> yaw;
@@ -46,6 +51,7 @@ public:
 
     // 接收
     bool is_connect_insta360 = false;
+
     struct {
         float a0 = NAN, c0 = 0;
         float a1 = NAN, c1 = 0;
@@ -54,6 +60,7 @@ public:
 
     // 接收
     bool is_connect_current_position = false;
+
     struct {
         UnitFloat<m> x;
         UnitFloat<m> y;
@@ -62,6 +69,7 @@ public:
 
     // 接收
     bool is_connect_chassis_speed = false;
+
     struct {
         UnitFloat<m_s> vx;
         UnitFloat<m_s> vy;
@@ -76,7 +84,7 @@ private:
     static constexpr uint8_t SYSTEM_ID = 1;    // mavlink参数
     static constexpr uint8_t COMPONENT_ID = 1; // mavlink参数
 
-    BSP::Dwt dwt_reconnect; // 用于断联检测
+    BSP::Dwt dwt_cdc; // 用于断联检测
     BSP::Dwt dwt_auto_aim, dwt_insta360, dwt_current_position, dwt_chassis_speed;
     BSP::Dwt dwt_send_freq; // 用于控制发送频率
 

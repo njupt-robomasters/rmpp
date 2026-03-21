@@ -214,11 +214,13 @@ void Robot::handleMavlink() {
     device.mavlink.imu = {
         .yaw = device.gimbal.imu.yaw,
         .pitch = device.gimbal.imu.pitch,
-        .roll = device.gimbal.imu.roll
+        .roll = device.gimbal.imu.roll,
     };
     device.mavlink.referee = {
         .is_red = device.referee.game.is_red,
-        .bullet_speed = device.referee.shooter.bullet_speed
+        .game_progress = device.referee.game.game_progress,
+        .stage_remain_time = device.referee.game.stage_remain_time,
+        .bullet_speed = device.referee.shooter.bullet_speed,
     };
 
     device.mavlink.OnLoop();
@@ -247,10 +249,13 @@ void Robot::handleGimbal() {
     // 设置角度或速度
     if (gimbal_mode.rc == GIMBAL_ANGLE_MODE) {
         device.gimbal.SetAngle(yaw.rc, pitch.rc);
+        device.gimbal.SetSpeed(0 * default_unit, 0 * default_unit);
     } else if (gimbal_mode.client == GIMBAL_ANGLE_MODE) {
         device.gimbal.SetAngle(yaw.client, pitch.client);
+        device.gimbal.SetSpeed(0 * default_unit, 0 * default_unit);
     } else if (gimbal_mode.software == GIMBAL_ANGLE_MODE) {
         device.gimbal.SetAngle(yaw.software, pitch.software);
+        device.gimbal.SetSpeed(0 * default_unit, 0 * default_unit);
     } else {
         const UnitFloat<> yaw_speed = unit::clamp(this->wyaw.rc + this->wyaw.client + this->wyaw.software, config.wyaw);
         const UnitFloat<> pitch_speed = unit::clamp(this->wpitch.rc + this->wpitch.client + this->wpitch.software, config.wpitch);
