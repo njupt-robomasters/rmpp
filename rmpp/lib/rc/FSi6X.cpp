@@ -10,7 +10,7 @@ FSi6X::FSi6X(const config_t& config) : config(config) {
 }
 
 void FSi6X::OnLoop() {
-    if (dwt_connect.GetDT() > config.connect_timeout) {
+    if (dwt_connect.GetDT() > config.timeout) {
         resetData();
     }
 }

@@ -44,7 +44,7 @@ void Robot::handleRC() {
     vx.rc = device.rc.x * config.vxy_max;
     vy.rc = device.rc.y * config.vxy_max;
     wr.rc = device.rc.r * config.wr_max;
-    // 底盘跟随（左fn）
+    // 底盘跟随
     if (device.rc.is_fn) {
         device.chassis.SetMode(Chassis::FOLLOW_MODE);
     }
@@ -60,15 +60,14 @@ void Robot::handleRC() {
     } else {
         gimbal_mode.rc = GIMBAL_SPEED_MODE; // 云台速度控制
     }
-    // 校准yaw偏移（失能+左fn+右fn）
-    static bool set_yaw_zero_last = false;
-    const bool set_yaw_zero = !device.rc.is_enable && device.rc.is_fn && device.rc.is_auto_aim;
-    if (set_yaw_zero && !set_yaw_zero_last) {
+    // 校准yaw偏移
+    static bool is_calib_last = false;
+    if (!is_calib_last && device.rc.is_calib) { // 上升沿
         device.gimbal.SetYawZero();
         device.gimbal.SaveYawOffset(device.flashdb);
         device.buzzer.Play(Buzzer::G5G5G5);
     }
-    set_yaw_zero_last = set_yaw_zero;
+    is_calib_last = device.rc.is_calib;
 
     //【发射机构】
     // 摩擦轮（S挡开启）

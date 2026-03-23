@@ -12,7 +12,7 @@ VT13::VT13(const config_t& config) : config(config) {
 
 void VT13::OnLoop() {
     // 断联检测
-    if (dwt_connect.GetDT() > config.connect_timeout) {
+    if (dwt_connect.GetDT() > config.timeout) {
         resetData();
     }
 }

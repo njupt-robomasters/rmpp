@@ -8,7 +8,7 @@ void RC::OnLoop() {
 
     // 先复位，便于后面叠加控制
     is_enable = false;
-    is_rub = is_shoot = is_auto_aim = false;
+    is_rub = is_shoot = is_auto_aim = is_calib = false;
     x = y = r = yaw = pitch = shoot = 0 * ratio;
 
     // VT13遥控器
@@ -18,6 +18,9 @@ void RC::OnLoop() {
         is_rub |= vt13.mode == VT13::S;
         is_shoot |= vt13.trigger;
         is_auto_aim |= vt13.photo;
+        if (vt13.mode == VT13::C && vt13.fn && vt13.photo) {
+            is_calib |= true;
+        }
 
         x += vt13.x, y += vt13.y, r += vt13.wheel;
         yaw += vt13.yaw;
@@ -25,7 +28,7 @@ void RC::OnLoop() {
         // pitch摇杆复用
         if (is_shoot) { // 发弹模式，控制弹频
             shoot += vt13.pitch;
-        } else { // 正常pitch作用
+        } else { // 正常pitch
             pitch += vt13.pitch;
         }
 
@@ -39,11 +42,14 @@ void RC::OnLoop() {
 
     // FSi6X遥控器
     if (fsi6x.is_connect) {
-        is_enable |= true;
+        is_enable |= fsi6x.swb == FSi6X::DOWN;
 
         is_rub |= fsi6x.swc == FSi6X::MID || fsi6x.swc == FSi6X::DOWN;
         is_shoot |= fsi6x.swc == FSi6X::DOWN;
         is_auto_aim |= fsi6x.swd == FSi6X::DOWN;
+        if (fsi6x.swb == FSi6X::UP && fsi6x.swa == FSi6X::DOWN && fsi6x.swd == FSi6X::DOWN) {
+            is_calib |= true;
+        }
 
         x += fsi6x.x, y += fsi6x.y;
         yaw += fsi6x.yaw;
@@ -51,9 +57,7 @@ void RC::OnLoop() {
         // pitch摇杆复用
         if (is_shoot) { // 发弹模式，控制弹频
             shoot += fsi6x.pitch;
-        } else if (fsi6x.swb == FSi6X::DOWN) { // 小陀螺模式，控制转速
-            r += fsi6x.pitch;
-        } else { // 正常pitch作用
+        } else { // 正常pitch
             pitch += fsi6x.pitch;
         }
     }
