@@ -8,34 +8,34 @@
 #include "shooter.hpp"
 
 inline Robot::config_t robot_config = {
-    .vxy_max = 4 * m_s,  // 极限4.5m/s
-    .wr_max = 120 * rpm, // 极限130rpm
-    .axy = 500 * m_ss,
-    .dxy = 500 * m_ss,
-    .ar = 12000 * rpm,
-    .dr = 12000 * rpm,
+    .vxy_max = 5 * m_s, // 100W下2.4m/s，不限功率4.5m/s
+    .wr_max = 90 * rpm, // 100W下80rpm，不限功率130rpm
+    .axy = 100 * m_ss,
+    .dxy = 100 * m_ss,
+    .ar = 1000 * rpm,
+    .dr = 1000 * rpm,
 
     .wyaw = 360 * deg_s,
     .wpitch = 360 * deg_s,
-    .ayaw = 36000 * deg_s,
-    .apitch = 36000 * deg_s,
+    .ayaw = 3600 * deg_s,
+    .apitch = 3600 * deg_s,
 
     .bullet_speed = 14.7f * m_s,
     .heat_protect = 100,
 };
 inline Robot robot(robot_config,
-                      {
-                          led,
-                          buzzer,
-                          flashdb,
+                   {
+                       led,
+                       buzzer,
+                       flashdb,
 
-                          rc,
-                          mavlink,
+                       rc,
+                       mavlink,
 
-                          chassis,
-                          gimbal,
-                          shooter,
+                       chassis,
+                       gimbal,
+                       shooter,
 
-                          referee,
-                          ui
-                      });
+                       referee,
+                       ui
+                   });
