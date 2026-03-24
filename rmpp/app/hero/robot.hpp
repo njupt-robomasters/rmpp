@@ -9,7 +9,7 @@
 
 inline Robot::config_t robot_config = {
     .vxy_max = 5 * m_s, // 100W下2.4m/s，不限功率4.5m/s
-    .wr_max = 90 * rpm, // 100W下80rpm，不限功率130rpm
+    .wr_max = 90 * rpm, // 100W下65rpm，不限功率90rpm
     .axy = 100 * m_ss,
     .dxy = 100 * m_ss,
     .ar = 1000 * rpm,

@@ -9,7 +9,7 @@ static constexpr UnitFloat<Nm_A> Kt = M3508::Kt / M3508::REDUCTION * REDUCTION;
 static constexpr bool IS_INVERT = false;
 
 // 底盘参数
-static constexpr UnitFloat CHASSIS_RADIUS = 21.56f * cm;
+static constexpr UnitFloat CHASSIS_RADIUS = 25.87f * cm;
 static constexpr UnitFloat WHEEL_RADIUS = 7.1f * cm;
 static constexpr UnitFloat<N> MAX_F = M3508::MAX_CURRENT * Kt / WHEEL_RADIUS * 4;
 
