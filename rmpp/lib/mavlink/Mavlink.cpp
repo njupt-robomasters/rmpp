@@ -10,24 +10,24 @@ Mavlink::Mavlink(const config_t& config) : config(config) {
 
 void Mavlink::OnLoop() {
     // CDC串口断联检测
-    if (dwt_cdc.GetDT() > config.cdc_timeout) {
+    if (dwt_cdc.GetDT() > config.timeout) {
         is_connect_cdc = false;
     }
 
     // 各报文断联检测
-    if (dwt_auto_aim.GetDT() > config.message_timeout) {
+    if (dwt_auto_aim.GetDT() > config.timeout) {
         is_connect_auto_aim = false;
         auto_aim = {};
     }
-    if (dwt_insta360.GetDT() > config.message_timeout) {
+    if (dwt_insta360.GetDT() > config.timeout) {
         is_connect_insta360 = false;
         insta360 = {};
     }
-    if (dwt_current_position.GetDT() > config.message_timeout) {
+    if (dwt_current_position.GetDT() > config.timeout) {
         is_connect_current_position = false;
         current_position = {};
     }
-    if (dwt_chassis_speed.GetDT() > config.message_timeout) {
+    if (dwt_chassis_speed.GetDT() > config.timeout) {
         is_connect_chassis_speed = false;
         chassis_speed = {};
     }
