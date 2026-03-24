@@ -9,27 +9,20 @@ void Sentry::OnLoop() {
     // 比赛开始，并且为哨兵
     is_game = device.referee.game.game_progress == Referee::GAMING && (device.referee.robot.id == 7 || device.referee.robot.id == 107);
 
-    if (is_game) {
-        home = GAME_HOME;
-        center = GAME_CENTER;
-        center_r = GAME_CENTER_R;
-    } else {
-        home = TEST_HOME;
-        center = TEST_CENTER;
-        center_r = TEST_CENTER_R;
-    }
-
+    // 比赛中，或按下测试按钮
     if (is_game || device.rc.is_fn) {
-        handleNav();
-        handleAutoAim();
+        handleChassis();
+        handleGimbal();
+        handleShooter();
     } else {
         handlePause();
     }
 }
 
 void Sentry::handlePause() {
-    // 导航状态机
-    nav_status = GO_CENTER;
+    // 状态机
+    chassis_status = GO_CENTER;
+    gimbal_status = SCAN;
 
     // 底盘
     vx.software = vy.software = wr.software = 0 * default_unit;
@@ -43,94 +36,124 @@ void Sentry::handlePause() {
     is_rub.software = is_shoot.software = false;
 }
 
-void Sentry::handleNav() {
-    switch (nav_status) {
+void Sentry::handleChassis() {
+    // 导航
+    switch (chassis_status) {
         case GO_CENTER: {
-            // 导航
-            device.mavlink.target_position.x = center.x;
-            device.mavlink.target_position.y = center.y;
-            std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
-
-            // 小陀螺
-            wr.software = GO_WR;
-
-            // 检查是否到中心点
-            // 通过导航坐标检测
-            const UnitFloat<m> distance = sqrt(square(center.x - device.mavlink.current_position.x) + square(center.y - device.mavlink.current_position.y));
-            if (distance <= center_r) {
-                nav_status = IN_CENTER;
+            if (is_game) {
+                device.mavlink.target_position.x = GAME_CENTER_X;
+                device.mavlink.target_position.y = GAME_CENTER_Y;
+            } else {
+                device.mavlink.target_position.x = TEST_CENTER_X;
+                device.mavlink.target_position.y = TEST_CENTER_Y;
             }
-            // 通过RFID检测
-            if (device.referee.rfid.in_center) {
-                nav_status = IN_CENTER;
-            }
-            break;
-        }
+            // std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
+            vx.software = device.mavlink.chassis_speed.vx;
+            vy.software = device.mavlink.chassis_speed.vy;
 
-        case IN_CENTER: {
-            // 导航
-            device.mavlink.target_position.x = center.x;
-            device.mavlink.target_position.y = center.y;
-            std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
-
-            // 小陀螺
-            wr.software = CENTER_WR;
-
-            // 血量小于等于20%回家（400 * 20% = 80)
-            if (device.referee.robot.hp <= 80) {
-                nav_status = GO_HOME;
+            // 血量低于设定值回家
+            if (device.referee.robot.hp <= GO_HOME_HP) {
+                chassis_status = GO_HOME;
             }
             break;
         }
 
         case GO_HOME: {
-            // 导航
-            device.mavlink.target_position.x = home.x;
-            device.mavlink.target_position.y = home.y;
-            std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
+            device.mavlink.target_position.x = 0 * m;
+            device.mavlink.target_position.y = 0 * m;
+            // std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
+            vx.software = device.mavlink.chassis_speed.vx;
+            vy.software = device.mavlink.chassis_speed.vy;
 
-            // 小陀螺
-            wr.software = GO_WR;
+            // 血量恢复到设定值去中心点
+            if (device.referee.robot.hp >= GO_CENTER_HP) {
+                chassis_status = GO_CENTER;
+            }
+        }
+        break;
+    }
 
-            // 血量恢复满去中心点
-            if (device.referee.robot.hp >= 400) {
-                nav_status = GO_CENTER;
+    // 小陀螺
+    const UnitFloat<m_s> v_software = sqrt(square(vx.software) + square(vy.software));
+    // 导航速度越快，小陀螺越慢
+    wr.software = map(v_software, 0 * m_s, config.vxy_max, config.wr_max, device.chassis.config.reserve_wr);
+}
+
+void Sentry::handleGimbal() {
+    switch (gimbal_status) {
+        case SCAN: {
+            // 云台速度模式
+            gimbal_mode.software = GIMBAL_SPEED_MODE;
+
+            // yaw旋转
+            wyaw.software = YAW_SPEED;
+
+            // pitch上下摆动
+            static bool is_up = false;
+            if (is_up) {
+                wpitch.software = PITCH_SPEED;
+                if (device.gimbal.pitch.imu.measure > PITCH_MAX) is_up = false;
+            } else {
+                wpitch.software = -PITCH_SPEED;
+                if (device.gimbal.pitch.imu.measure < PITCH_MIN) is_up = true;
+            }
+
+            // 自瞄检测到目标
+            if (device.mavlink.vision.is_detect) {
+                gimbal_status = LOCK;
+            }
+
+            // insta360检测到目标，且不在惩罚时间内
+            if (!std::isnan(device.mavlink.insta360.a0) && dwt_insta360_punish.GetDT() > INSTA360_PUNISH_TIME) {
+                // 云台角度模式
+                gimbal_mode.software = GIMBAL_ANGLE_MODE;
+
+                // 转到insta360的位置
+                yaw.software = device.mavlink.insta360.a0 * deg + device.gimbal.yaw.imu_minus_ecd;
+                pitch.software = (PITCH_MIN + PITCH_MAX) / 2;
+
+                gimbal_status = INSTA360_CHECK;
+                dwt_insta360_check.UpdateDT();
             }
         }
         break;
 
-        default:
-            break;
+        case INSTA360_CHECK: {
+            // 视觉检测到目标
+            if (device.mavlink.vision.is_detect) {
+                gimbal_status = LOCK;
+            }
+
+            // 检测超时
+            if (dwt_insta360_check.GetDT() > INSTA360_CHECK_TIMEOUT) {
+                gimbal_status = SCAN;
+                dwt_insta360_punish.UpdateDT(); // insta360惩罚
+            }
+        }
+        break;
+
+        case LOCK: {
+            if (device.mavlink.vision.is_detect) { // 自瞄识别到
+                dwt_lock_lost.UpdateDT();
+
+                // 云台角度模式
+                gimbal_mode.software = GIMBAL_ANGLE_MODE;
+
+                // 响应自瞄
+                yaw.software = device.mavlink.vision.yaw;
+                pitch.software = device.mavlink.vision.pitch;
+            } else if (dwt_lock_lost.GetDT() > LOCK_TIMEOUT) { // 自瞄丢失超过一定时间
+                gimbal_status = SCAN;
+            }
+        }
+        break;
     }
 }
 
-void Sentry::handleAutoAim() {
+void Sentry::handleShooter() {
     // 比赛自动开摩擦轮
-    if (is_game) {
-        is_rub.software = true;
-    }
-
-    // 自瞄
-    if (device.mavlink.auto_aim.is_detect) { // 检测到敌方机器人
-        gimbal_mode.software = GIMBAL_ANGLE_MODE;
-        yaw.software = device.mavlink.auto_aim.yaw;
-        pitch.software = device.mavlink.auto_aim.pitch;
-        dwt_auto_aim.UpdateDT();
-    } else if (dwt_auto_aim.GetDT() > AUTO_AIM_TIMEOUT) { // 未检测到敌方机器人一段时间后，360°巡视
-        gimbal_mode.software = GIMBAL_SPEED_MODE;
-        wyaw.software = YAW_SPEED;
-
-        // pitch上下摆动
-        static bool is_up = false;
-        if (is_up) {
-            wpitch.software = PITCH_SPEED;
-            if (device.gimbal.pitch.imu.measure > PITCH_MAX) is_up = false;
-        } else {
-            wpitch.software = -PITCH_SPEED;
-            if (device.gimbal.pitch.imu.measure < PITCH_MIN) is_up = true;
-        }
-    }
+    is_rub.software = is_game;
 
     // 自动火控
-    is_shoot.software = device.mavlink.auto_aim.is_fire;
+    is_shoot.software = device.mavlink.vision.is_fire;
 }

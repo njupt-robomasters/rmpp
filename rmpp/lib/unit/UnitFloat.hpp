@@ -288,4 +288,11 @@ namespace unit {
             return x;
         }
     }
+
+    constexpr UnitFloat<> map(const UnitFloat<>& x, const UnitFloat<>& x_min, const UnitFloat<>& x_max, const UnitFloat<>& y_min, const UnitFloat<>& y_max) {
+        if (x < x_min) return y_min;
+        if (x > x_max) return y_max;
+        UnitFloat<> ret = (x - x_min) * (y_max - y_min) / (x_max - x_min) + y_min;
+        return ret;
+    }
 }

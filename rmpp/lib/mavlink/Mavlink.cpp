@@ -16,8 +16,8 @@ void Mavlink::OnLoop() {
 
     // 各报文断联检测
     if (dwt_auto_aim.GetDT() > config.timeout) {
-        is_connect_auto_aim = false;
-        auto_aim = {};
+        is_connect_vision = false;
+        vision = {};
     }
     if (dwt_insta360.GetDT() > config.timeout) {
         is_connect_insta360 = false;
@@ -68,10 +68,10 @@ void Mavlink::parse(const mavlink_message_t& msg) {
     switch (msg.msgid) {
         case MAVLINK_MSG_ID_auto_aim: {
             dwt_auto_aim.UpdateDT();
-            is_connect_auto_aim = true;
+            is_connect_vision = true;
             mavlink_auto_aim_t auto_aim;
             mavlink_msg_auto_aim_decode(&msg, &auto_aim);
-            this->auto_aim = {
+            this->vision = {
                 .is_detect = (bool)auto_aim.is_detect,
                 .yaw = auto_aim.yaw * deg,
                 .pitch = auto_aim.pitch * deg,
