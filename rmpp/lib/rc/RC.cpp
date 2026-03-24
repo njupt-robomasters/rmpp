@@ -42,12 +42,12 @@ void RC::OnLoop() {
 
     // FSi6X遥控器
     if (fsi6x.is_connect) {
-        is_enable |= fsi6x.swb == FSi6X::DOWN;
+        is_enable |= fsi6x.swc == FSi6X::MID || fsi6x.swc == FSi6X::DOWN;
 
-        is_rub |= fsi6x.swc == FSi6X::MID || fsi6x.swc == FSi6X::DOWN;
-        is_shoot |= fsi6x.swc == FSi6X::DOWN;
+        is_rub |= fsi6x.swc == FSi6X::DOWN;
+        is_shoot |= fsi6x.swb == FSi6X::DOWN;
         is_auto_aim |= fsi6x.swd == FSi6X::DOWN;
-        if (fsi6x.swb == FSi6X::UP && fsi6x.swa == FSi6X::DOWN && fsi6x.swd == FSi6X::DOWN) {
+        if (fsi6x.swc == FSi6X::UP && fsi6x.swa == FSi6X::DOWN && fsi6x.swd == FSi6X::DOWN) {
             is_calib |= true;
         }
 

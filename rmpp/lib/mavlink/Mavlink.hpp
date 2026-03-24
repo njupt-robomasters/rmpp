@@ -7,7 +7,7 @@
 class Mavlink {
 public:
     struct config_t {
-        UnitFloat<> timeout = 500 * ms;   // 断联超时时间
+        UnitFloat<> timeout = 200 * ms;   // 断联超时时间
         UnitFloat<> send_freq = 150 * Hz; // 发送频率
     } config;
 
