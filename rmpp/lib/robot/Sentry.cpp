@@ -61,9 +61,7 @@ void Sentry::handleChassis() {
                 device.mavlink.target_position.x = TEST_CENTER_X;
                 device.mavlink.target_position.y = TEST_CENTER_Y;
             }
-            // std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
-            vx.software = device.mavlink.chassis_speed.vx;
-            vy.software = device.mavlink.chassis_speed.vy;
+            std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
 
             // 血量低于设定值回家
             if (device.referee.robot.hp <= GO_HOME_HP) {
@@ -75,9 +73,7 @@ void Sentry::handleChassis() {
         case GO_HOME: {
             device.mavlink.target_position.x = 0 * m;
             device.mavlink.target_position.y = 0 * m;
-            // std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
-            vx.software = device.mavlink.chassis_speed.vx;
-            vy.software = device.mavlink.chassis_speed.vy;
+            std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
 
             // 血量恢复到设定值去中心点
             if (device.referee.robot.hp >= GO_CENTER_HP) {
@@ -115,6 +111,7 @@ void Sentry::handleGimbal() {
             // 自瞄检测到目标
             if (device.mavlink.vision.is_detect) {
                 gimbal_status = LOCK;
+                dwt_lock_lost.UpdateDT();
             }
 
             // insta360检测到目标，且不在惩罚时间内
