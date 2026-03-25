@@ -8,12 +8,15 @@ void Sentry::OnLoop() {
 
     // 比赛开始，并且为哨兵
     is_game = device.referee.game.game_progress == Referee::GAMING && (device.referee.robot.id == 7 || device.referee.robot.id == 107);
+    const bool is_15s = device.referee.game.game_progress == Referee::REFEREE_SELF_CHECK;
 
     // 比赛中，或按下测试按钮
     if (is_game || device.rc.is_fn) {
         handleChassis();
         handleGimbal();
         handleShooter();
+    } else if (is_15s) {
+        handle15s();
     } else {
         handlePause();
     }
@@ -34,6 +37,17 @@ void Sentry::handlePause() {
 
     // 发射机构
     is_rub.software = is_shoot.software = false;
+}
+
+void Sentry::handle15s() {
+    // 云台速度模式
+    gimbal_mode.software = GIMBAL_SPEED_MODE;
+
+    // yaw旋转
+    wyaw.software = YAW_SPEED;
+
+    // pitch停止
+    wpitch.software = 0 * default_unit;
 }
 
 void Sentry::handleChassis() {

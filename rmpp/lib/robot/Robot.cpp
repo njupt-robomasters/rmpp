@@ -12,7 +12,11 @@ void Robot::OnLoop() {
     device.buzzer.OnLoop();
 
     // 断联检测
-    if (device.referee.game.game_progress == Referee::GAMING) { // 比赛中忽略断联检测
+    bool ignore_disconnect = false;
+    ignore_disconnect |= device.referee.game.game_progress == Referee::REFEREE_SELF_CHECK;
+    ignore_disconnect |= device.referee.game.game_progress == Referee::COUNTDOWN_5SEC;
+    ignore_disconnect |= device.referee.game.game_progress == Referee::GAMING;
+    if (ignore_disconnect) { // 忽略断联检测
         device.chassis.SetEnable(true);
         device.gimbal.SetEnable(true);
         device.shooter.SetEnable(true);
@@ -54,7 +58,7 @@ void Robot::handleRC() {
     wpitch.rc = device.rc.pitch * config.wpitch;
     // 自瞄
     if (device.rc.is_auto_aim && device.mavlink.vision.is_detect) { // 使能自瞄且识别到
-        gimbal_mode.rc = GIMBAL_ANGLE_MODE;                           // 云台角度控制
+        gimbal_mode.rc = GIMBAL_ANGLE_MODE;                         // 云台角度控制
         yaw.rc = device.mavlink.vision.yaw;
         pitch.rc = device.mavlink.vision.pitch;
     } else {
@@ -159,7 +163,7 @@ void Robot::handleClient() {
     wpitch.client += dwpitch;
     // 自瞄（鼠标右键）
     if (device.rc.mouse.right && device.mavlink.vision.is_detect) { // 使能自瞄且识别到
-        gimbal_mode.client = GIMBAL_ANGLE_MODE;                       // 云台角度控制
+        gimbal_mode.client = GIMBAL_ANGLE_MODE;                     // 云台角度控制
         yaw.client = device.mavlink.vision.yaw;
         pitch.client = device.mavlink.vision.pitch;
     } else {
@@ -316,10 +320,10 @@ void Robot::handleUI() {
     device.ui.shoot_current = device.shooter.shoot_current; // 拨弹电机电流
 
     // 机器人状态
-    device.chassis.UpdateUI(device.ui);                                              // 底盘
-    device.gimbal.UpdateUI(device.ui);                                               // 云台
-    device.shooter.UpdateUI(device.ui);                                              // 发射机构
-    device.ui.robot.referee = device.referee.is_connect ? UI::GREEN : UI::PINK;      // 裁判系统
+    device.chassis.UpdateUI(device.ui);                                            // 底盘
+    device.gimbal.UpdateUI(device.ui);                                             // 云台
+    device.shooter.UpdateUI(device.ui);                                            // 发射机构
+    device.ui.robot.referee = device.referee.is_connect ? UI::GREEN : UI::PINK;    // 裁判系统
     device.ui.robot.aim = device.mavlink.is_connect_vision ? UI::GREEN : UI::PINK; // 自瞄
 
     device.ui.OnLoop();

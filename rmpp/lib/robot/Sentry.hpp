@@ -11,8 +11,10 @@ public:
 private:
     // 坐标
     // 比赛模式坐标
-    static constexpr UnitFloat<> GAME_CENTER_X = 5 * m;
-    static constexpr UnitFloat<> GAME_CENTER_Y = 4 * m;
+    // static constexpr UnitFloat<> GAME_CENTER_X = 5 * m;
+    // static constexpr UnitFloat<> GAME_CENTER_Y = 4 * m;
+    static constexpr UnitFloat<> GAME_CENTER_X = 1 * m;
+    static constexpr UnitFloat<> GAME_CENTER_Y = 0 * m;
     // 调试模式坐标
     static constexpr UnitFloat<> TEST_CENTER_X = 1 * m;
     static constexpr UnitFloat<> TEST_CENTER_Y = 0 * m;
@@ -52,6 +54,8 @@ private:
     BSP::Dwt dwt_insta360_punish;
 
     void handlePause();
+
+    void handle15s();
 
     void handleChassis();
 
