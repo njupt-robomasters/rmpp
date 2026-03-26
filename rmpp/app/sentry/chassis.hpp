@@ -76,7 +76,7 @@ inline GM6020 s2({
     .master_id = 0x208,
     .slave_id = 0x1FF,
     .is_invert = IS_SERVO_INVERT,
-    .offset = -165 * deg,
+    .offset = -15 * deg,
     .control_mode = Motor::ANGLE_MODE,
     .pid_out_type = Motor::CURRENT_OUTPUT,
     .angle_pid_config = &servo_pid,

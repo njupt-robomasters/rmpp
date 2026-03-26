@@ -51,16 +51,29 @@ void Sentry::handle15s() {
 }
 
 void Sentry::handleChassis() {
-    // 导航
+    // 导航坐标点
+    UnitFloat<> center_x, center_y, home_x, home_y;
+    if (force_game_position) {
+        center_x = GAME_CENTER_X;
+        center_y = GAME_CENTER_Y;
+    } else if (force_test_position) {
+        center_x = TEST_CENTER_X;
+        center_y = TEST_CENTER_Y;
+    } else {
+        if (is_game) {
+            center_x = GAME_CENTER_X;
+            center_y = GAME_CENTER_Y;
+        } else {
+            center_x = TEST_CENTER_X;
+            center_y = TEST_CENTER_Y;
+        }
+    }
+
+    // 导航状态机
     switch (chassis_status) {
         case GO_CENTER: {
-            if (is_game) {
-                device.mavlink.target_position.x = GAME_CENTER_X;
-                device.mavlink.target_position.y = GAME_CENTER_Y;
-            } else {
-                device.mavlink.target_position.x = TEST_CENTER_X;
-                device.mavlink.target_position.y = TEST_CENTER_Y;
-            }
+            device.mavlink.target_position.x = center_x;
+            device.mavlink.target_position.y = center_y;
             std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
 
             // 血量低于设定值回家
@@ -71,8 +84,8 @@ void Sentry::handleChassis() {
         }
 
         case GO_HOME: {
-            device.mavlink.target_position.x = 0 * m;
-            device.mavlink.target_position.y = 0 * m;
+            device.mavlink.target_position.x = home_x;
+            device.mavlink.target_position.y = home_y;
             std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
 
             // 血量恢复到设定值去中心点
@@ -109,7 +122,7 @@ void Sentry::handleGimbal() {
             }
 
             // 自瞄检测到目标
-            if (device.mavlink.vision.is_detect) {
+            if (device.mavlink.vision.is_detect && device.mavlink.vision.distance <= LOCK_DISTANCE) {
                 gimbal_status = LOCK;
                 dwt_lock_lost.UpdateDT();
             }
@@ -131,7 +144,7 @@ void Sentry::handleGimbal() {
 
         case INSTA360_CHECK: {
             // 视觉检测到目标
-            if (device.mavlink.vision.is_detect) {
+            if (device.mavlink.vision.is_detect && device.mavlink.vision.distance <= LOCK_DISTANCE) {
                 gimbal_status = LOCK;
             }
 
@@ -144,7 +157,7 @@ void Sentry::handleGimbal() {
         break;
 
         case LOCK: {
-            if (device.mavlink.vision.is_detect) { // 自瞄识别到
+            if (device.mavlink.vision.is_detect && device.mavlink.vision.distance <= LOCK_DISTANCE) { // 自瞄识别到
                 dwt_lock_lost.UpdateDT();
 
                 // 云台角度模式
