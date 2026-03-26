@@ -56,16 +56,24 @@ void Sentry::handleChassis() {
     if (force_game_position) {
         center_x = GAME_CENTER_X;
         center_y = GAME_CENTER_Y;
+        home_x = GAME_HOME_X;
+        home_y = GAME_HOME_y;
     } else if (force_test_position) {
         center_x = TEST_CENTER_X;
         center_y = TEST_CENTER_Y;
+        home_x = TEST_HOME_X;
+        home_y = TEST_HOME_y;
     } else {
         if (is_game) {
             center_x = GAME_CENTER_X;
             center_y = GAME_CENTER_Y;
+            home_x = GAME_HOME_X;
+            home_y = GAME_HOME_y;
         } else {
             center_x = TEST_CENTER_X;
             center_y = TEST_CENTER_Y;
+            home_x = TEST_HOME_X;
+            home_y = TEST_HOME_y;
         }
     }
 
@@ -157,17 +165,21 @@ void Sentry::handleGimbal() {
         break;
 
         case LOCK: {
-            if (device.mavlink.vision.is_detect && device.mavlink.vision.distance <= LOCK_DISTANCE) { // 自瞄识别到
-                dwt_lock_lost.UpdateDT();
-
-                // 云台角度模式
-                gimbal_mode.software = GIMBAL_ANGLE_MODE;
-
-                // 响应自瞄
-                yaw.software = device.mavlink.vision.yaw;
-                pitch.software = device.mavlink.vision.pitch;
-            } else if (dwt_lock_lost.GetDT() > LOCK_TIMEOUT) { // 自瞄丢失超过一定时间
+            if (device.referee.robot.hp <= GO_HOME_HP) { // 血量低于设定值，放弃锁定
                 gimbal_status = SCAN;
+            } else {
+                if (device.mavlink.vision.is_detect && device.mavlink.vision.distance <= LOCK_DISTANCE) { // 自瞄识别到
+                    dwt_lock_lost.UpdateDT();
+
+                    // 云台角度模式
+                    gimbal_mode.software = GIMBAL_ANGLE_MODE;
+
+                    // 响应自瞄
+                    yaw.software = device.mavlink.vision.yaw;
+                    pitch.software = device.mavlink.vision.pitch;
+                } else if (dwt_lock_lost.GetDT() > LOCK_TIMEOUT) { // 自瞄丢失超过一定时间
+                    gimbal_status = SCAN;
+                }
             }
         }
         break;
