@@ -12,6 +12,6 @@ inline LED led({});
 inline Buzzer buzzer;
 inline FlashDB flashdb("infantry");
 inline RC rc({}, {});
-inline Mavlink mavlink({});
+inline Mavlink mavlink({.send_freq = 150 * Hz});
 inline Referee referee({});
 inline UI ui({});

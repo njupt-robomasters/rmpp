@@ -25,7 +25,7 @@ private:
     static constexpr UnitFloat<> TEST_HOME_y = 0 * m;
 
     // 动作血量
-    static constexpr auto GO_HOME_HP = 100;   // 回家血量
+    static constexpr auto GO_HOME_HP = 120;   // 回家血量
     static constexpr auto GO_CENTER_HP = 400; // 去中心点血量
 
     // 云台参数

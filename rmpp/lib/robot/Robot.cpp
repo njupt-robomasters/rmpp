@@ -241,7 +241,7 @@ void Robot::handleClient() {
         }
         last_c = device.rc.key.c;
 
-        config.bullet_freq = clamp(config.bullet_speed, 5 * Hz, 25 * Hz);
+        config.bullet_freq = clamp(config.bullet_freq, 5 * Hz, 25 * Hz);
     }
 }
 
