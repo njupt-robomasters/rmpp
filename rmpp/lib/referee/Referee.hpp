@@ -8,6 +8,15 @@ public:
 
     config_t config;
 
+    enum game_type_e {
+        UNKNOWN  = 0,
+        RMUC     = 1, // RoboMaster机甲大师超级对抗赛
+        RMUT     = 2, // RoboMaster机甲大师高校单项赛
+        RMUA     = 3, // ICRA RoboMaster高校人工智能挑战赛
+        RMUL_3V3 = 4, // RoboMaster机甲大师高校联盟赛3V3对抗
+        RMUL_1V1 = 5, // RoboMaster机甲大师高校联盟赛步兵对抗
+    };
+
     enum game_progress_e {
         NOT_STARTED        = 0, // 未开始比赛
         PREPARING          = 1, // 准备阶段
@@ -42,6 +51,10 @@ public:
         // 红蓝方
         // 0x0201 robot_status.robot_id
         bool is_red = true;
+
+        // 比赛类型
+        // 0x0001 game_status.game_type
+        game_type_e type = RMUC;
 
         // 当前比赛阶段
         // 0x0001 game_status.game_progress

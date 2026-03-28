@@ -11,6 +11,12 @@ void Robot::OnLoop() {
     device.led.OnLoop();
     device.buzzer.OnLoop();
 
+    // 1V1特化参数
+    if (device.referee.game.type == Referee::RMUL_1V1) {
+        config.bullet_freq = 10 * Hz;
+        config.heat_protect = 50;
+    }
+
     // 断联检测
     bool ignore_disconnect = false;
     ignore_disconnect |= device.referee.game.game_progress == Referee::REFEREE_SELF_CHECK;

@@ -19,9 +19,10 @@ void Referee::OnLoop() {
     robot.hp = parser.robot_status.current_HP;
 
     // 比赛数据
-    game.is_red = robot.id < 100;                                      // 红蓝方
+    game.is_red = robot.id < 100; // 红蓝方
+    game.type = game_type_e(parser.game_status.game_type); // 比赛类型
     game.game_progress = game_progress_e(parser.game_status.game_progress); // 当前比赛阶段
-    game.stage_remain_time = parser.game_status.stage_remain_time * s; // 当前阶段剩余时间
+    game.stage_remain_time = parser.game_status.stage_remain_time * s;      // 当前阶段剩余时间
 
     // 底盘数据
     chassis.power_limit = parser.robot_status.chassis_power_limit * W; // 底盘功率上限
@@ -36,9 +37,9 @@ void Referee::OnLoop() {
         shooter.heat_current = parser.power_heat_data.shooter_17mm_1_barrel_heat;         // 当前射击热量
         shooter.bullet_allowance = parser.projectile_allowance.projectile_allowance_17mm; // 允许发弹量
     }
-    shooter.heat_remain = shooter.heat_limit - shooter.heat_current; // 剩余射击热量
-    shooter.bullet_freq = parser.shoot_data.launching_frequency * Hz;           // 射击频率
-    shooter.bullet_speed = parser.shoot_data.initial_speed * m_s;               // 弹丸初速度
+    shooter.heat_remain = shooter.heat_limit - shooter.heat_current;  // 剩余射击热量
+    shooter.bullet_freq = parser.shoot_data.launching_frequency * Hz; // 射击频率
+    shooter.bullet_speed = parser.shoot_data.initial_speed * m_s;     // 弹丸初速度
 
     // 机器人RFID模块状态
     rfid.in_home = parser.rfid_status.rfid_status & (1 << 19);
