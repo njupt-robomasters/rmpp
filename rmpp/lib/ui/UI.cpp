@@ -97,35 +97,35 @@ void UI::updateLib() const {
 
     // 电容剩余能量比例
     // 275°~313°
-    angle = (int)((cap_ratio / config.max_cap_ratio).toFloat() * 38);
+    angle = (int)((cap / config.max_cap).toFloat() * 38);
     angle = std::clamp(angle, 1, 38);
     ui_g_1_bar0->start_angle = 275;
     ui_g_1_bar0->end_angle = 275 + angle;
-    ui_g_2_number0->number = (int32_t)cap_ratio.toFloat(pct);
+    ui_g_2_number0->number = (int32_t)cap.toFloat(pct);
 
     // 底盘旋转速度
     // 227°~265°
-    angle = (int)((unit::abs(chassis_wr) / config.max_chassis_wr).toFloat() * 38);
+    angle = (int)((unit::abs(wr) / config.max_wr).toFloat() * 38);
     angle = std::clamp(angle, 1, 38);
     ui_g_1_bar1->start_angle = 265 - angle;
     ui_g_1_bar1->end_angle = 265;
-    ui_g_2_number1->number = (int32_t)chassis_wr.toFloat(rpm);
+    ui_g_2_number1->number = (int32_t)wr.toFloat(rpm);
 
-    // 弹频
+    // 英雄弹速/步兵弹频
     // 95°~133°
-    angle = (int)((shoot_freq / config.max_shoot_freq).toFloat() * 38);
+    angle = (int)((bullet / config.max_bullet).toFloat() * 38);
     angle = std::clamp(angle, 1, 38);
     ui_g_1_bar2->start_angle = 95;
     ui_g_1_bar2->end_angle = 95 + angle;
-    ui_g_2_number2->number = (int32_t)shoot_freq.toFloat(Hz);
+    ui_g_2_number2->number = (int32_t)bullet.toFloat(default_unit);
 
     // 拨弹电机电流
     // 47°~85°
-    angle = (int)((unit::abs(shoot_current) / config.max_shoot_current).toFloat() * 38);
+    angle = (int)((unit::abs(shoot) / config.max_shoot).toFloat() * 38);
     angle = std::clamp(angle, 1, 38);
     ui_g_1_bar3->start_angle = 85 - angle;
     ui_g_1_bar3->end_angle = 85;
-    ui_g_2_number3->number = (int32_t)shoot_current.toFloat(A);
+    ui_g_2_number3->number = (int32_t)shoot.toFloat(default_unit);
 
     // 机器人状态
     ui_g_30_w1->color = robot.w1;

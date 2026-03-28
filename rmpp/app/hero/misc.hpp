@@ -14,4 +14,4 @@ inline FlashDB flashdb("hero");
 inline RC rc({}, {});
 inline Mavlink mavlink({});
 inline Referee referee({});
-inline UI ui({});
+inline UI ui({.max_bullet = 200 * default_unit});

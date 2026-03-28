@@ -7,7 +7,7 @@ void Sentry::OnLoop() {
     Robot::OnLoop();
 
     // 比赛开始，并且为哨兵
-    is_game = device.referee.game.game_progress == Referee::GAMING && (device.referee.robot.id == 7 || device.referee.robot.id == 107);
+    is_game = device.referee.game.game_progress == Referee::GAMING && device.referee.robot.type == Referee::SENTRY;
     const bool is_15s = device.referee.game.game_progress == Referee::REFEREE_SELF_CHECK;
 
     // 比赛中，或按下测试按钮

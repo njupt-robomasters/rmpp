@@ -211,6 +211,38 @@ void Robot::handleClient() {
     if (device.rc.key.f) {
         device.ui.Init();
     }
+
+    // 英雄调整弹速
+    if (device.referee.robot.type == Referee::HERO) {
+        static bool last_z = false;
+        if (!last_z && device.rc.key.z) {
+            config.bullet_speed -= 0.1 * m_s;
+        }
+        last_z = device.rc.key.z;
+
+        static bool last_c = false;
+        if (!last_c && device.rc.key.c) {
+            config.bullet_speed += 0.1 * m_s;
+        }
+        last_c = device.rc.key.c;
+    }
+
+    // 步兵调弹频
+    if (device.referee.robot.type == Referee::INFANTRY) {
+        static bool last_z = false;
+        if (!last_z && device.rc.key.z) {
+            config.bullet_freq -= 5 * m_s;
+        }
+        last_z = device.rc.key.z;
+
+        static bool last_c = false;
+        if (!last_c && device.rc.key.c) {
+            config.bullet_freq += 5 * m_s;
+        }
+        last_c = device.rc.key.c;
+
+        config.bullet_freq = clamp(config.bullet_speed, 5 * Hz, 25 * Hz);
+    }
 }
 
 void Robot::handleMavlink() {
@@ -314,10 +346,14 @@ void Robot::handleUI() {
     device.ui.is_detect = device.mavlink.vision.is_detect;
 
     // 提示条
-    device.ui.cap_ratio = 0 * ratio;                        // 超级电容剩余能量比例
-    device.ui.chassis_wr = device.chassis.wr.measure;       // 底盘旋转速度
-    device.ui.shoot_freq = config.bullet_freq;              // 弹频
-    device.ui.shoot_current = device.shooter.shoot_current; // 拨弹电机电流
+    device.ui.cap = 0 * ratio;                        // 超级电容剩余能量比例
+    device.ui.wr = device.chassis.wr.measure;         // 底盘旋转速度
+    if (device.referee.robot.type == Referee::HERO) { // 英雄显示弹速
+        device.ui.bullet = config.bullet_speed * 10;
+    } else if (device.referee.robot.type == Referee::INFANTRY) { // 步兵显示弹频
+        device.ui.bullet = config.bullet_freq;
+    }
+    device.ui.shoot = device.shooter.shoot_current; // 拨弹电机电流
 
     // 机器人状态
     device.chassis.UpdateUI(device.ui);                                            // 底盘

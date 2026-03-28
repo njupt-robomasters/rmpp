@@ -352,7 +352,7 @@ void _ui_init_g_04_0() {
     ui_g_04_text2->width = 2;
     ui_g_04_text2->font_size = 20;
     ui_g_04_text2->str_length = 4;
-    strcpy(ui_g_04_text2->string, "FREQ");
+    strcpy(ui_g_04_text2->string, "BULLET");
 
 
     ui_proc_string_frame(&ui_g_04_0);

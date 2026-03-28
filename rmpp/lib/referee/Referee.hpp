@@ -8,6 +8,13 @@ public:
 
     config_t config;
 
+    enum robot_type_e {
+        HERO     = 1, // 英雄
+        ENGINEER = 2, // 工程
+        INFANTRY = 3, // 步兵
+        SENTRY   = 7, // 哨兵
+    };
+
     enum game_type_e {
         UNKNOWN  = 0,
         RMUC     = 1, // RoboMaster机甲大师超级对抗赛
@@ -40,6 +47,10 @@ public:
         // 机器人ID
         // 0x0201 robot_status.robot_id
         uint8_t id = 3;
+
+        // 机器人类型
+        // 0x0201 robot_status.robot_id
+        uint8_t type = INFANTRY;
 
         // 当前血量
         // 0x0201 robot_status.current_HP

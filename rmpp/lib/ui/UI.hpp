@@ -11,10 +11,10 @@ public:
         uint32_t slave_id = 1;
 
         // 最大值
-        UnitFloat<> max_cap_ratio = 1 * ratio;
-        UnitFloat<> max_chassis_wr = 120 * rpm;
-        UnitFloat<> max_shoot_freq = 10 * Hz;
-        UnitFloat<> max_shoot_current = 10 * A;
+        UnitFloat<> max_cap = 1 * ratio;
+        UnitFloat<> max_wr = 120 * rpm;
+        UnitFloat<> max_bullet = 25 * default_unit;
+        UnitFloat<> max_shoot = 10 * default_unit;
     } config;
 
     enum color_e {
@@ -30,7 +30,7 @@ public:
     };
 
     // 云台角度
-    Angle<deg> yaw_ecd; // 云台相对底盘角度
+    Angle<deg> yaw_ecd;    // 云台相对底盘角度
     Angle<deg> yaw, pitch; // 云台IMU角度
 
     // 伤害方向
@@ -41,10 +41,10 @@ public:
     bool is_detect = false;
 
     // 提示条
-    UnitFloat<ratio> cap_ratio;     // 超级电容剩余能量比例
-    UnitFloat<rpm> chassis_wr;     // 底盘旋转速度
-    UnitFloat<Hz> shoot_freq;     // 弹频
-    UnitFloat<A> shoot_current;     // 拨弹电机电流
+    UnitFloat<ratio> cap; // 超级电容剩余能量比例
+    UnitFloat<rpm> wr;    // 底盘旋转速度
+    UnitFloat<Hz> bullet; // 英雄弹速/步兵弹频
+    UnitFloat<A> shoot;   // 拨弹电机电流
 
     // 机器人状态
     struct {
