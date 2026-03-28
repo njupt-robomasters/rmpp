@@ -16,8 +16,8 @@ private:
     // 比赛模式坐标
     static constexpr UnitFloat<> GAME_CENTER_X = (4 - 2 + 0.2) * m;
     static constexpr UnitFloat<> GAME_CENTER_Y = (6 - 1.5 + 0.2) * m;
-    static constexpr UnitFloat<> GAME_HOME_X = -0.5 * m;
-    static constexpr UnitFloat<> GAME_HOME_y = -0.5 * m;
+    static constexpr UnitFloat<> GAME_HOME_X = -0.25 * m;
+    static constexpr UnitFloat<> GAME_HOME_y = -0.25 * m;
     // 调试模式坐标
     static constexpr UnitFloat<> TEST_CENTER_X = 1 * m;
     static constexpr UnitFloat<> TEST_CENTER_Y = 0 * m;
