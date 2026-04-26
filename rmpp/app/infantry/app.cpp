@@ -9,7 +9,7 @@ void send_can_cmd() {
     const int16_t cmd2 = w2.GetCanCmd();
     const int16_t cmd3 = w3.GetCanCmd();
     const int16_t cmd4 = w4.GetCanCmd();
-    const int16_t cmd5 = yaw.GetCanCmd();
+    const int16_t cmd5 = yaw.GetVoltageCmd();
     const int16_t cmd6 = shoot.GetCanCmd();
     const int16_t cmd7 = 0;
     const int16_t cmd8 = 0;
