@@ -6,13 +6,15 @@ class GM6020 : public Motor {
 public:
     static constexpr float REDUCTION = 1.0f;
     static constexpr UnitFloat<> Kt = 0.741f * Nm_A;
+    static constexpr UnitFloat<V_rad_s> Ke = (1 * V) / (13.33 * rpm);
     static constexpr UnitFloat<> R = 1.8f / 2 * Ohm;
     static constexpr UnitFloat<> MAX_CURRENT = 3.0f * A;
+    static constexpr UnitFloat<> MAX_VOLTAGE = 25.0f * V;
     static constexpr UnitFloat<Nm> MAX_TORQUE = MAX_CURRENT * Kt;
-
     GM6020(const config_t& config);
 
-    int16_t GetCanCmd() const;
+    int16_t GetCurrentCmd() const;
+    int16_t GetVoltageCmd() const;
 
 private:
     static constexpr uint16_t MAX_VOLTAGE_CMD = 25000;
