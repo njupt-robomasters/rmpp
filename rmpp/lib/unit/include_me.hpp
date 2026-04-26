@@ -61,5 +61,6 @@ inline constexpr Unit rps("rps", (rev / s).scale);
 inline constexpr Unit m_ss = m / s / s;
 inline constexpr Unit deg_ss = deg / s / s;
 
-// 扭矩系数
+// 扭矩和反电动势系数
 inline constexpr Unit Nm_A = Nm / A;
+inline constexpr Unit V_rad_s = V / rad_s;

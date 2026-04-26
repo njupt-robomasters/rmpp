@@ -13,16 +13,30 @@ GM6020::GM6020(const config_t& config) : Motor(config) {
     BSP::CAN::RegisterCallback(callback);
 }
 
-int16_t GM6020::GetCanCmd() const {
+int16_t GM6020::GetCurrentCmd() const {
     if (is_connect == false || is_enable == false) return 0;
 
     int16_t cmd;
 
-    const UnitFloat current_limit = unit::clamp(current.ref, MAX_CURRENT);
+    const UnitFloat current = unit::clamp(this->current.ref, MAX_CURRENT);
     if (!config.is_invert) {
-        cmd = (int16_t)((current_limit / MAX_CURRENT).toFloat(A) * MAX_VOLTAGE_CMD);
+        cmd = (int16_t)((current / MAX_CURRENT).toFloat(A) * MAX_CURRENT_CMD);
     } else {
-        cmd = (int16_t)((-current_limit / MAX_CURRENT).toFloat(A) * MAX_VOLTAGE_CMD);
+        cmd = (int16_t)((-current / MAX_CURRENT).toFloat(A) * MAX_CURRENT_CMD);
+    }
+
+    return cmd;
+}
+int16_t GM6020::GetVoltageCmd() const {
+    if (is_connect == false || is_enable == false) return 0;
+
+    int16_t cmd;
+
+    const UnitFloat voltage = unit::clamp(current.ref + Ke * speed.measure, MAX_VOLTAGE);
+    if (!config.is_invert) {
+        cmd = (int16_t)((voltage / MAX_VOLTAGE).toFloat(V) * MAX_VOLTAGE_CMD);
+    } else {
+        cmd = (int16_t)((-voltage / MAX_VOLTAGE).toFloat(V) * MAX_VOLTAGE_CMD);
     }
 
     return cmd;

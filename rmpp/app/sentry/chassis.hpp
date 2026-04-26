@@ -24,8 +24,8 @@ inline PID::config_t wheel_pid = {
 
 // 舵电机PID参数
 inline PID::config_t servo_pid = {
-    .kp = (3 * A) / (20 * deg),
-    .max_out = 3 * A,
+    .kp = (25 * V) / (20 * deg),
+    .max_out = 25 * V,
 };
 
 // 底盘PID参数

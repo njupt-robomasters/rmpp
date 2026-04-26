@@ -9,7 +9,7 @@ void send_can_cmd() {
     const int16_t cmd2 = w2.GetCanCmd();
     const int16_t cmd3 = w3.GetCanCmd();
     const int16_t cmd4 = w4.GetCanCmd();
-    const int16_t cmd5 = yaw.GetCanCmd();
+    const int16_t cmd5 = yaw.GetCurrentCmd();
     const int16_t cmd6 = 0;
     const int16_t cmd7 = 0;
     const int16_t cmd8 = 0;
@@ -32,7 +32,7 @@ void send_can_cmd() {
     data[5] = cmd7;
     data[6] = cmd8 >> 8;
     data[7] = cmd8;
-    BSP::CAN::Transmit(1, 0x1FF, data);
+    BSP::CAN::Transmit(1, 0x1FE, data);
 
     shoot.SendCanCmd();
 

@@ -16,8 +16,8 @@
 
 // yaw电机
 inline PID::config_t yaw_speed_pid = {
-    .kp = (3 * A) / (120 * deg_s),
-    .max_out = 3 * A,
+    .kp = (25 * V) / (120 * deg_s),
+    .max_out = 25 * V,
     .fc = 10 * Hz,
 };
 inline PID::config_t yaw_angle_pid = {

@@ -37,8 +37,8 @@ inline MF9025 yaw1({
 
 // 小yaw电机
 inline PID::config_t yaw2_speed_pid = {
-    .kp = (3 * A) / (300 * deg_s),
-    .kd = (3 * A) / (30000 * deg_ss),
+    .kp = (25 * V) / (300 * deg_s),
+    .kd = (25 * V) / (30000 * deg_ss),
     .max_out = 3 * A,
     .fc = 10 * Hz,
 };
