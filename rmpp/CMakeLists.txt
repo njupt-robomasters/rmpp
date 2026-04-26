@@ -2,9 +2,9 @@ file(GLOB_RECURSE USER_SOURCES
         "lib/*.*"
 
         # 整车代码
-        "app/infantry/app.cpp"
+        "app/hero/app.cpp"
+        # "app/infantry/app.cpp"
         # "app/sentry/app.cpp"
-        # "app/hero/app.cpp"
 
         # 调试代码
         # "app/debug/motor.cpp"
