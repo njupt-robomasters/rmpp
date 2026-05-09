@@ -1,6 +1,7 @@
 #pragma once
 
 #include "algorithm/PID.hpp"
+#include "lib/ekf/QuaternionEKF.hpp"
 
 class IMU {
 public:
@@ -29,10 +30,11 @@ public:
     // 欧拉角
     Angle<deg> yaw, pitch, roll;
     UnitFloat<deg> yaw_total_angle;
-
+    // 增加一个温度（方便调试）
+    UnitFloat<C> temperature;
     IMU(const dir_t& dir, calib_t& calib);
 
-    // 校准陀螺仪，校准数据存放在calib成员变量
+    // 校准陀螺仪
     void Calibrate();
 
     // 欧拉角转四元数
@@ -60,7 +62,7 @@ private:
         Temperature_Control() : pid(&pid_config) {}
 
         // 需要在循环中调用
-        void OnLoop();
+        void OnLoop(const UnitFloat<C>& current_temp);
 
     private:
         static constexpr UnitFloat<> ref = 45.0f * C; // 目标温度
@@ -79,9 +81,12 @@ private:
     dir_t dir;     // 安装方向参数
     calib_t calib; // 校准参数
 
-    bool is_init = false; // 用于自动初始化陀螺仪
+    bool is_init = false;  // 用于自动初始化陀螺仪
 
-    BSP::Dwt dwt; // 用于计算dt
+    BSP::Dwt dwt;
+
+    // 创建IMU的EKF的实例
+    QuaternionEKF ekf;
 
     // 初始化陀螺仪
     void init() const;
