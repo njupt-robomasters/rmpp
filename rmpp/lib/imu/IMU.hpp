@@ -2,9 +2,12 @@
 
 #include "algorithm/PID.hpp"
 #include "lib/ekf/QuaternionEKF.hpp"
+#include "lib/bmi088/bmi088.hpp"
+
 
 class IMU {
-public:
+public :
+
     static constexpr auto X = 0;
     static constexpr auto Y = 1;
     static constexpr auto Z = 2;
@@ -13,14 +16,13 @@ public:
     struct dir_t {
         Angle<deg> yaw, pitch, roll;
     };
-
     // 校准参数
     struct calib_t {
         float gx_offset = 0, gy_offset = 0, gz_offset = 0;
         float g_norm = 1;
     };
 
-    // 陀螺仪原始数据
+
     float gyro[3]{};  // 角速度
     float accel[3]{}; // 加速度
 
@@ -30,9 +32,12 @@ public:
     // 欧拉角
     Angle<deg> yaw, pitch, roll;
     UnitFloat<deg> yaw_total_angle;
+
     // 增加一个温度（方便调试）
     UnitFloat<C> temperature;
-    IMU(const dir_t& dir, calib_t& calib);
+
+    // 构造函数
+    IMU(const dir_t& dir, calib_t& calib, const BMI088::Config& hw_config);
 
     // 校准陀螺仪
     void Calibrate();
@@ -88,9 +93,19 @@ private:
     // 创建IMU的EKF的实例
     QuaternionEKF ekf;
 
-    // 初始化陀螺仪
-    void init() const;
 
-    // 安装方向修正
-    static void dirCorrect(const dir_t& dir, float gyro[3], float accel[3]);
+    BMI088 bmi088;
+
+    void init();
+
+    // 不用static
+    void dirCorrect(const dir_t& dir, float gyro[3], float accel[3]);
+
+    dir_t last_dir;
+    bool dir_first_flag = true;
+    float c_11 = 0, c_12 = 0, c_13 = 0;
+    float c_21 = 0, c_22 = 0, c_23 = 0;
+    float c_31 = 0, c_32 = 0, c_33 = 0;
 };
+
+

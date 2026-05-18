@@ -1,23 +1,12 @@
 #include "IMU.hpp"
 #include <tuple>
 #include "bsp/bsp.hpp"
-#include "lib/bmi088/bmi088.hpp"
 #include "lib/ekf/ekf_utils.hpp"
 
-namespace {
-    BMI088::Config imu_hw_config = {
-        &hspi1,
-        CS1_ACCEL_GPIO_Port, CS1_ACCEL_Pin,
-        CS1_GYRO_GPIO_Port, CS1_GYRO_Pin
-    };
-}
-BMI088 bmi088(imu_hw_config);
-
-
-IMU::IMU(const dir_t& dir, calib_t& calib) : dir(dir), calib(calib) {
+IMU::IMU(const dir_t& dir, calib_t& calib, const BMI088::Config& hw_config)
+    : dir(dir), calib(calib), bmi088(hw_config) {
     ekf.Init(10.0f, 0.001f, 10000000.0f, 1.0f, 0.0f); // 需要修改的参数
 }
-
 
 void IMU::Calibrate() {
     if (is_init == false) {
@@ -41,7 +30,7 @@ void IMU::OnLoop() {
     // 计算dt
     const UnitFloat<> dt = dwt.UpdateDT();
 
-    // 读取bmi088数据（带单位）
+    // 读取自己对象的 bmi088 数据（带单位）
     bmi088.Read();
 
     gyro[X] = bmi088.data.gyro[X].toFloat(rad_s);
@@ -57,8 +46,8 @@ void IMU::OnLoop() {
 
     // 核心函数，EKF更新四元数
     ekf.UpdateEKF(gyro[X], gyro[Y], gyro[Z],
-                    accel[X], accel[Y], accel[Z],
-                    dt.toFloat(s));
+                  accel[X], accel[Y], accel[Z],
+                  dt.toFloat(s));
 
     // 获取四元数
     std::memcpy(q, ekf.q, sizeof(ekf.q));
@@ -69,11 +58,13 @@ void IMU::OnLoop() {
     roll = ekf.Roll * deg;
     yaw_total_angle = ekf.YawTotalAngle * deg;
     temperature = bmi088.data.temperature;
+
     // imu加热
     temperature_control.OnLoop(bmi088.data.temperature);
 }
 
-void IMU::init() const{
+// 去掉了 const
+void IMU::init() {
     bmi088.Init();
 
     bmi088.gyro_offset[X] = calib.gx_offset;
@@ -83,15 +74,13 @@ void IMU::init() const{
     bmi088.accel_scale = 9.81f / calib.g_norm;
 }
 
+// 不用static
 void IMU::dirCorrect(const dir_t& dir, float gyro[3], float accel[3]) {
-    static dir_t last_dir;
-    static bool first_flag = true;
-    static float c_11, c_12, c_13, c_21, c_22, c_23, c_31, c_32, c_33;
-
-    if (first_flag ||
+    if (dir_first_flag ||
         dir.yaw != last_dir.yaw ||
         dir.pitch != last_dir.pitch ||
         dir.roll != last_dir.roll) {
+
         const float cos_yaw = arm_cos_f32(dir.yaw.toFloat(rad));
         const float cos_pitch = arm_cos_f32(dir.pitch.toFloat(rad));
         const float cos_roll = arm_cos_f32(dir.roll.toFloat(rad));
@@ -110,7 +99,7 @@ void IMU::dirCorrect(const dir_t& dir, float gyro[3], float accel[3]) {
         c_32 = sin_pitch;
         c_33 = cos_pitch * cos_roll;
 
-        first_flag = false;
+        dir_first_flag = false;
     }
 
     float gyro_temp[3];
@@ -192,6 +181,7 @@ void IMU::QuaternionUpdate(float q[4], float gx, float gy, float gz, const float
     q[2] += qa * gy - qb * gz + q[3] * gx;
     q[3] += qa * gz + qb * gy - qc * gx;
 }
+
 
 void IMU::Temperature_Control::OnLoop(const UnitFloat<C>& current_temp) {
     measure = current_temp;
