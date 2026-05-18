@@ -96,7 +96,8 @@ private:
 
     BMI088 bmi088;
 
-    void init();
+    // 初始化
+    bool init();
 
     // 不用static
     void dirCorrect(const dir_t& dir, float gyro[3], float accel[3]);

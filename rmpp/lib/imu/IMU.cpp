@@ -64,14 +64,16 @@ void IMU::OnLoop() {
 }
 
 // 去掉了 const
-void IMU::init() {
-    bmi088.Init();
-
-    bmi088.gyro_offset[X] = calib.gx_offset;
-    bmi088.gyro_offset[Y] = calib.gy_offset;
-    bmi088.gyro_offset[Z] = calib.gz_offset;
-    bmi088.g_norm = calib.g_norm;
-    bmi088.accel_scale = 9.81f / calib.g_norm;
+bool IMU::init() {
+    bool ok = bmi088.Init();
+    if (ok) {
+        bmi088.gyro_offset[X] = calib.gx_offset;
+        bmi088.gyro_offset[Y] = calib.gy_offset;
+        bmi088.gyro_offset[Z] = calib.gz_offset;
+        bmi088.g_norm = calib.g_norm;
+        bmi088.accel_scale = 9.81f / calib.g_norm;
+    }
+    return ok;
 }
 
 // 不用static
