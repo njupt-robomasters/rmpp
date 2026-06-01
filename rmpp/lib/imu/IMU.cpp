@@ -1,12 +1,11 @@
 #include "IMU.hpp"
-
 #include <tuple>
 #include "bsp/bsp.hpp"
-#include "lib/bmi088/bmi088.h"
-#include "lib/ekf/QuaternionEKF.h"
+#include "lib/ekf/ekf_utils.hpp"
 
-IMU::IMU(const dir_t& dir, calib_t& calib) : dir(dir), calib(calib) {
-    IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0);
+IMU::IMU(const dir_t& dir, calib_t& calib, const BMI088::Config& hw_config)
+    : dir(dir), calib(calib), bmi088(hw_config) {
+    ekf.Init(10.0f, 0.001f, 10000000.0f, 1.0f, 0.0f); // 需要修改的参数
 }
 
 void IMU::Calibrate() {
@@ -15,13 +14,12 @@ void IMU::Calibrate() {
         is_init = true;
     }
 
-    BMI088_Calibrate();
-    calib = {
-        .gx_offset = BMI088.GyroOffset[X],
-        .gy_offset = BMI088.GyroOffset[Y],
-        .gz_offset = BMI088.GyroOffset[Z],
-        .g_norm = BMI088.gNorm
-    };
+    bmi088.Calibrate();
+
+    calib.gx_offset = bmi088.gyro_offset[X];
+    calib.gy_offset = bmi088.gyro_offset[Y];
+    calib.gz_offset = bmi088.gyro_offset[Z];
+    calib.g_norm    = bmi088.g_norm;
 }
 
 void IMU::OnLoop() {
@@ -29,54 +27,62 @@ void IMU::OnLoop() {
         init();
         is_init = true;
     }
-
     // 计算dt
-    const UnitFloat dt = dwt.UpdateDT();
+    const UnitFloat<> dt = dwt.UpdateDT();
 
-    // 读取bmi088数据
-    BMI088_Read(&BMI088);
-    accel[X] = BMI088.Accel[X];
-    accel[Y] = BMI088.Accel[Y];
-    accel[Z] = BMI088.Accel[Z];
-    gyro[X] = BMI088.Gyro[X];
-    gyro[Y] = BMI088.Gyro[Y];
-    gyro[Z] = BMI088.Gyro[Z];
+    // 读取自己对象的 bmi088 数据（带单位）
+    bmi088.Read();
+
+    gyro[X] = bmi088.data.gyro[X].toFloat(rad_s);
+    gyro[Y] = bmi088.data.gyro[Y].toFloat(rad_s);
+    gyro[Z] = bmi088.data.gyro[Z].toFloat(rad_s);
+
+    accel[X] = bmi088.data.accel[X].toFloat(m_ss);
+    accel[Y] = bmi088.data.accel[Y].toFloat(m_ss);
+    accel[Z] = bmi088.data.accel[Z].toFloat(m_ss);
 
     // 安装方向修正
     dirCorrect(dir, gyro, accel);
 
     // 核心函数，EKF更新四元数
-    IMU_QuaternionEKF_Update(gyro[X], gyro[Y], gyro[Z],
-                             accel[X], accel[Y], accel[Z],
-                             dt.toFloat(s));
+    ekf.UpdateEKF(gyro[X], gyro[Y], gyro[Z],
+                  accel[X], accel[Y], accel[Z],
+                  dt.toFloat(s));
 
     // 获取四元数
-    memcpy(q, QEKF_INS.q, sizeof(QEKF_INS.q));
+    std::memcpy(q, ekf.q, sizeof(ekf.q));
 
     // 获取欧拉角
-    yaw = QEKF_INS.Yaw * deg;
-    pitch = QEKF_INS.Pitch * deg;
-    roll = QEKF_INS.Roll * deg;
-    yaw_total_angle = QEKF_INS.YawTotalAngle * deg;
+    yaw = ekf.Yaw * deg;
+    pitch = ekf.Pitch * deg;
+    roll = ekf.Roll * deg;
+    yaw_total_angle = ekf.YawTotalAngle * deg;
+    temperature = bmi088.data.temperature;
 
     // imu加热
-    temperature_control.OnLoop();
+    temperature_control.OnLoop(bmi088.data.temperature);
 }
 
-void IMU::init() const {
-    BMI088_Init(&hspi1);
-    BMI088_SetCalibrateParam(calib.gx_offset, calib.gy_offset, calib.gz_offset, calib.g_norm);
+// 去掉了 const
+bool IMU::init() {
+    bool ok = bmi088.Init();
+    if (ok) {
+        bmi088.gyro_offset[X] = calib.gx_offset;
+        bmi088.gyro_offset[Y] = calib.gy_offset;
+        bmi088.gyro_offset[Z] = calib.gz_offset;
+        bmi088.g_norm = calib.g_norm;
+        bmi088.accel_scale = 9.81f / calib.g_norm;
+    }
+    return ok;
 }
 
+// 不用static
 void IMU::dirCorrect(const dir_t& dir, float gyro[3], float accel[3]) {
-    static dir_t last_dir;
-    static bool first_flag = true;
-    static float c_11, c_12, c_13, c_21, c_22, c_23, c_31, c_32, c_33;
-
-    if (first_flag ||
+    if (dir_first_flag ||
         dir.yaw != last_dir.yaw ||
         dir.pitch != last_dir.pitch ||
         dir.roll != last_dir.roll) {
+
         const float cos_yaw = arm_cos_f32(dir.yaw.toFloat(rad));
         const float cos_pitch = arm_cos_f32(dir.pitch.toFloat(rad));
         const float cos_roll = arm_cos_f32(dir.roll.toFloat(rad));
@@ -95,7 +101,7 @@ void IMU::dirCorrect(const dir_t& dir, float gyro[3], float accel[3]) {
         c_32 = sin_pitch;
         c_33 = cos_pitch * cos_roll;
 
-        first_flag = false;
+        dir_first_flag = false;
     }
 
     float gyro_temp[3];
@@ -131,10 +137,10 @@ void IMU::EularAngleToQuaternion(const Angle<>& yaw, const Angle<>& pitch, const
 }
 
 std::tuple<Angle<>, Angle<>, Angle<>> IMU::QuaternionToEularAngle(const float q[4]) {
-    Angle<deg> yaw = atan2f(2.0f * (q[0] * q[3] + q[1] * q[2]), 2.0f * (q[0] * q[0] + q[1] * q[1]) - 1.0f) * rad;
-    Angle<deg> pitch = atan2f(2.0f * (q[0] * q[1] + q[2] * q[3]), 2.0f * (q[0] * q[0] + q[3] * q[3]) - 1.0f) * rad;
-    Angle<deg> roll = asinf(2.0f * (q[0] * q[2] - q[1] * q[3])) * rad;
-    return {yaw, pitch, roll};
+    Angle<deg> e_yaw = std::atan2(2.0f * (q[0] * q[3] + q[1] * q[2]), 2.0f * (q[0] * q[0] + q[1] * q[1]) - 1.0f) * rad;
+    Angle<deg> e_pitch = std::atan2(2.0f * (q[0] * q[1] + q[2] * q[3]), 2.0f * (q[0] * q[0] + q[3] * q[3]) - 1.0f) * rad;
+    Angle<deg> e_roll = std::asin(MathUtils::abs_limit(-2.0f * (q[1] * q[3] - q[0] * q[2]), 1.0f)) * rad;
+    return {e_yaw, e_pitch, e_roll};
 }
 
 void IMU::BodyFrameToEarthFrame(const float vecBF[3], float vecEF[3], const float q[4]) {
@@ -178,8 +184,9 @@ void IMU::QuaternionUpdate(float q[4], float gx, float gy, float gz, const float
     q[3] += qa * gz + qb * gy - qc * gx;
 }
 
-void IMU::Temperature_Control::OnLoop() {
-    measure = BMI088.Temperature * C;
+
+void IMU::Temperature_Control::OnLoop(const UnitFloat<C>& current_temp) {
+    measure = current_temp;
     power = pid.Calculate(ref - measure);
     BSP::IMUHeat::SetPower(power.toFloat(ratio));
 }

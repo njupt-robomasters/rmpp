@@ -1,9 +1,13 @@
 #pragma once
 
 #include "algorithm/PID.hpp"
+#include "lib/ekf/QuaternionEKF.hpp"
+#include "lib/bmi088/bmi088.hpp"
+
 
 class IMU {
-public:
+public :
+
     static constexpr auto X = 0;
     static constexpr auto Y = 1;
     static constexpr auto Z = 2;
@@ -12,14 +16,13 @@ public:
     struct dir_t {
         Angle<deg> yaw, pitch, roll;
     };
-
     // 校准参数
     struct calib_t {
         float gx_offset = 0, gy_offset = 0, gz_offset = 0;
         float g_norm = 1;
     };
 
-    // 陀螺仪原始数据
+
     float gyro[3]{};  // 角速度
     float accel[3]{}; // 加速度
 
@@ -30,9 +33,13 @@ public:
     Angle<deg> yaw, pitch, roll;
     UnitFloat<deg> yaw_total_angle;
 
-    IMU(const dir_t& dir, calib_t& calib);
+    // 增加一个温度（方便调试）
+    UnitFloat<C> temperature;
 
-    // 校准陀螺仪，校准数据存放在calib成员变量
+    // 构造函数
+    IMU(const dir_t& dir, calib_t& calib, const BMI088::Config& hw_config);
+
+    // 校准陀螺仪
     void Calibrate();
 
     // 欧拉角转四元数
@@ -60,7 +67,7 @@ private:
         Temperature_Control() : pid(&pid_config) {}
 
         // 需要在循环中调用
-        void OnLoop();
+        void OnLoop(const UnitFloat<C>& current_temp);
 
     private:
         static constexpr UnitFloat<> ref = 45.0f * C; // 目标温度
@@ -79,13 +86,27 @@ private:
     dir_t dir;     // 安装方向参数
     calib_t calib; // 校准参数
 
-    bool is_init = false; // 用于自动初始化陀螺仪
+    bool is_init = false;  // 用于自动初始化陀螺仪
 
-    BSP::Dwt dwt; // 用于计算dt
+    BSP::Dwt dwt;
 
-    // 初始化陀螺仪
-    void init() const;
+    // 创建IMU的EKF的实例
+    QuaternionEKF ekf;
 
-    // 安装方向修正
-    static void dirCorrect(const dir_t& dir, float gyro[3], float accel[3]);
+
+    BMI088 bmi088;
+
+    // 初始化
+    bool init();
+
+    // 不用static
+    void dirCorrect(const dir_t& dir, float gyro[3], float accel[3]);
+
+    dir_t last_dir;
+    bool dir_first_flag = true;
+    float c_11 = 0, c_12 = 0, c_13 = 0;
+    float c_21 = 0, c_22 = 0, c_23 = 0;
+    float c_31 = 0, c_32 = 0, c_33 = 0;
 };
+
+
