@@ -1,6 +1,5 @@
 #pragma once
 
-#include "unit/include_me.hpp"
 
 namespace BSP {
     class BUZZER {
@@ -9,7 +8,7 @@ namespace BSP {
         static void Init();
 
         // 播放声音
-        static void Play(const UnitFloat<>& freq);
+        static void Play(float freq);
 
         // 停止声音
         static void Stop();

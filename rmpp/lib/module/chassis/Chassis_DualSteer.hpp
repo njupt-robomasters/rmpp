@@ -1,7 +1,12 @@
 #pragma once
 
 #include "Chassis.hpp"
+#include "math/Angle.hpp"
+#include "math/Conversions.hpp"
 #include "motor/Motor.hpp"
+
+using math::Angle;
+using math::cm;
 
 class Chassis_DualSteer : public Chassis {
 public:
@@ -13,7 +18,7 @@ public:
 
     // 舵轮角度
     struct {
-        Angle<deg> measure, ref_v, ref_f;
+        Angle measure, ref_v, ref_f;
     } s1, s2;
 
     Chassis_DualSteer(const config_t& config, const motor_t& motor);
@@ -28,8 +33,8 @@ public:
     void OnLoop() override;
 
 private:
-    static constexpr UnitFloat<> MIN_V = 1 * (cm / s); // 最小转舵速度
-    static constexpr UnitFloat<> MIN_F = 1 * N;        // 最小转舵力
+    static constexpr float MIN_V = 1 * (cm); // 最小转舵速度
+    static constexpr float MIN_F = 1;        // 最小转舵力
 
     bool is_invert_v1 = false, is_invert_v2 = false;
     bool is_invert_f1 = false, is_invert_f2 = false;

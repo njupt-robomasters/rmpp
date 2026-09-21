@@ -1,21 +1,24 @@
 #pragma once
 
 #include "Motor.hpp"
+#include "math/Conversions.hpp"
+
+using math::rpm;
 
 class VESC : public Motor {
 public:
     struct vesc_config_t {
         uint8_t pole_pair = 7;                      // 极对数
-        UnitFloat<> auto_release_speed = 120 * rpm; // 自动释放电机的转速，避免持续的高频注入声音（0表示禁用）
+        float auto_release_speed = 120 * rpm;       // 自动释放电机的转速，避免持续的高频注入声音（0表示禁用）
     } vesc_config;
 
     // 母线电压电流
     struct bus_t {
-        UnitFloat<V> voltage; // 母线电压
-        UnitFloat<A> current; // 母线电流
+        float voltage{}; // 母线电压
+        float current{}; // 母线电流
     } bus;
 
-    UnitFloat<pct> duty; // 占空比
+    float duty{}; // 占空比
 
     VESC(const config_t& config, const vesc_config_t& vesc_config);
 

@@ -1,8 +1,11 @@
 #pragma once
 
-#include "imu/IMU.hpp"
 #include "flashdb/FlashDB.hpp"
+#include "imu/IMU.hpp"
+#include "math/Angle.hpp"
 #include "ui/UI.hpp"
+
+using math::Angle;
 
 class Gimbal {
 public:
@@ -19,13 +22,13 @@ public:
     // 云台角度
     struct {
         struct {
-            Angle<deg> ref, measure;
+            Angle ref, measure;
         } ecd, imu;
 
-        Angle<deg> imu_minus_ecd;
+        Angle imu_minus_ecd;
     } yaw, pitch;
 
-    UnitFloat<deg_s> yaw_speed, pitch_speed; // 云台速度
+    float yaw_speed{}, pitch_speed{}; // 云台速度
 
     Gimbal(IMU& imu);
 
@@ -36,13 +39,13 @@ public:
     void SetMode(mode_e mode);
 
     // 设置速度
-    void SetSpeed(const UnitFloat<>& yaw_speed, const UnitFloat<>& pitch_speed);
+    void SetSpeed(float yaw_speed, float pitch_speed);
 
     // 设置角度
-    void SetAngle(const Angle<>& yaw, const Angle<>& pitch);
+    void SetAngle(Angle yaw, Angle pitch);
 
     // 设置底盘旋转速度，用于yaw轴前馈
-    void SetChassisWr(const UnitFloat<>& chassis_wr);
+    void SetChassisWr(float chassis_wr);
 
     virtual void LoadYawOffset(FlashDB& flashdb) = 0;
 
@@ -57,7 +60,7 @@ public:
     virtual void OnLoop();
 
 protected:
-    UnitFloat<rpm> chassis_wr; // yaw速度前馈（小陀螺模式需要）
+    float chassis_wr{}; // yaw速度前馈（小陀螺模式需要）
 
     // 角度正解：电机角度 -> 云台姿态
     virtual void forward() = 0;

@@ -2,13 +2,13 @@
 
 using namespace BSP;
 
-UnitFloat<pct> UART3::cpu_usage;
+float UART3::cpu_usage;
 uint32_t UART3::err_cnt = 0;
 std::vector<UART3::CallbackFunc>* UART3::callbacks;
 uint8_t UART3::rxbuf[RXBUF_SIZE];
 Dwt UART3::dwt;
 
-UnitFloat<pct> UART6::cpu_usage;
+float UART6::cpu_usage;
 uint32_t UART6::err_cnt = 0;
 std::vector<UART6::CallbackFunc>* UART6::callbacks;
 uint8_t UART6::rxbuf[RXBUF_SIZE];

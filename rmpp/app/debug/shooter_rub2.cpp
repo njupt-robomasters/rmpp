@@ -1,8 +1,13 @@
 #include "../infantry/misc.hpp"
 #include "../infantry/shooter.hpp"
+#include "math/Conversions.hpp"
 
-static constexpr UnitFloat BULLET_SPEED = 25 * m_s;
-static constexpr UnitFloat<rpm> RUB_SPEED = BULLET_SPEED / (3 * cm);
+using math::cm;
+using math::ms;
+using math::rpm;
+
+static constexpr float BULLET_SPEED = 25.0f;
+static constexpr float RUB_SPEED = BULLET_SPEED / (3 * cm);
 
 void send_can_cmd() {
     rub1.SendCanCmd();

@@ -1,12 +1,16 @@
 #pragma once
 
 #include "bsp/bsp.hpp" // dwt
+#include "math/Conversions.hpp"
+
+using math::ms;
+using math::pct;
 
 class VT13 {
 public:
     struct config_t {
-        UnitFloat<> timeout = 500 * ms;          // 断联检测超时时间
-        UnitFloat<> joystick_deadline = 5 * pct; // 摇杆死区，小于此值认为是0
+        float timeout = 500 * ms;          // 断联检测超时时间
+        float joystick_deadline = 5 * pct; // 摇杆死区，小于此值认为是0
     } config;
 
     enum mode_e {
@@ -18,14 +22,14 @@ public:
 
     bool is_connect = false; // 连接标志
 
-    UnitFloat<ratio> x, y, pitch, yaw;                              // 摇杆
-    UnitFloat<ratio> wheel;                                         // 左上角拨轮
+    float x{}, y{}, pitch{}, yaw{};                                 // 摇杆
+    float wheel{};                                                  // 左上角拨轮
     mode_e mode = ERR;                                              // 模式切换开关
     bool pause = false, trigger = false, fn = false, photo = false; // 按钮
 
     // 鼠标
     struct mouse_t {
-        UnitFloat<ratio> yaw, pitch;
+        float yaw{}, pitch{};
         int16_t wheel = 0;
         bool left = false, right = false, middle = false;
     } mouse;
@@ -83,7 +87,7 @@ private:
     void callback(const uint8_t data[], uint16_t size);
 
     // 解析摇杆值，归一化到±1
-    UnitFloat<> getJoyStick(uint16_t value) const;
+    float getJoyStick(uint16_t value) const;
 
     void resetData();
 };

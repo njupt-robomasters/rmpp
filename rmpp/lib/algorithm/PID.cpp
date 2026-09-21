@@ -1,4 +1,7 @@
 #include "PID.hpp"
+#include <cmath>
+#include "math/Conversions.hpp"
+#include "math/Math.hpp"
 
 #define kp (config->kp)
 #define ki (config->ki)
@@ -10,19 +13,20 @@
 
 PID::PID(const config_t* config) : config(config) {}
 
-UnitFloat<> PID::Calculate(const UnitFloat<>& err, std::optional<UnitFloat<>> derr) {
+float PID::Calculate(float err, std::optional<float> derr) {
     // 未设置PID参数，输出0
-    if (config == nullptr) return 0 * default_unit;
+    if (config == nullptr)
+        return 0.0f;
 
     // 计算dt
-    const UnitFloat<> dt = dwt.UpdateDT();
+    const float dt = dwt.UpdateDT();
 
     // 保存误差
     this->err = err;
 
     // 基础PID计算
     p_out = kp * err;
-    UnitFloat<> di = ki * err * dt;
+    float di = ki * err * dt;
     if (derr.has_value()) {
         d_out = kd * derr.value(); // 使用给定微分
     } else {
@@ -32,38 +36,38 @@ UnitFloat<> PID::Calculate(const UnitFloat<>& err, std::optional<UnitFloat<>> de
 
     // 积分限幅
     // 情况一：总输出饱和，且I输出呈累计趋势 -> 阻止I继续累积
-    if (unit::abs(out) >= max_out) {
+    if (std::fabsf(out) >= max_out) {
         if (di * i_out > 0) { // 积分呈累积趋势
-            di = 0 * default_unit;
+            di = 0.0f;
         }
     }
     // 情况二：I输出超过设定最大值 -> 对I输出钳位
     i_out += di;
-    i_out = unit::clamp(i_out, max_i);
+    i_out = math::clamp(i_out, max_i);
 
     // 输出滤波
     out_no_filter = p_out + i_out + d_out + ff;
     out = lowpassFilter(out, out_no_filter, fc, dt);
 
     // 输出限幅
-    out = unit::clamp(out, max_out);
+    out = math::clamp(out, max_out);
 
     return out;
 }
 
 void PID::Clear() {
-    err = last_err = 0 * default_unit;
-    out = out_no_filter = p_out = i_out = d_out = 0 * default_unit;
+    err = last_err = 0.0f;
+    out = out_no_filter = p_out = i_out = d_out = 0.0f;
     dwt.Reset();
 }
 
 #undef fc
 
-UnitFloat<> PID::lowpassFilter(const UnitFloat<>& pre, const UnitFloat<>& next, const UnitFloat<>& fc, const UnitFloat<>& dt) {
+float PID::lowpassFilter(float pre, float next, float fc, float dt) {
     if (fc == 0) return next; // 禁用滤波
 
-    const UnitFloat<> rc = 1 / (2 * PI * fc);
-    const UnitFloat<> alpha = dt / (rc + dt);
-    const UnitFloat<> out = pre * (1 * default_unit - alpha) + next * alpha;
+    const float rc = 1 / (2 * math::pi * fc);
+    const float alpha = dt / (rc + dt);
+    const float out = pre * (1.0f - alpha) + next * alpha;
     return out;
 }

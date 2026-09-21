@@ -1,4 +1,9 @@
 #include "MF9025.hpp"
+#include "math/Conversions.hpp"
+#include "math/Math.hpp"
+
+using math::deg_s;
+using math::rev;
 
 MF9025::MF9025(const config_t& config) : Motor(config) {
     // 设置电机默认参数
@@ -17,7 +22,7 @@ void MF9025::SendCanCmd() {
     if (is_connect && is_enable) {
         sendCurrent(current.ref);
     } else {
-        sendCurrent(0 * A);
+        sendCurrent(0);
     }
 }
 
@@ -31,7 +36,7 @@ void MF9025::callback(const uint8_t port, const uint32_t id, const uint8_t data[
     if (data[0] != 0xA1) return;
 
     // 解析CAN报文
-    temperature.motor = (int8_t)data[1] * C;
+    temperature.motor = (int8_t)data[1];
     const auto current_i16 = (int16_t)(data[2] | (data[3] << 8));
     const auto speed_i16 = (int16_t)(data[4] | (data[5] << 8));
     const auto angle_u16 = (uint16_t)(data[6] | (data[7] << 8));
@@ -48,14 +53,14 @@ void MF9025::callback(const uint8_t port, const uint32_t id, const uint8_t data[
     Motor::callback(raw);
 }
 
-void MF9025::sendCurrent(const UnitFloat<>& current) const {
+void MF9025::sendCurrent(float current) const {
     int16_t cmd;
 
-    const UnitFloat current_limit = unit::clamp(current, MAX_CURRENT);
+    const float current_limit = math::clamp(current, MAX_CURRENT);
     if (!config.is_invert) {
-        cmd = (int16_t)((current_limit / MAX_CURRENT).toFloat(A) * MAX_CURRENT_CMD);
+        cmd = (int16_t)((current_limit / MAX_CURRENT) * MAX_CURRENT_CMD);
     } else {
-        cmd = (int16_t)((-current_limit / MAX_CURRENT).toFloat(A) * MAX_CURRENT_CMD);
+        cmd = (int16_t)((-current_limit / MAX_CURRENT) * MAX_CURRENT_CMD);
     }
 
     uint8_t data[8];

@@ -5,8 +5,8 @@
 class CyberDogMotor : public Motor {
 public:
     static constexpr float REDUCTION = 1.0f;
-    static constexpr UnitFloat<> Kt = 0.9f * Nm_A;
-    static constexpr UnitFloat<> R = 0.17f * Ohm;
+    static constexpr float Kt = 0.9f;
+    static constexpr float R = 0.17f;
 
     CyberDogMotor(const config_t& config);
 

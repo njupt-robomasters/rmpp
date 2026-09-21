@@ -1,4 +1,7 @@
+#include "math/Conversions.hpp"
 #include "motor/CustomMotor.hpp"
+
+using math::ms;
 
 CustomMotor motor({
     .can_port = 1,
@@ -26,7 +29,7 @@ void setup() {
 }
 
 void loop() {
-    motor.SetCurrent(0.1 * A);
+    motor.SetCurrent(0.1);
     motor.OnLoop();
     send_can_cmd();
 }

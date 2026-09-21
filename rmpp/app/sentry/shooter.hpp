@@ -1,8 +1,12 @@
 #pragma once
 
-#include "motor/VESC.hpp"
-#include "motor/M3508.hpp"
+#include "math/Conversions.hpp"
 #include "module/shooter/Shooter_17mm.hpp"
+#include "motor/M3508.hpp"
+#include "motor/VESC.hpp"
+
+using math::rev;
+using math::rpm;
 
 // 用于Ozone调参
 // #define shoot_pid motor_speed_pid
@@ -25,8 +29,8 @@ inline VESC rub2({
 
 // 拨弹电机
 inline PID::config_t shoot_pid = {
-    .kp = (20 * A) / (40 * rpm),
-    .max_out = 20 * A,
+    .kp = (20) / (40 * rpm),
+    .max_out = 20,
 };
 inline M3508 shoot({
     .can_port = 1,
@@ -42,6 +46,6 @@ inline M3508 shoot({
 
 // 发射机构
 inline Shooter_17mm shooter({
-                                .bullet_per_angle = 9.0f * (41.0f / 50.0f) * (default_unit / rev),
+                                .bullet_per_angle = 9.0f * (41.0f / 50.0f) * (1.0f / rev),
                             },
                             {rub1, rub2, shoot});

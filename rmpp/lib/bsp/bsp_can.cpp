@@ -1,11 +1,14 @@
 #include "bsp_can.hpp"
 #include "can.h"
+#include "math/Conversions.hpp"
+
+using math::ms;
 
 using namespace BSP;
 
 std::vector<CAN::CallbackFunc>* CAN::callbacks;
 Dwt CAN::dwt(0 * ms);
-UnitFloat<pct> CAN::cpu_usage;
+float CAN::cpu_usage;
 uint32_t CAN::bus_off_cnt = 0;
 
 void CAN::Init() {
@@ -64,13 +67,13 @@ void CAN::RegisterCallback(const CallbackFunc& callback) {
 }
 
 void CAN::InvokeCallback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
-    const UnitFloat<ms> interval_time = dwt.UpdateDT();
+    const float interval_time = dwt.UpdateDT();
     if (callbacks) {
         for (const auto& callback : *callbacks) {
             callback(port, id, data, dlc);
         }
     }
-    const UnitFloat<ms> running_time = dwt.GetDT();
+    const float running_time = dwt.GetDT();
     cpu_usage = running_time / interval_time;
 }
 

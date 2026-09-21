@@ -1,8 +1,12 @@
 #pragma once
 
-#include "motor/VESC.hpp"
-#include "motor/M2006.hpp"
+#include "math/Conversions.hpp"
 #include "module/shooter/Shooter_17mm.hpp"
+#include "motor/M2006.hpp"
+#include "motor/VESC.hpp"
+
+using math::rev;
+using math::rpm;
 
 // 用于Ozone调参
 // #define shoot_pid motor_speed_pid
@@ -22,8 +26,8 @@ inline VESC rub2({
 
 // 拨弹电机
 inline PID::config_t shoot_pid = {
-    .kp = (10 * A) / (20 * rpm),
-    .max_out = 10 * A,
+    .kp = (10) / (20 * rpm),
+    .max_out = 10,
 };
 inline M2006 shoot({
     .can_port = 1,
@@ -37,6 +41,6 @@ inline M2006 shoot({
 
 // 发射机构
 inline Shooter_17mm shooter({
-                                .bullet_per_angle = 9.0f / 2.5f * (default_unit / rev),
+                                .bullet_per_angle = 9.0f / 2.5f * (1.0f / rev),
                             },
                             {rub1, rub2, shoot});

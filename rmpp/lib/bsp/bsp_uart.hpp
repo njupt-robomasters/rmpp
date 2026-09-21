@@ -28,13 +28,13 @@ namespace BSP {
         }
 
         static void InvokeCallback(uint16_t size) {
-            const UnitFloat interval_time = T::dwt.UpdateDT();
+            const float interval_time = T::dwt.UpdateDT();
             if (T::callbacks) {
                 for (const auto& callback : *T::callbacks) {
                     callback(T::rxbuf, size);
                 }
             }
-            const UnitFloat running_time = T::dwt.GetDT();
+            const float running_time = T::dwt.GetDT();
             T::cpu_usage = running_time / interval_time;
         }
     };
@@ -44,7 +44,7 @@ namespace BSP {
         friend class UART;
 
     public:
-        static UnitFloat<pct> cpu_usage;
+        static float cpu_usage;
         static uint32_t err_cnt;
 
     private:
@@ -61,7 +61,7 @@ namespace BSP {
         friend class UART;
 
     public:
-        static UnitFloat<pct> cpu_usage;
+        static float cpu_usage;
         static uint32_t err_cnt;
 
     private:

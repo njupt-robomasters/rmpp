@@ -2,35 +2,35 @@
 
 #include <optional>
 #include "bsp/bsp.hpp"
-#include "unit/include_me.hpp"
 
 class PID {
 public:
     struct config_t {
-        UnitFloat<> kp, ki, kd; // p、i、d三参数
-        UnitFloat<> ff;         // 前馈
-        UnitFloat<> max_i;      // 积分限幅
-        UnitFloat<> max_out;    // 输出限幅
-        UnitFloat<> fc;         // 输出低通滤波截止频率
+        // Gains act on SI errors and seconds; fc is Hz, limits use the output unit.
+        float kp{}, ki{}, kd{}; // p、i、d三参数
+        float ff{};             // 前馈
+        float max_i{};          // 积分限幅
+        float max_out{};        // 输出限幅
+        float fc{};             // 输出低通滤波截止频率
     };
 
-    UnitFloat<> out; // PID输出
+    float out{}; // PID输出
 
     PID() = default;
 
     PID(const config_t* config);
 
-    UnitFloat<> Calculate(const UnitFloat<>& err, std::optional<UnitFloat<>> derr = std::nullopt);
+    float Calculate(float err, std::optional<float> derr = std::nullopt);
 
     void Clear();
 
 private:
     const config_t* config = nullptr; // PID参数
 
-    UnitFloat<> out_no_filter, p_out, i_out, d_out; // PID输出分量
-    UnitFloat<> err, last_err;                      // 误差值 err = ref - measure
+    float out_no_filter{}, p_out{}, i_out{}, d_out{}; // PID输出分量
+    float err{}, last_err{};                          // 误差值 err = ref - measure
     BSP::Dwt dwt;                                   // 用于计算dt
 
     // 低通滤波
-    static UnitFloat<> lowpassFilter(const UnitFloat<>& pre, const UnitFloat<>& next, const UnitFloat<>& fc, const UnitFloat<>& dt);
+    static float lowpassFilter(float pre, float next, float fc, float dt);
 };

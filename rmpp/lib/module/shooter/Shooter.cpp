@@ -15,11 +15,11 @@ void Shooter::SetEnable(bool is_enable) {
     // 这里设置电机
 }
 
-void Shooter::SetBulletSpeed(const UnitFloat<>& bullet_speed) {
+void Shooter::SetBulletSpeed(float bullet_speed) {
     this->bullet_speed.ref = bullet_speed;
 }
 
-void Shooter::SetBulletFreq(const UnitFloat<>& bullet_freq) {
+void Shooter::SetBulletFreq(float bullet_freq) {
     this->bullet_freq.ref = bullet_freq;
 }
 

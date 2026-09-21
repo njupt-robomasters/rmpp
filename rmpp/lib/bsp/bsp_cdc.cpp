@@ -9,7 +9,7 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 
 std::vector<CDC::CallbackFunc>* CDC::callbacks;
 Dwt CDC::dwt, CDC::dwt_restart;
-UnitFloat<pct> CDC::cpu_usage;
+float CDC::cpu_usage;
 
 void CDC::Init() {
     MX_USB_DEVICE_Init();
@@ -38,13 +38,13 @@ void CDC::RegisterCallback(const CallbackFunc& callback) {
 }
 
 void CDC::InvokeCallback(const uint8_t data[], const uint32_t size) {
-    const UnitFloat interval_time = dwt.UpdateDT();
+    const float interval_time = dwt.UpdateDT();
     if (callbacks) {
         for (const auto& callback : *callbacks) {
             callback(data, size);
         }
     }
-    const UnitFloat running_time = dwt.GetDT();
+    const float running_time = dwt.GetDT();
     cpu_usage = running_time / interval_time;
 }
 

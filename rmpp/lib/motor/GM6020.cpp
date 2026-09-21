@@ -1,4 +1,9 @@
 #include "GM6020.hpp"
+#include "math/Conversions.hpp"
+#include "math/Math.hpp"
+
+using math::rev;
+using math::rpm;
 
 GM6020::GM6020(const config_t& config) : Motor(config) {
     // 设置电机默认参数
@@ -18,11 +23,11 @@ int16_t GM6020::GetCanCmd() const {
 
     int16_t cmd;
 
-    const UnitFloat current_limit = unit::clamp(current.ref, MAX_CURRENT);
+    const float current_limit = math::clamp(current.ref, MAX_CURRENT);
     if (!config.is_invert) {
-        cmd = (int16_t)((current_limit / MAX_CURRENT).toFloat(A) * MAX_VOLTAGE_CMD);
+        cmd = (int16_t)((current_limit / MAX_CURRENT) * MAX_VOLTAGE_CMD);
     } else {
-        cmd = (int16_t)((-current_limit / MAX_CURRENT).toFloat(A) * MAX_VOLTAGE_CMD);
+        cmd = (int16_t)((-current_limit / MAX_CURRENT) * MAX_VOLTAGE_CMD);
     }
 
     return cmd;
@@ -38,7 +43,7 @@ void GM6020::callback(const uint8_t port, const uint32_t id, const uint8_t data[
     const auto angle_u16 = (uint16_t)((data[0] << 8) | data[1]);
     const auto speed_i16 = (int16_t)((data[2] << 8) | data[3]);
     const auto current_i16 = (int16_t)((data[4] << 8) | data[5]);
-    temperature.motor = (int8_t)data[6] * C;
+    temperature.motor = (int8_t)data[6];
 
     // 单位标准化
     const raw_t raw = {

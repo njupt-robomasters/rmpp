@@ -1,7 +1,13 @@
-#include "../infantry/misc.hpp"
 #include "../infantry/gimbal.hpp"
+#include "../infantry/misc.hpp"
+#include "math/Angle.hpp"
+#include "math/Conversions.hpp"
 
-static constexpr UnitFloat MAX_SPEED = 360 * deg_s;
+using math::Angle;
+using math::deg_s;
+using math::ms;
+
+static constexpr float MAX_SPEED = 360 * deg_s;
 
 void send_can_cmd() {
     const int16_t cmd5 = motor.GetCanCmd();
@@ -27,7 +33,7 @@ void loop() {
     rc.OnLoop();
 
     motor.SetEnable(rc.is_enable);
-    const UnitFloat<rpm> speed = rc.x * MAX_SPEED;
+    const float speed = rc.x * MAX_SPEED;
 
     // 速度闭环
     // motor.config.control_mode = Motor::SPEED_MODE;
@@ -35,8 +41,8 @@ void loop() {
 
     // 角度闭环
     static BSP::Dwt dwt;
-    static Angle<deg> angle;
-    const UnitFloat dt = dwt.UpdateDT();
+    static Angle angle;
+    const float dt = dwt.UpdateDT();
     angle += speed * dt;
     motor.config.control_mode = Motor::ANGLE_SPEED_MODE;
     angle = motor.SetAngle(angle, speed);

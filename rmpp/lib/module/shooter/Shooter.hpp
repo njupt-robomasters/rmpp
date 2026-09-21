@@ -1,15 +1,20 @@
 #pragma once
 
+#include "math/Conversions.hpp"
 #include "ui/UI.hpp"
+
+using math::cm;
+using math::ms;
+using math::rev;
 
 class Shooter {
 public:
     // 发射机构配置
     struct config_t {
-        UnitFloat<> bullet_per_angle = 1.0f * (default_unit / rev); // 拨弹盘转一圈的发弹数
-        UnitFloat<s> block_time = 500 * ms;                         // 卡弹检测时间
-        UnitFloat<s> reverse_time = 250 * ms;                       // 卡弹倒转时间
-        UnitFloat<> rub_radius = 3.0f * cm;                         // 摩擦轮半径
+        float bullet_per_angle = 1.0f / rev; // shots/rad; default one shot per revolution
+        float block_time = 500 * ms;         // 卡弹检测时间
+        float reverse_time = 250 * ms;       // 卡弹倒转时间
+        float rub_radius = 3.0f * cm;        // 摩擦轮半径
     } config;
 
     bool is_enable = false;       // 使能标志
@@ -17,18 +22,18 @@ public:
     bool is_shoot = false;        // 拨弹电机状态
     bool is_heat_protect = false; // 热量保护状态
 
-    // 弹速
+    // 弹速 (m/s)
     struct {
-        UnitFloat<m_s> ref, measure;
+        float ref{}, measure{};
     } bullet_speed;
 
-    // 弹频
+    // 弹频 (shots/s)
     struct {
-        UnitFloat<Hz> ref, measure;
+        float ref{}, measure{};
     } bullet_freq;
 
     // 拨弹电机电流
-    UnitFloat<A> shoot_current;
+    float shoot_current{};
 
     Shooter(const config_t& config);
 
@@ -36,10 +41,10 @@ public:
     virtual void SetEnable(bool is_enable);
 
     // 设置弹速
-    void SetBulletSpeed(const UnitFloat<>& bullet_speed);
+    void SetBulletSpeed(float bullet_speed);
 
     // 设置弹频
-    void SetBulletFreq(const UnitFloat<>& bullet_freq);
+    void SetBulletFreq(float bullet_freq);
 
     // 设置摩擦轮
     void SetRub(bool is_rub);

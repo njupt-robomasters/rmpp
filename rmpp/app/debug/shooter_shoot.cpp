@@ -1,8 +1,11 @@
 #include "../infantry/misc.hpp"
 #include "../infantry/shooter.hpp"
+#include "math/Conversions.hpp"
 
-static constexpr UnitFloat BULLET_FREQ = 20 * Hz;
-static const UnitFloat<rpm> SHOOT_SPEED = BULLET_FREQ / shooter.config.bullet_per_angle;
+using math::ms;
+
+static constexpr float BULLET_FREQ = 20;
+static const float SHOOT_SPEED = BULLET_FREQ / shooter.config.bullet_per_angle;
 
 void send_can_cmd() {
     // 步兵、哨兵
@@ -30,7 +33,7 @@ void loop() {
     rc.OnLoop();
 
     shoot.SetEnable(rc.is_enable);
-    const UnitFloat<rpm> speed = rc.x * SHOOT_SPEED;
+    const float speed = rc.x * SHOOT_SPEED;
     shoot.SetSpeed(speed);
     shoot.OnLoop();
 

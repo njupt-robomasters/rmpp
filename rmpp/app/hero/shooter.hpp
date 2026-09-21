@@ -1,8 +1,14 @@
 #pragma once
 
-#include "motor/VESC.hpp"
-#include "motor/DM4310.hpp"
+#include "math/Conversions.hpp"
 #include "module/shooter/Shooter_42mm.hpp"
+#include "motor/DM4310.hpp"
+#include "motor/VESC.hpp"
+
+using math::deg;
+using math::deg_s;
+using math::ms;
+using math::rev;
 
 // 用于Ozone调参
 // #define shoot_angle_pid angle_pid
@@ -32,9 +38,9 @@ inline VESC rub4({
 
 // 拨弹电机
 inline PID::config_t shoot_angle_pid = {
-    .kp = (3 * Nm) / (6 * deg),
-    .kd = (3 * Nm) / (600 * deg_s),
-    .max_out = 6 * Nm,
+    .kp = (3) / (6 * deg),
+    .kd = (3) / (600 * deg_s),
+    .max_out = 6,
 };
 inline DM4310 shoot({
     .can_port = 1,
@@ -52,7 +58,7 @@ inline DM4310 shoot({
 
 // 发射机构
 inline Shooter_42mm shooter({
-                                .bullet_per_angle = 6 * (default_unit / rev),
+                                .bullet_per_angle = 6 * (1.0f / rev),
                                 .block_time = 500 * ms,
                                 .reverse_time = 250 * ms,
                             },

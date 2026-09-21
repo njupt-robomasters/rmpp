@@ -2,7 +2,10 @@
 
 #include <cstdint>
 #include "bsp/bsp.hpp"
+#include "math/Conversions.hpp"
 #include "packet.hpp"
+
+using math::ms;
 
 class RefereeParser {
 public:
@@ -12,7 +15,7 @@ public:
         uint32_t master_id = 0;
         uint32_t slave_id = 1;
 
-        UnitFloat<> timeout = 1000 * ms; // 断联检测超时时间
+        float timeout = 1000 * ms; // 断联检测超时时间
     } config;
 
     // 连接标志

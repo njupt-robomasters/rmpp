@@ -5,9 +5,9 @@
 class RM6623 : public Motor {
 public:
     static constexpr float REDUCTION = 1.0f;
-    static constexpr UnitFloat<> Kt = 0.38f * Nm_A;
-    static constexpr UnitFloat MAX_CURRENT = 5.0f * A;
-    static constexpr UnitFloat<Nm> MAX_TORQUE = MAX_CURRENT * Kt;
+    static constexpr float Kt = 0.38f;
+    static constexpr float MAX_CURRENT = 5.0f;
+    static constexpr float MAX_TORQUE = MAX_CURRENT * Kt;
 
     RM6623(const config_t& config);
 

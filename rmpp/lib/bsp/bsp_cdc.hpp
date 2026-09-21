@@ -16,7 +16,7 @@ namespace BSP {
         static Dwt dwt, dwt_restart;
 
     public:
-        static UnitFloat<pct> cpu_usage;
+        static float cpu_usage;
 
         static void Init();
 

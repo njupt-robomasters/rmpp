@@ -1,9 +1,15 @@
 #include "IMU.hpp"
 
+#include <cmath>
 #include <tuple>
 #include "bsp/bsp.hpp"
 #include "lib/bmi088/bmi088.h"
 #include "lib/ekf/QuaternionEKF.h"
+#include "math/Angle.hpp"
+#include "math/Conversions.hpp"
+
+using math::Angle;
+using math::deg;
 
 IMU::IMU(const dir_t& dir, calib_t& calib) : dir(dir), calib(calib) {
     IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0);
@@ -31,7 +37,7 @@ void IMU::OnLoop() {
     }
 
     // 计算dt
-    const UnitFloat dt = dwt.UpdateDT();
+    const float dt = dwt.UpdateDT();
 
     // 读取bmi088数据
     BMI088_Read(&BMI088);
@@ -48,7 +54,7 @@ void IMU::OnLoop() {
     // 核心函数，EKF更新四元数
     IMU_QuaternionEKF_Update(gyro[X], gyro[Y], gyro[Z],
                              accel[X], accel[Y], accel[Z],
-                             dt.toFloat(s));
+                             dt);
 
     // 获取四元数
     memcpy(q, QEKF_INS.q, sizeof(QEKF_INS.q));
@@ -77,12 +83,12 @@ void IMU::dirCorrect(const dir_t& dir, float gyro[3], float accel[3]) {
         dir.yaw != last_dir.yaw ||
         dir.pitch != last_dir.pitch ||
         dir.roll != last_dir.roll) {
-        const float cos_yaw = arm_cos_f32(dir.yaw.toFloat(rad));
-        const float cos_pitch = arm_cos_f32(dir.pitch.toFloat(rad));
-        const float cos_roll = arm_cos_f32(dir.roll.toFloat(rad));
-        const float sin_yaw = arm_sin_f32(dir.yaw.toFloat(rad));
-        const float sin_pitch = arm_sin_f32(dir.pitch.toFloat(rad));
-        const float sin_roll = arm_sin_f32(dir.roll.toFloat(rad));
+        const float cos_yaw = arm_cos_f32(dir.yaw);
+        const float cos_pitch = arm_cos_f32(dir.pitch);
+        const float cos_roll = arm_cos_f32(dir.roll);
+        const float sin_yaw = arm_sin_f32(dir.yaw);
+        const float sin_pitch = arm_sin_f32(dir.pitch);
+        const float sin_roll = arm_sin_f32(dir.roll);
 
         // 1.yaw(alpha) 2.pitch(beta) 3.roll(gamma)
         c_11 = cos_yaw * cos_roll + sin_yaw * sin_pitch * sin_roll;
@@ -117,23 +123,23 @@ void IMU::dirCorrect(const dir_t& dir, float gyro[3], float accel[3]) {
     last_dir = dir;
 }
 
-void IMU::EularAngleToQuaternion(const Angle<>& yaw, const Angle<>& pitch, const Angle<>& roll, float q[4]) {
-    const float cos_pitch = arm_cos_f32(pitch.toFloat(rad) / 2);
-    const float cos_yaw = arm_cos_f32(yaw.toFloat(rad) / 2);
-    const float cos_roll = arm_cos_f32(roll.toFloat(rad) / 2);
-    const float sin_pitch = arm_sin_f32(pitch.toFloat(rad) / 2);
-    const float sin_yaw = arm_sin_f32(yaw.toFloat(rad) / 2);
-    const float sin_roll = arm_sin_f32(roll.toFloat(rad) / 2);
+void IMU::EularAngleToQuaternion(Angle yaw, Angle pitch, Angle roll, float q[4]) {
+    const float cos_pitch = arm_cos_f32(pitch / 2);
+    const float cos_yaw = arm_cos_f32(yaw / 2);
+    const float cos_roll = arm_cos_f32(roll / 2);
+    const float sin_pitch = arm_sin_f32(pitch / 2);
+    const float sin_yaw = arm_sin_f32(yaw / 2);
+    const float sin_roll = arm_sin_f32(roll / 2);
     q[0] = cos_pitch * cos_roll * cos_yaw + sin_pitch * sin_roll * sin_yaw;
     q[1] = sin_pitch * cos_roll * cos_yaw - cos_pitch * sin_roll * sin_yaw;
     q[2] = sin_pitch * cos_roll * sin_yaw + cos_pitch * sin_roll * cos_yaw;
     q[3] = cos_pitch * cos_roll * sin_yaw - sin_pitch * sin_roll * cos_yaw;
 }
 
-std::tuple<Angle<>, Angle<>, Angle<>> IMU::QuaternionToEularAngle(const float q[4]) {
-    Angle<deg> yaw = atan2f(2.0f * (q[0] * q[3] + q[1] * q[2]), 2.0f * (q[0] * q[0] + q[1] * q[1]) - 1.0f) * rad;
-    Angle<deg> pitch = atan2f(2.0f * (q[0] * q[1] + q[2] * q[3]), 2.0f * (q[0] * q[0] + q[3] * q[3]) - 1.0f) * rad;
-    Angle<deg> roll = asinf(2.0f * (q[0] * q[2] - q[1] * q[3])) * rad;
+std::tuple<Angle, Angle, Angle> IMU::QuaternionToEularAngle(const float q[4]) {
+    Angle yaw = std::atan2f(2.0f * (q[0] * q[3] + q[1] * q[2]), 2.0f * (q[0] * q[0] + q[1] * q[1]) - 1.0f);
+    Angle pitch = std::atan2f(2.0f * (q[0] * q[1] + q[2] * q[3]), 2.0f * (q[0] * q[0] + q[3] * q[3]) - 1.0f);
+    Angle roll = std::asinf(2.0f * (q[0] * q[2] - q[1] * q[3]));
     return {yaw, pitch, roll};
 }
 
@@ -179,7 +185,7 @@ void IMU::QuaternionUpdate(float q[4], float gx, float gy, float gz, const float
 }
 
 void IMU::Temperature_Control::OnLoop() {
-    measure = BMI088.Temperature * C;
+    measure = BMI088.Temperature;
     power = pid.Calculate(ref - measure);
-    BSP::IMUHeat::SetPower(power.toFloat(ratio));
+    BSP::IMUHeat::SetPower(power);
 }

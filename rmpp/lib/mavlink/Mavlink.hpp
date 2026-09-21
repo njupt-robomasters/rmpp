@@ -1,14 +1,22 @@
 #pragma once
 
+#include <cmath>
 #include "bsp/bsp.hpp"
 #include "lib/msg/mavlink.h"
+#include "math/Angle.hpp"
+#include "math/Conversions.hpp"
 #include "referee/Referee.hpp"
+
+using math::Angle;
+using math::ms;
 
 class Mavlink {
 public:
+    // Members use SI units (angles rad, angular speeds rad/s).
+    // The wire protocol still uses degrees and rpm; conversion occurs in parse/send.
     struct config_t {
-        UnitFloat<> timeout = 100 * ms;   // 断联超时时间
-        UnitFloat<> send_freq = 1000 * Hz; // 发送频率
+        float timeout = 100 * ms; // 断联超时时间
+        float send_freq = 1000;   // 发送频率
     } config;
 
     // 连接标志
@@ -20,38 +28,39 @@ public:
 
     // 发送
     struct {
-        Angle<deg> yaw;
-        Angle<deg> pitch;
-        Angle<deg> roll;
+        Angle yaw;
+        Angle pitch;
+        Angle roll;
     } imu;
 
     // 发送
     struct {
         bool is_red = true;
         Referee::game_progress_e game_progress = Referee::NOT_STARTED;
-        UnitFloat<s> stage_remain_time;
-        UnitFloat<m_s> bullet_speed;
+        float stage_remain_time{};
+        float bullet_speed{};
     } referee;
 
     // 发送
     struct {
-        UnitFloat<m> x;
-        UnitFloat<m> y;
+        float x{};
+        float y{};
     } target_position;
 
     // 接收
     struct {
         bool is_detect = false;
-        Angle<deg> yaw;
-        Angle<deg> pitch;
+        Angle yaw;
+        Angle pitch;
         bool is_fire = false;
         uint8_t robot_id;
-        UnitFloat<rpm> wr;
-        UnitFloat<m> distance;
+        float wr{};
+        float distance{};
     } vision;
 
     // 接收
     struct {
+        // Angles in rad; NaN means no detection. Confidence is dimensionless.
         float a0 = NAN, c0 = 0;
         float a1 = NAN, c1 = 0;
         float a2 = NAN, c2 = 0;
@@ -59,15 +68,15 @@ public:
 
     // 接收
     struct {
-        UnitFloat<m_s> vx;
-        UnitFloat<m_s> vy;
+        float vx{};
+        float vy{};
     } chassis_speed;
 
     // 接收
     struct {
-        UnitFloat<m> x;
-        UnitFloat<m> y;
-        UnitFloat<deg> yaw;
+        float x{};
+        float y{};
+        float yaw{};
     } current_position;
 
     Mavlink(const config_t& config);

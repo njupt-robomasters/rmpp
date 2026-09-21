@@ -1,4 +1,5 @@
 #include "Shooter_17mm.hpp"
+#include <cmath>
 
 Shooter_17mm::Shooter_17mm(const config_t& config, const motor_t& motor) : Shooter(config), motor(motor) {}
 
@@ -21,7 +22,7 @@ void Shooter_17mm::UpdateUI(UI& ui) {
     if (motor.rub1.is_connect == false) {
         ui.robot.rub1 = UI::PINK;
         ui.robot.rub3 = UI::PINK;
-    } else if (unit::abs(bullet_speed.ref - rub1_measure) > 1) {
+    } else if (std::fabsf(bullet_speed.ref - rub1_measure) > 1) {
         ui.robot.rub1 = UI::ORANGE;
         ui.robot.rub3 = UI::ORANGE;
     } else {
@@ -32,7 +33,7 @@ void Shooter_17mm::UpdateUI(UI& ui) {
     if (motor.rub2.is_connect == false) {
         ui.robot.rub2 = UI::PINK;
         ui.robot.rub4 = UI::PINK;
-    } else if (unit::abs(bullet_speed.ref - rub2_measure) > 1) {
+    } else if (std::fabsf(bullet_speed.ref - rub2_measure) > 1) {
         ui.robot.rub2 = UI::ORANGE;
         ui.robot.rub4 = UI::ORANGE;
     } else {
@@ -55,19 +56,19 @@ void Shooter_17mm::OnLoop() {
 void Shooter_17mm::backward() {
     // 摩擦轮
     if (is_rub) {
-        const UnitFloat<rpm> speed = bullet_speed.ref / config.rub_radius;
+        const float speed = bullet_speed.ref / config.rub_radius;
         motor.rub1.SetSpeed(speed);
         motor.rub2.SetSpeed(speed);
     } else {
-        motor.rub1.SetSpeed(0 * default_unit);
-        motor.rub2.SetSpeed(0 * default_unit);
+        motor.rub1.SetSpeed(0.0f);
+        motor.rub2.SetSpeed(0.0f);
     }
 
     // 拨弹电机
     if (is_rub && !is_heat_protect && is_shoot) { // 确保摩擦轮开启、枪口热量保护、发射信号
         if (!is_block) { // 未卡弹
             // 正转
-            const UnitFloat<rpm> shoot_speed = bullet_freq.ref / config.bullet_per_angle;
+            const float shoot_speed = bullet_freq.ref / config.bullet_per_angle;
             motor.shoot.SetSpeed(shoot_speed);
 
             // 卡弹检测
@@ -82,7 +83,7 @@ void Shooter_17mm::backward() {
             }
         } else { // 卡弹
             // 反转
-            const UnitFloat<rpm> shoot_speed = bullet_freq.ref / config.bullet_per_angle;
+            const float shoot_speed = bullet_freq.ref / config.bullet_per_angle;
             motor.shoot.SetSpeed(-shoot_speed);
 
             // 反转计时
@@ -94,7 +95,7 @@ void Shooter_17mm::backward() {
     } else {
         is_block = false;                       // 清除卡弹状态
         dwt_block.UpdateDT();                   // 重置计时器
-        motor.shoot.SetSpeed(0 * default_unit); // 速度置零
+        motor.shoot.SetSpeed(0.0f);             // 速度置零
     }
 }
 

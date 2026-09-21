@@ -1,7 +1,15 @@
 #include "UI.hpp"
 #include <algorithm>
+#include <cmath>
 #include <cstring>
+#include "math/Angle.hpp"
+#include "math/Conversions.hpp"
 #include "rmui_adapter.hpp"
+
+using math::Angle;
+using math::deg;
+using math::pct;
+using math::rpm;
 
 // CAN发送队列
 uint8_t UI::txbuf[TXBUF_SIZE];
@@ -64,21 +72,21 @@ void UI::updateLib() const {
 
     // 云台相对底盘角度
     // 0°指12点钟方向，顺时针绘制
-    start_angle = (int)Angle(yaw_ecd - 20 * deg).toFloat(deg);
-    end_angle = (int)Angle(yaw_ecd + 20 * deg).toFloat(deg);
+    start_angle = static_cast<int>(Angle(yaw_ecd - 20 * deg) / deg);
+    end_angle = static_cast<int>(Angle(yaw_ecd + 20 * deg) / deg);
     if (start_angle < 0) start_angle += 360;
     if (end_angle < 0) end_angle += 360;
     ui_g_1_dir->start_angle = start_angle;
     ui_g_1_dir->end_angle = end_angle;
 
     // 云台IMU角度
-    ui_g_2_yaw->number = (int32_t)yaw.toFloat(deg);
-    ui_g_2_pitch->number = (int32_t)pitch.toFloat(deg);
+    ui_g_2_yaw->number = static_cast<int32_t>(yaw / deg);
+    ui_g_2_pitch->number = static_cast<int32_t>(pitch / deg);
 
     // 伤害方向
     if (is_hurt) {
-        start_angle = (int)Angle(-hurt_dir - 20 * deg).toFloat(deg);
-        end_angle = (int)Angle(-hurt_dir + 20 * deg).toFloat(deg);
+        start_angle = static_cast<int>(Angle(-hurt_dir - 20 * deg) / deg);
+        end_angle = static_cast<int>(Angle(-hurt_dir + 20 * deg) / deg);
         if (start_angle < 0) start_angle += 360;
         if (end_angle < 0) end_angle += 360;
         ui_g_1_hurt->width = 10;
@@ -97,35 +105,35 @@ void UI::updateLib() const {
 
     // 电容剩余能量比例
     // 275°~313°
-    angle = (int)((cap / config.max_cap).toFloat() * 38);
+    angle = (int)((cap / config.max_cap) * 38);
     angle = std::clamp(angle, 1, 38);
     ui_g_1_bar0->start_angle = 275;
     ui_g_1_bar0->end_angle = 275 + angle;
-    ui_g_2_number0->number = (int32_t)cap.toFloat(pct);
+    ui_g_2_number0->number = static_cast<int32_t>(cap / pct);
 
     // 底盘旋转速度
     // 227°~265°
-    angle = (int)((unit::abs(wr) / config.max_wr).toFloat() * 38);
+    angle = (int)((std::fabsf(wr) / config.max_wr) * 38);
     angle = std::clamp(angle, 1, 38);
     ui_g_1_bar1->start_angle = 265 - angle;
     ui_g_1_bar1->end_angle = 265;
-    ui_g_2_number1->number = (int32_t)wr.toFloat(rpm);
+    ui_g_2_number1->number = static_cast<int32_t>(wr / rpm);
 
     // 英雄弹速/步兵弹频
     // 95°~133°
-    angle = (int)((bullet / config.max_bullet).toFloat() * 38);
+    angle = (int)((bullet / config.max_bullet) * 38);
     angle = std::clamp(angle, 1, 38);
     ui_g_1_bar2->start_angle = 95;
     ui_g_1_bar2->end_angle = 95 + angle;
-    ui_g_2_number2->number = (int32_t)bullet.toFloat(default_unit);
+    ui_g_2_number2->number = static_cast<int32_t>(bullet * (bullet_is_speed ? 10.0f : 1.0f));
 
     // 拨弹电机电流
     // 47°~85°
-    angle = (int)((unit::abs(shoot) / config.max_shoot).toFloat() * 38);
+    angle = (int)((std::fabsf(shoot) / config.max_shoot) * 38);
     angle = std::clamp(angle, 1, 38);
     ui_g_1_bar3->start_angle = 85 - angle;
     ui_g_1_bar3->end_angle = 85;
-    ui_g_2_number3->number = (int32_t)shoot.toFloat(default_unit);
+    ui_g_2_number3->number = static_cast<int32_t>(shoot);
 
     // 机器人状态
     ui_g_30_w1->color = robot.w1;

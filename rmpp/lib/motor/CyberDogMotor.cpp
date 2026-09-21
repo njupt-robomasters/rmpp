@@ -42,11 +42,10 @@ void CyberDogMotor::callback(const uint8_t port, const uint32_t id, const uint8_
 
     // 单位标准化
     raw_t raw = {
-        .current = uint_to_float(current_u12, -I_MAX, I_MAX, 12) * A,
+        .current = uint_to_float(current_u12, -I_MAX, I_MAX, 12),
         .torque = raw.current * config.Kt,
-        .speed = uint_to_float(speed_u12, -V_MAX, V_MAX, 12) * rad_s,
-        .angle = uint_to_float(angle_u16, -P_MAX, P_MAX, 16) * rad
-    };
+        .speed = uint_to_float(speed_u12, -V_MAX, V_MAX, 12),
+        .angle = uint_to_float(angle_u16, -P_MAX, P_MAX, 16)};
 
     // 调用父类公共回调函数
     Motor::callback(raw);
@@ -86,9 +85,9 @@ void CyberDogMotor::sendMIT() const {
     uint16_t kd_U12 = float_to_uint(0, 0, KD_MAX, 12);        // 位置微分系数
     uint16_t current_u12;                                     // 电流
     if (!config.is_invert) {
-        current_u12 = float_to_uint(current.ref.toFloat(Nm), -I_MAX, I_MAX, 12);
+        current_u12 = float_to_uint(current.ref, -I_MAX, I_MAX, 12);
     } else {
-        current_u12 = float_to_uint(-current.ref.toFloat(Nm), -I_MAX, I_MAX, 12);
+        current_u12 = float_to_uint(-current.ref, -I_MAX, I_MAX, 12);
     }
 
     uint8_t data[8];

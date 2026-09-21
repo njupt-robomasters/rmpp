@@ -1,12 +1,16 @@
 #pragma once
 
 #include "bsp/bsp.hpp" // dwt
+#include "math/Conversions.hpp"
+
+using math::ms;
+using math::pct;
 
 class FSi6X {
 public:
     struct config_t {
-        UnitFloat<> timeout = 500 * ms;          // 断联检测超时时间
-        UnitFloat<> joystick_deadline = 5 * pct; // 摇杆死区，小于此值认为是0
+        float timeout = 500 * ms;          // 断联检测超时时间
+        float joystick_deadline = 5 * pct; // 摇杆死区，小于此值认为是0
     } config;
 
     enum switch_e {
@@ -18,8 +22,8 @@ public:
 
     bool is_connect = false; // 连接标志
 
-    UnitFloat<ratio> x, y, pitch, yaw;                   // 摇杆
-    UnitFloat<ratio> vra, vrb;                           // 旋钮
+    float x{}, y{}, pitch{}, yaw{};                      // 摇杆
+    float vra{}, vrb{};                                  // 旋钮
     switch_e swa = ERR, swb = ERR, swc = ERR, swd = ERR; // 拨杆
 
     FSi6X(const config_t& config);
@@ -61,7 +65,7 @@ private:
     void callback(const uint8_t data[], uint16_t size);
 
     // 解析摇杆值，归一化到±1
-    UnitFloat<> getJoystick(uint16_t value) const;
+    float getJoystick(uint16_t value) const;
 
     // 解析拨杆值
     static switch_e getSwitch(uint16_t value);

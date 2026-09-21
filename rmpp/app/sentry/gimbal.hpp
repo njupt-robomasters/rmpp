@@ -1,10 +1,15 @@
 #pragma once
 
-#include "motor/MF9025.hpp"
-#include "motor/GM6020.hpp"
-#include "motor/DM4310.hpp"
-#include "module/gimbal/Gimbal_DualYaw.hpp"
 #include "imu.hpp"
+#include "math/Conversions.hpp"
+#include "module/gimbal/Gimbal_DualYaw.hpp"
+#include "motor/DM4310.hpp"
+#include "motor/GM6020.hpp"
+#include "motor/MF9025.hpp"
+
+using math::deg;
+using math::deg_s;
+using math::deg_ss;
 
 // 用于Ozone调参
 // #define yaw1_pid angle_pid
@@ -20,10 +25,10 @@
 
 // 大yaw电机
 inline PID::config_t yaw1_pid = {
-    .kp = (9 * A) / (1.8 * deg),
-    .kd = (9 * A) / (18 * deg_s),
-    .max_out = 9 * A,
-    .fc = 10 * Hz,
+    .kp = (9) / (1.8 * deg),
+    .kd = (9) / (18 * deg_s),
+    .max_out = 9,
+    .fc = 10,
 };
 inline MF9025 yaw1({
     .can_port = 1,
@@ -37,13 +42,13 @@ inline MF9025 yaw1({
 
 // 小yaw电机
 inline PID::config_t yaw2_speed_pid = {
-    .kp = (3 * A) / (300 * deg_s),
-    .kd = (3 * A) / (30000 * deg_ss),
-    .max_out = 3 * A,
-    .fc = 10 * Hz,
+    .kp = (3) / (300 * deg_s),
+    .kd = (3) / (30000 * deg_ss),
+    .max_out = 3,
+    .fc = 10,
 };
 inline PID::config_t yaw2_angle_pid = {
-    .kp = 30 * default_unit,
+    .kp = 30.0f,
     .max_out = 720 * deg_s,
 };
 inline GM6020 yaw2({
@@ -62,12 +67,12 @@ inline GM6020 yaw2({
 
 // pitch电机
 inline PID::config_t pitch_speed_pid = {
-    .kp = (3 * Nm) / (150 * deg_s),
-    .max_out = 3 * Nm,
-    .fc = 10 * Hz,
+    .kp = (3) / (150 * deg_s),
+    .max_out = 3,
+    .fc = 10,
 };
 inline PID::config_t pitch_angle_pid = {
-    .kp = 20 * default_unit,
+    .kp = 20.0f,
     .max_out = 720 * deg_s,
 };
 inline DM4310 pitch({

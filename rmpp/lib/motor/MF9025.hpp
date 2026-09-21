@@ -5,9 +5,9 @@
 class MF9025 : public Motor {
 public:
     static constexpr float REDUCTION = 1.0f;
-    static constexpr UnitFloat<> Kt = 0.32f * Nm_A;
-    static constexpr UnitFloat MAX_CURRENT = 16.5f * A;
-    static constexpr UnitFloat<Nm> MAX_TORQUE = MAX_CURRENT * Kt;
+    static constexpr float Kt = 0.32f;
+    static constexpr float MAX_CURRENT = 16.5f;
+    static constexpr float MAX_TORQUE = MAX_CURRENT * Kt;
 
     MF9025(const config_t& config);
 
@@ -22,5 +22,5 @@ private:
     void callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dlc);
 
     // 发送电流
-    void sendCurrent(const UnitFloat<>& current) const;
+    void sendCurrent(float current) const;
 };

@@ -5,10 +5,10 @@
 class DM6006 : public Motor {
 public:
     static constexpr float REDUCTION = 1.0f;
-    static constexpr UnitFloat<> Kt = 1.0f * Nm_A;
-    static constexpr UnitFloat<> R = 0.33f / 2 * Ohm;
-    static constexpr UnitFloat<> MAX_TORQUE = 12.0f * Nm;
-    static constexpr UnitFloat<A> MAX_CURRENT = MAX_TORQUE / Kt;
+    static constexpr float Kt = 1.0f;
+    static constexpr float R = 0.33f / 2;
+    static constexpr float MAX_TORQUE = 12.0f;
+    static constexpr float MAX_CURRENT = MAX_TORQUE / Kt;
 
     // 错误代码
     enum err_code_e {
@@ -49,5 +49,5 @@ private:
     void sendDisable() const;
 
     // 发送电流
-    void sendTorque(const UnitFloat<>& torque) const;
+    void sendTorque(float torque) const;
 };

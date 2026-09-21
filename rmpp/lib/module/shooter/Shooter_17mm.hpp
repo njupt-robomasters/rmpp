@@ -24,7 +24,7 @@ public:
 
 private:
     // 摩擦轮线速度
-    UnitFloat<m_s> rub1_measure, rub2_measure;
+    float rub1_measure{}, rub2_measure{};
 
     // 正解：电机速度 -> 弹速、弹频
     void forward() override;

@@ -1,4 +1,8 @@
 #include "Mavlink.hpp"
+#include "math/Conversions.hpp"
+
+using math::deg;
+using math::rpm;
 
 Mavlink::Mavlink(const config_t& config) : config(config) {
     // 注册CDC接收回调
@@ -71,14 +75,17 @@ void Mavlink::parse(const mavlink_message_t& msg) {
             is_connect_vision = true;
             mavlink_auto_aim_t auto_aim;
             mavlink_msg_auto_aim_decode(&msg, &auto_aim);
+            const float yaw_deg = auto_aim.yaw;
+            const float pitch_deg = auto_aim.pitch;
+            const float wr_rpm = auto_aim.wr;
             this->vision = {
                 .is_detect = (bool)auto_aim.is_detect,
-                .yaw = auto_aim.yaw * deg,
-                .pitch = auto_aim.pitch * deg,
+                .yaw = yaw_deg * deg,
+                .pitch = pitch_deg * deg,
                 .is_fire = (bool)auto_aim.is_fire,
                 .robot_id = auto_aim.robot_id,
-                .wr = auto_aim.wr * rpm,
-                .distance = auto_aim.distance * m,
+                .wr = wr_rpm * rpm,
+                .distance = auto_aim.distance,
             };
             break;
         }
@@ -88,12 +95,15 @@ void Mavlink::parse(const mavlink_message_t& msg) {
             is_connect_insta360 = true;
             mavlink_insta360_t ui;
             mavlink_msg_insta360_decode(&msg, &ui);
+            const float a0_deg = ui.a0;
+            const float a1_deg = ui.a1;
+            const float a2_deg = ui.a2;
             this->insta360 = {
-                .a0 = ui.a0,
+                .a0 = a0_deg * deg,
                 .c0 = ui.c0,
-                .a1 = ui.a1,
+                .a1 = a1_deg * deg,
                 .c1 = ui.c1,
-                .a2 = ui.a2,
+                .a2 = a2_deg * deg,
                 .c2 = ui.c2,
             };
             break;
@@ -104,11 +114,11 @@ void Mavlink::parse(const mavlink_message_t& msg) {
             is_connect_current_position = true;
             mavlink_current_position_t current_position;
             mavlink_msg_current_position_decode(&msg, &current_position);
+            const float yaw_deg = current_position.yaw;
             this->current_position = {
-                .x = current_position.x * m_s,
-                .y = current_position.y * m_s,
-                .yaw = current_position.yaw * deg
-            };
+                .x = current_position.x,
+                .y = current_position.y,
+                .yaw = yaw_deg * deg};
             break;
         }
 
@@ -118,8 +128,8 @@ void Mavlink::parse(const mavlink_message_t& msg) {
             mavlink_chassis_speed_t chassis_speed;
             mavlink_msg_chassis_speed_decode(&msg, &chassis_speed);
             this->chassis_speed = {
-                .vx = chassis_speed.vx * m,
-                .vy = chassis_speed.vy * m,
+                .vx = chassis_speed.vx,
+                .vy = chassis_speed.vy,
             };
         }
 
@@ -139,14 +149,16 @@ void Mavlink::send(const mavlink_message_t& msg) {
 
 void Mavlink::sendImu() const {
     mavlink_message_t msg;
+    const float yaw_deg = imu.yaw / deg;
+    const float pitch_deg = imu.pitch / deg;
+    const float roll_deg = imu.roll / deg;
     mavlink_msg_imu_pack(
         SYSTEM_ID,
         COMPONENT_ID,
         &msg,
-        imu.yaw.toFloat(deg),
-        imu.pitch.toFloat(deg),
-        imu.roll.toFloat(deg)
-    );
+        yaw_deg,
+        pitch_deg,
+        roll_deg);
     send(msg);
 }
 
@@ -158,9 +170,8 @@ void Mavlink::sendReferee() const {
         &msg,
         referee.is_red,
         referee.game_progress,
-        (uint16_t)referee.stage_remain_time.toFloat(s),
-        referee.bullet_speed.toFloat(m_s)
-    );
+        (uint16_t)referee.stage_remain_time,
+        referee.bullet_speed);
     send(msg);
 }
 
@@ -170,8 +181,7 @@ void Mavlink::sendTargetPosition() const {
         SYSTEM_ID,
         COMPONENT_ID,
         &msg,
-        target_position.x.toFloat(m),
-        target_position.y.toFloat(m)
-    );
+        target_position.x,
+        target_position.y);
     send(msg);
 }

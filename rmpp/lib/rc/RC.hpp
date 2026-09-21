@@ -8,7 +8,7 @@ public:
     bool is_enable = false;
 
     bool is_rub = false, is_shoot = false, is_auto_aim = false, is_fn = false, is_calib = false;
-    UnitFloat<ratio> x, y, r, pitch, yaw, shoot;
+    float x{}, y{}, r{}, pitch{}, yaw{}, shoot{};
 
     VT13::mouse_t mouse;
     VT13::key_t key;

@@ -22,15 +22,15 @@ float BSP_DWT_UpdateDT(uint32_t* last_tick);
 // 以下为仅C++可见的内容
 #ifdef __cplusplus
 
-#include <unit/include_me.hpp>
+#include "math/Conversions.hpp"
 
 namespace BSP {
     class Dwt {
     public:
-        UnitFloat<> dt;
-        UnitFloat<> freq;
+        float dt{};
+        float freq{};
 
-        Dwt(const UnitFloat<>& min_dt = 0.1 * ms, const UnitFloat<>& max_dt = 10 * s);
+        Dwt(float min_dt = 0.1f * math::ms, float max_dt = 10.0f);
 
         Dwt& operator=(const Dwt& other) {
             if (this != &other) {
@@ -52,18 +52,18 @@ namespace BSP {
 
         static void Init();
 
-        static void Delay(const UnitFloat<>& time);
+        static void Delay(float time);
 
-        UnitFloat<> GetDT();
+        float GetDT();
 
-        UnitFloat<> UpdateDT();
+        float UpdateDT();
 
-        bool PollTimeout(const UnitFloat<>& time);
+        bool PollTimeout(float time);
 
         void Reset();
 
     private:
-        UnitFloat<> min_dt, max_dt;
+        float min_dt{}, max_dt{};
 
         uint32_t last_tick;
 

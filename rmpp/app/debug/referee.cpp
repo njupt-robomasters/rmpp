@@ -1,4 +1,8 @@
 #include "../infantry/misc.hpp"
+#include "math/Conversions.hpp"
+
+using math::deg;
+using math::ms;
 
 void setup() {
     BSP::Init();

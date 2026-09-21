@@ -1,6 +1,9 @@
 #pragma once
 
 #include "lib/RefereeParser.hpp"
+#include "math/Angle.hpp"
+
+using math::Angle;
 
 class Referee {
 public:
@@ -73,18 +76,18 @@ public:
 
         // 当前阶段剩余时间
         // 0x0001 game_status.stage_remain_time
-        UnitFloat<s> stage_remain_time;
+        float stage_remain_time{};
     } game;
 
     // 底盘数据
     struct {
         // 底盘功率上限
         // 0x0201 robot_status.chassis_power_limit
-        UnitFloat<W> power_limit;
+        float power_limit{};
 
         // 缓冲能量
         // 0x0202 power_heat_data.buffer_energy
-        UnitFloat<J> buffer_energy;
+        float buffer_energy{};
     } chassis;
 
     // 发射机构数据
@@ -103,11 +106,11 @@ public:
 
         // 射击频率
         // 0x0207 shoot_data.launching_frequency
-        UnitFloat<Hz> bullet_freq;
+        float bullet_freq{};
 
         // 弹丸初速度
         // 0x0207 shoot_data.initial_speed
-        UnitFloat<m_s> bullet_speed;
+        float bullet_speed{};
 
         // 允许发弹量
         // 0x0208 projectile_allowance.projectile_allowance_17mm
@@ -131,13 +134,13 @@ public:
     struct {
         // 伤害方向
         bool is_hurt = false;
-        Angle<deg> dir; // 伤害方向，相对于云台参考系
+        Angle dir; // 伤害方向，相对于云台参考系
     } hurt;
 
     Referee(const config_t& config);
 
     // 设置yaw角度，用于计算伤害方向
-    void SetYaw(const UnitFloat<>& yaw_ecd, const UnitFloat<>& yaw_imu);
+    void SetYaw(float yaw_ecd, float yaw_imu);
 
     // 需要在循环中调用
     void OnLoop();
@@ -149,6 +152,6 @@ private:
 
     // 用于维护伤害方向
     BSP::Dwt dwt_hurt;
-    Angle<deg> yaw_ecd, yaw_imu;
-    Angle<deg> hurt_dir_by_imu; // 伤害方向，相对于IMU参考系
+    Angle yaw_ecd, yaw_imu;
+    Angle hurt_dir_by_imu; // 伤害方向，相对于IMU参考系
 };

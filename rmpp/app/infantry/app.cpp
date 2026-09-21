@@ -1,5 +1,8 @@
+#include "math/Conversions.hpp"
 #include "misc.hpp"
 #include "robot.hpp"
+
+using math::ms;
 
 void send_can_cmd() {
     // CAN1
@@ -54,12 +57,12 @@ void loop() {
 extern "C" void rmpp_main() {
     setup();
 
-    static UnitFloat<pct> cpu_usage;
+    static float cpu_usage{};
     BSP::Dwt dwt;
     while (true) {
         if (dwt.PollTimeout(1 * ms)) {
             loop();
-            const UnitFloat<ms> running_time = dwt.GetDT();
+            const float running_time = dwt.GetDT();
             cpu_usage = running_time / (1 * ms);
         }
     }

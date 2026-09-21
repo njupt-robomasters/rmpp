@@ -9,7 +9,7 @@ void RC::OnLoop() {
     // 先复位，便于后面叠加控制
     is_enable = false;
     is_rub = is_shoot = is_auto_aim = is_calib = false;
-    x = y = r = yaw = pitch = shoot = 0 * ratio;
+    x = y = r = yaw = pitch = shoot = 0.0f;
 
     // VT13遥控器
     if (vt13.is_connect) {

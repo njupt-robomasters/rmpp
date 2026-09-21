@@ -41,17 +41,16 @@ void DM6006::callback(const uint8_t port, const uint32_t id, const uint8_t data[
     const uint16_t angle_u16 = (data[1] << 8) | data[2];
     const uint16_t speed_u12 = (data[3] << 4) | (data[4] >> 4);
     const uint16_t torque_u12 = ((data[4] & 0x0F) << 8) | data[5];
-    temperature.mos = (int8_t)data[6] * C;
-    temperature.motor = (int8_t)data[7] * C;
+    temperature.mos = (int8_t)data[6];
+    temperature.motor = (int8_t)data[7];
 
     // 单位标准化
-    const UnitFloat torque = uint_to_float(torque_u12, -T_MAX, T_MAX, 12) * Nm;
+    const float torque = uint_to_float(torque_u12, -T_MAX, T_MAX, 12);
     const raw_t raw = {
         .current = torque / config.Kt,
         .torque = torque,
-        .speed = uint_to_float(speed_u12, -V_MAX, V_MAX, 12) * rad_s,
-        .angle = uint_to_float(angle_u16, -P_MAX, P_MAX, 16) * rad
-    };
+        .speed = uint_to_float(speed_u12, -V_MAX, V_MAX, 12),
+        .angle = uint_to_float(angle_u16, -P_MAX, P_MAX, 16)};
 
     // 调用父类公共回调函数
     Motor::callback(raw);
@@ -79,14 +78,14 @@ void DM6006::sendDisable() const {
     BSP::CAN::Transmit(config.can_port, config.slave_id, data, 8);
 }
 
-void DM6006::sendTorque(const UnitFloat<>& torque) const {
+void DM6006::sendTorque(float torque) const {
     uint16_t angle_u16 = float_to_uint(0, -P_MAX, P_MAX, 16); // 位置
     uint16_t speed_u12 = float_to_uint(0, -V_MAX, V_MAX, 12); // 速度
     uint16_t kp_u12 = float_to_uint(0, 0, KP_MAX, 12);        // 位置比例系数
     uint16_t kd_u12 = float_to_uint(0, 0, KD_MAX, 12);        // 位置微分系数
     uint16_t torque_u12;                                      // 扭矩
 
-    const float torque_limit = std::clamp(torque.toFloat(Nm), -T_MAX, T_MAX);
+    const float torque_limit = std::clamp(torque, -T_MAX, T_MAX);
     if (!config.is_invert) {
         torque_u12 = float_to_uint(torque_limit, -T_MAX, T_MAX, 12);
     } else {

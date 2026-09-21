@@ -3,7 +3,8 @@
 
 using namespace BSP;
 
-Dwt::Dwt(const UnitFloat<>& min_dt, const UnitFloat<>& max_dt) : min_dt(min_dt), max_dt(max_dt), last_tick(DWT->CYCCNT) {}
+Dwt::Dwt(float min_dt, float max_dt) :
+    min_dt(min_dt), max_dt(max_dt), last_tick(DWT->CYCCNT) {}
 
 void Dwt::Init() {
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk; // 使能DWT外设
@@ -11,15 +12,15 @@ void Dwt::Init() {
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;            // 使能DWT CYCCNT寄存器
 }
 
-void Dwt::Delay(const UnitFloat<>& time) {
+void Dwt::Delay(float time) {
     const uint32_t start_tick = DWT->CYCCNT;
-    const auto need_ticks = (uint32_t)(time.toFloat(s) * (float)SystemCoreClock);
+    const auto need_ticks = (uint32_t)(time * (float)SystemCoreClock);
     while (DWT->CYCCNT - start_tick < need_ticks);
 }
 
-UnitFloat<> Dwt::GetDT() {
+float Dwt::GetDT() {
     const uint32_t now_tick = DWT->CYCCNT;
-    dt = (float)(now_tick - last_tick) / (float)SystemCoreClock * s;
+    dt = (float)(now_tick - last_tick) / (float)SystemCoreClock;
 
     if (dt < min_dt) dt = min_dt;
     if (dt > max_dt) dt = max_dt, is_max_dt = true;
@@ -31,9 +32,9 @@ UnitFloat<> Dwt::GetDT() {
     }
 }
 
-UnitFloat<> Dwt::UpdateDT() {
+float Dwt::UpdateDT() {
     const uint32_t now_tick = DWT->CYCCNT;
-    dt = (float)(now_tick - last_tick) / (float)SystemCoreClock * s;
+    dt = (float)(now_tick - last_tick) / (float)SystemCoreClock;
     last_tick = now_tick;
 
     if (dt < min_dt) dt = min_dt;
@@ -49,7 +50,7 @@ UnitFloat<> Dwt::UpdateDT() {
     }
 }
 
-bool Dwt::PollTimeout(const UnitFloat<>& time) {
+bool Dwt::PollTimeout(float time) {
     if (GetDT() >= time) {
         UpdateDT();
         return true;
@@ -77,5 +78,5 @@ float BSP_DWT_UpdateDT(uint32_t* last_tick) {
 }
 
 void BSP_DWT_Delay(const float seconds) {
-    Dwt::Delay(seconds * s);
+    Dwt::Delay(seconds);
 }

@@ -1,5 +1,7 @@
 #include "VT13.hpp"
+#include <cmath>
 #include <cstring> // memcpy
+#include "math/Math.hpp"
 #include "referee/lib/crc.hpp"
 
 VT13::VT13(const config_t& config) : config(config) {
@@ -50,8 +52,8 @@ void VT13::callback(const uint8_t data[], const uint16_t size) {
     photo = raw.fn_2;
 
     // 鼠标
-    mouse.yaw = -(float)raw.mouse_x / (float)MOUSE_MAX * ratio;
-    mouse.pitch = (float)raw.mouse_y / (float)MOUSE_MAX * ratio;
+    mouse.yaw = -(float)raw.mouse_x / (float)MOUSE_MAX;
+    mouse.pitch = (float)raw.mouse_y / (float)MOUSE_MAX;
     mouse.wheel = raw.mouse_z;
     mouse.left = raw.mouse_left;
     mouse.right = raw.mouse_right;
@@ -76,10 +78,11 @@ void VT13::callback(const uint8_t data[], const uint16_t size) {
     key.b = raw.key & (1 << 15);
 }
 
-UnitFloat<> VT13::getJoyStick(const uint16_t value) const {
-    UnitFloat<> ret = ((float)value - 1024.0f) / 660.0f * ratio;
-    ret = unit::clamp(ret, -1 * ratio, 1 * ratio);
-    if (unit::abs(ret) < config.joystick_deadline) ret = 0 * ratio;
+float VT13::getJoyStick(const uint16_t value) const {
+    float ret = ((float)value - 1024.0f) / 660.0f;
+    ret = math::clamp(ret, -1.0f, 1.0f);
+    if (std::fabsf(ret) < config.joystick_deadline)
+        ret = 0.0f;
     return ret;
 }
 
@@ -87,8 +90,8 @@ void VT13::resetData() {
     is_connect = false;
 
     // 遥控器
-    x = y = pitch = yaw = 0 * ratio;
-    wheel = 0 * ratio;
+    x = y = pitch = yaw = 0.0f;
+    wheel = 0.0f;
     mode = ERR;
     pause = trigger = fn = photo = false;
 

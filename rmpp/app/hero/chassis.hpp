@@ -1,28 +1,32 @@
 #pragma once
 
-#include "motor/M3508.hpp"
+#include "math/Conversions.hpp"
 #include "module/chassis/Chassis_Mecanum.hpp"
+#include "motor/M3508.hpp"
+
+using math::cm;
+using math::deg;
 
 // 底盘电机参数
 static constexpr float REDUCTION = 268.0f / 17.0f;
-static constexpr UnitFloat<Nm_A> Kt = M3508::Kt / M3508::REDUCTION * REDUCTION;
+static constexpr float Kt = M3508::Kt / M3508::REDUCTION * REDUCTION;
 static constexpr bool IS_INVERT = false;
 
 // 底盘参数
-static constexpr UnitFloat CHASSIS_RADIUS = 25.87f * cm;
-static constexpr UnitFloat WHEEL_RADIUS = 7.1f * cm;
-static constexpr UnitFloat<N> MAX_F = M3508::MAX_CURRENT * Kt / WHEEL_RADIUS * 4;
+static constexpr float CHASSIS_RADIUS = 25.87f * cm;
+static constexpr float WHEEL_RADIUS = 7.1f * cm;
+static constexpr float MAX_F = M3508::MAX_CURRENT * Kt / WHEEL_RADIUS * 4;
 
 // 底盘PID参数
 inline PID::config_t vxyz_pid = {
-    .kp = MAX_F / (1 * (m / s)),
+    .kp = MAX_F / (1),
     .ki = MAX_F / (10 * cm),
     .max_i = MAX_F,
     .max_out = MAX_F,
-    .fc = 10 * Hz,
+    .fc = 10,
 };
 inline PID::config_t follow_pid = {
-    .kp = 5 * default_unit,
+    .kp = 5.0f,
     .max_out = 360 * deg,
 };
 

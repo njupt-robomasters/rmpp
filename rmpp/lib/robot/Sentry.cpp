@@ -1,4 +1,6 @@
 #include "Sentry.hpp"
+#include <cmath>
+#include "math/Math.hpp"
 #include "motor/GM6020.hpp"
 
 extern GM6020 yaw2;
@@ -28,12 +30,12 @@ void Sentry::handlePause() {
     gimbal_status = SCAN;
 
     // 底盘
-    vx.software = vy.software = wr.software = 0 * default_unit;
+    vx.software = vy.software = wr.software = 0.0f;
 
     // 云台
     gimbal_mode.software = GIMBAL_SPEED_MODE;
-    wyaw.software = wpitch.software = 0 * default_unit;
-    yaw.software = pitch.software = 0 * default_unit;
+    wyaw.software = wpitch.software = 0.0f;
+    yaw.software = pitch.software = 0.0f;
 
     // 发射机构
     is_rub.software = is_shoot.software = false;
@@ -47,12 +49,12 @@ void Sentry::handle15s() {
     wyaw.software = YAW_SPEED;
 
     // pitch停止
-    wpitch.software = 0 * default_unit;
+    wpitch.software = 0.0f;
 }
 
 void Sentry::handleChassis() {
     // 导航坐标点
-    UnitFloat<> center_x, center_y, home_x, home_y;
+    float center_x{}, center_y{}, home_x{}, home_y{};
     if (force_game_position) {
         center_x = GAME_CENTER_X;
         center_y = GAME_CENTER_Y;
@@ -82,7 +84,7 @@ void Sentry::handleChassis() {
         case GO_CENTER: {
             device.mavlink.target_position.x = center_x;
             device.mavlink.target_position.y = center_y;
-            std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
+            std::tie(vx.software, vy.software) = math::rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
 
             // 血量低于设定值回家
             if (device.referee.robot.hp <= GO_HOME_HP) {
@@ -94,7 +96,7 @@ void Sentry::handleChassis() {
         case GO_HOME: {
             device.mavlink.target_position.x = home_x;
             device.mavlink.target_position.y = home_y;
-            std::tie(vx.software, vy.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
+            std::tie(vx.software, vy.software) = math::rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
 
             // 血量恢复到设定值去中心点
             if (device.referee.robot.hp >= GO_CENTER_HP) {
@@ -105,9 +107,9 @@ void Sentry::handleChassis() {
     }
 
     // 小陀螺
-    const UnitFloat<m_s> v_software = sqrt(square(vx.software) + square(vy.software));
+    const float v_software = std::sqrtf(math::square(vx.software) + math::square(vy.software));
     // 导航速度越快，小陀螺越慢
-    wr.software = map(v_software, 0 * m_s, config.vxy_max, config.wr_max, device.chassis.config.reserve_wr);
+    wr.software = math::map(v_software, 0.0f, config.vxy_max, config.wr_max, device.chassis.config.reserve_wr);
 }
 
 void Sentry::handleGimbal() {
@@ -141,7 +143,7 @@ void Sentry::handleGimbal() {
                 gimbal_mode.software = GIMBAL_ANGLE_MODE;
 
                 // 转到insta360的位置
-                yaw.software = device.mavlink.insta360.a0 * deg + device.gimbal.yaw.imu_minus_ecd;
+                yaw.software = device.mavlink.insta360.a0 + device.gimbal.yaw.imu_minus_ecd;
                 pitch.software = (PITCH_MIN + PITCH_MAX) / 2;
 
                 gimbal_status = INSTA360_CHECK;

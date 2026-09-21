@@ -1,8 +1,13 @@
-#include "../infantry/misc.hpp"
 #include "../infantry/chassis.hpp"
+#include "../infantry/misc.hpp"
+#include "math/Conversions.hpp"
 
-static constexpr UnitFloat VXY_MAX = 1 * m_s;
-static constexpr UnitFloat WR_MAX = 60 * rpm;
+using math::deg;
+using math::ms;
+using math::rpm;
+
+static constexpr float VXY_MAX = 1.0f;
+static constexpr float WR_MAX = 60 * rpm;
 
 void send_can_cmd() {
     // 步兵
@@ -52,17 +57,17 @@ void setup() {
 
     chassis.SetMode(Chassis::DETACH_MODE);
     chassis.SetGimbalYaw(0 * deg);
-    chassis.SetPowerLimit(120 * W);
-    chassis.SetBufferEnergy(60 * J);
+    chassis.SetPowerLimit(120);
+    chassis.SetBufferEnergy(60);
 }
 
 void loop() {
     rc.OnLoop();
 
     chassis.SetEnable(rc.is_enable);
-    const UnitFloat vx = rc.x * VXY_MAX;
-    const UnitFloat vy = rc.y * VXY_MAX;
-    const UnitFloat wr = rc.r * WR_MAX;
+    const float vx = rc.x * VXY_MAX;
+    const float vy = rc.y * VXY_MAX;
+    const float wr = rc.r * WR_MAX;
     chassis.SetSpeed(vx, vy, wr);
     chassis.OnLoop();
 

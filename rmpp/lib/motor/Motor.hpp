@@ -1,6 +1,11 @@
 #pragma once
 
 #include "algorithm/PID.hpp"
+#include "math/Angle.hpp"
+#include "math/Conversions.hpp"
+
+using math::Angle;
+using math::ms;
 
 class Motor {
 public:
@@ -18,23 +23,24 @@ public:
         TORQUE_OUTPUT,  // PID输出扭矩
     };
 
+    // SI values: s, rad, rad/s, A, N*m, N*m/A, ohm. Temperatures remain Celsius.
     // 电机配置
     struct config_t {
         // CAN通信参数
         uint8_t can_port = -1;
         uint32_t master_id = 0, slave_id = 0;
-        UnitFloat<> timeout = 100.0f * ms; // 电机断联超时时间
+        float timeout = 100.0f * ms; // 电机断联超时时间
 
         // 电机参数
         float reduction = 0.0f;       // 减速比
-        UnitFloat<> Kt = 0.0f * Nm_A; // 力矩系数
-        UnitFloat<> R = 0.0f * Ohm;   // 相电阻（两相间电阻/2）
+        float Kt = 0.0f;              // 力矩系数
+        float R = 0.0f;               // 相电阻（两相间电阻/2）
 
         // 电机安装参数
         bool is_invert = false;       // 电机反转标志
-        Angle<> offset;               // 电机角度偏移量
+        Angle offset;                 // 电机角度偏移量
         bool is_limit = false;        // false-圆周模式，true-限位模式
-        Angle<> limit_min, limit_max; // min-右限位（负值），max-左限位（正值），相对于offset的角度
+        Angle limit_min, limit_max;   // min-右限位（负值），max-左限位（正值），相对于offset的角度
 
         // PID相关
         control_mode_e control_mode = OPEN_LOOP_MODE;    // 电机闭环模式
@@ -48,35 +54,35 @@ public:
 
     // 电流
     struct {
-        UnitFloat<A> ref, measure;
+        float ref{}, measure{};
     } current;
 
     // 扭矩
     struct {
-        UnitFloat<Nm> ref, measure;
+        float ref{}, measure{};
     } torque;
 
     // 转速
     struct {
-        UnitFloat<rpm> ref, outer, measure;
+        float ref{}, outer{}, measure{};
     } speed;
 
-    // 角度（减速比!=1时，自动执行软件多圈记数）
+    // 减速比!=1时累积编码器角增量，存储值仍归一化到 [-pi, pi)。
     struct {
-        Angle<deg> ref, measure;
+        Angle ref, measure;
     } angle;
 
     // 温度
     struct {
-        UnitFloat<C> mos, motor;
+        float mos{}, motor{};
     } temperature;
 
     // 电机反转、偏移修正之前的值
     struct raw_t {
-        UnitFloat<A> current;
-        UnitFloat<Nm> torque;
-        UnitFloat<rpm> speed;
-        Angle<deg> angle;
+        float current{};
+        float torque{};
+        float speed{};
+        Angle angle;
     } raw;
 
     Motor(const config_t& config);
@@ -85,16 +91,16 @@ public:
     void SetEnable(bool is_enable);
 
     // 设置电流
-    void SetCurrent(const UnitFloat<>& current);
+    void SetCurrent(float current);
 
     // 设置扭矩
-    void SetTorque(const UnitFloat<>& torque);
+    void SetTorque(float torque);
 
     // 设置速度
-    void SetSpeed(const UnitFloat<>& speed);
+    void SetSpeed(float speed);
 
     // 设置角度
-    Angle<> SetAngle(const Angle<>& angle, const UnitFloat<>& speed_ff = 0 * default_unit);
+    Angle SetAngle(Angle angle, float speed_ff = 0.0f);
 
     // 需要在循环中调用
     virtual void OnLoop();
@@ -107,6 +113,6 @@ protected:
 
 private:
     PID speed_pid, angle_pid;       // PID控制器
-    Angle<deg> last_angle;          // 用于多圈计数
+    Angle last_angle;               // 用于多圈计数
     bool is_first_setangle = false; // 断联/使能后第一次设置角度标志，防止电机一下子飞起来
 };

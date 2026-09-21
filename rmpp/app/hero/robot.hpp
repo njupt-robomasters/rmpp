@@ -2,16 +2,20 @@
 
 #include "robot/Robot.hpp"
 
-#include "misc.hpp"
 #include "chassis.hpp"
 #include "gimbal.hpp"
+#include "math/Conversions.hpp"
+#include "misc.hpp"
 #include "shooter.hpp"
 
+using math::deg_s;
+using math::rpm;
+
 inline Robot::config_t robot_config = {
-    .vxy_max = 5 * m_s, // 100W下2.4m/s，不限功率4.5m/s
+    .vxy_max = 5.0f,    // 100W下2.4m/s，不限功率4.5m/s
     .wr_max = 90 * rpm, // 100W下65rpm，不限功率90rpm
-    .axy = 100 * m_ss,
-    .dxy = 100 * m_ss,
+    .axy = 100.0f,
+    .dxy = 100.0f,
     .ar = 1000 * rpm,
     .dr = 1000 * rpm,
 
@@ -20,7 +24,7 @@ inline Robot::config_t robot_config = {
     .ayaw = 3600 * deg_s,
     .apitch = 3600 * deg_s,
 
-    .bullet_speed = 15.0f * m_s,
+    .bullet_speed = 15.0f,
     .heat_protect = 100,
 };
 inline Robot robot(robot_config,

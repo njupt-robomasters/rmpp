@@ -1,4 +1,9 @@
 #include "Shooter_42mm.hpp"
+#include <cmath>
+#include "math/Angle.hpp"
+#include "math/Conversions.hpp"
+
+using math::Angle;
 
 Shooter_42mm::Shooter_42mm(const config_t& config, const motor_t& motor) : Shooter(config), motor(motor) {}
 
@@ -22,7 +27,7 @@ void Shooter_42mm::SetEnable(const bool is_enable) {
 void Shooter_42mm::UpdateUI(UI& ui) {
     if (motor.rub1.is_connect == false) {
         ui.robot.rub1 = UI::PINK;
-    } else if (unit::abs(bullet_speed.ref * RUB12_RATIO - rub1_measure) < 1) {
+    } else if (std::fabsf(bullet_speed.ref * RUB12_RATIO - rub1_measure) < 1) {
         ui.robot.rub1 = UI::GREEN;
     } else {
         ui.robot.rub1 = UI::ORANGE;
@@ -30,7 +35,7 @@ void Shooter_42mm::UpdateUI(UI& ui) {
 
     if (motor.rub2.is_connect == false) {
         ui.robot.rub2 = UI::PINK;
-    } else if (unit::abs(bullet_speed.ref * RUB12_RATIO - rub2_measure) < 1) {
+    } else if (std::fabsf(bullet_speed.ref * RUB12_RATIO - rub2_measure) < 1) {
         ui.robot.rub2 = UI::GREEN;
     } else {
         ui.robot.rub2 = UI::ORANGE;
@@ -38,7 +43,7 @@ void Shooter_42mm::UpdateUI(UI& ui) {
 
     if (motor.rub3.is_connect == false) {
         ui.robot.rub3 = UI::PINK;
-    } else if (unit::abs(bullet_speed.ref - rub3_measure) < 1) {
+    } else if (std::fabsf(bullet_speed.ref - rub3_measure) < 1) {
         ui.robot.rub3 = UI::GREEN;
     } else {
         ui.robot.rub3 = UI::ORANGE;
@@ -46,7 +51,7 @@ void Shooter_42mm::UpdateUI(UI& ui) {
 
     if (motor.rub4.is_connect == false) {
         ui.robot.rub4 = UI::PINK;
-    } else if (unit::abs(bullet_speed.ref - rub4_measure) < 1) {
+    } else if (std::fabsf(bullet_speed.ref - rub4_measure) < 1) {
         ui.robot.rub4 = UI::GREEN;
     } else {
         ui.robot.rub4 = UI::ORANGE;
@@ -69,16 +74,16 @@ void Shooter_42mm::OnLoop() {
 void Shooter_42mm::backward() {
     // 摩擦轮
     if (is_rub) {
-        const UnitFloat<rpm> speed = bullet_speed.ref / config.rub_radius;
+        const float speed = bullet_speed.ref / config.rub_radius;
         motor.rub1.SetSpeed(speed * RUB12_RATIO);
         motor.rub2.SetSpeed(speed * RUB12_RATIO);
         motor.rub3.SetSpeed(speed);
         motor.rub4.SetSpeed(speed);
     } else {
-        motor.rub1.SetSpeed(0 * default_unit);
-        motor.rub2.SetSpeed(0 * default_unit);
-        motor.rub3.SetSpeed(0 * default_unit);
-        motor.rub4.SetSpeed(0 * default_unit);
+        motor.rub1.SetSpeed(0.0f);
+        motor.rub2.SetSpeed(0.0f);
+        motor.rub3.SetSpeed(0.0f);
+        motor.rub4.SetSpeed(0.0f);
     }
 
     // 拨弹电机
@@ -99,11 +104,11 @@ void Shooter_42mm::backward() {
         break;
 
         case SHAKE: {
-            const Angle<deg> angle_per_bullet = 1 / config.bullet_per_angle;
-            const UnitFloat<deg> a = angle_per_bullet * SHANE_AMP / 2;
-            const UnitFloat<deg> offset = shake_upper - a;
-            const UnitFloat<s> t = dwt_shake.GetDT();
-            const Angle<deg> angle = a * cos(2 * PI * SHAKE_FREQ * t) + offset;
+            const Angle angle_per_bullet = 1 / config.bullet_per_angle;
+            const float a = angle_per_bullet * SHANE_AMP / 2;
+            const float offset = shake_upper - a;
+            const float t = dwt_shake.GetDT();
+            const Angle angle = a * std::cosf(2 * math::pi * SHAKE_FREQ * t) + offset;
             motor.shoot.SetAngle(angle);
 
             // 防止计时器溢出
@@ -113,11 +118,11 @@ void Shooter_42mm::backward() {
 
             if (is_shoot && !is_shoot_last && !is_heat_protect) { // 发射信号上升沿，热量保护
                 // 增加角度
-                const Angle<deg> angle_per_bullet = 1 / config.bullet_per_angle;
-                Angle<deg> target_angle = shake_upper + angle_per_bullet;
+                const Angle angle_per_bullet = 1 / config.bullet_per_angle;
+                Angle target_angle = shake_upper + angle_per_bullet;
 
                 // 对齐相位
-                const int8_t index = (int8_t)std::round((target_angle / angle_per_bullet).toFloat()); // 四舍五入
+                const int8_t index = (int8_t)std::round((target_angle / angle_per_bullet)); // 四舍五入
                 target_angle = index * angle_per_bullet;
 
                 // 设置电机角度
@@ -131,8 +136,8 @@ void Shooter_42mm::backward() {
 
         case SHOOT: {
             // 拨弹计时
-            const Angle<deg> angle_per_bullet = 1 / config.bullet_per_angle;
-            if (abs(motor.shoot.angle.ref - motor.shoot.angle.measure) < (1 * ratio - SHOOT_FINISH_RATIO) * angle_per_bullet) {
+            const Angle angle_per_bullet = 1 / config.bullet_per_angle;
+            if (std::fabsf(motor.shoot.angle.ref - motor.shoot.angle.measure) < (1.0f - SHOOT_FINISH_RATIO) * angle_per_bullet) {
                 state = SHAKE;
                 dwt_shake.UpdateDT();
                 shake_upper = motor.shoot.angle.ref;

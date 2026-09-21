@@ -21,23 +21,24 @@
 class Robot {
 public:
     struct config_t {
+        // SI: m/s, rad/s, m/s^2, rad/s^2; firing rate is shots/s.
         // 底盘速度
-        UnitFloat<m_s> vxy_max; // 移动速度
-        UnitFloat<rpm> wr_max;  // 旋转角速度
-        UnitFloat<m_ss> axy;    // 移动加速度（仅键盘操作有效）
-        UnitFloat<m_ss> dxy;    // 移动减速度（仅键盘操作有效）
-        UnitFloat<rpm> ar;      // 旋转角加速度（仅键盘操作有效）
-        UnitFloat<rpm> dr;      // 旋转角减速度（仅键盘操作有效）
+        float vxy_max{}; // 移动速度
+        float wr_max{};  // 旋转角速度
+        float axy{};     // 移动加速度（仅键盘操作有效）
+        float dxy{};     // 移动减速度（仅键盘操作有效）
+        float ar{};      // 旋转角加速度（仅键盘操作有效）
+        float dr{};      // 旋转角减速度（仅键盘操作有效）
 
         // 云台速度
-        UnitFloat<deg_s> wyaw;    // yaw角速度
-        UnitFloat<deg_s> wpitch;  // pitch角速度
-        UnitFloat<deg_ss> ayaw;   // yaw角加速度（仅鼠标操作有效）
-        UnitFloat<deg_ss> apitch; // pitch角加速度（仅鼠标操作有效）
+        float wyaw{};   // yaw角速度
+        float wpitch{}; // pitch角速度
+        float ayaw{};   // yaw角加速度（仅鼠标操作有效）
+        float apitch{}; // pitch角加速度（仅鼠标操作有效）
 
         // 发射机构
-        UnitFloat<m_s> bullet_speed; // 弹速
-        UnitFloat<Hz> bullet_freq;   // 弹频
+        float bullet_speed{};        // 弹速
+        float bullet_freq{};         // 弹频
         uint16_t heat_protect = 0;   // 枪口热量保护
     } config;
 
@@ -67,7 +68,7 @@ public:
 protected:
     // 底盘
     struct {
-        UnitFloat<m_s> rc, client, software;
+        float rc{}, client{}, software{};
     } vx, vy, wr;
 
     enum gimbal_mode_e {
@@ -82,12 +83,12 @@ protected:
 
     // 云台速度
     struct {
-        UnitFloat<deg_s> rc, client, software;
+        float rc{}, client{}, software{};
     } wyaw, wpitch;
 
-    // 云台角度
+    // 云台角度 (rad, ordinary values until assigned to Angle)
     struct {
-        UnitFloat<deg_s> rc, client, software;
+        float rc{}, client{}, software{};
     } yaw, pitch;
 
     // 发射机构

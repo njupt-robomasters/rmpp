@@ -5,10 +5,10 @@
 class M3508 : public Motor {
 public:
     static constexpr float REDUCTION = 3591.0f / 187.0f;
-    static constexpr UnitFloat<> Kt = 0.3f * Nm_A;
-    static constexpr UnitFloat<> R = 0.194f / 2 * Ohm;
-    static constexpr UnitFloat MAX_CURRENT = 20.0f * A;
-    static constexpr UnitFloat<Nm> MAX_TORQUE = MAX_CURRENT * Kt;
+    static constexpr float Kt = 0.3f;
+    static constexpr float R = 0.194f / 2;
+    static constexpr float MAX_CURRENT = 20.0f;
+    static constexpr float MAX_TORQUE = MAX_CURRENT * Kt;
 
     M3508(const config_t& config);
 

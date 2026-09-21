@@ -1,8 +1,11 @@
-#include "../infantry/misc.hpp"
 #include "../infantry/shooter.hpp"
+#include "../infantry/misc.hpp"
+#include "math/Conversions.hpp"
 
-static constexpr UnitFloat BULLET_FREQ = 20 * Hz;
-static constexpr UnitFloat BULLET_SPEED = 25 * m_s;
+using math::ms;
+
+static constexpr float BULLET_FREQ = 20;
+static constexpr float BULLET_SPEED = 25.0f;
 
 void send_can_cmd() {
     // 步兵、哨兵

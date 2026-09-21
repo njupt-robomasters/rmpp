@@ -1,36 +1,41 @@
 #pragma once
 
-#include "motor/M3508.hpp"
-#include "motor/GM6020.hpp"
+#include "math/Conversions.hpp"
 #include "module/chassis/Chassis_DualSteer.hpp"
+#include "motor/GM6020.hpp"
+#include "motor/M3508.hpp"
+
+using math::cm;
+using math::deg;
+using math::rpm;
 
 // 电机参数
 static constexpr float REDUCTION = 14.0f;
-static constexpr UnitFloat<Nm_A> Kt = M3508::Kt / M3508::REDUCTION * REDUCTION;
+static constexpr float Kt = M3508::Kt / M3508::REDUCTION * REDUCTION;
 static constexpr bool IS_WHEEL_INVERT = false;
 static constexpr bool IS_SERVO_INVERT = true;
 
 // 底盘参数
-static constexpr UnitFloat CHASSIS_RADIUS = 21.5f * cm;
-static constexpr UnitFloat WHEEL_RADIUS = 5.25f * cm;
-static constexpr UnitFloat<N> MAX_F = M3508::MAX_CURRENT * Kt / WHEEL_RADIUS * 2;
+static constexpr float CHASSIS_RADIUS = 21.5f * cm;
+static constexpr float WHEEL_RADIUS = 5.25f * cm;
+static constexpr float MAX_F = M3508::MAX_CURRENT * Kt / WHEEL_RADIUS * 2;
 
 // 轮电机PID参数
 inline PID::config_t wheel_pid = {
-    .kp = (20 * A) / (360 * rpm),
-    .ki = (20 * A) / (15 * deg),
-    .max_out = 20 * A,
+    .kp = (20) / (360 * rpm),
+    .ki = (20) / (15 * deg),
+    .max_out = 20,
 };
 
 // 舵电机PID参数
 inline PID::config_t servo_pid = {
-    .kp = (3 * A) / (20 * deg),
-    .max_out = 3 * A,
+    .kp = (3) / (20 * deg),
+    .max_out = 3,
 };
 
 // 底盘PID参数
 inline PID::config_t vxyz_pid = {
-    .kp = MAX_F / (1 * (m / s)),
+    .kp = MAX_F / (1),
     .ki = MAX_F / (10 * cm),
     .max_i = MAX_F,
     .max_out = MAX_F,

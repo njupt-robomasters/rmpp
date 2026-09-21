@@ -2,16 +2,20 @@
 
 #include "robot/Sentry.hpp"
 
-#include "misc.hpp"
 #include "chassis.hpp"
 #include "gimbal.hpp"
+#include "math/Conversions.hpp"
+#include "misc.hpp"
 #include "shooter.hpp"
 
+using math::deg_s;
+using math::rpm;
+
 inline Sentry::config_t robot_config = {
-    .vxy_max = 5 * m_s,  // 100W下2.3m/s，不限功率3.2m/s
+    .vxy_max = 5.0f,     // 100W下2.3m/s，不限功率3.2m/s
     .wr_max = 120 * rpm, // 100W下107rpm，不限功率155rpm
-    .axy = 100 * m_ss,
-    .dxy = 100 * m_ss,
+    .axy = 100.0f,
+    .dxy = 100.0f,
     .ar = 1000 * rpm,
     .dr = 1000 * rpm,
 
@@ -20,8 +24,8 @@ inline Sentry::config_t robot_config = {
     .ayaw = 3600 * deg_s,
     .apitch = 3600 * deg_s,
 
-    .bullet_speed = 20 * m_s,
-    .bullet_freq = 20 * Hz,
+    .bullet_speed = 20.0f,
+    .bullet_freq = 20,
     .heat_protect = 80,
 };
 inline Sentry robot(robot_config,

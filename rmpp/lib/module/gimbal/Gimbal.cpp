@@ -1,4 +1,7 @@
 #include "Gimbal.hpp"
+#include "math/Angle.hpp"
+
+using math::Angle;
 
 Gimbal::Gimbal(IMU& imu) : imu(imu) {}
 
@@ -13,7 +16,7 @@ void Gimbal::SetMode(const mode_e mode) {
     this->mode = mode;
 }
 
-void Gimbal::SetAngle(const Angle<>& yaw, const Angle<>& pitch) {
+void Gimbal::SetAngle(Angle yaw, Angle pitch) {
     if (mode == ECD_MODE) {
         this->yaw.ecd.ref = yaw;
         this->pitch.ecd.ref = pitch;
@@ -21,15 +24,15 @@ void Gimbal::SetAngle(const Angle<>& yaw, const Angle<>& pitch) {
         this->yaw.imu.ref = yaw;
         this->pitch.imu.ref = pitch;
     }
-    yaw_speed = pitch_speed = 0 * default_unit;
+    yaw_speed = pitch_speed = 0.0f;
 }
 
-void Gimbal::SetSpeed(const UnitFloat<>& yaw_speed, const UnitFloat<>& pitch_speed) {
+void Gimbal::SetSpeed(float yaw_speed, float pitch_speed) {
     this->yaw_speed = yaw_speed;
     this->pitch_speed = pitch_speed;
 }
 
-void Gimbal::SetChassisWr(const UnitFloat<>& chassis_wr) {
+void Gimbal::SetChassisWr(float chassis_wr) {
     this->chassis_wr = chassis_wr;
 }
 
@@ -47,7 +50,7 @@ void Gimbal::OnLoop() {
 }
 
 void Gimbal::handleMotion() {
-    const UnitFloat dt = dwt_motion.UpdateDT();
+    const float dt = dwt_motion.UpdateDT();
     if (is_enable) {
         const Angle yaw_delta = yaw_speed * dt;
         const Angle pitch_delta = pitch_speed * dt;

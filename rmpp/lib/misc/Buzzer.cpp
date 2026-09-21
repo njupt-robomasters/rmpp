@@ -1,4 +1,7 @@
 #include "Buzzer.hpp"
+#include "math/Conversions.hpp"
+
+using math::ms;
 
 void Buzzer::OnLoop() {
     if (i >= len) {
@@ -7,7 +10,7 @@ void Buzzer::OnLoop() {
     }
 
     if (wait_play) {
-        BSP::BUZZER::Play(music[i][0] * Hz);
+        BSP::BUZZER::Play(music[i][0]);
         wait_play = false;
     }
 

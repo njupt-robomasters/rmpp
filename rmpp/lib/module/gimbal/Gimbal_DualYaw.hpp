@@ -1,7 +1,10 @@
 #pragma once
 
 #include "Gimbal.hpp"
+#include "math/Angle.hpp"
 #include "motor/Motor.hpp"
+
+using math::Angle;
 
 class Gimbal_DualYaw : public Gimbal {
 public:
@@ -12,7 +15,7 @@ public:
 
     // 大小yaw分配
     struct {
-        Angle<deg> ref, measure;
+        Angle ref, measure;
     } yaw1, yaw2; // yaw1-大yaw，yaw2-小yaw
 
     Gimbal_DualYaw(IMU& imu, const motor_t& motor);

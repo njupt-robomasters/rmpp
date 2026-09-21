@@ -1,9 +1,13 @@
 #pragma once
 
-#include "motor/GM6020.hpp"
-#include "motor/DM4310.hpp"
-#include "module/gimbal/Gimbal_Classic.hpp"
 #include "imu.hpp"
+#include "math/Conversions.hpp"
+#include "module/gimbal/Gimbal_Classic.hpp"
+#include "motor/DM4310.hpp"
+#include "motor/GM6020.hpp"
+
+using math::deg;
+using math::deg_s;
 
 // 用于Ozone调参
 // #define yaw_speed_pid speed_pid
@@ -16,13 +20,13 @@
 
 // yaw电机
 inline PID::config_t yaw_speed_pid = {
-    .kp = (3 * A) / (120 * deg_s),
-    .max_out = 3 * A,
-    .fc = 10 * Hz,
+    .kp = (3) / (120 * deg_s),
+    .max_out = 3,
+    .fc = 10,
 };
 inline PID::config_t yaw_angle_pid = {
-    .kp = 20 * default_unit,
-    .kd = 0.2 * default_unit,
+    .kp = 20.0f,
+    .kd = 0.2,
     .max_out = 720 * deg_s,
 };
 inline GM6020 yaw({
@@ -38,12 +42,12 @@ inline GM6020 yaw({
 
 // pitch电机
 inline PID::config_t pitch_speed_pid = {
-    .kp = (3 * Nm) / (150 * deg_s),
-    .max_out = 3 * Nm,
-    .fc = 10 * Hz,
+    .kp = (3) / (150 * deg_s),
+    .max_out = 3,
+    .fc = 10,
 };
 inline PID::config_t pitch_angle_pid = {
-    .kp = 20 * default_unit,
+    .kp = 20.0f,
     .max_out = 720 * deg_s,
 };
 inline DM4310 pitch({

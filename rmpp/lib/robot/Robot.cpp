@@ -1,4 +1,9 @@
 #include "Robot.hpp"
+#include "math/Conversions.hpp"
+#include "math/Math.hpp"
+
+using math::deg;
+using math::ms;
 
 Robot::Robot(const config_t& config, const device_t& device) : config(config), device(device) {}
 
@@ -87,77 +92,89 @@ void Robot::handleRC() {
 void Robot::handleClient() {
     // 维护dt
     static BSP::Dwt dwt;
-    const UnitFloat dt = dwt.UpdateDT();
+    const float dt = dwt.UpdateDT();
 
     //【底盘】
     // 前后（w、s键），限制加速度
     if (device.rc.key.w) { // 前
-        if (vx.client < 0) vx.client = 0 * default_unit;
+        if (vx.client < 0)
+            vx.client = 0.0f;
         vx.client += config.axy * dt;
-        vx.client = unit::clamp(vx.client, config.vxy_max);
+        vx.client = math::clamp(vx.client, config.vxy_max);
     } else if (device.rc.key.s) { // 后
-        if (vx.client > 0) vx.client = 0 * default_unit;
+        if (vx.client > 0)
+            vx.client = 0.0f;
         vx.client -= config.axy * dt;
-        vx.client = unit::clamp(vx.client, config.vxy_max);
+        vx.client = math::clamp(vx.client, config.vxy_max);
     } else { // 松开减速
         if (vx.client > 0) {
             vx.client -= config.dxy * dt;
-            if (vx.client < 0) vx.client = 0 * default_unit;
+            if (vx.client < 0)
+                vx.client = 0.0f;
         }
         if (vx.client < 0) {
             vx.client += config.dxy * dt;
-            if (vx.client > 0) vx.client = 0 * default_unit;
+            if (vx.client > 0)
+                vx.client = 0.0f;
         }
     }
     // 水平（a、d键），限制加速度
     if (device.rc.key.a) { // 左
-        if (vy.client < 0) vy.client = 0 * default_unit;
+        if (vy.client < 0)
+            vy.client = 0.0f;
         vy.client += config.axy * dt;
-        vy.client = unit::clamp(vy.client, config.vxy_max);
+        vy.client = math::clamp(vy.client, config.vxy_max);
     } else if (device.rc.key.d) { // 右
-        if (vy.client > 0) vy.client = 0 * default_unit;
+        if (vy.client > 0)
+            vy.client = 0.0f;
         vy.client -= config.axy * dt;
-        vy.client = unit::clamp(vy.client, config.vxy_max);
+        vy.client = math::clamp(vy.client, config.vxy_max);
     } else { // 松开减速
         if (vy.client > 0) {
             vy.client -= config.dxy * dt;
-            if (vy.client < 0) vy.client = 0 * default_unit;
+            if (vy.client < 0)
+                vy.client = 0.0f;
         }
         if (vy.client < 0) {
             vy.client += config.dxy * dt;
-            if (vy.client > 0) vy.client = 0 * default_unit;
+            if (vy.client > 0)
+                vy.client = 0.0f;
         }
     }
     // 旋转（shift、ctrl键），限制角加速度
     if (device.rc.key.shift) { // 逆时针旋转
-        if (wr.client < 0) wr.client = 0 * default_unit;
+        if (wr.client < 0)
+            wr.client = 0.0f;
         wr.client += config.ar * dt;
-        wr.client = unit::clamp(wr.client, config.wr_max);
+        wr.client = math::clamp(wr.client, config.wr_max);
     } else if (device.rc.key.ctrl) { // 顺逆时针旋转
-        if (wr.client > 0) wr.client = 0 * default_unit;
+        if (wr.client > 0)
+            wr.client = 0.0f;
         wr.client -= config.ar * dt;
-        wr.client = unit::clamp(wr.client, config.wr_max);
+        wr.client = math::clamp(wr.client, config.wr_max);
     } else { // 松开减速
         if (wr.client > 0) {
             wr.client -= config.dr * dt;
-            if (wr.client < 0) wr.client = 0 * default_unit;
+            if (wr.client < 0)
+                wr.client = 0.0f;
         }
         if (wr.client < 0) {
             wr.client += config.dr * dt;
-            if (wr.client > 0) wr.client = 0 * default_unit;
+            if (wr.client > 0)
+                wr.client = 0.0f;
         }
     }
 
     //【云台】
     // yaw（鼠标上下），限制角加速度
-    UnitFloat<deg_s> dwyaw = device.rc.mouse.yaw * config.wyaw - wyaw.client;
-    const UnitFloat<deg_s> dwyaw_max = config.ayaw * dt;
+    float dwyaw = device.rc.mouse.yaw * config.wyaw - wyaw.client;
+    const float dwyaw_max = config.ayaw * dt;
     if (dwyaw > dwyaw_max) dwyaw = dwyaw_max;
     if (dwyaw < -dwyaw_max) dwyaw = -dwyaw_max;
     wyaw.client += dwyaw;
     // pitch（鼠标左右），限制角加速度
-    UnitFloat<deg_s> dwpitch = device.rc.mouse.pitch * config.wpitch - wpitch.client;
-    const UnitFloat<deg_s> dwpitch_max = config.apitch * dt;
+    float dwpitch = device.rc.mouse.pitch * config.wpitch - wpitch.client;
+    const float dwpitch_max = config.apitch * dt;
     if (dwpitch > dwpitch_max) dwpitch = dwpitch_max;
     if (dwpitch < -dwpitch_max) dwpitch = -dwpitch_max;
     wpitch.client += dwpitch;
@@ -216,13 +233,13 @@ void Robot::handleClient() {
     if (device.referee.robot.type == Referee::HERO) {
         static bool last_z = false;
         if (!last_z && device.rc.key.z) {
-            config.bullet_speed -= 0.1 * m_s;
+            config.bullet_speed -= 0.1f;
         }
         last_z = device.rc.key.z;
 
         static bool last_c = false;
         if (!last_c && device.rc.key.c) {
-            config.bullet_speed += 0.1 * m_s;
+            config.bullet_speed += 0.1f;
         }
         last_c = device.rc.key.c;
     }
@@ -231,17 +248,17 @@ void Robot::handleClient() {
     if (device.referee.robot.type == Referee::INFANTRY) {
         static bool last_z = false;
         if (!last_z && device.rc.key.z) {
-            config.bullet_freq -= 5 * m_s;
+            config.bullet_freq -= 5.0f;
         }
         last_z = device.rc.key.z;
 
         static bool last_c = false;
         if (!last_c && device.rc.key.c) {
-            config.bullet_freq += 5 * m_s;
+            config.bullet_freq += 5.0f;
         }
         last_c = device.rc.key.c;
 
-        config.bullet_freq = clamp(config.bullet_freq, 5 * Hz, 25 * Hz);
+        config.bullet_freq = math::clamp(config.bullet_freq, 5, 25);
     }
 }
 
@@ -263,9 +280,9 @@ void Robot::handleMavlink() {
 
 void Robot::handleChassis() {
     // 设置底盘速度
-    const UnitFloat<> vx = unit::clamp(this->vx.rc + this->vx.client + this->vx.software, config.vxy_max);
-    const UnitFloat<> vy = unit::clamp(this->vy.rc + this->vy.client + this->vy.software, config.vxy_max);
-    const UnitFloat<> wr = unit::clamp(this->wr.rc + this->wr.client + this->wr.software, config.wr_max);
+    const float vx = math::clamp(this->vx.rc + this->vx.client + this->vx.software, config.vxy_max);
+    const float vy = math::clamp(this->vy.rc + this->vy.client + this->vy.software, config.vxy_max);
+    const float wr = math::clamp(this->wr.rc + this->wr.client + this->wr.software, config.wr_max);
     device.chassis.SetSpeed(vx, vy, wr);
 
     // 设置前进正方向
@@ -284,16 +301,16 @@ void Robot::handleGimbal() {
     // 设置角度或速度
     if (gimbal_mode.rc == GIMBAL_ANGLE_MODE) {
         device.gimbal.SetAngle(yaw.rc, pitch.rc);
-        device.gimbal.SetSpeed(0 * default_unit, 0 * default_unit);
+        device.gimbal.SetSpeed(0.0f, 0.0f);
     } else if (gimbal_mode.client == GIMBAL_ANGLE_MODE) {
         device.gimbal.SetAngle(yaw.client, pitch.client);
-        device.gimbal.SetSpeed(0 * default_unit, 0 * default_unit);
+        device.gimbal.SetSpeed(0.0f, 0.0f);
     } else if (gimbal_mode.software == GIMBAL_ANGLE_MODE) {
         device.gimbal.SetAngle(yaw.software, pitch.software);
-        device.gimbal.SetSpeed(0 * default_unit, 0 * default_unit);
+        device.gimbal.SetSpeed(0.0f, 0.0f);
     } else {
-        const UnitFloat<> yaw_speed = unit::clamp(this->wyaw.rc + this->wyaw.client + this->wyaw.software, config.wyaw);
-        const UnitFloat<> pitch_speed = unit::clamp(this->wpitch.rc + this->wpitch.client + this->wpitch.software, config.wpitch);
+        const float yaw_speed = math::clamp(this->wyaw.rc + this->wyaw.client + this->wyaw.software, config.wyaw);
+        const float pitch_speed = math::clamp(this->wpitch.rc + this->wpitch.client + this->wpitch.software, config.wpitch);
         device.gimbal.SetSpeed(yaw_speed, pitch_speed);
     }
 
@@ -346,12 +363,14 @@ void Robot::handleUI() {
     device.ui.is_detect = device.mavlink.vision.is_detect;
 
     // 提示条
-    device.ui.cap = 0 * ratio;                        // 超级电容剩余能量比例
+    device.ui.cap = 0.0f;                             // 超级电容剩余能量比例
     device.ui.wr = device.chassis.wr.measure;         // 底盘旋转速度
     if (device.referee.robot.type == Referee::HERO) { // 英雄显示弹速
-        device.ui.bullet = config.bullet_speed * 10;
+        device.ui.bullet = config.bullet_speed;
+        device.ui.bullet_is_speed = true;
     } else if (device.referee.robot.type == Referee::INFANTRY) { // 步兵显示弹频
         device.ui.bullet = config.bullet_freq;
+        device.ui.bullet_is_speed = false;
     }
     device.ui.shoot = device.shooter.shoot_current; // 拨弹电机电流
 

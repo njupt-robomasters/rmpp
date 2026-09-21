@@ -1,5 +1,8 @@
-#include "../infantry/misc.hpp"
 #include "../infantry/imu.hpp"
+#include "../infantry/misc.hpp"
+#include "math/Conversions.hpp"
+
+using math::ms;
 
 void setup() {
     BSP::Init();

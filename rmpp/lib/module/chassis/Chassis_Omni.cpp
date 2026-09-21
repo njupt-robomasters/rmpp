@@ -1,4 +1,5 @@
 #include "Chassis_Omni.hpp"
+#include "math/Math.hpp"
 
 static const float sqrt2 = std::sqrt(2.0f);
 static const float sqrt2div2 = sqrt2 / 2.0f;
@@ -36,44 +37,44 @@ void Chassis_Omni::OnLoop() {
 
 void Chassis_Omni::forward() {
     // 读取电机转速
-    const UnitFloat<m_s> v1 = motor.w1.speed.measure * config.wheel_radius;
-    const UnitFloat<m_s> v2 = motor.w2.speed.measure * config.wheel_radius;
-    const UnitFloat<m_s> v3 = motor.w3.speed.measure * config.wheel_radius;
-    const UnitFloat<m_s> v4 = motor.w4.speed.measure * config.wheel_radius;
+    const float v1 = motor.w1.speed.measure * config.wheel_radius;
+    const float v2 = motor.w2.speed.measure * config.wheel_radius;
+    const float v3 = motor.w3.speed.measure * config.wheel_radius;
+    const float v4 = motor.w4.speed.measure * config.wheel_radius;
 
     // 速度正解
-    UnitFloat<m_s> vx, vy, vz;
+    float vx{}, vy{}, vz{};
     // 全向轮速度正解 begin
     vx = sqrt2 * (-v1 - v2 + v3 + v4) / 4.0f;
     vy = sqrt2 * (+v1 - v2 - v3 + v4) / 4.0f;
     vz = (+v1 + v2 + v3 + v4) / 4.0f;
     // 全向轮速度正解 end
-    std::tie(this->vx.measure, this->vy.measure) = unit::rotate(vx, vy, -gimbal_yaw);
+    std::tie(this->vx.measure, this->vy.measure) = math::rotate(vx, vy, -gimbal_yaw);
     this->vz.measure = vz;
     wr.measure = vz / config.chassis_radius;
 
     // 读取电机扭矩
-    const UnitFloat<N> f1 = motor.w1.torque.measure / config.wheel_radius;
-    const UnitFloat<N> f2 = motor.w2.torque.measure / config.wheel_radius;
-    const UnitFloat<N> f3 = motor.w3.torque.measure / config.wheel_radius;
-    const UnitFloat<N> f4 = motor.w4.torque.measure / config.wheel_radius;
+    const float f1 = motor.w1.torque.measure / config.wheel_radius;
+    const float f2 = motor.w2.torque.measure / config.wheel_radius;
+    const float f3 = motor.w3.torque.measure / config.wheel_radius;
+    const float f4 = motor.w4.torque.measure / config.wheel_radius;
 
     // 力学正解
-    UnitFloat<N> fx, fy, fz;
+    float fx{}, fy{}, fz{};
     // 全向轮力学正解 begin
     fx = sqrt2div2 * (-f1 - f2 + f3 + f4);
     fy = sqrt2div2 * (+f1 - f2 - f3 + f4);
     fz = f1 + f2 + f3 + f4;
     // 全向轮力学正解 end
-    std::tie(this->fx.measure, this->fy.measure) = unit::rotate(fx, fy, -gimbal_yaw);
+    std::tie(this->fx.measure, this->fy.measure) = math::rotate(fx, fy, -gimbal_yaw);
     this->fz.measure = fz;
 }
 
 void Chassis_Omni::backward() {
     // 速度逆解
-    auto [vx, vy] = unit::rotate(this->vx.ref, this->vy.ref, gimbal_yaw);
+    auto [vx, vy] = math::rotate(this->vx.ref, this->vy.ref, gimbal_yaw);
     auto vz = this->vz.ref;
-    UnitFloat<m_s> v1, v2, v3, v4;
+    float v1{}, v2{}, v3{}, v4{};
     // 全向轮速度逆解 begin
     v1 = sqrt2div2 * (-vx + vy) + vz;
     v2 = sqrt2div2 * (-vx - vy) + vz;
@@ -89,9 +90,9 @@ void Chassis_Omni::backward() {
     motor.w4.SetSpeed(v4 / config.wheel_radius);
 
     // 力学逆解
-    auto [fx, fy] = unit::rotate(this->fx.ref, this->fy.ref, gimbal_yaw);
+    auto [fx, fy] = math::rotate(this->fx.ref, this->fy.ref, gimbal_yaw);
     auto fz = this->fz.ref;
-    UnitFloat<N> f1, f2, f3, f4;
+    float f1{}, f2{}, f3{}, f4{};
     // 全向轮力学逆解 begin
     f1 = (sqrt2 * (-fx + fy) + fz) / 4.0f;
     f2 = (sqrt2 * (-fx - fy) + fz) / 4.0f;

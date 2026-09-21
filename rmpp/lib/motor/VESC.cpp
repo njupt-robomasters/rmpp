@@ -1,9 +1,16 @@
 #include "VESC.hpp"
+#include <cmath>
+#include "math/Conversions.hpp"
+
+using math::deg;
+using math::pct;
+using math::rpm;
 
 VESC::VESC(const config_t& config, const vesc_config_t& vesc_config) : Motor(config), vesc_config(vesc_config) {
     // 设置电机默认参数
     if (this->config.reduction == 0) this->config.reduction = 1.0f;
-    if (this->config.Kt == 0) this->config.Kt = 1.0f * Nm_A;
+    if (this->config.Kt == 0)
+        this->config.Kt = 1.0f;
 
     // 注册CAN回调
     auto callback = [this](const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
@@ -21,10 +28,10 @@ void VESC::OnLoop() {
 
 void VESC::SendCanCmd() {
     if (is_enable) { // 不检测电机在线，因为未必开了反馈报文
-        if (speed.ref == 0 && unit::abs(speed.measure) < vesc_config.auto_release_speed) {
+        if (speed.ref == 0 && std::fabsf(speed.measure) < vesc_config.auto_release_speed) {
             sendCurrentBrake(0); // 自动释放电机，避免持续的高频注入声音
         } else {
-            const float erpm = speed.ref.toFloat(rpm) * (float)vesc_config.pole_pair;
+            const float erpm = speed.ref / (rpm) * (float)vesc_config.pole_pair;
             sendERPM(erpm);
         }
     } else {
@@ -49,7 +56,7 @@ void VESC::callback(const uint8_t port, const uint32_t id, const uint8_t data[8]
         const auto duty_i16 = (int16_t)((data[6] << 8) | data[7]);
 
         speed.measure = (float)erpm_i32 / (float)vesc_config.pole_pair * rpm;
-        current.measure = (float)current_i16 / 10.0f * A;
+        current.measure = (float)current_i16 / 10.0f;
         duty = (float)duty_i16 / 1000.0f * pct;
     } else if (status == CAN_PACKET_STATUS_4) {
         const auto temperate_mos_i16 = (int16_t)((data[0] << 8) | data[1]);
@@ -57,15 +64,15 @@ void VESC::callback(const uint8_t port, const uint32_t id, const uint8_t data[8]
         const auto current_in_i16 = (int16_t)((data[4] << 8) | data[5]);
         const auto pid_pos_i16 = (int16_t)((data[6] << 8) | data[7]);
 
-        temperature.mos = (float)temperate_mos_i16 / 10.0f * C;
-        temperature.motor = (float)temperate_motor_i16 / 10.0f * C;
-        bus.current = (float)current_in_i16 / 10.0f * A;
+        temperature.mos = (float)temperate_mos_i16 / 10.0f;
+        temperature.motor = (float)temperate_motor_i16 / 10.0f;
+        bus.current = (float)current_in_i16 / 10.0f;
         angle.measure = (float)pid_pos_i16 / 50.0f * deg;
     } else if (status == CAN_PACKET_STATUS_5) {
         // const auto tachometer_i32 = (int32_t)((data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]);
         const auto voltage_in_i16 = (int16_t)((data[4] << 8) | data[5]);
 
-        bus.voltage = (float)voltage_in_i16 / 10.0f * V;
+        bus.voltage = (float)voltage_in_i16 / 10.0f;
     }
 }
 

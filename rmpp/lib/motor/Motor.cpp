@@ -1,4 +1,7 @@
 #include "Motor.hpp"
+#include "math/Angle.hpp"
+
+using math::Angle;
 
 Motor::Motor(const config_t& config) : config(config), speed_pid(config.speed_pid_config), angle_pid(config.angle_pid_config) {}
 
@@ -6,25 +9,25 @@ void Motor::SetEnable(bool is_enable) {
     this->is_enable = is_enable;
 }
 
-void Motor::SetCurrent(const UnitFloat<>& current) {
+void Motor::SetCurrent(float current) {
     this->current.ref = current;
     torque.ref = current * config.Kt;
 }
 
-void Motor::SetTorque(const UnitFloat<>& torque) {
+void Motor::SetTorque(float torque) {
     this->torque.ref = torque;
     current.ref = torque / config.Kt;
 }
 
-void Motor::SetSpeed(const UnitFloat<>& speed) {
+void Motor::SetSpeed(float speed) {
     this->speed.ref = speed;
 }
 
-Angle<> Motor::SetAngle(const Angle<>& angle, const UnitFloat<>& speed_ff) {
+Angle Motor::SetAngle(Angle angle, float speed_ff) {
     // 电机断联/失能，不断把当前角度设置为目标角度，防止电机一下子飞起来
     if (is_connect == false || is_enable == false) {
         this->angle.ref = this->angle.measure;
-        speed.ref = 0 * default_unit;
+        speed.ref = 0.0f;
         is_first_setangle = true;
         return this->angle.ref; // 返回实际设置的角度
     }
@@ -32,7 +35,7 @@ Angle<> Motor::SetAngle(const Angle<>& angle, const UnitFloat<>& speed_ff) {
     // 断联/失能后第一次设置，先不要应用
     if (is_first_setangle) {
         this->angle.ref = this->angle.measure;
-        speed.ref = 0 * default_unit;
+        speed.ref = 0.0f;
         is_first_setangle = false;
         return this->angle.ref; // 返回实际设置的角度
     }
@@ -44,11 +47,11 @@ Angle<> Motor::SetAngle(const Angle<>& angle, const UnitFloat<>& speed_ff) {
     if (config.is_limit) {
         if (this->angle.ref < config.limit_min) { // 下限位
             this->angle.ref = config.limit_min;
-            speed.ref = 0 * default_unit; // 到达限位时，取消速度前馈
+            speed.ref = 0.0f; // 到达限位时，取消速度前馈
         }
         if (this->angle.ref > config.limit_max) { // 上限位
             this->angle.ref = config.limit_max;
-            speed.ref = 0 * default_unit; // 到达限位时，取消速度前馈
+            speed.ref = 0.0f; // 到达限位时，取消速度前馈
         }
     }
 
@@ -77,7 +80,7 @@ void Motor::OnLoop() {
         // 速度闭环
         case SPEED_MODE: {
             // 计算速度PID
-            const UnitFloat speed_err = speed.ref - speed.measure;
+            const float speed_err = speed.ref - speed.measure;
             speed_pid.Calculate(speed_err);
 
             // 根据PID输出类型设置电流/力矩
@@ -96,13 +99,13 @@ void Motor::OnLoop() {
         case ANGLE_MODE: {
             if (config.is_limit) { // 限位模式
                 // 计算角度PID，使用速度前馈
-                const UnitFloat angle_err = angle.ref - angle.measure;
-                const UnitFloat speed_err = speed.ref - speed.measure;
+                const float angle_err = angle.ref - angle.measure;
+                const float speed_err = speed.ref - speed.measure;
                 angle_pid.Calculate(angle_err, speed_err);
             } else { // 圆周模式
                 // 计算角度PID，使用速度前馈
                 const Angle angle_err = angle.ref - angle.measure;
-                const UnitFloat speed_err = speed.ref - speed.measure;
+                const float speed_err = speed.ref - speed.measure;
                 angle_pid.Calculate(angle_err, speed_err);
             }
 
@@ -122,7 +125,7 @@ void Motor::OnLoop() {
         case ANGLE_SPEED_MODE: {
             // 角度外环
             if (config.is_limit) { // 限位模式
-                const UnitFloat angle_err = angle.ref - angle.measure;
+                const float angle_err = angle.ref - angle.measure;
                 speed.outer = angle_pid.Calculate(angle_err);
             } else { // 圆周模式
                 const Angle angle_err = angle.ref - angle.measure;
@@ -130,7 +133,7 @@ void Motor::OnLoop() {
             }
 
             // 速度内环，使用速度前馈
-            const UnitFloat speed_err = speed.outer + speed.ref - speed.measure;
+            const float speed_err = speed.outer + speed.ref - speed.measure;
             speed_pid.Calculate(speed_err);
 
             // 根据PID输出类型设置电流/力矩

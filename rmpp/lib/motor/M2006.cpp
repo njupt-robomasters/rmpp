@@ -1,4 +1,9 @@
 #include "M2006.hpp"
+#include "math/Conversions.hpp"
+#include "math/Math.hpp"
+
+using math::rev;
+using math::rpm;
 
 M2006::M2006(const config_t& config) : Motor(config) {
     // 设置电机默认参数
@@ -18,11 +23,11 @@ int16_t M2006::GetCanCmd() const {
 
     int16_t cmd;
 
-    const UnitFloat current_limit = unit::clamp(current.ref, MAX_CURRENT);
+    const float current_limit = math::clamp(current.ref, MAX_CURRENT);
     if (!config.is_invert) {
-        cmd = (int16_t)((current_limit / MAX_CURRENT).toFloat(A) * MAX_CURRENT_CMD);
+        cmd = (int16_t)((current_limit / MAX_CURRENT) * MAX_CURRENT_CMD);
     } else {
-        cmd = (int16_t)((-current_limit / MAX_CURRENT).toFloat(A) * MAX_CURRENT_CMD);
+        cmd = (int16_t)((-current_limit / MAX_CURRENT) * MAX_CURRENT_CMD);
     }
 
     return cmd;

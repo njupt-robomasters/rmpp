@@ -12,11 +12,11 @@ void Gimbal_DualYaw::SetEnable(const bool is_enable) {
 }
 
 void Gimbal_DualYaw::LoadYawOffset(FlashDB& flashdb) {
-    motor.yaw1.config.offset = flashdb.Read("yaw_offset") * deg;
+    motor.yaw1.config.offset = flashdb.Read("yaw_offset");
 }
 
 void Gimbal_DualYaw::SaveYawOffset(FlashDB& flashdb) {
-    flashdb.Write("yaw_offset", motor.yaw1.config.offset.toFloat(deg));
+    flashdb.Write("yaw_offset", motor.yaw1.config.offset);
 }
 
 void Gimbal_DualYaw::SetYawZero() {

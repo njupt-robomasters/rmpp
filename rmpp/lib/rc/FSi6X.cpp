@@ -1,5 +1,7 @@
 #include "FSi6X.hpp"
+#include <cmath>
 #include <cstring> // memcpy
+#include "math/Math.hpp"
 
 FSi6X::FSi6X(const config_t& config) : config(config) {
     // 注册串口回调
@@ -46,10 +48,11 @@ void FSi6X::callback(const uint8_t data[], const uint16_t size) {
     swd = getSwitch(raw.ch7);
 }
 
-UnitFloat<> FSi6X::getJoystick(const uint16_t value) const {
-    UnitFloat<> ret = ((float)value - 1024.0f) / 783.0f * ratio; // 240(-784) ~ 1024 ~ 1807(+783)
-    ret = unit::clamp(ret, -1 * ratio, 1 * ratio);
-    if (unit::abs(ret) < config.joystick_deadline) ret = 0 * ratio;
+float FSi6X::getJoystick(const uint16_t value) const {
+    float ret = ((float)value - 1024.0f) / 783.0f; // 240(-784) ~ 1024 ~ 1807(+783)
+    ret = math::clamp(ret, -1.0f, 1.0f);
+    if (std::fabsf(ret) < config.joystick_deadline)
+        ret = 0.0f;
     return ret;
 }
 
@@ -62,7 +65,7 @@ FSi6X::switch_e FSi6X::getSwitch(const uint16_t value) {
 
 void FSi6X::resetData() {
     is_connect = false;
-    x = y = pitch = yaw = 0 * ratio;
-    vra = vrb = 0 * ratio;
+    x = y = pitch = yaw = 0.0f;
+    vra = vrb = 0.0f;
     swb = swc = ERR;
 }

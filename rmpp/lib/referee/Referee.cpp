@@ -1,8 +1,11 @@
 #include "Referee.hpp"
+#include "math/Conversions.hpp"
+
+using math::deg;
 
 Referee::Referee(const config_t& config) : config(config), parser(config) {}
 
-void Referee::SetYaw(const UnitFloat<>& yaw_ecd, const UnitFloat<>& yaw_imu) {
+void Referee::SetYaw(float yaw_ecd, float yaw_imu) {
     this->yaw_ecd = yaw_ecd;
     this->yaw_imu = yaw_imu;
 }
@@ -25,11 +28,11 @@ void Referee::OnLoop() {
     game.is_red = robot.id < 100;                                           // 红蓝方
     game.type = game_type_e(parser.game_status.game_type);                  // 比赛类型
     game.game_progress = game_progress_e(parser.game_status.game_progress); // 当前比赛阶段
-    game.stage_remain_time = parser.game_status.stage_remain_time * s;      // 当前阶段剩余时间
+    game.stage_remain_time = parser.game_status.stage_remain_time;          // 当前阶段剩余时间
 
     // 底盘数据
-    chassis.power_limit = parser.robot_status.chassis_power_limit * W; // 底盘功率上限
-    chassis.buffer_energy = parser.power_heat_data.buffer_energy * J;  // 缓冲能量
+    chassis.power_limit = parser.robot_status.chassis_power_limit; // 底盘功率上限
+    chassis.buffer_energy = parser.power_heat_data.buffer_energy;  // 缓冲能量
 
     // 发射机构数据
     shooter.heat_limit = parser.robot_status.shooter_barrel_heat_limit;                   // 射击热量上限
@@ -41,8 +44,8 @@ void Referee::OnLoop() {
         shooter.bullet_allowance = parser.projectile_allowance.projectile_allowance_17mm; // 允许发弹量
     }
     shooter.heat_remain = shooter.heat_limit - shooter.heat_current;  // 剩余射击热量
-    shooter.bullet_freq = parser.shoot_data.launching_frequency * Hz; // 射击频率
-    shooter.bullet_speed = parser.shoot_data.initial_speed * m_s;     // 弹丸初速度
+    shooter.bullet_freq = parser.shoot_data.launching_frequency;      // 射击频率
+    shooter.bullet_speed = parser.shoot_data.initial_speed;           // 弹丸初速度
 
     // RFID数据
     rfid.in_home = parser.rfid_status.rfid_status & (1 << 19);                     // 是否在启动区

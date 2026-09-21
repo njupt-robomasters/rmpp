@@ -1,4 +1,5 @@
 #include "RefereeParser.hpp"
+#include <cstring>
 #include "crc.hpp"
 
 RefereeParser::RefereeParser(const config_t& config) : config(config) {

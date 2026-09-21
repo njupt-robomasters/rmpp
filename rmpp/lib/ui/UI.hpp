@@ -1,6 +1,11 @@
 #pragma once
 
 #include "bsp/bsp.hpp"
+#include "math/Angle.hpp"
+#include "math/Conversions.hpp"
+
+using math::Angle;
+using math::rpm;
 
 class UI {
 public:
@@ -10,11 +15,11 @@ public:
         uint32_t master_id = 0;
         uint32_t slave_id = 1;
 
-        // 最大值
-        UnitFloat<> max_cap = 1 * ratio;
-        UnitFloat<> max_wr = 120 * rpm;
-        UnitFloat<> max_bullet = 25 * default_unit;
-        UnitFloat<> max_shoot = 10 * default_unit;
+        // SI ranges: ratio, rad/s, m/s (hero) or shots/s, A.
+        float max_cap = 1.0f;
+        float max_wr = 120 * rpm;
+        float max_bullet = 25.0f;
+        float max_shoot = 10.0f;
     } config;
 
     enum color_e {
@@ -30,21 +35,22 @@ public:
     };
 
     // 云台角度
-    Angle<deg> yaw_ecd;    // 云台相对底盘角度
-    Angle<deg> yaw, pitch; // 云台IMU角度
+    Angle yaw_ecd;    // 云台相对底盘角度
+    Angle yaw, pitch; // 云台IMU角度
 
     // 伤害方向
     bool is_hurt = false;
-    Angle<deg> hurt_dir;
+    Angle hurt_dir;
 
     // 自瞄识别
     bool is_detect = false;
 
     // 提示条
-    UnitFloat<ratio> cap; // 超级电容剩余能量比例
-    UnitFloat<rpm> wr;    // 底盘旋转速度
-    UnitFloat<Hz> bullet; // 英雄弹速/步兵弹频
-    UnitFloat<A> shoot;   // 拨弹电机电流
+    float cap{};                  // 超级电容剩余能量比例
+    float wr{};                   // 底盘旋转速度
+    float bullet{};               // 英雄弹速/步兵弹频
+    bool bullet_is_speed = false; // m/s when true, shots/s otherwise
+    float shoot{};                // 拨弹电机电流
 
     // 机器人状态
     struct {
@@ -75,7 +81,7 @@ private:
     static size_t head, tail;
 
     // 发送频率
-    static constexpr UnitFloat<> SEND_FREQ = 30 * Hz;
+    static constexpr float SEND_FREQ = 30;
 
     enum {
         INIT,

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "unit/include_me.hpp"
 
 namespace BSP {
     class LED {
@@ -9,9 +8,9 @@ namespace BSP {
         static void Init();
 
         // 设置颜色（RGB格式）
-        static void SetRGB(UnitFloat<> red, UnitFloat<> green, UnitFloat<> blue);
+        static void SetRGB(float red, float green, float blue);
 
         // 设置颜色（HSV格式）
-        static void SetHSV(UnitFloat<> hue, UnitFloat<> saturation, UnitFloat<> brightness);
+        static void SetHSV(float hue, float saturation, float brightness);
     };
 }
