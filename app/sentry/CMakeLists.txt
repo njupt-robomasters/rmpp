@@ -1,0 +1,13 @@
+set(RMPP_APP_DIR "${CMAKE_CURRENT_LIST_DIR}")
+set(RMPP_BOARD "stm32f407_igh6" CACHE STRING "Board")
+set(RMPP_BOARD_DIR "${RMPP_ROOT}/boards/${RMPP_BOARD}")
+set(CMAKE_TOOLCHAIN_FILE "${RMPP_BOARD_DIR}/bsp/toolchain.cmake" CACHE FILEPATH "Toolchain")
+
+function(rmpp_add_app)
+    add_subdirectory("${RMPP_ROOT}/lib" "${CMAKE_BINARY_DIR}/lib")
+    add_subdirectory("${RMPP_BOARD_DIR}/bsp" "${CMAKE_BINARY_DIR}/bsp")
+    file(GLOB_RECURSE APP_SOURCES CONFIGURE_DEPENDS "${RMPP_APP_DIR}/*.*")
+    add_library(rmpp_app OBJECT ${APP_SOURCES})
+    target_link_libraries(rmpp_app PRIVATE rmpp_lib rmpp_bsp)
+    target_link_libraries(${RMPP_FIRMWARE_TARGET} rmpp_app rmpp_bsp rmpp_lib)
+endfunction()

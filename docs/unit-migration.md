@@ -1,133 +1,63 @@
-# Float and Angle Migration
+# 数值单位与既有验证
 
-## Scope and Representation
+用途：保留多板卡重构之前的单位约定、验证结论及尚待处理的问题。下述历史测试不是本次重构重新执行的测试；本次结果见 verification.md。
 
-Application code now uses `float` in SI units, with Celsius retained for
-temperature and shots/radian for feeder coefficients. `math::Angle` contains
-one private float in radians, normalizes all numeric assignments to `[-pi, pi)`,
-supports implicit conversion in both directions and the four compound assignments.
-Ordinary arithmetic returns float. Multi-turn IMU yaw and ordinary angle errors
-remain float. No legacy include path or runtime unit metadata is retained.
+## 单位约定
 
-The normalization uses bounded binary remainder steps, works in constexpr
-expressions on both tested compilers, and propagates NaN/infinity. Helpers retain
-the original upper-bound-first clamp order and map endpoint behavior.
+业务数值采用 float，内部使用 SI 单位；温度保持摄氏度，拨弹系数为发数/弧度。
+math::Angle 内部为一个 float，赋值归一化到 [-pi, pi)，支持隐式 float 转换及复合赋值。
+普通算术结果为 float；连续多圈 IMU yaw、普通角度误差保持 float。
+归一化使用有界二进制余数，支持 constexpr，传递 NaN/无穷值。
 
-MAVLink remains enabled with unchanged generated messages, IDs and CRCs. Flash
-still uses `yaw_offset`, now storing radians directly. Historical degree values
-are not migrated; recalibration is required as agreed.
+| 数据路径 | 内部及边界约定 |
+| --- | --- |
+| Timer、PID | 秒、Hz；PID 增益对应 SI 误差；负载为比例 |
+| M2006/M3508/GM6020/RM6623 | 编码器 /8192 × rev；电流与转矩保持原缩放、截断及反向逻辑 |
+| MF9025/CustomMotor | 编码器或角度转换为 rad，转速 rad/s，电流 A；沿用原报文字节序 |
+| DM4310/DM6006 | MIT 角度、速度、转矩范围，沿用 12/16 位编码与使能报文 |
+| CyberDog | 电流 A，转矩为 current × kt；保持原电流编码 |
+| VESC | eRPM 按极对数换算 rad/s；电流 /10、位置 /50 × deg、温度 /10 |
+| 底盘与功率 | m/s、rad/s、N、N·m、W、J；保留限幅和方程顺序 |
+| 云台与发射 | rad、rad/s；弹速 m/s，发射频率 发/s，拨弹系数 发/rad |
+| IMU | EKF 角度从度转换 rad；陀螺 rad/s，加速度 m/s²；总 yaw 不归一化 |
+| 加热 | 45 ℃，kp=1，ki=0.01，积分上限 0.4，占空比上限 1 |
+| MAVLink | 生成协议、ID、CRC 保持；协议中的度/rpm 在边界转换 |
+| UI | 显示前 /deg、/rpm、/pct，随后整数截断；英雄弹速 ×10 只在显示边界 |
+| FlashDB | yaw_offset 保存归一化弧度；历史角度制数据需重新校准 |
 
-## Unit Audit
+默认数值保持零初始化，保留原非单位比例因子；未调整 PID。
+历史配置审计在本机 build/unit-migration/host/configuration-audit.csv。
+例如英雄 yaw 速度 kp 为 1.4323945，pitch 速度 kp 为 2.86478901、ki 为 57.2957802，拨弹系数为 0.95492959 发/rad。
 
-| Data path | Input / original scaling | Internal value | Output boundary |
-| --- | --- | --- | --- |
-| DWT | uint32 tick subtraction / core clock | seconds; frequency 1/dt | HAL delay ticks; timeout and reset semantics unchanged |
-| CPU usage | running time / callback interval | dimensionless ratio | no implicit percent storage |
-| PID | old kp/ki/kd/ff, limits and fc evaluated in standard units | float errors, seconds, SI gains, Hz | same filter, anti-windup, clamps and reset |
-| M2006/M3508/GM6020 | encoder /8192 *rev; signed rpm /reduction; current /command range *max current | rad, rad/s, A, N*m | current ratio *command range, same truncation/inversion |
-| RM6623 | encoder /8192 *rev; current feedback ratio | rad, A, N*m; absent speed stays zero | current ratio *max command |
-| MF9025 | encoder /65535 *rev; speed *deg_s; current ratio | rad, rad/s, A | existing little-endian current packet |
-| CustomMotor | angle /100 *deg; speed *deg_s; current /100 | rad, rad/s, A | A *100 -> int16 |
-| DM4310/DM6006 | MIT packed angle, velocity, torque ranges | rad, rad/s, N*m; current = torque/Kt | existing range clamps, 12/16-bit encoding and enable packets |
-| CyberDog | MIT packed angle, velocity and current ranges | rad, rad/s, A; torque = current*Kt | same current encoding despite former Nm tag |
-| VESC | eRPM /pole pairs *rpm; current /10; position /50 *deg; temperatures /10 | rad/s, A, rad, Celsius | speed /rpm *pole pairs; existing brake packets |
-| VESC duty | raw /1000 *pct | raw *0.00001, deliberately preserved | existing value retained pending protocol review |
-| Chassis | wheel speed *radius; torque /radius | m/s and N; rotation in rad | inverse kinematics returns rad/s and N*m |
-| Power limiting | torque*speed + 3*current^2*resistance | W; buffer J; gains dimensionless | same quadratic root and limit order |
-| Gimbal | encoder/IMU angles; speed integration | rad, rad/s | limited modes use ordinary error; circular modes use Angle error |
-| Feeders | configured shots/revolution divided by rev | shots/rad; bullet speed m/s; firing rate shots/s | rub speed = bullet speed/radius; feed speed = rate/coefficient |
-| IMU | EKF Yaw/Pitch/Roll/YawTotalAngle in degrees | rad; total yaw unwrapped; gyro rad/s; accel m/s^2 | quaternion and frame functions consume radians |
-| IMU heater | target 45 Celsius, kp=100*pct/C, ki=1*pct/C | target 45; kp=1; ki=0.01; integral limit 0.4 | duty ratio capped at 1, no Kelvin offset |
-| MAVLink vision | yaw/pitch degrees; wr rpm; distance m | Angle radians, rad/s, m | existing fields/control branches |
-| MAVLink Insta360 | a0/a1/a2 degrees, NaN means no detection | float radians; confidence unchanged | Sentry consumes directly without another *deg |
-| MAVLink navigation | position m, speed m/s, yaw degrees | m, m/s, rad | target position unchanged; former swapped identity tags removed |
-| MAVLink telemetry | IMU radians, referee seconds and m/s | SI members | radians /deg, remaining seconds truncated to uint16 |
-| UI | angles, rotation rate, ratios, bullet speed/rate, current | rad, rad/s, ratio, m/s or shots/s, A | /deg, /rpm, /pct before integer conversion |
-| Hero UI | formerly bullet speed *10 upstream, range 200 | speed m/s, range 20 | *10 only for the displayed number; progress ratio unchanged |
-| Flash | `yaw_offset` float | normalized rad | raw radians both ways, same key in both gimbals |
+## 历史软件验证
 
-Every former default-constructed quantity is zero initialized after conversion,
-including omitted PID/config fields, motor feedback, control targets and locals.
-Numeric input arguments are passed by value. Non-unit scale factors and reciprocal
-factors remain in place; no PID tuning was performed.
+单位迁移基线为 f72e9041bed01fb8e6ded80665dc3a7b63795b9e。
+当时保护了用户已有删除和 IDE 修改；历史归档位于忽略的 build/unit-migration，干净克隆不包含它。
 
-The complete before/after configuration values are in
-[`configuration-audit.csv`](../build/unit-migration/host/configuration-audit.csv).
-For example, hero yaw-speed kp remains 1.4323945 A/(rad/s), pitch-speed kp remains
-2.86478901 N*m/(rad/s), pitch ki remains 57.2957802, and the hero feeder coefficient
-remains 0.95492959 shots/rad.
+- MinGW GCC 15.2、C++17：边界、constexpr 及 200,000 组随机 float 对照 fmod，覆盖 NaN、无穷、最大浮点数及换算因子。
+- Arm GCC 15.3.1：同一数学测试单元编译通过。
+- 旧/新真实 PID、计时、电机、底盘、云台、发射、IMU 适配、UI、MAVLink 以模拟硬件执行。
+- 7,004 组差分观察通过；浮点容差为 1e-6 + 1e-5 × abs(基线)，CAN 字节、MAVLink 含 CRC、UI 整数字段精确比较。
+- 额外 2,077 组 UI 截断与 VESC eRPM 量化边界无整数差异。
+- 当时补充编译通过 12/13 个调试例程和工程底盘；其余既有失败被保留记录。
 
-## Verification
+| 应用 | Debug RAM / Flash（B） | Release RAM / Flash（B） |
+| --- | ---: | ---: |
+| hero | 33064 / 108992 | 32992 / 117088 |
+| infantry | 32416 / 107644 | 32344 / 114068 |
+| sentry | 32880 / 109968 | 32808 / 120448 |
 
-Baseline revision: `f72e9041bed01fb8e6ded80665dc3a7b63795b9e`, with the user's
-pre-existing gripper deletions excluded from firmware builds. The starting staged
-deletions and `.idea/editor.xml` changes were preserved. The baseline archive and
-extracted source are under `build/unit-migration`.
+CCMRAM 均为零。单位迁移前 Debug RAM/Flash 分别为 hero 57328/153380、infantry 54016/150652、sentry 56552/158832；hero Release 为 57264/142696。
+历史日志、ELF、map 和配置记录在 build/unit-migration/final。
 
-- MinGW GCC 15.2.0, explicit C++17: math edge/constexpr tests and 200,000 random
-  float bit patterns checked against fmod. Includes neighboring endpoints,
-  max-float inputs, NaN/Inf, conversions, inverse scales and helper NaN behavior.
-- Arm GCC 15.3.1: the same math test translation unit compiles, including constexpr
-  assertions. Firmware language standard/toolchain settings were not upgraded.
-- Actual old/new PID, DWT, all ten motor drivers, three chassis implementations,
-  both feeders, gimbals, IMU adapter, UI and MAVLink are compiled into separate
-  host programs. Hardware time registers, CAN/CDC/UART, sensor/EKF inputs, heater
-  output and Flash storage are stubbed; control algorithms are not duplicated.
-- 7,004 differential observations across hero, infantry, sentry and engineer
-  chassis configuration: zero failures. Float tolerance is
-  `1e-6 + 1e-5 * abs(baseline)`. CAN bytes, MAVLink packets including CRCs, and UI
-  integer fields are compared exactly. Both sides producing the known power-limit
-  NaN is recorded as agreement, not evidence that the old formula is valid.
-- 2,077 additional UI degree truncation and VESC eRPM quantization boundary cases:
-  zero integer differences, no tolerance relaxation.
-- Supplemental ARM syntax compilation: 12 of 13 debug examples and engineer
-  chassis pass; the same two pre-existing failures occur before and after migration.
-- Production-source residual scan: no UnitFloat, old Angle templates, toFloat,
-  unit namespace/includes or runtime unit metadata. `git diff --check` passes.
+## 保留问题
 
-All firmware builds below ran through CLion's integrated terminal using its
-bundled CMake/Ninja. Each explicitly configured one vehicle, checked
-`compile_commands.json`, and rebuilt with `--clean-first`. Logs, ELF, map,
-app-input record and memory report are archived per vehicle/configuration in
-[`build/unit-migration/final`](../build/unit-migration/final).
+- engineer 的 Mavlink 构造缺少配置；该应用仍未注册构建。旧 gimbal_motor 调试入口曾引用未定义 motor，本次已由独立示例替代。
+- 双舵轮功率限制公式除以 2*a，零电流时可能产生 NaN；旧/新都产生 NaN 不代表公式正确。
+- VESC 占空比沿用 /1000 × pct，应结合实际固件协议单独复核。
+- 减速电机累积编码器增量后的 Angle 仍归一化，不是无限多圈角度。
+- 17 mm/42 mm 射击 UI 阈值方向及 NaN 着色行为仍有差别。
+- QuaternionEKF 的类型重解释和 ui_interface 的数组边界警告在历史 Release 中已存在。
+- 原单位标签中部分电流、转矩、位置、速度含义不一致；迁移保留其原数值并修正边界单位表达。
 
-| Vehicle | Configuration | Result | RAM bytes | Flash bytes |
-| --- | --- | --- | ---: | ---: |
-| hero | Debug | PASS | 33,064 | 108,992 |
-| hero | Release | PASS | 32,992 | 117,088 |
-| infantry | Debug | PASS | 32,416 | 107,644 |
-| infantry | Release | PASS | 32,344 | 114,068 |
-| sentry | Debug | PASS | 32,880 | 109,968 |
-| sentry | Release | PASS | 32,808 | 120,448 |
-
-CCMRAM use is zero for all builds; available RAM is 128 KiB and Flash is 1 MiB.
-The pre-migration Debug RAM/Flash baselines were hero 57,328/153,380,
-infantry 54,016/150,652, sentry 56,552/158,832 bytes. Hero Release baseline was
-57,264/142,696 bytes. Default selection and `build/Debug`, `build/Release` artifacts
-are restored to hero.
-
-## Retained Findings and Limits
-
-- `app/engineer/misc.hpp` constructs Mavlink without the required config argument.
-- `app/debug/gimbal_motor.cpp` references an undefined `motor` object. Neither
-  compile failure was introduced or fixed by this migration.
-- `Chassis_DualSteer::powerControlAfterMotorUpdate` divides by `2*a`; zero commanded
-  currents (including low-buffer shutdown) can yield NaN. The differential fixture
-  reproduces it in both versions. It remains unchanged.
-- VESC duty retains `/1000 *pct`, which should be checked against the actual VESC
-  firmware protocol before any separate correction.
-- The former CyberDog Nm/current tag, dimensionless current ratios labeled A,
-  Robot angle/acceleration/firing-rate tags and MAVLink position/velocity tags were
-  inconsistent. Identity factors meant the existing numeric values could be kept.
-- Motor reduction accumulates encoder deltas but its final stored angle is still
-  normalized; it is not an unbounded multi-turn measurement. The comment is clarified.
-- 17 mm and 42 mm shooter UI comparisons use different inequality directions;
-  their exact-threshold and NaN color behavior remains different.
-- Release warnings from third-party `QuaternionEKF.c` (type punning / aliasing)
-  and `ui_interface.c` (array bounds) also occur in the baseline Release build.
-  New plain-float CPU usage locals produce an unused-variable warning; the
-  calculation is retained. No warning was suppressed to obtain the results.
-
-Software verification does not establish robot behavior under real sensor noise,
-interrupt timing or mechanical load. No firmware was flashed, no robot was started,
-and no PID parameters were tuned.
+历史软件验证没有覆盖真实噪声、中断时序和机械负载。

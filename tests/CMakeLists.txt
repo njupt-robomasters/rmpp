@@ -1,0 +1,15 @@
+cmake_minimum_required(VERSION 3.22)
+project(rmpp_tests LANGUAGES C CXX)
+enable_testing()
+set(BSP "${CMAKE_CURRENT_SOURCE_DIR}/../boards/stm32f407_igh6/bsp")
+add_executable(board_test board_test.cpp c_entry.c
+    "${BSP}/board.cpp" "${BSP}/bsp.cpp" "${BSP}/can.cpp" "${BSP}/uart.cpp"
+    "${BSP}/cdc.cpp" "${BSP}/led.cpp" "${BSP}/pwm.cpp" "${BSP}/timer.cpp")
+target_include_directories(board_test PRIVATE fake "${BSP}" ../lib)
+target_compile_features(board_test PRIVATE cxx_std_20)
+target_compile_options(board_test PRIVATE -UNDEBUG)
+add_test(NAME board COMMAND board_test)
+if(WIN32)
+    get_filename_component(HOST_COMPILER_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    set_tests_properties(board PROPERTIES ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${HOST_COMPILER_DIR}")
+endif()
