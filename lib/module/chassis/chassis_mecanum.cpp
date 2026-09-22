@@ -50,7 +50,7 @@ void ChassisMecanum::forward() {
     vy = (+v1 - v2 - v3 + v4) / 4.0f;
     vz = SQRT2DIV2 * (+v1 + v2 + v3 + v4) / 4.0f;
     // 麦克纳姆轮速度正解 end
-    std::tie(this->vx.measure, this->vy.measure) = math::rotate(vx, vy, -gimbal_yaw_);
+    std::tie(this->vx.measure, this->vy.measure) = rotate(vx, vy, -gimbal_yaw_);
     this->vz.measure = vz;
     wr.measure = vz / config.chassis_radius;
 
@@ -67,13 +67,13 @@ void ChassisMecanum::forward() {
     fy = +f1 - f2 - f3 + f4;
     fz = SQRT2 * (+f1 + f2 + f3 + f4);
     // 麦克纳姆轮力学正解 end
-    std::tie(this->fx.measure, this->fy.measure) = math::rotate(fx, fy, -gimbal_yaw_);
+    std::tie(this->fx.measure, this->fy.measure) = rotate(fx, fy, -gimbal_yaw_);
     this->fz.measure = fz;
 }
 
 void ChassisMecanum::backward() {
     // 速度逆解
-    auto [vx, vy] = math::rotate(this->vx.ref, this->vy.ref, gimbal_yaw_);
+    auto [vx, vy] = rotate(this->vx.ref, this->vy.ref, gimbal_yaw_);
     auto vz = this->vz.ref;
     float v1{}, v2{}, v3{}, v4{};
     // 麦克纳姆轮速度逆解 begin
@@ -91,7 +91,7 @@ void ChassisMecanum::backward() {
     motor.w4.set_speed(v4 / config.wheel_radius);
 
     // 力学逆解
-    auto [fx, fy] = math::rotate(this->fx.ref, this->fy.ref, gimbal_yaw_);
+    auto [fx, fy] = rotate(this->fx.ref, this->fy.ref, gimbal_yaw_);
     auto fz = this->fz.ref;
     float f1{}, f2{}, f3{}, f4{};
     // 麦克纳姆轮力学逆解 begin

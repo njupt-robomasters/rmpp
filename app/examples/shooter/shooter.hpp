@@ -1,12 +1,11 @@
 #pragma once
 
-#include "math/conversions.hpp"
+#include "bsp/bsp.hpp"
+
+#include "math/unit.hpp"
 #include "module/shooter/shooter_17mm.hpp"
 #include "motor/m2006.hpp"
 #include "motor/vesc.hpp"
-
-using math::rev;
-using math::rpm;
 
 // 用于Ozone调参
 // #define shoot_pid motor_speed_pid
@@ -14,13 +13,13 @@ using math::rpm;
 
 // 摩擦轮
 inline Vesc rub1({
-                     .can_port = 2,
+                     .can = bsp.can(2),
                      .master_id = 0x21,
                      .slave_id = 0x21,
                  },
                  {});
 inline Vesc rub2({
-                     .can_port = 2,
+                     .can = bsp.can(2),
                      .master_id = 0x22,
                      .slave_id = 0x22,
                  },
@@ -32,7 +31,7 @@ inline Pid::Config shoot_pid = {
     .max_out = 10,
 };
 inline M2006 shoot({
-    .can_port = 1,
+    .can = bsp.can(1),
     .master_id = 0x206,
     .slave_id = 0x200,
     .is_invert = false,

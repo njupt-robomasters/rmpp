@@ -1,6 +1,7 @@
 #pragma once
 
-#include "board/board.hpp"
+#include "bsp/pwm.hpp"
+#include "bsp/timer.hpp"
 
 class Buzzer {
   public:
@@ -40,13 +41,13 @@ class Buzzer {
         {784, 250},
     };
 
-    explicit Buzzer(rmpp::Pwm output) : output_(output) {}
+    explicit Buzzer(Pwm output) : output_(output) {}
 
     template <std::size_t N>
     void play(const float (&music)[N][2]) {
         this->music_ = music;
         i_ = 0;
-        len_ = std::size(music);
+        len_ = N;
         wait_play_ = true;
         timer_.reset();
     }
@@ -54,9 +55,9 @@ class Buzzer {
     void on_loop();
 
   private:
-    rmpp::Pwm output_;
+    Pwm output_;
     const float (*music_)[2] = nullptr;
     uint32_t i_ = 0, len_ = 0;
     bool wait_play_ = false;
-    rmpp::Timer timer_;
+    Timer timer_;
 };

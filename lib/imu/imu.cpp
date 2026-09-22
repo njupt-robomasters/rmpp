@@ -1,21 +1,21 @@
 #include "imu.hpp"
 
-#include "board/board.hpp"
+#include "bsp/pwm.hpp"
 #include "lib/bmi088/bmi088.h"
+#include "lib/bmi088/bmi088_middleware.h"
 #include "lib/ekf/QuaternionEKF.h"
 #include "math/angle.hpp"
-#include "math/conversions.hpp"
+#include "math/unit.hpp"
 #include <cmath>
 #include <tuple>
 
-using math::Angle;
-using math::deg;
-
-Imu::Imu(const Dir& dir, Calib& calib, rmpp::Pwm heater) : temperature_control_(heater), dir_(dir), calib_(calib) {
+Imu::Imu(const Dir& dir, Calib& calib, const Config& config) : temperature_control_(config.heater), config_(config), dir_(dir), calib_(calib) {
     IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0);
 }
 
 void Imu::calibrate() {
+    if (!config_.accel || !config_.gyro)
+        return;
     if (is_init_ == false) {
         init();
         is_init_ = true;
@@ -30,6 +30,8 @@ void Imu::calibrate() {
 }
 
 void Imu::on_loop() {
+    if (!config_.accel || !config_.gyro)
+        return;
     if (is_init_ == false) {
         init();
         is_init_ = true;
@@ -69,6 +71,7 @@ void Imu::on_loop() {
 }
 
 void Imu::init() const {
+    bmi088_bind(config_.accel, config_.gyro);
     BMI088_Init();
     BMI088_SetCalibrateParam(calib_.gx_offset, calib_.gy_offset, calib_.gz_offset, calib_.g_norm);
 }

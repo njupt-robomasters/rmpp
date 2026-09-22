@@ -1,116 +1,122 @@
 # 目录、接口与构建
 
-用途：说明日常开发入口，以及增加应用和板卡的方法。
+用途：说明开发入口、接口约定，以及新增应用和板卡的方法。
 
-## 目录职责
+## 目录
 
 ```text
-app/<应用>/                业务入口 app_main()、配置、应用 CMake
-app/examples/<示例>/       led、rc、imu、buzzer、motor、referee、chassis、gimbal、shooter
-lib/                       公共算法和业务库
-lib/board/                 无 HAL 依赖的外设声明
-boards/stm32f407_igh6/      原 CubeMX 工程及生成 CMake
-boards/<板卡>/bsp/         外设实现、bsp.hpp、手写 CMake、工具链适配
-tools/                     预设生成与批量构建
-tests/                     用模拟 HAL 执行真实 BSP 实现
+app/<应用>/                 app_main()、硬件绑定、车辆参数、应用 CMake
+app/examples/<示例>/        rgb、rc、imu、buzzer、motor、referee、chassis、gimbal、shooter
+lib/bsp/                   无 HAL / FlashDB 依赖的公共声明
+lib/rgb/                   RGB/HSV 与周期变色
+lib/math/unit.hpp          SI 单位换算常量
+boards/<板卡>/              CubeMX 工程与生成 CMake
+boards/<板卡>/bsp/          外设实现、入口、手写 CMake、工具链适配
+  storage/storage.cpp      Storage 封装
+  storage/flashdb/          FlashDB、FAL、配置与 Flash 实现
+tools/                     presets、批量构建与格式化
+tests/                     真实实现配合模拟硬件的主机测试
 ```
 
-现有整车应用为 hero、infantry、sentry；engineer 保留已有代码，尚无构建入口。
-各示例独立持有必要配置；shooter 使用步兵 17 mm 双摩擦轮配置。
+整车应用为 hero、infantry、sentry；engineer 保留已有配置，尚无完整应用入口。shooter 示例使用步兵 17 mm 双摩擦轮配置。
 
-## 入口与接口
+## 启动与句柄
 
-CubeMX `main.c` 在全部 `MX_*_Init()` 后执行：
+CubeMX main 在全部 MX 初始化后调用：
 
-```c
+```cpp
 bsp_init();
 app_main();
 ```
 
-两函数在板卡 `bsp.hpp` 中声明，通过条件编译兼容 C，通过 `extern "C"` 保持链接名称。
-BSP 启动计时、PWM、CAN 和 UART 接收；USB 沿用 CubeMX 初始化。
-应用只编写业务初始化和循环。
+板卡 `bsp.hpp` 条件包含 C++ 声明，并用 C 链接声明这两个入口，生成的 C main 可直接包含它。BSP 启动计时、PWM、CAN、UART；USB 与 SPI 基础配置由 CubeMX 完成。
 
 ```cpp
-using rmpp::board;
-
-auto can = board.can(1);
-auto uart = board.uart(3);
-auto usb = board.cdc(1);
-auto led = board.led(1);
-auto output = board.pwm(4, 3);
-auto timer = board.timer();
-
-can.add_rx_callback([this](const rmpp::CanFrame& frame) {
-    receive(frame);
-});
-can.send({.id = 0x123, .data = {1, 2}, .size = 2});
-
-output.set_frequency(2000);
-output.set_duty(0.5f);
-output.set_duty(0);
+auto can = bsp.can(1);
+Can another_can(1);
+auto output = bsp.pwm(4, 3);
+Pwm another_output(4, 3);
+Timer timer;
+auto another_timer = bsp.timer();
 ```
 
-Board 只查找资源；各 class 实现行为。句柄可以全局构造和按值复制，同一通道共享状态。
-函数内静态通道状态采用常量初始化，构造不调用 HAL。Timer 各自保存计时基准，首次计时操作建立基准。
+Bsp 只构造句柄，构造函数保存编号并绑定板卡资源。构造不访问硬件，可在全局创建；同通道句柄共享缓冲、回调和 metrics。Timer 各自保存时间基准，首次计时建立基准。
 
-整数编号允许不连续。无效编号返回空句柄，`bool(handle)` 为 false，操作返回 false、数值查询返回零，不访问硬件。
-bool 只表示资源存在；硬件操作在初始化后执行。
+编号允许不连续；默认构造或不存在的编号得到无效句柄，bool 为 false，各操作返回失败且不操作硬件。bool 表示资源存在，实际收发在硬件初始化后执行。
 
-`CanFrame` 包含 ID、8 字节 array、实际 size、extended、remote。array 自身无堆分配，容量与报文实际长度分别保存。
-当前接口支持经典 CAN；增加 CAN FD 数据长度时再扩展报文能力。
+Timer 提供 get_dt、update_dt、poll_timeout、reset、delay，时间为秒，默认 dt 限制为 0.0001–10 秒。底层采用 32 位周期计数；168 MHz 下观测间隔应小于约 25.56 秒，以保留完整时间信息。
 
-## 接收与发送
+## 应用绑定硬件
 
-- `add_rx_callback()` 只传一个 callable。std::function 支持捕获 lambda，每个通道的 vector 按注册顺序保存全部订阅者。
-- 每帧在中断内通知所有订阅者，业务自行判断 ID。CAN 使用 FIFO 中断；UART 使用空闲及缓冲区收满事件；无需接收 poll。
-- 可在启动前后注册。普通上下文注册时保存 PRIMASK、屏蔽中断、追加回调，再恢复原中断状态；回调中不修改订阅列表。
-- 回调保持短小、非阻塞；捕获对象持续存活且地址稳定，收到的数据视图只在回调期间有效。没有取消订阅接口。
-- vector 与 std::function 可能在注册时分配内存；当前关闭异常，内存耗尽不承诺返回 false。
-- CAN 发送直接调用一次 `HAL_CAN_AddTxMessage()`，返回是否成功提交；不等待邮箱。业务决定下次是否重试，UI 已有队列只在提交成功后出队。
-- UART/CDC 发送参数为 `Bytes{data, size}`，先复制到 BSP 固定发送缓冲区，忙或超长返回 false；成功表示提交，不代表对端收到。
-- UART TX 容量 256 字节、RX 容量 128 字节；CDC TX 容量 2048 字节。容量在 BSP 实现中定义。
-- CDC `printf()` 最多发送 127 字节，较长输出截断；保留每通道负载及错误计数查询。
+业务库接收句柄，app 指定通道。通信配置在对象构造时确定，注册回调后保持稳定。
+
+```cpp
+M3508 motor({.can = bsp.can(1), .master_id = 0x201});
+Rc rc({.uart = bsp.uart(3)}, {.uart = bsp.uart(6)});
+Mavlink mavlink({.cdc = bsp.cdc(1)});
+Buzzer buzzer(bsp.pwm(4, 3));
+Rgb rgb({.red = bsp.pwm(5, 3), .green = bsp.pwm(5, 2), .blue = bsp.pwm(5, 1)});
+Imu imu(dir, calib, {.accel = bsp.spi(1, 1), .gyro = bsp.spi(1, 2), .heater = bsp.pwm(10, 1)});
+Storage storage("hero");
+```
+
+Rgb 提供 set_rgb、set_hsv、on_loop；最后一个用于周期变色，period 以秒计。三个颜色通道都有效时 bool 为 true。
+
+Storage 的 read/write 保存 float：缺失键读零，写入返回成功与否。构造只分配软件状态，首次访问初始化，成功后复用。对象由 app 持有，业务模块接收引用。当前每个应用使用一个实例；名称字符串保持有效。分区仍是 768 KiB 偏移、256 KiB 长度；应用标记缺失时按原规则重置配置。
+
+## 收发与指标
+
+```cpp
+can.add_rx_callback([this](const CanFrame& frame) {
+    receive(frame);
+});
+bool submitted = can.send({.id = 0x123, .data = {1, 2}, .size = 2});
+```
+
+CanFrame 为经典 CAN 报文，array 容量 8 字节，size 表示实际长度；array 自身无堆分配。收发头与配置优先指定成员初始化。
+
+- 每通道 vector 保存 std::function，支持 `[this]`，每帧在中断内依序通知全部订阅者。CAN 使用 FIFO 中断，UART 使用空闲/收满通知。
+- 启动前后均可在普通上下文注册；注册时保存、关闭、恢复 PRIMASK。回调中保持短小、非阻塞，订阅列表保持稳定，捕获对象地址与生命周期保持有效。数据视图仅在回调期间有效。
+- vector/std::function 可能在注册时分配内存；当前禁用异常，内存不足不保证返回 false。
+- CAN 直接调用一次 HAL_CAN_AddTxMessage，成功表示提交邮箱。UI 队列在提交成功后出队。
+- UART/CDC 接收 Bytes，发送先复制到 BSP 缓冲；忙或超长返回 false。UART RX 128 字节、TX 256 字节；CDC TX 2048 字节，printf 最多 127 字节。
+- 调试器可查看 `can.state_->metrics`，包含最近回调总耗时 last_callback_us、平滑 cpu_usage（0–1）、bus_off_count；UART 使用 error_count。统计由通道共享，独立查询 API 已移除。
+- 累计回调耗时至少 100 ms 后，以实际经过时间计算占用率；平滑权重为 elapsed_ms / (400 + elapsed_ms)。仅在回调时更新，停收保留结果，恢复后将空闲时间计入区间。耗时包含全部订阅者分发，可能包含中断抢占；用于调试估算。
+
+SPI 使用 `(总线, 片选)`。`transfer(SpiTransfer{tx, rx, size})` 是同步完整事务，自动拉低并恢复片选，失败也释放。普通上下文调用，BSP 超时 10 ms，传输期间中断保持可用。BMI088 通信适配在 lib 内用传入的两个 Spi；原 C 驱动和 EKF 仍按单 IMU 实例使用。
 
 ## 当前板卡资源
 
-| 资源 | 可用编号或通道 |
+| 资源 | 编号或映射 |
 | --- | --- |
 | CAN | 1、2 |
 | UART | 1：中断接收；3：DMA、仅接收；6：DMA、双向 |
 | CDC | 1 |
-| LED | 1：RGB，TIM5 CH3/CH2/CH1 |
+| SPI | (1,1)：BMI088 加速度计；(1,2)：陀螺仪 |
 | PWM | TIM1 CH1–4、TIM4 CH3、TIM5 CH1–3、TIM8 CH1–3、TIM10 CH1 |
-| Timer | DWT 周期计数器作为板卡内部实现 |
+| RGB 接线 | app 绑定 TIM5 CH3/CH2/CH1 |
 
-PWM 频率按实际 APB 时钟及倍频计算，同一定时器的通道共享频率，调整频率保持各占空比。
-占空比限制在 [0,1]；非法或非有限频率失败。使用最多 65535 个计数，保留完整 100% 输出对应的比较值。
+PWM 频率依据实际 APB 时钟计算，同一定时器通道共享频率，调整频率保留各占空比。占空比限制 [0,1]；ARR 保留可表示的 100% 占空比比较值。
 
-业务蜂鸣器接收一个 Pwm：`Buzzer buzzer(board.pwm(4, 3))`。
-IMU 构造的第三个参数是加热 Pwm：`Imu imu(dir, calib, board.pwm(10, 1))`。
-波特率、引脚、滤波和启动配置仍由 CubeMX/BSP 定义。
+## 构建与扩展
 
-Timer 方法：get_dt、update_dt、poll_timeout、reset、delay。时间为秒，默认区间 0.0001–10 秒。
-32 位周期差可跨一次回绕；168 MHz 下两次观测应相隔小于约 25.56 秒，无法据此恢复遗漏的完整回绕次数。
+根 CMake 从 preset 读取 RMPP_APP，include 应用 CMake 获取 RMPP_BOARD，在 project(rmpp) 前设置工具链，再组合 lib、BSP、app。app CMake 只声明板卡；lib 为 STATIC，app/BSP 为 OBJECT。BSP 用独立二进制目录接入 CubeMX 默认工程，继续使用其打印和编译参数。
 
-BMI088 使用板卡的 SPI、片选、延时 C 函数。FlashDB 平台实现及分区在 BSP，分区仍为 768 KiB 偏移、256 KiB 长度，保留数据键与校准含义。
+根目录保留 CMake 3.22 最低版本声明；缺少 RMPP_APP 直接报错。Preset 的 cacheVariables 保存在构建目录；更换板卡应使用新的构建目录。
+工具链文件在识别编译器前加载，修正搬迁后的链接脚本和 map 路径；BSP CMake 在此后创建编译目标。DSP 依赖由板卡接入。
 
-## CMake 与新增目标
+新增应用：复制 app 的 CMake、实现 app_main、绑定外设，然后运行 `python tools/update_presets.py`。每个应用生成 Debug/Release；产物为 `build/<preset>/rmpp.elf` 和 `rmpp.map`。
+新增板卡：放入 CubeMX 工程，提供 BSP 工具链和 `lib/bsp` 接口实现，定义硬件映射；C main 和 USB 桥接位于 USER CODE 区。
 
-根 CMake 先 include 所选 app 的 CMake，确定板卡及工具链，再 project()、调用 app 定义的 rmpp_add_app()。
-每个 app 的单个 CMake 文件设置默认 RMPP_BOARD，并组合 lib、BSP、应用源码。
-BSP 用 add_subdirectory 添加上一级生成工程，再把自己的对象和业务库链接到 CubeMX 创建的 rmpp 固件。
+`CMAKE_CURRENT_SOURCE_DIR` 是当前 add_subdirectory 的源目录，include 不改变它；根目录因此直接用 RMPP_APP 拼接应用路径。手写源码用 `GLOB_RECURSE CONFIGURE_DEPENDS "*.*"` 扫描。
 
-lib 为 STATIC，app/BSP 为 OBJECT，保证 HAL 弱回调的覆盖实现进入固件。
-stm32cubemx 提供 HAL 头文件和宏；生成工具链提供 CPU/FPU/ABI、Debug/Release 参数。
-手写工具链适配器修正链接脚本及 map 路径。DSP 和 FlashDB 配置依赖由板卡接入处提供。
+## 格式化
 
-`CACHE STRING` 将选择保存到构建目录，可用 -D 或 Preset 覆盖。切换板卡使用新构建目录。
-`CMAKE_CURRENT_SOURCE_DIR` 是当前 add_subdirectory 的源目录；include 不改变它，因此 app 用 CMAKE_CURRENT_LIST_DIR 保存自己的位置。
+CLion 启用项目 `.clang-format`。使用同一个 clang-format 可执行文件运行：
 
-新增应用：复制一个 app 的 CMake，添加 app_main()，调整默认板卡，执行 `python tools/update_presets.py`。
-脚本递归发现应用，为每个应用生成 Debug/Release；一次 configure 只构建一个应用与板卡组合。
-产物位于 `build/<preset>/rmpp.elf` 和 `rmpp.map`。
+```sh
+python tools/format_code.py --clang-format <CLion使用的clang-format路径>
+python tools/format_code.py --clang-format <相同路径> --check
+```
 
-新增板卡：把 CubeMX 工程放到 boards 下，复制 BSP 接入结构，实现 lib/board 声明，配置资源编号与平台函数。
-生成代码接入写在 USER CODE 区域；保留生成 CMake 的打印和参数。用 `--verbose` 查看编译命令。
+当前验证版本为 CLion 随附 clang-format 22。LLVM 基础、四空格、同行大括号、无列宽限制；普通函数展开，函数定义之间自动留空行，内部逻辑块由编写者分组。

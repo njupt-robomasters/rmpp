@@ -2,8 +2,6 @@
 #include "math/angle.hpp"
 #include <cmath>
 
-using math::Angle;
-
 Chassis::Chassis(const Config& config) : config(config),
                                          vx_pid_(config.vxyz_pid_config), vy_pid_(config.vxyz_pid_config), vz_pid_(config.vxyz_pid_config),
                                          follow_pid_(config.follow_pid_config) {}

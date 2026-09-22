@@ -1,10 +1,8 @@
 #include "bsp.hpp"
 #include "rc/rc.hpp"
 #include "shooter.hpp"
-Rc rc({}, {});
-#include "math/conversions.hpp"
-
-using math::ms;
+Rc rc({.uart = bsp.uart(3)}, {.uart = bsp.uart(6)});
+#include "math/unit.hpp"
 
 static constexpr float BULLET_FREQ = 20;
 static constexpr float BULLET_SPEED = 25.0f;
@@ -20,7 +18,7 @@ void send_can_cmd() {
     data[5] = 0;
     data[6] = 0;
     data[7] = 0;
-    rmpp::board.can(1).send({.id = 0x1FF, .data = data, .size = 8});
+    bsp.can(1).send({.id = 0x1FF, .data = data, .size = 8});
     rub1.send_can_cmd();
     rub2.send_can_cmd();
 }
@@ -28,7 +26,7 @@ void send_can_cmd() {
 extern "C" void app_main() {
     shooter.set_bullet_speed(BULLET_SPEED);
 
-    rmpp::Timer timer;
+    Timer timer;
     while (true) {
         if (timer.poll_timeout(1 * ms)) {
             rc.on_loop();

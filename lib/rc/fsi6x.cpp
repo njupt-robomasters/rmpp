@@ -5,7 +5,7 @@
 
 FSi6X::FSi6X(const Config& config) : config(config) {
     // 注册串口回调
-    rmpp::board.uart(3).add_rx_callback([this](rmpp::Bytes bytes) {
+    config.uart.add_rx_callback([this](Bytes bytes) {
         this->callback(bytes.data, bytes.size);
     });
 }
@@ -51,7 +51,7 @@ void FSi6X::callback(const uint8_t data[], const uint16_t size) {
 
 float FSi6X::get_joystick(const uint16_t value) const {
     float ret = ((float)value - 1024.0f) / 783.0f; // 240(-784) ~ 1024 ~ 1807(+783)
-    ret = math::clamp(ret, -1.0f, 1.0f);
+    ret = clamp(ret, -1.0f, 1.0f);
     if (std::fabsf(ret) < config.joystick_deadline)
         ret = 0.0f;
     return ret;

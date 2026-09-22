@@ -1,10 +1,10 @@
 #pragma once
 
-#include "math/conversions.hpp"
+#include "bsp/bsp.hpp"
+
+#include "math/unit.hpp"
 #include "module/chassis/chassis_mecanum.hpp"
 #include "motor/m3508.hpp"
-
-using math::cm;
 
 // 底盘电机参数
 static constexpr float REDUCTION = 14.0f;
@@ -27,7 +27,7 @@ inline Pid::Config vxyz_pid = {
 
 // 底盘电机
 inline M3508 w1({
-    .can_port = 2,
+    .can = bsp.can(2),
     .master_id = 0x201,
     .slave_id = 0x200,
     .reduction = REDUCTION,
@@ -35,7 +35,7 @@ inline M3508 w1({
     .is_invert = IS_INVERT,
 });
 inline M3508 w2({
-    .can_port = 2,
+    .can = bsp.can(2),
     .master_id = 0x202,
     .slave_id = 0x200,
     .reduction = REDUCTION,
@@ -43,7 +43,7 @@ inline M3508 w2({
     .is_invert = IS_INVERT,
 });
 inline M3508 w3({
-    .can_port = 2,
+    .can = bsp.can(2),
     .master_id = 0x203,
     .slave_id = 0x200,
     .reduction = REDUCTION,
@@ -51,7 +51,7 @@ inline M3508 w3({
     .is_invert = IS_INVERT,
 });
 inline M3508 w4({
-    .can_port = 2,
+    .can = bsp.can(2),
     .master_id = 0x204,
     .slave_id = 0x200,
     .reduction = REDUCTION,

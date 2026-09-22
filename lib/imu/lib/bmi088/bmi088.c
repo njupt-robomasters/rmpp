@@ -3,7 +3,7 @@
 #include <math.h>
 #include "bmi088_reg.h"
 #include "bmi088_middleware.h"
-#include "board/timer.h"
+#include "bsp/timer.h"
 
 float BMI088_ACCEL_SEN = BMI088_ACCEL_6G_SEN;
 float BMI088_GYRO_SEN = BMI088_GYRO_2000_SEN;
@@ -18,49 +18,12 @@ int16_t caliCount = 0;
 
 IMU_Data_t BMI088;
 
-#define BMI088_accel_write_single_reg(reg, data) \
-    {                                            \
-        BMI088_ACCEL_NS_L();                     \
-        BMI088_write_single_reg((reg), (data));  \
-        BMI088_ACCEL_NS_H();                     \
-    }
-
-#define BMI088_accel_read_single_reg(reg, data) \
-    {                                           \
-        BMI088_ACCEL_NS_L();                    \
-        BMI088_read_write_byte((reg) | 0x80);   \
-        BMI088_read_write_byte(0x55);           \
-        (data) = BMI088_read_write_byte(0x55);  \
-        BMI088_ACCEL_NS_H();                    \
-    }
-
-#define BMI088_accel_read_muli_reg(reg, data, len) \
-    {                                              \
-        BMI088_ACCEL_NS_L();                       \
-        BMI088_read_write_byte((reg) | 0x80);      \
-        BMI088_read_muli_reg(reg, data, len);      \
-        BMI088_ACCEL_NS_H();                       \
-    }
-
-#define BMI088_gyro_write_single_reg(reg, data) \
-    {                                           \
-        BMI088_GYRO_NS_L();                     \
-        BMI088_write_single_reg((reg), (data)); \
-        BMI088_GYRO_NS_H();                     \
-    }
-#define BMI088_gyro_read_single_reg(reg, data)  \
-    {                                           \
-        BMI088_GYRO_NS_L();                     \
-        BMI088_read_single_reg((reg), &(data)); \
-        BMI088_GYRO_NS_H();                     \
-    }
-//#define BMI088_gyro_write_muli_reg( reg,  data, len) { BMI088_GYRO_NS_L(); BMI088_write_muli_reg( ( reg ), ( data ), ( len ) ); BMI088_GYRO_NS_H(); }
-#define BMI088_gyro_read_muli_reg(reg, data, len)   \
-    {                                               \
-        BMI088_GYRO_NS_L();                         \
-        BMI088_read_muli_reg((reg), (data), (len)); \
-        BMI088_GYRO_NS_H();                         \
-    }
+#define BMI088_accel_write_single_reg bmi088_accel_write_reg
+#define BMI088_gyro_write_single_reg bmi088_gyro_write_reg
+#define BMI088_accel_read_single_reg(reg, data) ((data) = bmi088_accel_read_reg(reg))
+#define BMI088_gyro_read_single_reg(reg, data) ((data) = bmi088_gyro_read_reg(reg))
+#define BMI088_accel_read_muli_reg bmi088_accel_read_regs
+#define BMI088_gyro_read_muli_reg bmi088_gyro_read_regs
 
 static uint8_t write_BMI088_accel_reg_data_error[BMI088_WRITE_ACCEL_REG_NUM][3] =
 {
@@ -89,26 +52,6 @@ static uint8_t write_BMI088_gyro_reg_data_error[BMI088_WRITE_GYRO_REG_NUM][3] =
     {BMI088_GYRO_INT3_INT4_IO_MAP, BMI088_GYRO_DRDY_IO_INT3, BMI088_GYRO_INT3_INT4_IO_MAP_ERROR}
 
 };
-
-static void BMI088_write_single_reg(uint8_t reg, uint8_t data) {
-    BMI088_read_write_byte(reg);
-    BMI088_read_write_byte(data);
-}
-
-static void BMI088_read_single_reg(uint8_t reg, uint8_t* return_data) {
-    BMI088_read_write_byte(reg | 0x80);
-    *return_data = BMI088_read_write_byte(0x55);
-}
-
-static void BMI088_read_muli_reg(uint8_t reg, uint8_t* buf, uint8_t len) {
-    BMI088_read_write_byte(reg | 0x80);
-
-    while (len != 0) {
-        *buf = BMI088_read_write_byte(0x55);
-        buf++;
-        len--;
-    }
-}
 
 void BMI088_Init(void) {
     while (bmi088_accel_init() != BMI088_NO_ERROR) {

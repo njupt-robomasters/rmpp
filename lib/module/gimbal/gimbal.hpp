@@ -1,11 +1,9 @@
 #pragma once
 
-#include "flashdb/flash_db.hpp"
+#include "bsp/storage.hpp"
 #include "imu/imu.hpp"
 #include "math/angle.hpp"
 #include "ui/ui.hpp"
-
-using math::Angle;
 
 class Gimbal {
   public:
@@ -47,9 +45,9 @@ class Gimbal {
     // 设置底盘旋转速度，用于yaw轴前馈
     void set_chassis_wr(float chassis_wr);
 
-    virtual void load_yaw_offset(FlashDb& flashdb) = 0;
+    virtual void load_yaw_offset(Storage& storage) = 0;
 
-    virtual void save_yaw_offset(FlashDb& flashdb) = 0;
+    virtual void save_yaw_offset(Storage& storage) = 0;
 
     virtual void set_yaw_zero() = 0;
 
@@ -69,7 +67,7 @@ class Gimbal {
     virtual void backward() = 0;
 
   private:
-    rmpp::Timer timer_motion_; // 用于云台转动
+    Timer timer_motion_; // 用于云台转动
 
     // 处理云台转动，通过dt不断计算角度增量
     void handle_motion();

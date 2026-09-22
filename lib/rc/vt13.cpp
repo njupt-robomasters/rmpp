@@ -6,7 +6,7 @@
 
 VT13::VT13(const Config& config) : config(config) {
     // 注册串口回调
-    rmpp::board.uart(6).add_rx_callback([this](rmpp::Bytes bytes) {
+    config.uart.add_rx_callback([this](Bytes bytes) {
         this->callback(bytes.data, bytes.size);
     });
 }
@@ -82,7 +82,7 @@ void VT13::callback(const uint8_t data[], const uint16_t size) {
 
 float VT13::get_joy_stick(const uint16_t value) const {
     float ret = ((float)value - 1024.0f) / 660.0f;
-    ret = math::clamp(ret, -1.0f, 1.0f);
+    ret = clamp(ret, -1.0f, 1.0f);
     if (std::fabsf(ret) < config.joystick_deadline)
         ret = 0.0f;
     return ret;

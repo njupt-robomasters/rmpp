@@ -1,8 +1,6 @@
 #include "gimbal.hpp"
 #include "math/angle.hpp"
 
-using math::Angle;
-
 Gimbal::Gimbal(Imu& imu) : imu(imu) {}
 
 void Gimbal::set_enable(const bool is_enable) {

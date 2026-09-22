@@ -1,6 +1,6 @@
 #include "pid.hpp"
-#include "math/conversions.hpp"
 #include "math/math.hpp"
+#include "math/unit.hpp"
 #include <cmath>
 
 Pid::Pid(const Config* config) : config_(config) {}
@@ -36,14 +36,14 @@ float Pid::calculate(float err, std::optional<float> derr) {
     }
     // 情况二：I输出超过设定最大值 -> 对I输出钳位
     i_out_ += di;
-    i_out_ = math::clamp(i_out_, config.max_i);
+    i_out_ = clamp(i_out_, config.max_i);
 
     // 输出滤波
     out_no_filter_ = p_out_ + i_out_ + d_out_ + config.ff;
     out = lowpass_filter(out, out_no_filter_, config.fc, dt);
 
     // 输出限幅
-    out = math::clamp(out, config.max_out);
+    out = clamp(out, config.max_out);
 
     return out;
 }
@@ -58,7 +58,7 @@ float Pid::lowpass_filter(float pre, float next, float fc, float dt) {
     if (fc == 0)
         return next; // 禁用滤波
 
-    const float rc = 1 / (2 * math::pi * fc);
+    const float rc = 1 / (2 * pi * fc);
     const float alpha = dt / (rc + dt);
     const float out = pre * (1.0f - alpha) + next * alpha;
     return out;

@@ -1,20 +1,19 @@
 #pragma once
 
-#include "board/board.hpp"
+#include "bsp/cdc.hpp"
+#include "bsp/timer.hpp"
 #include "lib/msg/mavlink.h"
 #include "math/angle.hpp"
-#include "math/conversions.hpp"
+#include "math/unit.hpp"
 #include "referee/referee.hpp"
 #include <cmath>
-
-using math::Angle;
-using math::ms;
 
 class Mavlink {
   public:
     // Members use SI units (angles rad, angular speeds rad/s).
     // The wire protocol still uses degrees and rpm; conversion occurs in parse/send.
     struct Config {
+        Cdc cdc;
         float timeout = 100 * ms; // 断联超时时间
         float send_freq = 1000;   // 发送频率
     } config;
@@ -89,10 +88,10 @@ class Mavlink {
     static constexpr uint8_t COMPONENT_ID = 1; // mavlink参数
 
     // 用于断联检测
-    rmpp::Timer timer_cdc_, timer_auto_aim_, timer_insta360_, timer_chassis_speed_, timer_current_position_;
+    Timer timer_cdc_, timer_auto_aim_, timer_insta360_, timer_chassis_speed_, timer_current_position_;
 
     // 用于控制发送频率
-    rmpp::Timer timer_send_freq_;
+    Timer timer_send_freq_;
 
     uint8_t idx_ = 0; // 报文分散在不同的时间点发送
 
@@ -103,7 +102,7 @@ class Mavlink {
     void parse(const mavlink_message_t& msg);
 
     // 发送函数
-    static void send(const mavlink_message_t& msg);
+    void send(const mavlink_message_t& msg) const;
     void send_imu() const;
     void send_referee() const;
     void send_target_position() const;

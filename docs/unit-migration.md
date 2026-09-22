@@ -5,7 +5,7 @@
 ## 单位约定
 
 业务数值采用 float，内部使用 SI 单位；温度保持摄氏度，拨弹系数为发数/弧度。
-math::Angle 内部为一个 float，赋值归一化到 [-pi, pi)，支持隐式 float 转换及复合赋值。
+Angle 内部为一个 float，赋值归一化到 [-pi, pi)，支持隐式 float 转换及复合赋值。
 普通算术结果为 float；连续多圈 IMU yaw、普通角度误差保持 float。
 归一化使用有界二进制余数，支持 constexpr，传递 NaN/无穷值。
 

@@ -1,9 +1,7 @@
 #include "bsp.hpp"
-#include "math/conversions.hpp"
+#include "math/unit.hpp"
 #include "misc.hpp"
 #include "robot.hpp"
-
-using math::ms;
 
 void send_can_cmd() {
     // CAN1
@@ -27,7 +25,7 @@ void send_can_cmd() {
     data[5] = cmd3;
     data[6] = cmd4 >> 8;
     data[7] = cmd4;
-    rmpp::board.can(1).send({.id = 0x200, .data = data, .size = 8});
+    bsp.can(1).send({.id = 0x200, .data = data, .size = 8});
     data[0] = cmd5 >> 8;
     data[1] = cmd5;
     data[2] = cmd6 >> 8;
@@ -36,7 +34,7 @@ void send_can_cmd() {
     data[5] = cmd7;
     data[6] = cmd8 >> 8;
     data[7] = cmd8;
-    rmpp::board.can(1).send({.id = 0x1FF, .data = data, .size = 8});
+    bsp.can(1).send({.id = 0x1FF, .data = data, .size = 8});
 
     yaw1.send_can_cmd();
 
@@ -51,7 +49,7 @@ extern "C" void app_main() {
     robot.init();
 
     [[maybe_unused]] static float cpu_usage{};
-    rmpp::Timer timer;
+    Timer timer;
     while (true) {
         if (timer.poll_timeout(1 * ms)) {
             robot.on_loop();

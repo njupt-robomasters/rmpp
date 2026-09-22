@@ -1,9 +1,7 @@
 #pragma once
 
-#include "math/conversions.hpp"
+#include "math/unit.hpp"
 #include "motor.hpp"
-
-using math::rpm;
 
 class Vesc : public Motor {
   public:
@@ -50,7 +48,7 @@ class Vesc : public Motor {
     };
 
     // CAN接收回调
-    void callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dlc);
+    void callback(uint32_t id, const uint8_t data[8], uint8_t dlc);
 
     // 构造CAN报文
     static void make_can_data(uint8_t data[4], float value, float scale);

@@ -1,14 +1,13 @@
 #pragma once
 
-#include "board/board.hpp" // timer
-#include "math/conversions.hpp"
-
-using math::ms;
-using math::pct;
+#include "bsp/timer.hpp"
+#include "bsp/uart.hpp"
+#include "math/unit.hpp"
 
 class FSi6X {
   public:
     struct Config {
+        Uart uart;
         float timeout = 500 * ms;          // 断联检测超时时间
         float joystick_deadline = 5 * pct; // 摇杆死区，小于此值认为是0
     } config;
@@ -59,7 +58,7 @@ class FSi6X {
         uint8_t tail : 8; // 0x00
     } raw_{};
 
-    rmpp::Timer timer_connect_; // 用于断联检测
+    Timer timer_connect_; // 用于断联检测
 
     // 串口接收回调
     void callback(const uint8_t data[], uint16_t size);

@@ -72,22 +72,6 @@
             }
         },
         {
-            "name": "examples-led-debug",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "examples/led",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "examples-led-release",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "examples/led",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
             "name": "examples-motor-debug",
             "inherits": "default",
             "cacheVariables": {
@@ -132,6 +116,22 @@
             "inherits": "default",
             "cacheVariables": {
                 "RMPP_APP": "examples/referee",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "examples-rgb-debug",
+            "inherits": "default",
+            "cacheVariables": {
+                "RMPP_APP": "examples/rgb",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "examples-rgb-release",
+            "inherits": "default",
+            "cacheVariables": {
+                "RMPP_APP": "examples/rgb",
                 "CMAKE_BUILD_TYPE": "Release"
             }
         },
@@ -234,14 +234,6 @@
             "configurePreset": "examples-imu-release"
         },
         {
-            "name": "examples-led-debug",
-            "configurePreset": "examples-led-debug"
-        },
-        {
-            "name": "examples-led-release",
-            "configurePreset": "examples-led-release"
-        },
-        {
             "name": "examples-motor-debug",
             "configurePreset": "examples-motor-debug"
         },
@@ -264,6 +256,14 @@
         {
             "name": "examples-referee-release",
             "configurePreset": "examples-referee-release"
+        },
+        {
+            "name": "examples-rgb-debug",
+            "configurePreset": "examples-rgb-debug"
+        },
+        {
+            "name": "examples-rgb-release",
+            "configurePreset": "examples-rgb-release"
         },
         {
             "name": "examples-shooter-debug",

@@ -1,8 +1,6 @@
 #include "rm6623.hpp"
-#include "math/conversions.hpp"
 #include "math/math.hpp"
-
-using math::rev;
+#include "math/unit.hpp"
 
 RM6623::RM6623(const Config& config) : Motor(config) {
     // 设置电机默认参数
@@ -12,8 +10,8 @@ RM6623::RM6623(const Config& config) : Motor(config) {
         this->config.kt = KT;
 
     // 注册CAN回调
-    rmpp::board.can(config.can_port).add_rx_callback([this](const rmpp::CanFrame& frame) {
-        this->callback(this->config.can_port, frame.id, frame.data.data(), frame.size);
+    config.can.add_rx_callback([this](const CanFrame& frame) {
+        this->callback(frame.id, frame.data.data(), frame.size);
     });
 }
 
@@ -23,7 +21,7 @@ int16_t RM6623::get_can_cmd() const {
 
     int16_t cmd;
 
-    const float current_limit = math::clamp(current.ref, MAX_CURRENT);
+    const float current_limit = clamp(current.ref, MAX_CURRENT);
     if (!config.is_invert) {
         cmd = (int16_t)((current_limit / MAX_CURRENT) * MAX_CURRENT_CMD);
     } else {
@@ -35,13 +33,11 @@ int16_t RM6623::get_can_cmd() const {
 
 void RM6623::send_calibrate_cmd() const {
     std::array<uint8_t, 8> data = {'c', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    rmpp::board.can(config.can_port).send({.id = 0x3F0, .data = data, .size = 8}); // 校准指令固定ID=0x3F0
+    config.can.send({.id = 0x3F0, .data = data, .size = 8}); // 校准指令固定ID=0x3F0
 }
 
-void RM6623::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
-    // 端口、ID、长度校验
-    if (port != config.can_port)
-        return;
+void RM6623::callback(const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
+    // ID、长度校验
     if (id != config.master_id)
         return;
     if (dlc != 8)

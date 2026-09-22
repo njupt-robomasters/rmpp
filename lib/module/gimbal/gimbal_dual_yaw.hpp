@@ -4,8 +4,6 @@
 #include "math/angle.hpp"
 #include "motor/motor.hpp"
 
-using math::Angle;
-
 class GimbalDualYaw : public Gimbal {
   public:
     // 云台电机
@@ -23,9 +21,9 @@ class GimbalDualYaw : public Gimbal {
     // 云台使能/失能
     void set_enable(bool is_enable) override;
 
-    void load_yaw_offset(FlashDb& flashdb) override;
+    void load_yaw_offset(Storage& storage) override;
 
-    void save_yaw_offset(FlashDb& flashdb) override;
+    void save_yaw_offset(Storage& storage) override;
 
     void set_yaw_zero() override;
 

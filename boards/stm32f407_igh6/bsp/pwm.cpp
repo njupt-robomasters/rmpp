@@ -1,11 +1,9 @@
-#include "board/pwm.hpp"
-#include "irq_lock.hpp"
+#include "bsp/pwm.hpp"
 #include "peripherals.hpp"
 #include "tim.h"
 #include <algorithm>
 #include <cmath>
 
-namespace rmpp {
 struct Pwm::State {
     int timer;
     int channel;
@@ -13,35 +11,38 @@ struct Pwm::State {
     float duty = 0;
 };
 
-Pwm::State* Pwm::find(int timer, int channel) {
-    static State states[] = {
-        {1, 1, &htim1},
-        {1, 2, &htim1},
-        {1, 3, &htim1},
-        {1, 4, &htim1},
-        {4, 3, &htim4},
-        {5, 1, &htim5},
-        {5, 2, &htim5},
-        {5, 3, &htim5},
-        {8, 1, &htim8},
-        {8, 2, &htim8},
-        {8, 3, &htim8},
-        {10, 1, &htim10},
+Pwm::Pwm(int timer, int channel) : timer_(timer), channel_(channel) {
+    static constinit State states[] = {
+        {.timer = 1, .channel = 1, .handle = &htim1},
+        {.timer = 1, .channel = 2, .handle = &htim1},
+        {.timer = 1, .channel = 3, .handle = &htim1},
+        {.timer = 1, .channel = 4, .handle = &htim1},
+        {.timer = 4, .channel = 3, .handle = &htim4},
+        {.timer = 5, .channel = 1, .handle = &htim5},
+        {.timer = 5, .channel = 2, .handle = &htim5},
+        {.timer = 5, .channel = 3, .handle = &htim5},
+        {.timer = 8, .channel = 1, .handle = &htim8},
+        {.timer = 8, .channel = 2, .handle = &htim8},
+        {.timer = 8, .channel = 3, .handle = &htim8},
+        {.timer = 10, .channel = 1, .handle = &htim10},
     };
     for (auto& state : states) {
-        if (state.timer == timer && state.channel == channel)
-            return &state;
+        if (state.timer == timer_ && state.channel == channel_) {
+            state_ = &state;
+            break;
+        }
     }
-    return nullptr;
 }
 
 bool Pwm::set_duty(float duty) const {
     if (!state_ || !std::isfinite(duty) || state_->handle->State == HAL_TIM_STATE_RESET)
         return false;
-    IrqLock lock;
+    const auto primask = __get_PRIMASK();
+    __disable_irq();
     state_->duty = std::clamp(duty, 0.0f, 1.0f);
     const auto count = static_cast<std::uint32_t>((__HAL_TIM_GET_AUTORELOAD(state_->handle) + 1) * state_->duty);
     __HAL_TIM_SET_COMPARE(state_->handle, (state_->channel - 1) * 4, count);
+    __set_PRIMASK(primask);
     return true;
 }
 
@@ -63,26 +64,28 @@ bool Pwm::set_frequency(float hz) const {
     if (counts == 0 || counts > 65535)
         return false;
 
-    IrqLock lock;
+    const auto primask = __get_PRIMASK();
+    __disable_irq();
     __HAL_TIM_SET_PRESCALER(state_->handle, divisor - 1);
     __HAL_TIM_SET_AUTORELOAD(state_->handle, counts - 1);
     for (int channel = 1; channel <= 4; ++channel) {
-        auto* peer = find(state_->timer, channel);
+        auto* peer = Pwm(state_->timer, channel).state_;
         if (peer)
             __HAL_TIM_SET_COMPARE(peer->handle, (channel - 1) * 4, static_cast<std::uint32_t>(counts * peer->duty));
     }
-    // Transfer the prescaler and preloaded compare values together.
+    // 同时装载预分频和各通道比较值。
     state_->handle->Instance->EGR = TIM_EGR_UG;
+    __set_PRIMASK(primask);
     return true;
 }
 
 void pwm_init() {
     for (int timer : {1, 4, 5, 8, 10}) {
         for (int channel = 1; channel <= 4; ++channel) {
-            auto* state = Pwm::find(timer, channel);
+            auto* state = Pwm(timer, channel).state_;
             if (!state)
                 continue;
-            // Leave one representable compare value above ARR for 100% duty.
+            // 为 100% 占空比保留 ARR + 1 的可表示比较值。
             if (__HAL_TIM_GET_AUTORELOAD(state->handle) == 65535)
                 __HAL_TIM_SET_AUTORELOAD(state->handle, 65534);
             __HAL_TIM_SET_COMPARE(state->handle, (channel - 1) * 4, 0);
@@ -90,4 +93,3 @@ void pwm_init() {
         }
     }
 }
-} // namespace rmpp

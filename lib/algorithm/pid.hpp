@@ -1,6 +1,6 @@
 #pragma once
 
-#include "board/board.hpp"
+#include "bsp/timer.hpp"
 #include <optional>
 
 class Pid {
@@ -29,7 +29,7 @@ class Pid {
 
     float out_no_filter_{}, p_out_{}, i_out_{}, d_out_{}; // PID输出分量
     float err_{}, last_err_{};                            // 误差值 err = ref - measure
-    rmpp::Timer timer_;                                   // 用于计算dt
+    Timer timer_;                                         // 用于计算dt
 
     // 低通滤波
     static float lowpass_filter(float pre, float next, float fc, float dt);

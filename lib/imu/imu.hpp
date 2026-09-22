@@ -1,18 +1,24 @@
 #pragma once
 
 #include "algorithm/pid.hpp"
+#include "bsp/pwm.hpp"
+#include "bsp/spi.hpp"
+#include "bsp/timer.hpp"
 #include "math/angle.hpp"
-#include "math/conversions.hpp"
+#include "math/unit.hpp"
 #include <tuple>
-
-using math::Angle;
-using math::pct;
 
 class Imu {
   public:
     static constexpr auto X = 0;
     static constexpr auto Y = 1;
     static constexpr auto Z = 2;
+
+    struct Config {
+        Spi accel;
+        Spi gyro;
+        Pwm heater;
+    };
 
     // 安装方向参数
     struct Dir {
@@ -36,7 +42,7 @@ class Imu {
     Angle yaw, pitch, roll;
     float yaw_total_angle{}; // rad, unwrapped
 
-    Imu(const Dir& dir, Calib& calib, rmpp::Pwm heater);
+    Imu(const Dir& dir, Calib& calib, const Config& config);
 
     // 校准陀螺仪，校准数据存放在calib成员变量
     void calibrate();
@@ -63,7 +69,7 @@ class Imu {
     // imu加热
     class TemperatureControl {
       public:
-        explicit TemperatureControl(rmpp::Pwm heater) : pid_(&pid_config_), heater_(heater) {}
+        explicit TemperatureControl(Pwm heater) : pid_(&pid_config_), heater_(heater) {}
 
         // 需要在循环中调用
         void on_loop();
@@ -79,15 +85,16 @@ class Imu {
             .max_i = 40.0f * pct,
             .max_out = 100.0f * pct};
         Pid pid_;
-        rmpp::Pwm heater_;
+        Pwm heater_;
     } temperature_control_;
 
+    Config config_;
     Dir dir_;     // 安装方向参数
     Calib calib_; // 校准参数
 
     bool is_init_ = false; // 用于自动初始化陀螺仪
 
-    rmpp::Timer timer_; // 用于计算dt
+    Timer timer_; // 用于计算dt
 
     // 初始化陀螺仪
     void init() const;

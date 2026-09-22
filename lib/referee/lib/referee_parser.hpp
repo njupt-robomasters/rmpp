@@ -1,17 +1,16 @@
 #pragma once
 
-#include "board/board.hpp"
-#include "math/conversions.hpp"
+#include "bsp/can.hpp"
+#include "bsp/timer.hpp"
+#include "math/unit.hpp"
 #include "packet.hpp"
 #include <cstdint>
-
-using math::ms;
 
 class RefereeParser {
   public:
     struct Config {
         // CAN通信参数
-        uint8_t can_port = 1;
+        Can can;
         uint32_t master_id = 0;
         uint32_t slave_id = 1;
 
@@ -43,23 +42,23 @@ class RefereeParser {
     radar_info_t radar_info{};                       // 0x020E，雷达自主决策信息同步（1Hz）【服务器→己方雷达机器人】
 
     // 用于统计报文频率
-    rmpp::Timer timer_game_status;
-    rmpp::Timer timer_game_robot_hp;
-    rmpp::Timer timer_event_data;
-    rmpp::Timer timer_referee_warning;
-    rmpp::Timer timer_dart_info;
-    rmpp::Timer timer_robot_status;
-    rmpp::Timer timer_power_heat_data;
-    rmpp::Timer timer_robot_pos;
-    rmpp::Timer timer_buff;
-    rmpp::Timer timer_hurt_data;
-    rmpp::Timer timer_projectile_allowance;
-    rmpp::Timer timer_rfid_status;
-    rmpp::Timer timer_dart_client_cmd;
-    rmpp::Timer timer_ground_robot_position;
-    rmpp::Timer timer_radar_mark_data;
-    rmpp::Timer timer_sentry_info;
-    rmpp::Timer timer_radar_info;
+    Timer timer_game_status;
+    Timer timer_game_robot_hp;
+    Timer timer_event_data;
+    Timer timer_referee_warning;
+    Timer timer_dart_info;
+    Timer timer_robot_status;
+    Timer timer_power_heat_data;
+    Timer timer_robot_pos;
+    Timer timer_buff;
+    Timer timer_hurt_data;
+    Timer timer_projectile_allowance;
+    Timer timer_rfid_status;
+    Timer timer_dart_client_cmd;
+    Timer timer_ground_robot_position;
+    Timer timer_radar_mark_data;
+    Timer timer_sentry_info;
+    Timer timer_radar_info;
 
     RefereeParser(const Config& config);
 
@@ -68,7 +67,7 @@ class RefereeParser {
 
   private:
     // 用于断联检测
-    rmpp::Timer timer_connect_;
+    Timer timer_connect_;
 
     enum {
         INIT,
@@ -99,7 +98,7 @@ class RefereeParser {
 
     void parse_byte(uint8_t byte);
 
-    void callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dlc);
+    void callback(uint32_t id, const uint8_t data[8], uint8_t dlc);
 
     void deserialize(uint16_t cmd_id, const uint8_t data[], uint8_t size);
 };

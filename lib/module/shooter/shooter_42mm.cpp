@@ -1,9 +1,7 @@
 #include "shooter_42mm.hpp"
 #include "math/angle.hpp"
-#include "math/conversions.hpp"
+#include "math/unit.hpp"
 #include <cmath>
-
-using math::Angle;
 
 Shooter42mm::Shooter42mm(const Config& config, const Motors& motor) : Shooter(config), motor(motor) {}
 
@@ -108,7 +106,7 @@ void Shooter42mm::backward() {
         const float a = angle_per_bullet * SHANE_AMP / 2;
         const float offset = shake_upper_ - a;
         const float t = timer_shake_.get_dt();
-        const Angle angle = a * std::cosf(2 * math::pi * SHAKE_FREQ * t) + offset;
+        const Angle angle = a * std::cosf(2 * pi * SHAKE_FREQ * t) + offset;
         motor.shoot.set_angle(angle);
 
         // 防止计时器溢出

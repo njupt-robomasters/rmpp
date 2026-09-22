@@ -1,15 +1,13 @@
 #pragma once
 
+#include "bsp/bsp.hpp"
+
 #include "imu.hpp"
-#include "math/conversions.hpp"
+#include "math/unit.hpp"
 #include "module/gimbal/gimbal_dual_yaw.hpp"
 #include "motor/dm4310.hpp"
 #include "motor/gm6020.hpp"
 #include "motor/mf9025.hpp"
-
-using math::deg;
-using math::deg_s;
-using math::deg_ss;
 
 // 用于Ozone调参
 // #define yaw1_pid angle_pid
@@ -31,7 +29,7 @@ inline Pid::Config yaw1_pid = {
     .fc = 10,
 };
 inline MF9025 yaw1({
-    .can_port = 1,
+    .can = bsp.can(1),
     .master_id = 0x141,
     .slave_id = 0x141,
     .is_invert = false,
@@ -52,7 +50,7 @@ inline Pid::Config yaw2_angle_pid = {
     .max_out = 720 * deg_s,
 };
 inline GM6020 yaw2({
-    .can_port = 1,
+    .can = bsp.can(1),
     .master_id = 0x205,
     .slave_id = 0x1FF,
     .offset = 0 * deg,
@@ -76,7 +74,7 @@ inline Pid::Config pitch_angle_pid = {
     .max_out = 720 * deg_s,
 };
 inline DM4310 pitch({
-    .can_port = 2,
+    .can = bsp.can(2),
     .master_id = 0x10,
     .slave_id = 0x11,
     .is_invert = true,

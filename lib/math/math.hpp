@@ -3,9 +3,9 @@
 #include <cmath>
 #include <tuple>
 
-namespace math {
-
-constexpr float square(float value) { return value * value; }
+constexpr float square(float value) {
+    return value * value;
+}
 
 constexpr float clamp(float value, float max_value) {
     if (value > max_value)
@@ -36,5 +36,3 @@ inline std::tuple<float, float> rotate(float x, float y, float angle) {
     const float s = std::sin(angle);
     return {c * x - s * y, s * x + c * y};
 }
-
-} // namespace math

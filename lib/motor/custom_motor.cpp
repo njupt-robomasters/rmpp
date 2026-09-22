@@ -1,8 +1,5 @@
 #include "custom_motor.hpp"
-#include "math/conversions.hpp"
-
-using math::deg;
-using math::deg_s;
+#include "math/unit.hpp"
 
 CustomMotor::CustomMotor(const Config& config) : Motor(config) {
     // 设置电机默认参数
@@ -10,8 +7,8 @@ CustomMotor::CustomMotor(const Config& config) : Motor(config) {
         this->config.reduction = 1;
 
     // 注册CAN回调
-    rmpp::board.can(config.can_port).add_rx_callback([this](const rmpp::CanFrame& frame) {
-        this->callback(this->config.can_port, frame.id, frame.data.data(), frame.size);
+    config.can.add_rx_callback([this](const CanFrame& frame) {
+        this->callback(frame.id, frame.data.data(), frame.size);
     });
 }
 
@@ -31,10 +28,8 @@ int16_t CustomMotor::get_can_cmd() const {
     return cmd;
 }
 
-void CustomMotor::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
-    // 端口、ID、长度校验
-    if (port != config.can_port)
-        return;
+void CustomMotor::callback(const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
+    // ID、长度校验
     if (id != config.master_id)
         return;
     if (dlc != 8)

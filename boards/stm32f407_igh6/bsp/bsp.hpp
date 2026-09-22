@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef __cplusplus
-#include "board/board.hpp"
+#include "bsp/bsp.hpp"
 extern "C" {
 #endif
 void bsp_init(void);

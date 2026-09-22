@@ -1,11 +1,10 @@
-#include "board/timer.hpp"
-#include "board/timer.h"
+#include "bsp/timer.hpp"
+#include "bsp/timer.h"
 #include "peripherals.hpp"
 #include "stm32f4xx.h"
 #include <algorithm>
 #include <cmath>
 
-namespace rmpp {
 void timer_init() {
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
     DWT->CYCCNT = 0;
@@ -56,15 +55,18 @@ void Timer::delay(float seconds) {
         seconds -= chunk;
     }
 }
-} // namespace rmpp
 
 extern "C" float timer_get_dt(uint32_t last_tick) {
     return static_cast<float>(static_cast<uint32_t>(DWT->CYCCNT - last_tick)) / SystemCoreClock;
 }
+
 extern "C" float timer_update_dt(uint32_t* last_tick) {
     const auto now = DWT->CYCCNT;
     const float dt = static_cast<float>(static_cast<uint32_t>(now - *last_tick)) / SystemCoreClock;
     *last_tick = now;
     return dt;
 }
-extern "C" void timer_delay(float seconds) { rmpp::Timer::delay(seconds); }
+
+extern "C" void timer_delay(float seconds) {
+    Timer::delay(seconds);
+}

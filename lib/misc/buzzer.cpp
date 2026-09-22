@@ -1,7 +1,5 @@
 #include "buzzer.hpp"
-#include "math/conversions.hpp"
-
-using math::ms;
+#include "math/unit.hpp"
 
 void Buzzer::on_loop() {
     if (i_ >= len_) {

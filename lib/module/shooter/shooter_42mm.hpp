@@ -4,8 +4,6 @@
 #include "motor/motor.hpp"
 #include "shooter.hpp"
 
-using math::Angle;
-
 class Shooter42mm : public Shooter {
   public:
     // 发射机构电机
@@ -39,7 +37,7 @@ class Shooter42mm : public Shooter {
 
     // 用于抖动下弹
     Angle shake_upper_;
-    rmpp::Timer timer_shake_;
+    Timer timer_shake_;
 
     enum {
         FREE,

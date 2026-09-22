@@ -1,30 +1,35 @@
 # 验证与人工审计
 
-用途：记录本次多板卡重构的软件验证，并给出人工审计和板上验证入口。
+用途：说明当前实现的验证结果、复现方法及板上待检查内容。
 
-## 已完成
+## 软件验证
 
-- 重构前快照：`46f2112`，包含开始实施时的源码、文档及既有删除记录。
-- Arm GNU 15.3.1、CMake/Ninja：三个整车与九个示例的 Debug/Release，共 24 组构建通过。
-- MinGW GNU 15.2：直接编译 BSP 实现的主机测试通过，测试代码在 `tests/`。
-- 检查全部 24 个 ELF：main、bsp_init、app_main 各一个，CAN/UART/USB 接收回调均为实际链接的强符号。
-- 对照 143 个生成及厂商文件：仅 main.c、usbd_cdc_if.c 的 USER CODE 接入发生变化，其余内容随目录原样搬迁。
-- CubeMX 根 CMake 仅移除原手写 `add_subdirectory(rmpp)`，默认生成部分保留。
-- 三个整车共 18 个配置头文件的数值字面量核对一致；新增 PWM 句柄选择单独核对。
-- FlashDB 分区配置与快照一致；现有协议字段、生成 MAVLink、数据键和校准含义保留。
+- 基线为 `fefa258`；更早的目录重构前快照为 `46f2112`。
+- Arm GNU 15.3.1、CMake 4.3.1/Ninja：三个整车与九个示例的 Debug/Release，共 24 组构建通过。
+- MinGW GNU 15.2：BSP 与 Storage 两组主机测试通过。编译真实 BSP、SPI 适配和 FlashDB/FAL，仅模拟硬件。
+- 24 个 ELF 均包含唯一的 main、bsp_init、app_main，以及实际链接的 CAN/UART/CDC 接收回调强符号。
+- 对照基线，203 个生成或第三方文件内容一致（忽略行结束符差异），包含移入 BSP 的 FlashDB/FAL；CubeMX 生成工程和配置保留。
+- 三个整车共 18 个配置头文件的控制数值核对一致；原 CAN 通道选择逐项对应，PWM/SPI/串口绑定按 app 配置核对。单位换算常量保留。
+- 146 个手写 C/C++ 文件使用 CLion 随附 clang-format 22 格式化，二次检查通过。根配置同时约束函数间空行。
+- 根 CMake 缺少 RMPP_APP 时明确失败，提示通过 preset 选择应用。
 
-主机测试覆盖：全局句柄与启动前注册、无效/稀疏 ID、共享句柄、捕获 this、多订阅者顺序、通道隔离、连续多帧、CAN 单次提交及邮箱满、嵌套中断屏蔽恢复、UART 空闲/收满/错误后重新接收、UART/CDC 发送缓冲区所有权与忙状态、CDC 截断、PWM APB 时钟/占空比/共享频率、LED 映射、独立 Timer/回绕/复位/限幅，以及 C 文件包含 bsp.hpp 并调用 C++ 实现。
+主机测试覆盖：全局构造、提前注册、无效/稀疏编号、直接构造与共享句柄、多个捕获回调、通道隔离、FIFO 连续帧、CAN 单次提交及邮箱满、PRIMASK 恢复、UART 空闲/收满/错误重启、UART/CDC 发送缓冲和忙状态、PWM 时钟/占空比/共享频率、RGB、独立 Timer 与回绕、C 到 C++ 入口。
 
-## 资源占用
+新增验证包括：
+
+- 指标：每毫秒 20 μs 与成批到达都收敛到 2%，负载变化、停收恢复和毫秒计数回绕符合预期。GDB 实际检查通道 metrics，最近回调为模拟的 10 μs，另一通道的 bus_off_count 为 1。
+- SPI：总线/片选映射、非法参数无引脚操作、忙状态拒绝、成功/失败均恢复片选；BMI088 单寄存器与连续读取的地址、空读字节和数据位置符合原实现。
+- Storage：构造不读写 Flash；同名重新创建后数据保留；应用切换遵循原标记重置规则；原 FlashDB API 与 Storage 交叉读写相同 float blob。模拟 Flash 检查地址范围、擦除对齐和只能将位写为零的约束。
+
+## 固件资源
 
 | 应用 | Debug RAM / Flash（B） | Release RAM / Flash（B） |
 | --- | ---: | ---: |
-| hero | 36336 / 117576 | 36264 / 125812 |
-| infantry | 35680 / 116088 | 35608 / 122660 |
-| sentry | 36160 / 118456 | 36088 / 129012 |
+| hero | 35640 / 117860 | 35568 / 126812 |
+| infantry | 34976 / 116468 | 34904 / 123728 |
+| sentry | 35456 / 118864 | 35384 / 130200 |
 
-CCMRAM 均为零。hero Debug 相比快照基线增加 RAM 3272 B、Flash 8584 B；新增固定发送缓冲区、通道状态和外设实现占用空间。
-链接报告不包含运行时 vector/std::function 实际堆分配量及最大栈深度。
+CCMRAM 均为零。链接报告不包含 vector/std::function、Storage 内部状态的实际堆分配量及最大栈深度。
 
 ## 复现
 
@@ -33,29 +38,30 @@ CCMRAM 均为零。hero Debug 相比快照基线增加 RAM 3272 B、Flash 8584 B
 ```sh
 python tools/update_presets.py
 python tools/check_builds.py
-cmake -S tests -B build/host -G Ninja
+cmake -S tests -B build/host -G Ninja -DCMAKE_BUILD_TYPE=Debug
 cmake --build build/host
 ctest --test-dir build/host --output-on-failure
+python tools/format_code.py --clang-format <CLion使用的clang-format路径> --check
 ```
 
-主机测试使用本机 C/C++ 编译器；交叉工具链由固件 app 选择，两者使用不同构建目录。
-Windows 可通过 `-DCMAKE_C_COMPILER=...`、`-DCMAKE_CXX_COMPILER=...` 指定 MinGW。
-批量构建脚本支持 `--cmake`、`--ninja` 指定路径，完整日志位于 `build/checks/`。
+主机测试使用本机 C/C++ 编译器；固件使用 app 选择的交叉工具链。Windows 可用 -DCMAKE_C_COMPILER、-DCMAKE_CXX_COMPILER 指定 MinGW。
+批量构建脚本支持 --cmake、--ninja，完整日志在 `build/checks/`。
+当前格式化可执行文件为 CLion 安装目录中的 `plugins/clion-radler/DotFiles/windows-x64/clang-format.exe`；CLion 与命令行应使用同一版本。
 
-## 建议审计顺序
+## 人工审计入口
 
-1. `lib/board/`：接口、空句柄、CanFrame、Bytes、Timer。
-2. `boards/stm32f407_igh6/bsp/`：查找表、bsp_init、发送与回调、PWM 和计时实现。
-3. `app/hero/app.cpp` 及应用配置：入口、控制周期、PWM 句柄和发送顺序。
-4. 根、app、lib、BSP 的 CMake，以及 `tools/update_presets.py`。
-5. 业务代码的命名和调用迁移；UI 队列现仅在 CAN 提交成功后出队。
+1. `lib/bsp/`：公共接口、无效句柄、Bsp 入口。
+2. 板卡 `bsp/`：构造绑定、metrics、临界区、收发与 PWM/SPI 实现。
+3. BMI088 通信适配与板卡 `bsp/storage/`：通信事务与存储。
+4. app 的硬件绑定、控制周期与发送顺序；业务库中的配置传递。
+5. 根、app、lib、BSP 的 CMake，以及 .clang-format。
 
-## 板上待验证与既有问题
+## 板上验证与既有问题
 
-主机模拟没有测量真实中断耗时、注册临界区延迟、总线负载、USB 枚举/断连、PWM 波形和机械行为。需要审计后在板上验证。
-CAN 成功仅表示已提交邮箱；整车周期发送没有新增队列，忙时本次报文返回失败，下一控制周期再发送新值。
-UART 当前在通知回调后重新接收，需按真实数据速率检查回调耗时与接收间隙。
-接收回调避免阻塞和动态分配，捕获对象保持存活；运行时注册会在关中断期间扩容，需测量实际最长延迟。
+软件验证未测量真实中断耗时、注册时关中断延迟、总线负载、USB 枚举/断连、PWM 波形和机械行为。用户审计后决定板上测试。
+CAN 成功表示提交邮箱；整车周期发送在忙时返回失败，下个周期发送新值。UART 在通知订阅者后重新接收，需检查实际回调耗时与接收间隙。SPI 同步事务在普通上下文调用。
+metrics 仅在收到报文时更新，停收保留最后结果；占用率表示回调分发的估算负载，可能包含抢占时间。
+Storage 按现有规则切换应用时重置配置；当前每个应用持有一个实例。
 
-Release 仍有第三方 QuaternionEKF 类型重解释/未初始化分析和 ui_interface 数组边界警告，与历史记录一致，未为通过构建屏蔽它们。
-双舵轮功率公式等既有算法问题见 `unit-migration.md`；本次未调参、烧录或上车测试。
+Release 仍有原第三方 QuaternionEKF 类型重解释/未初始化分析、ui_interface 数组边界警告。64 位主机编译 FlashDB 时另有原实现使用 32 位地址转换的警告；固件为 32 位平台。
+原 BMI088 驱动初始化持续重试、EKF 单实例，以及双舵轮/VESC 等既有问题继续保留，历史说明见 `unit-migration.md`。本轮未烧录或上车测试。

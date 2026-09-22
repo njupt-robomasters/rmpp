@@ -19,7 +19,7 @@ class MF9025 : public Motor {
     uint32_t send_cnt_ = 0; // 用于定期发送使能命令
 
     // CAN回调函数
-    void callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dlc);
+    void callback(uint32_t id, const uint8_t data[8], uint8_t dlc);
 
     // 发送电流
     void send_current(float current) const;

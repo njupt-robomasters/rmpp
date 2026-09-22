@@ -1,10 +1,6 @@
 #include "vesc.hpp"
-#include "math/conversions.hpp"
+#include "math/unit.hpp"
 #include <cmath>
-
-using math::deg;
-using math::pct;
-using math::rpm;
 
 Vesc::Vesc(const Config& config, const VescConfig& vesc_config) : Motor(config), vesc_config(vesc_config) {
     // 设置电机默认参数
@@ -14,8 +10,8 @@ Vesc::Vesc(const Config& config, const VescConfig& vesc_config) : Motor(config),
         this->config.kt = 1.0f;
 
     // 注册CAN回调
-    rmpp::board.can(config.can_port).add_rx_callback([this](const rmpp::CanFrame& frame) {
-        this->callback(this->config.can_port, frame.id, frame.data.data(), frame.size);
+    config.can.add_rx_callback([this](const CanFrame& frame) {
+        this->callback(frame.id, frame.data.data(), frame.size);
     });
 }
 
@@ -39,10 +35,8 @@ void Vesc::send_can_cmd() {
     }
 }
 
-void Vesc::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
-    // 端口、ID、长度校验
-    if (port != config.can_port)
-        return;
+void Vesc::callback(const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
+    // ID、长度校验
     if ((id & 0xFF) != config.master_id)
         return; // 必须要&FF，因为高位是命令码
     if (dlc != 8)
@@ -92,12 +86,12 @@ void Vesc::send_erpm(const float erpm) const {
     const uint32_t ext_id = config.slave_id | (CAN_PACKET_SET_RPM << 8);
     std::array<uint8_t, 8> data{};
     make_can_data(data.data(), erpm, 1);
-    rmpp::board.can(config.can_port).send({.id = ext_id, .data = data, .size = 4, .extended = true});
+    config.can.send({.id = ext_id, .data = data, .size = 4, .extended = true});
 }
 
 void Vesc::send_current_brake(const float current) const {
     const uint32_t ext_id = config.slave_id | (CAN_PACKET_SET_CURRENT_BRAKE << 8);
     std::array<uint8_t, 8> data{};
     make_can_data(data.data(), current, 1000);
-    rmpp::board.can(config.can_port).send({.id = ext_id, .data = data, .size = 4, .extended = true});
+    config.can.send({.id = ext_id, .data = data, .size = 4, .extended = true});
 }

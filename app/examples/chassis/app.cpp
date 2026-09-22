@@ -1,12 +1,8 @@
 #include "bsp.hpp"
 #include "chassis.hpp"
 #include "rc/rc.hpp"
-Rc rc({}, {});
-#include "math/conversions.hpp"
-
-using math::deg;
-using math::ms;
-using math::rpm;
+Rc rc({.uart = bsp.uart(3)}, {.uart = bsp.uart(6)});
+#include "math/unit.hpp"
 
 static constexpr float VXY_MAX = 1.0f;
 static constexpr float WR_MAX = 60 * rpm;
@@ -25,7 +21,7 @@ void send_can_cmd() {
     data[5] = cmd3;
     data[6] = cmd4 >> 8;
     data[7] = cmd4;
-    rmpp::board.can(1).send({.id = 0x200, .data = data, .size = 8});
+    bsp.can(1).send({.id = 0x200, .data = data, .size = 8});
 }
 
 extern "C" void app_main() {
@@ -34,7 +30,7 @@ extern "C" void app_main() {
     chassis.set_power_limit(120);
     chassis.set_buffer_energy(60);
 
-    rmpp::Timer timer;
+    Timer timer;
     while (true) {
         if (timer.poll_timeout(1 * ms)) {
             rc.on_loop();

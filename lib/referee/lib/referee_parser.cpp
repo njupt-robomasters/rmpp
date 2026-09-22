@@ -4,8 +4,8 @@
 
 RefereeParser::RefereeParser(const Config& config) : config(config) {
     // 注册CAN回调
-    rmpp::board.can(config.can_port).add_rx_callback([this](const rmpp::CanFrame& frame) {
-        this->callback(this->config.can_port, frame.id, frame.data.data(), frame.size);
+    config.can.add_rx_callback([this](const CanFrame& frame) {
+        this->callback(frame.id, frame.data.data(), frame.size);
     });
 }
 
@@ -16,9 +16,7 @@ void RefereeParser::on_loop() {
     }
 }
 
-void RefereeParser::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
-    if (port != config.can_port)
-        return;
+void RefereeParser::callback(const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
     if (id != config.master_id)
         return;
 

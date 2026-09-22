@@ -1,11 +1,8 @@
 #include "bsp.hpp"
 #include "gimbal.hpp"
 #include "rc/rc.hpp"
-Rc rc({}, {});
-#include "math/conversions.hpp"
-
-using math::deg_s;
-using math::ms;
+Rc rc({.uart = bsp.uart(3)}, {.uart = bsp.uart(6)});
+#include "math/unit.hpp"
 
 static constexpr float YAW_SPEED_MAX = 360 * deg_s;
 static constexpr float PITCH_SPEED_MAX = 360 * deg_s;
@@ -21,14 +18,14 @@ void send_can_cmd() {
     data[5] = 0;
     data[6] = 0;
     data[7] = 0;
-    rmpp::board.can(1).send({.id = 0x1FF, .data = data, .size = 8});
+    bsp.can(1).send({.id = 0x1FF, .data = data, .size = 8});
     pitch.send_can_cmd();
 }
 
 extern "C" void app_main() {
     gimbal.set_mode(Gimbal::IMU_MODE);
 
-    rmpp::Timer timer;
+    Timer timer;
     while (true) {
         if (timer.poll_timeout(1 * ms)) {
             rc.on_loop();

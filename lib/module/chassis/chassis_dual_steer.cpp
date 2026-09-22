@@ -1,12 +1,8 @@
 #include "chassis_dual_steer.hpp"
 #include "math/angle.hpp"
-#include "math/conversions.hpp"
 #include "math/math.hpp"
+#include "math/unit.hpp"
 #include <cmath>
-
-using math::Angle;
-using math::deg;
-using math::pct;
 
 static const float SQRT2DIV2 = std::sqrt(2.0f) / 2.0f;
 
@@ -66,7 +62,7 @@ void ChassisDualSteer::forward() {
     vy = (vy1 + vy2) / 2;
     vz = (vz1 + vz2) / 2;
     // 两舵轮速度正解 end
-    std::tie(this->vx.measure, this->vy.measure) = math::rotate(vx, vy, -gimbal_yaw_);
+    std::tie(this->vx.measure, this->vy.measure) = rotate(vx, vy, -gimbal_yaw_);
     this->vz.measure = vz;
     wr.measure = vz / config.chassis_radius;
 
@@ -87,13 +83,13 @@ void ChassisDualSteer::forward() {
     fy = fy1 + fy2;
     fz = fz1 + fz2;
     // 两舵轮力学正解 end
-    std::tie(this->fx.measure, this->fy.measure) = math::rotate(fx, fy, -gimbal_yaw_);
+    std::tie(this->fx.measure, this->fy.measure) = rotate(fx, fy, -gimbal_yaw_);
     this->fz.measure = fz;
 }
 
 void ChassisDualSteer::backward() {
     // 速度逆解
-    auto [vx, vy] = math::rotate(this->vx.ref, this->vy.ref, gimbal_yaw_);
+    auto [vx, vy] = rotate(this->vx.ref, this->vy.ref, gimbal_yaw_);
     auto vz = this->vz.ref;
     float v1{}, v2{};
     // 两舵轮速度逆解 begin
@@ -134,7 +130,7 @@ void ChassisDualSteer::backward() {
     motor.w2.set_speed(v2 / config.wheel_radius);
 
     // 力学逆解
-    auto [fx, fy] = math::rotate(this->fx.ref, this->fy.ref, gimbal_yaw_);
+    auto [fx, fy] = rotate(this->fx.ref, this->fy.ref, gimbal_yaw_);
     auto fz = this->fz.ref;
     float f1{}, f2{};
     // 两舵轮力学逆解 begin
@@ -183,7 +179,7 @@ void ChassisDualSteer::backward() {
 
 void ChassisDualSteer::power_control_after_motor_update() {
     // 功率估计
-    power.estimate = motor.w1.torque.measure * motor.w1.speed.measure + motor.w2.torque.measure * motor.w2.speed.measure + 3 * math::square(motor.w1.current.measure) * motor.w1.config.r + 3 * math::square(motor.w2.current.measure) * motor.w2.config.r;
+    power.estimate = motor.w1.torque.measure * motor.w1.speed.measure + motor.w2.torque.measure * motor.w2.speed.measure + 3 * square(motor.w1.current.measure) * motor.w1.config.r + 3 * square(motor.w2.current.measure) * motor.w2.config.r;
 
     // 裁判系统设置无限功率时，读出来是65535，禁用功率控制（这时候缓冲能量还在异常工作，必须在这里禁用）
     if (power.limit == 65535)
@@ -197,11 +193,11 @@ void ChassisDualSteer::power_control_after_motor_update() {
     // a = I^2*R
     // b = kt*I*w
     // c = -P
-    const float a = 3 * math::square(motor.w1.current.ref) * motor.w1.config.r + 3 * math::square(motor.w2.current.ref) * motor.w2.config.r;
+    const float a = 3 * square(motor.w1.current.ref) * motor.w1.config.r + 3 * square(motor.w2.current.ref) * motor.w2.config.r;
     const float b = motor.w1.torque.ref * motor.w1.speed.measure + motor.w2.torque.ref * motor.w2.speed.measure;
     const float c = -power.limit;
     power.gain = (-b + std::sqrtf(b * b - 4 * a * c)) / (2 * a); // 一定为一正根和一负根（x1*x2 = c/a < 0)
-    power.gain = math::clamp(power.gain, 0 * pct, 100 * pct);    // 钳位
+    power.gain = clamp(power.gain, 0 * pct, 100 * pct);          // 钳位
 
     // 基于缓冲能量的功率控制
     const auto& buffer_energy = power.buffer_energy;

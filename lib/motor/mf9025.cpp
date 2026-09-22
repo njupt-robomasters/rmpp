@@ -1,9 +1,6 @@
 #include "mf9025.hpp"
-#include "math/conversions.hpp"
 #include "math/math.hpp"
-
-using math::deg_s;
-using math::rev;
+#include "math/unit.hpp"
 
 MF9025::MF9025(const Config& config) : Motor(config) {
     // 设置电机默认参数
@@ -13,8 +10,8 @@ MF9025::MF9025(const Config& config) : Motor(config) {
         this->config.kt = KT;
 
     // 注册CAN回调
-    rmpp::board.can(config.can_port).add_rx_callback([this](const rmpp::CanFrame& frame) {
-        this->callback(this->config.can_port, frame.id, frame.data.data(), frame.size);
+    config.can.add_rx_callback([this](const CanFrame& frame) {
+        this->callback(frame.id, frame.data.data(), frame.size);
     });
 }
 
@@ -27,10 +24,8 @@ void MF9025::send_can_cmd() {
     }
 }
 
-void MF9025::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
-    // 端口、ID、长度校验
-    if (port != config.can_port)
-        return;
+void MF9025::callback(const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
+    // ID、长度校验
     if (id != config.master_id)
         return;
     if (dlc != 8)
@@ -61,7 +56,7 @@ void MF9025::callback(const uint8_t port, const uint32_t id, const uint8_t data[
 void MF9025::send_current(float current) const {
     int16_t cmd;
 
-    const float current_limit = math::clamp(current, MAX_CURRENT);
+    const float current_limit = clamp(current, MAX_CURRENT);
     if (!config.is_invert) {
         cmd = (int16_t)((current_limit / MAX_CURRENT) * MAX_CURRENT_CMD);
     } else {
@@ -77,5 +72,5 @@ void MF9025::send_current(float current) const {
     data[5] = cmd >> 8;
     data[6] = 0;
     data[7] = 0;
-    rmpp::board.can(config.can_port).send({.id = config.slave_id, .data = data, .size = 8});
+    config.can.send({.id = config.slave_id, .data = data, .size = 8});
 }

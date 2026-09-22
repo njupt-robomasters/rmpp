@@ -1,19 +1,16 @@
 #include "robot.hpp"
-#include "math/conversions.hpp"
 #include "math/math.hpp"
-
-using math::deg;
-using math::ms;
+#include "math/unit.hpp"
 
 Robot::Robot(const Config& config, const Device& device) : config(config), device(device) {}
 
 void Robot::init() {
-    device.gimbal.load_yaw_offset(device.flashdb);
+    device.gimbal.load_yaw_offset(device.storage);
     device.buzzer.play(Buzzer::C5D5G5);
 }
 
 void Robot::on_loop() {
-    device.led.on_loop();
+    device.rgb.on_loop();
     device.buzzer.on_loop();
 
     // 断联检测
@@ -49,7 +46,7 @@ void Robot::on_loop() {
 void Robot::handle_rc() {
     device.rc.on_loop();
 
-    //【底盘】
+    // 【底盘】
     vx_.rc = device.rc.x * config.vxy_max;
     vy_.rc = device.rc.y * config.vxy_max;
     wr_.rc = device.rc.r * config.wr_max;
@@ -58,7 +55,7 @@ void Robot::handle_rc() {
         device.chassis.set_mode(Chassis::FOLLOW_MODE);
     }
 
-    //【云台】
+    // 【云台】
     wyaw_.rc = device.rc.yaw * config.wyaw;
     wpitch_.rc = device.rc.pitch * config.wpitch;
     // 自瞄
@@ -73,13 +70,13 @@ void Robot::handle_rc() {
     static bool is_calib_last = false;
     if (!is_calib_last && device.rc.is_calib) { // 上升沿
         device.gimbal.set_yaw_zero();
-        device.gimbal.save_yaw_offset(device.flashdb);
+        device.gimbal.save_yaw_offset(device.storage);
         device.buzzer.play(Buzzer::G5G5G5);
     }
     is_calib_last = device.rc.is_calib;
 
-    //【发射机构】
-    // 摩擦轮（S挡开启）
+    // 【发射机构】
+    //  摩擦轮（S挡开启）
     is_rub_.rc = device.rc.is_rub;
     // 拨弹电机
     if (device.rc.is_auto_aim) { // 自瞄状态下，扳机键批准自动火控
@@ -91,21 +88,21 @@ void Robot::handle_rc() {
 
 void Robot::handle_client() {
     // 维护dt
-    static rmpp::Timer timer;
+    static Timer timer;
     const float dt = timer.update_dt();
 
-    //【底盘】
-    // 前后（w、s键），限制加速度
+    // 【底盘】
+    //  前后（w、s键），限制加速度
     if (device.rc.key.w) { // 前
         if (vx_.client < 0)
             vx_.client = 0.0f;
         vx_.client += config.axy * dt;
-        vx_.client = math::clamp(vx_.client, config.vxy_max);
+        vx_.client = clamp(vx_.client, config.vxy_max);
     } else if (device.rc.key.s) { // 后
         if (vx_.client > 0)
             vx_.client = 0.0f;
         vx_.client -= config.axy * dt;
-        vx_.client = math::clamp(vx_.client, config.vxy_max);
+        vx_.client = clamp(vx_.client, config.vxy_max);
     } else { // 松开减速
         if (vx_.client > 0) {
             vx_.client -= config.dxy * dt;
@@ -123,12 +120,12 @@ void Robot::handle_client() {
         if (vy_.client < 0)
             vy_.client = 0.0f;
         vy_.client += config.axy * dt;
-        vy_.client = math::clamp(vy_.client, config.vxy_max);
+        vy_.client = clamp(vy_.client, config.vxy_max);
     } else if (device.rc.key.d) { // 右
         if (vy_.client > 0)
             vy_.client = 0.0f;
         vy_.client -= config.axy * dt;
-        vy_.client = math::clamp(vy_.client, config.vxy_max);
+        vy_.client = clamp(vy_.client, config.vxy_max);
     } else { // 松开减速
         if (vy_.client > 0) {
             vy_.client -= config.dxy * dt;
@@ -146,12 +143,12 @@ void Robot::handle_client() {
         if (wr_.client < 0)
             wr_.client = 0.0f;
         wr_.client += config.ar * dt;
-        wr_.client = math::clamp(wr_.client, config.wr_max);
+        wr_.client = clamp(wr_.client, config.wr_max);
     } else if (device.rc.key.ctrl) { // 顺逆时针旋转
         if (wr_.client > 0)
             wr_.client = 0.0f;
         wr_.client -= config.ar * dt;
-        wr_.client = math::clamp(wr_.client, config.wr_max);
+        wr_.client = clamp(wr_.client, config.wr_max);
     } else { // 松开减速
         if (wr_.client > 0) {
             wr_.client -= config.dr * dt;
@@ -165,8 +162,8 @@ void Robot::handle_client() {
         }
     }
 
-    //【云台】
-    // yaw（鼠标上下），限制角加速度
+    // 【云台】
+    //  yaw（鼠标上下），限制角加速度
     float dwyaw = device.rc.mouse.yaw * config.wyaw - wyaw_.client;
     const float dwyaw_max = config.ayaw * dt;
     if (dwyaw > dwyaw_max)
@@ -198,11 +195,11 @@ void Robot::handle_client() {
     }
     last_r = device.rc.key.r;
 
-    //【发射机构】
-    // 拨弹电机
+    // 【发射机构】
+    //  拨弹电机
     static bool force_fire = false;
     static bool last_left = false;
-    static rmpp::Timer timer_last_click;
+    static Timer timer_last_click;
     if (device.rc.mouse.right) { // 允许自瞄状态下
         // 双击左键强制开火
         if (!last_left && device.rc.mouse.left) {
@@ -262,7 +259,7 @@ void Robot::handle_client() {
         }
         last_c = device.rc.key.c;
 
-        config.bullet_freq = math::clamp(config.bullet_freq, 5, 25);
+        config.bullet_freq = clamp(config.bullet_freq, 5, 25);
     }
 }
 
@@ -284,9 +281,9 @@ void Robot::handle_mavlink() {
 
 void Robot::handle_chassis() {
     // 设置底盘速度
-    const float vx = math::clamp(this->vx_.rc + this->vx_.client + this->vx_.software, config.vxy_max);
-    const float vy = math::clamp(this->vy_.rc + this->vy_.client + this->vy_.software, config.vxy_max);
-    const float wr = math::clamp(this->wr_.rc + this->wr_.client + this->wr_.software, config.wr_max);
+    const float vx = clamp(this->vx_.rc + this->vx_.client + this->vx_.software, config.vxy_max);
+    const float vy = clamp(this->vy_.rc + this->vy_.client + this->vy_.software, config.vxy_max);
+    const float wr = clamp(this->wr_.rc + this->wr_.client + this->wr_.software, config.wr_max);
     device.chassis.set_speed(vx, vy, wr);
 
     // 设置前进正方向
@@ -313,8 +310,8 @@ void Robot::handle_gimbal() {
         device.gimbal.set_angle(yaw_.software, pitch_.software);
         device.gimbal.set_speed(0.0f, 0.0f);
     } else {
-        const float yaw_speed = math::clamp(this->wyaw_.rc + this->wyaw_.client + this->wyaw_.software, config.wyaw);
-        const float pitch_speed = math::clamp(this->wpitch_.rc + this->wpitch_.client + this->wpitch_.software, config.wpitch);
+        const float yaw_speed = clamp(this->wyaw_.rc + this->wyaw_.client + this->wyaw_.software, config.wyaw);
+        const float pitch_speed = clamp(this->wpitch_.rc + this->wpitch_.client + this->wpitch_.software, config.wpitch);
         device.gimbal.set_speed(yaw_speed, pitch_speed);
     }
 

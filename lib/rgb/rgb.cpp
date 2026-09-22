@@ -1,18 +1,17 @@
-#include "board/led.hpp"
+#include "rgb.hpp"
 #include <algorithm>
 #include <cmath>
 
-namespace rmpp {
-bool Led::set_rgb(float red, float green, float blue) const {
+bool Rgb::set_rgb(float red, float green, float blue) const {
     if (!*this || !std::isfinite(red) || !std::isfinite(green) || !std::isfinite(blue))
         return false;
-    const bool r = red_.set_duty(red);
-    const bool g = green_.set_duty(green);
-    const bool b = blue_.set_duty(blue);
+    const bool r = config.red.set_duty(red);
+    const bool g = config.green.set_duty(green);
+    const bool b = config.blue.set_duty(blue);
     return r && g && b;
 }
 
-bool Led::set_hsv(float hue, float saturation, float brightness) const {
+bool Rgb::set_hsv(float hue, float saturation, float brightness) const {
     if (!*this || !std::isfinite(hue) || !std::isfinite(saturation) || !std::isfinite(brightness))
         return false;
     hue = std::clamp(hue, 0.0f, 1.0f);
@@ -33,4 +32,11 @@ bool Led::set_hsv(float hue, float saturation, float brightness) const {
         return set_rgb(x + m, m, c + m);
     return set_rgb(c + m, m, x + m);
 }
-} // namespace rmpp
+
+void Rgb::on_loop() {
+    const float dt = timer_.update_dt();
+    if (!std::isfinite(config.period) || config.period <= 0)
+        return;
+    hue_ = std::fmod(hue_ + dt / config.period, 1.0f);
+    set_hsv(hue_, config.saturation, config.brightness);
+}

@@ -2,11 +2,8 @@
 
 #include "chassis.hpp"
 #include "math/angle.hpp"
-#include "math/conversions.hpp"
+#include "math/unit.hpp"
 #include "motor/motor.hpp"
-
-using math::Angle;
-using math::cm;
 
 class ChassisDualSteer : public Chassis {
   public:

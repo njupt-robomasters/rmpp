@@ -1,9 +1,7 @@
 #pragma once
 
-#include "conversions.hpp"
+#include "unit.hpp"
 #include <limits>
-
-namespace math {
 
 class Angle {
   public:
@@ -12,7 +10,9 @@ class Angle {
     // Angles are always represented in radians and normalized at construction.
     constexpr Angle(float radians) : radians_(normalize(radians)) {}
 
-    constexpr operator float() const { return radians_; }
+    constexpr operator float() const {
+        return radians_;
+    }
 
     constexpr Angle& operator=(float radians) {
         radians_ = normalize(radians);
@@ -69,5 +69,3 @@ class Angle {
 
     float radians_;
 };
-
-} // namespace math

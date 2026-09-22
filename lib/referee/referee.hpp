@@ -3,8 +3,6 @@
 #include "lib/referee_parser.hpp"
 #include "math/angle.hpp"
 
-using math::Angle;
-
 class Referee {
   public:
     using Config = RefereeParser::Config;
@@ -151,7 +149,7 @@ class Referee {
     RefereeParser parser_; // 裁判系统报文解析库
 
     // 用于维护伤害方向
-    rmpp::Timer timer_hurt_;
+    Timer timer_hurt_;
     Angle yaw_ecd_, yaw_imu_;
     Angle hurt_dir_by_imu_; // 伤害方向，相对于IMU参考系
 };

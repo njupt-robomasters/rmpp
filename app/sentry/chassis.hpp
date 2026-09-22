@@ -1,13 +1,11 @@
 #pragma once
 
-#include "math/conversions.hpp"
+#include "bsp/bsp.hpp"
+
+#include "math/unit.hpp"
 #include "module/chassis/chassis_dual_steer.hpp"
 #include "motor/gm6020.hpp"
 #include "motor/m3508.hpp"
-
-using math::cm;
-using math::deg;
-using math::rpm;
 
 // 电机参数
 static constexpr float REDUCTION = 14.0f;
@@ -43,7 +41,7 @@ inline Pid::Config vxyz_pid = {
 
 // 轮电机
 inline M3508 w1({
-    .can_port = 1,
+    .can = bsp.can(1),
     .master_id = 0x201,
     .slave_id = 0x200,
     .reduction = REDUCTION,
@@ -54,7 +52,7 @@ inline M3508 w1({
     .speed_pid_config = &wheel_pid,
 });
 inline M3508 w2({
-    .can_port = 1,
+    .can = bsp.can(1),
     .master_id = 0x202,
     .slave_id = 0x200,
     .reduction = REDUCTION,
@@ -67,7 +65,7 @@ inline M3508 w2({
 
 // 舵电机
 inline GM6020 s1({
-    .can_port = 1,
+    .can = bsp.can(1),
     .master_id = 0x207,
     .slave_id = 0x1FF,
     .is_invert = IS_SERVO_INVERT,
@@ -77,7 +75,7 @@ inline GM6020 s1({
     .angle_pid_config = &servo_pid,
 });
 inline GM6020 s2({
-    .can_port = 1,
+    .can = bsp.can(1),
     .master_id = 0x208,
     .slave_id = 0x1FF,
     .is_invert = IS_SERVO_INVERT,

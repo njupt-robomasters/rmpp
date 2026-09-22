@@ -20,5 +20,5 @@ class M3508 : public Motor {
     static constexpr uint16_t MAX_CURRENT_CMD = 16384;
 
     // CAN接收回调
-    void callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dlc);
+    void callback(uint32_t id, const uint8_t data[8], uint8_t dlc);
 };

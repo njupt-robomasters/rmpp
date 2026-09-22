@@ -3,3 +3,6 @@ IndentWidth: 4
 ColumnLimit: 0
 BreakBeforeBraces: Attach
 PointerAlignment: Left
+AllowShortFunctionsOnASingleLine: Empty
+MaxEmptyLinesToKeep: 1
+SeparateDefinitionBlocks: Always

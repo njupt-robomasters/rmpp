@@ -1,11 +1,9 @@
 #include "bsp.hpp"
-#include "math/conversions.hpp"
+#include "math/unit.hpp"
 #include "motor/custom_motor.hpp"
 
-using math::ms;
-
 CustomMotor motor({
-    .can_port = 1,
+    .can = bsp.can(1),
     .master_id = 0x1FF,
     .slave_id = 0x205,
     .control_mode = Motor::OPEN_LOOP_MODE,
@@ -22,12 +20,12 @@ void send_can_cmd() {
     data[5] = 0;
     data[6] = 0;
     data[7] = 0;
-    rmpp::board.can(motor.config.can_port).send({.id = 0x1FF, .data = data, .size = 8});
+    motor.config.can.send({.id = 0x1FF, .data = data, .size = 8});
 }
 
 extern "C" void app_main() {
 
-    rmpp::Timer timer;
+    Timer timer;
     while (true) {
         if (timer.poll_timeout(1 * ms)) {
             motor.set_current(0.1);

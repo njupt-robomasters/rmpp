@@ -1,11 +1,10 @@
 #pragma once
 
 #include "algorithm/pid.hpp"
+#include "bsp/can.hpp"
+#include "bsp/timer.hpp"
 #include "math/angle.hpp"
-#include "math/conversions.hpp"
-
-using math::Angle;
-using math::ms;
+#include "math/unit.hpp"
 
 class Motor {
   public:
@@ -27,7 +26,7 @@ class Motor {
     // 电机配置
     struct Config {
         // CAN通信参数
-        uint8_t can_port = -1;
+        Can can;
         uint32_t master_id = 0, slave_id = 0;
         float timeout = 100.0f * ms; // 电机断联超时时间
 
@@ -106,7 +105,7 @@ class Motor {
     virtual void on_loop();
 
   protected:
-    rmpp::Timer timer_connect_; // 用于电机断联检测
+    Timer timer_connect_; // 用于电机断联检测
 
     // CAN接收回调，子类重写后要调用
     void callback(const Raw& raw);

@@ -1,7 +1,5 @@
 #pragma once
 
-namespace math {
-
 inline constexpr float pi = 3.14159265358979323846f;
 
 // Conversion factors into the internal SI representation.
@@ -22,5 +20,3 @@ inline constexpr float deg_s = deg; // degrees/s -> rad/s
 inline constexpr float rpm = rev / 60.0f;
 inline constexpr float rps = rev;    // revolutions/s -> rad/s
 inline constexpr float deg_ss = deg; // degrees/s^2 -> rad/s^2
-
-} // namespace math

@@ -1,17 +1,21 @@
 #pragma once
 
-#include "flashdb/flash_db.hpp"
+#include "bsp/bsp.hpp"
+
+#include "bsp/storage.hpp"
 #include "mavlink/mavlink.hpp"
 #include "misc/buzzer.hpp"
-#include "misc/led.hpp"
 #include "rc/rc.hpp"
 #include "referee/referee.hpp"
+#include "rgb/rgb.hpp"
 #include "ui/ui.hpp"
 
-inline Led led({});
-inline Buzzer buzzer(rmpp::board.pwm(4, 3));
-inline FlashDb flashdb("sentry");
-inline Rc rc({}, {});
+inline Rgb rgb({.red = bsp.pwm(5, 3), .green = bsp.pwm(5, 2), .blue = bsp.pwm(5, 1)});
+inline Buzzer buzzer(bsp.pwm(4, 3));
+inline Storage storage("sentry");
+inline Rc rc({.uart = bsp.uart(3)}, {.uart = bsp.uart(6)});
 inline Mavlink mavlink({.send_freq = 150});
-inline Referee referee({});
-inline Ui ui({});
+inline Referee referee({.can = bsp.can(1)});
+inline Ui ui({
+    .can = bsp.can(1),
+});

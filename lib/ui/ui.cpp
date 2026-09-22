@@ -1,15 +1,10 @@
 #include "ui.hpp"
 #include "math/angle.hpp"
-#include "math/conversions.hpp"
+#include "math/unit.hpp"
 #include "rmui_adapter.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-
-using math::Angle;
-using math::deg;
-using math::pct;
-using math::rpm;
 
 // CAN发送队列
 uint8_t Ui::txbuf[TXBUF_SIZE];
@@ -66,7 +61,7 @@ void Ui::send_can_cmd() {
             next_head = (next_head + 1) % TXBUF_SIZE;
             dlc++;
         }
-        if (rmpp::board.can(config.can_port).send({.id = config.slave_id, .data = data, .size = dlc}))
+        if (config.can.send({.id = config.slave_id, .data = data, .size = dlc}))
             head = next_head;
     }
 }

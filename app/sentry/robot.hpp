@@ -4,12 +4,9 @@
 
 #include "chassis.hpp"
 #include "gimbal.hpp"
-#include "math/conversions.hpp"
+#include "math/unit.hpp"
 #include "misc.hpp"
 #include "shooter.hpp"
-
-using math::deg_s;
-using math::rpm;
 
 inline Sentry::Config robot_config = {
     .vxy_max = 5.0f,     // 100W下2.3m/s，不限功率3.2m/s
@@ -29,9 +26,9 @@ inline Sentry::Config robot_config = {
     .heat_protect = 80,
 };
 inline Sentry robot(robot_config,
-                    {led,
+                    {rgb,
                      buzzer,
-                     flashdb,
+                     storage,
 
                      rc,
                      mavlink,

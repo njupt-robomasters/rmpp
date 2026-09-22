@@ -1,9 +1,9 @@
 #pragma once
 
 // 杂项
-#include "flashdb/flash_db.hpp"
+#include "bsp/storage.hpp"
 #include "misc/buzzer.hpp"
-#include "misc/led.hpp"
+#include "rgb/rgb.hpp"
 
 // 控制器
 #include "mavlink/mavlink.hpp"
@@ -43,9 +43,9 @@ class Robot {
     } config;
 
     struct Device {
-        Led& led;
+        Rgb& rgb;
         Buzzer& buzzer;
-        FlashDb& flashdb;
+        Storage& storage;
 
         Rc& rc;
         Mavlink& mavlink;

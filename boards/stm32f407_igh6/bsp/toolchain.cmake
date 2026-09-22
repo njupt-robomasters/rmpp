@@ -1,3 +1,4 @@
+# 复用 CubeMX 工具链，并修正工程移动后的链接脚本和 map 路径。
 include_guard(GLOBAL)
 include("${CMAKE_CURRENT_LIST_DIR}/../cmake/gcc-arm-none-eabi.cmake")
 get_filename_component(RMPP_BOARD_PATH "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)

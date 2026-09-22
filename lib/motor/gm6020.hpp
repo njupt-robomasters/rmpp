@@ -3,8 +3,6 @@
 #include "math/angle.hpp"
 #include "motor.hpp"
 
-using math::Angle;
-
 class GM6020 : public Motor {
   public:
     static constexpr float REDUCTION = 1.0f;
@@ -24,5 +22,5 @@ class GM6020 : public Motor {
     Angle last_angle_;
 
     // CAN接收回调
-    void callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dlc);
+    void callback(uint32_t id, const uint8_t data[8], uint8_t dlc);
 };

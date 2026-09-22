@@ -1,17 +1,15 @@
 #pragma once
 
-#include "board/board.hpp"
+#include "bsp/can.hpp"
+#include "bsp/timer.hpp"
 #include "math/angle.hpp"
-#include "math/conversions.hpp"
-
-using math::Angle;
-using math::rpm;
+#include "math/unit.hpp"
 
 class Ui {
   public:
     struct Config {
         // CAN通信参数
-        uint8_t can_port = 1;
+        Can can;
         uint32_t master_id = 0;
         uint32_t slave_id = 1;
 
@@ -91,7 +89,7 @@ class Ui {
     size_t init_index_ = 0;
     size_t update_index_ = 0;
 
-    rmpp::Timer timer_; // 用于控制发送频率
+    Timer timer_; // 用于控制发送频率
 
     // 更新UI库
     void update_lib() const;

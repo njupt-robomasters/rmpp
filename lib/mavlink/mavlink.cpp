@@ -1,12 +1,9 @@
 #include "mavlink.hpp"
-#include "math/conversions.hpp"
-
-using math::deg;
-using math::rpm;
+#include "math/unit.hpp"
 
 Mavlink::Mavlink(const Config& config) : config(config) {
     // 注册CDC接收回调
-    rmpp::board.cdc(1).add_rx_callback([this](rmpp::Bytes bytes) {
+    config.cdc.add_rx_callback([this](Bytes bytes) {
         this->callback(bytes.data, bytes.size);
     });
 }
@@ -138,13 +135,13 @@ void Mavlink::parse(const mavlink_message_t& msg) {
     }
 }
 
-void Mavlink::send(const mavlink_message_t& msg) {
+void Mavlink::send(const mavlink_message_t& msg) const {
     // 序列化
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
     const uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
 
     // 通过CDC发送
-    rmpp::board.cdc(1).send({buf, len});
+    config.cdc.send({buf, len});
 }
 
 void Mavlink::send_imu() const {

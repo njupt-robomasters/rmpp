@@ -1,13 +1,8 @@
 #pragma once
 
 #include "math/angle.hpp"
-#include "math/conversions.hpp"
+#include "math/unit.hpp"
 #include "robot.hpp"
-
-using math::Angle;
-using math::deg;
-using math::deg_s;
-using math::ms;
 
 class Sentry : public Robot {
   public:
@@ -62,9 +57,9 @@ class Sentry : public Robot {
         LOCK,
     } gimbal_status_ = SCAN;
 
-    rmpp::Timer timer_lock_lost_;
-    rmpp::Timer timer_insta360_check_;
-    rmpp::Timer timer_insta360_punish_;
+    Timer timer_lock_lost_;
+    Timer timer_insta360_check_;
+    Timer timer_insta360_punish_;
 
     void handle_pause();
 

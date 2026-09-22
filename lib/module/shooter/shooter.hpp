@@ -1,11 +1,7 @@
 #pragma once
 
-#include "math/conversions.hpp"
+#include "math/unit.hpp"
 #include "ui/ui.hpp"
-
-using math::cm;
-using math::ms;
-using math::rev;
 
 class Shooter {
   public:
@@ -62,8 +58,8 @@ class Shooter {
     virtual void on_loop();
 
   protected:
-    bool is_block_ = false;   // 堵转标志
-    rmpp::Timer timer_block_; // 堵转计时器
+    bool is_block_ = false; // 堵转标志
+    Timer timer_block_;     // 堵转计时器
 
     // 正解：电机速度 -> 弹速、弹频
     virtual void forward() = 0;

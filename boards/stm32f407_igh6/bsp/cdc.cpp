@@ -1,7 +1,6 @@
-#include "board/cdc.hpp"
-#include "board/timer.hpp"
-#include "irq_lock.hpp"
+#include "bsp/cdc.hpp"
 #include "peripherals.hpp"
+#include "stm32f4xx_hal.h"
 #include "usb_device.h"
 #include "usbd_cdc_if.h"
 #include <array>
@@ -13,30 +12,45 @@
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
-namespace rmpp {
 struct Cdc::State {
+    int id;
     std::vector<RxCallback> callbacks;
     std::array<std::uint8_t, 2048> tx{};
-    Timer timer{0};
-    float cpu_usage = 0;
+
+    struct Metrics {
+        float last_callback_us = 0;
+        float cpu_usage = 0;
+    };
+
+    volatile Metrics metrics{};
+    CallbackTiming timing;
 };
 
-Cdc::State* Cdc::find(int id) {
-    if (id != 1)
-        return nullptr;
-    static constinit State state;
-    return &state;
+Cdc::Cdc(int id) : id_(id) {
+    static constinit State states[] = {
+        {.id = 1},
+    };
+    for (auto& state : states) {
+        if (state.id == id_) {
+            state_ = &state;
+            break;
+        }
+    }
 }
 
 bool Cdc::send(Bytes bytes) const {
     if (!state_ || !bytes.data || !bytes.size || bytes.size > state_->tx.size())
         return false;
-    IrqLock lock;
+    const auto primask = __get_PRIMASK();
+    __disable_irq();
     auto* cdc = static_cast<USBD_CDC_HandleTypeDef*>(hUsbDeviceFS.pClassData);
-    if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED || !cdc || cdc->TxState)
-        return false;
-    std::memcpy(state_->tx.data(), bytes.data, bytes.size);
-    return CDC_Transmit_FS(state_->tx.data(), bytes.size) == USBD_OK;
+    bool success = false;
+    if (hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED && cdc && !cdc->TxState) {
+        std::memcpy(state_->tx.data(), bytes.data, bytes.size);
+        success = CDC_Transmit_FS(state_->tx.data(), bytes.size) == USBD_OK;
+    }
+    __set_PRIMASK(primask);
+    return success;
 }
 
 bool Cdc::printf(const char* format, ...) const {
@@ -56,22 +70,23 @@ bool Cdc::printf(const char* format, ...) const {
 bool Cdc::add_rx_callback(RxCallback callback) const {
     if (!state_ || !callback)
         return false;
-    IrqLock lock;
+    const auto primask = __get_PRIMASK();
+    __disable_irq();
     state_->callbacks.push_back(std::move(callback));
+    __set_PRIMASK(primask);
     return true;
 }
 
-float Cdc::cpu_usage() const { return state_ ? state_->cpu_usage : 0; }
-
 void cdc_receive(Bytes bytes) {
-    auto* state = Cdc::find(1);
-    const float interval = state->timer.update_dt();
+    auto* state = Cdc(1).state_;
+    const auto begin = DWT->CYCCNT;
     for (const auto& callback : state->callbacks)
         callback(bytes);
-    state->cpu_usage = interval > 0 ? state->timer.get_dt() / interval : 0;
+    const float duration_us = static_cast<std::uint32_t>(DWT->CYCCNT - begin) * (1000000.0f / SystemCoreClock);
+    state->metrics.last_callback_us = duration_us;
+    state->timing.record(duration_us, HAL_GetTick(), state->metrics.cpu_usage);
 }
-} // namespace rmpp
 
 extern "C" void bsp_cdc_receive(const uint8_t* data, uint32_t size) {
-    rmpp::cdc_receive({data, size});
+    cdc_receive({data, size});
 }

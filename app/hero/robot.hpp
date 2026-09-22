@@ -4,12 +4,9 @@
 
 #include "chassis.hpp"
 #include "gimbal.hpp"
-#include "math/conversions.hpp"
+#include "math/unit.hpp"
 #include "misc.hpp"
 #include "shooter.hpp"
-
-using math::deg_s;
-using math::rpm;
 
 inline Robot::Config robot_config = {
     .vxy_max = 5.0f,    // 100W下2.4m/s，不限功率4.5m/s
@@ -28,9 +25,9 @@ inline Robot::Config robot_config = {
     .heat_protect = 100,
 };
 inline Robot robot(robot_config,
-                   {led,
+                   {rgb,
                     buzzer,
-                    flashdb,
+                    storage,
 
                     rc,
                     mavlink,

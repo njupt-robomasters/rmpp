@@ -1,7 +1,5 @@
 #include "referee.hpp"
-#include "math/conversions.hpp"
-
-using math::deg;
+#include "math/unit.hpp"
 
 Referee::Referee(const Config& config) : config(config), parser_(config) {}
 

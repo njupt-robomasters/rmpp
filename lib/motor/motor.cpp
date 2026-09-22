@@ -1,8 +1,6 @@
 #include "motor.hpp"
 #include "math/angle.hpp"
 
-using math::Angle;
-
 Motor::Motor(const Config& config) : config(config), speed_pid_(config.speed_pid_config), angle_pid_(config.angle_pid_config) {}
 
 void Motor::set_enable(bool is_enable) {

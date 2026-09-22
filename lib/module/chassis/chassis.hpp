@@ -2,11 +2,8 @@
 
 #include "algorithm/pid.hpp"
 #include "math/angle.hpp"
-#include "math/conversions.hpp"
+#include "math/unit.hpp"
 #include "ui/ui.hpp"
-
-using math::Angle;
-using math::rpm;
 
 class Chassis {
   public:

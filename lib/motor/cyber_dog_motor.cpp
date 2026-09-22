@@ -10,8 +10,8 @@ CyberDogMotor::CyberDogMotor(const Config& config) : Motor(config) {
         this->config.r = R;
 
     // 注册CAN回调
-    rmpp::board.can(config.can_port).add_rx_callback([this](const rmpp::CanFrame& frame) {
-        this->callback(this->config.can_port, frame.id, frame.data.data(), frame.size);
+    config.can.add_rx_callback([this](const CanFrame& frame) {
+        this->callback(frame.id, frame.data.data(), frame.size);
     });
 }
 
@@ -28,10 +28,8 @@ void CyberDogMotor::send_can_cmd() {
     }
 }
 
-void CyberDogMotor::callback(const uint8_t port, const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
-    // 端口、ID、长度校验
-    if (port != config.can_port)
-        return;
+void CyberDogMotor::callback(const uint32_t id, const uint8_t data[8], const uint8_t dlc) {
+    // ID、长度校验
     if (id != config.master_id)
         return;
     if (dlc != 8)
@@ -71,17 +69,17 @@ int CyberDogMotor::float_to_uint(const float x, const float x_min, const float x
 
 void CyberDogMotor::send_enable() const {
     std::array<uint8_t, 8> data = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfc};
-    rmpp::board.can(config.can_port).send({.id = config.slave_id, .data = data, .size = 8});
+    config.can.send({.id = config.slave_id, .data = data, .size = 8});
 }
 
 void CyberDogMotor::send_disable() const {
     std::array<uint8_t, 8> data = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfd};
-    rmpp::board.can(config.can_port).send({.id = config.slave_id, .data = data, .size = 8});
+    config.can.send({.id = config.slave_id, .data = data, .size = 8});
 }
 
 void CyberDogMotor::send_zero() const {
     std::array<uint8_t, 8> data = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe};
-    rmpp::board.can(config.can_port).send({.id = config.slave_id, .data = data, .size = 8});
+    config.can.send({.id = config.slave_id, .data = data, .size = 8});
 }
 
 void CyberDogMotor::send_mit() const {
@@ -106,5 +104,5 @@ void CyberDogMotor::send_mit() const {
     data[6] = ((kd_u12 & 0x0F) << 4) | (current_u12 >> 8);
     data[7] = current_u12;
 
-    rmpp::board.can(config.can_port).send({.id = config.slave_id, .data = data, .size = 8});
+    config.can.send({.id = config.slave_id, .data = data, .size = 8});
 }

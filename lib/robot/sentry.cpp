@@ -84,7 +84,7 @@ void Sentry::handle_chassis() {
     case GO_CENTER: {
         device.mavlink.target_position.x = center_x;
         device.mavlink.target_position.y = center_y;
-        std::tie(vx_.software, vy_.software) = math::rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
+        std::tie(vx_.software, vy_.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
 
         // 血量低于设定值回家
         if (device.referee.robot.hp <= GO_HOME_HP) {
@@ -96,7 +96,7 @@ void Sentry::handle_chassis() {
     case GO_HOME: {
         device.mavlink.target_position.x = home_x;
         device.mavlink.target_position.y = home_y;
-        std::tie(vx_.software, vy_.software) = math::rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
+        std::tie(vx_.software, vy_.software) = rotate(device.mavlink.chassis_speed.vx, device.mavlink.chassis_speed.vy, yaw2.angle.measure);
 
         // 血量恢复到设定值去中心点
         if (device.referee.robot.hp >= GO_CENTER_HP) {
@@ -106,9 +106,9 @@ void Sentry::handle_chassis() {
     }
 
     // 小陀螺
-    const float v_software = std::sqrtf(math::square(vx_.software) + math::square(vy_.software));
+    const float v_software = std::sqrtf(square(vx_.software) + square(vy_.software));
     // 导航速度越快，小陀螺越慢
-    wr_.software = math::map(v_software, 0.0f, config.vxy_max, config.wr_max, device.chassis.config.reserve_wr);
+    wr_.software = map(v_software, 0.0f, config.vxy_max, config.wr_max, device.chassis.config.reserve_wr);
 }
 
 void Sentry::handle_gimbal() {

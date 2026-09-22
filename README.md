@@ -9,7 +9,7 @@ RMPP：STM32 机器人控制程序
 4. 用 cmake --list-presets 查看应用；可选 hero、infantry、sentry 及九个 examples，每个均有 debug/release。
 
 CLion：打开根目录，使用项目 CMake Presets，选中所需应用的配置后构建。
-原 Debug/Release 缓存对应旧结构，请使用新的预设目录。
+格式化启用项目 .clang-format；命令行使用同一 clang-format 运行 tools/format_code.py。
 板卡调试配置：boards/stm32f407_igh6/stm32f4discovery.cfg。
 
 常用修改
@@ -19,9 +19,10 @@ CLion：打开根目录，使用项目 CMake Presets，选中所需应用的配�
 - 新增应用后执行：python tools/update_presets.py。
 - 完整编译检查：python tools/check_builds.py。
 
-外设用法：auto can = rmpp::board.can(1);
+外设用法：auto can = bsp.can(1);
+也可直接构造：Can can(1);
 发送：can.send({.id = 0x123, .data = {1, 2}, .size = 2});
-接收：can.add_rx_callback([](const rmpp::CanFrame& frame) { /* 处理中断报文 */ });
+接收：can.add_rx_callback([](const CanFrame& frame) { /* 处理中断报文 */ });
 
 目录、接口及新板卡接入：docs/architecture.md
 验证结果与人工审计入口：docs/verification.md

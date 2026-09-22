@@ -23,7 +23,7 @@ class CyberDogMotor : public Motor {
     uint32_t send_cnt_ = 0;
 
     // CAN接收函数
-    void callback(uint8_t port, uint32_t id, const uint8_t data[8], uint8_t dlc);
+    void callback(uint32_t id, const uint8_t data[8], uint8_t dlc);
 
     static float uint_to_float(int x_int, float x_min, float x_max, int bits);
 
