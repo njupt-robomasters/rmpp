@@ -1,35 +1,29 @@
-#include "bsp.hpp"
+#include "bsp/can.hpp"
+#include "bsp/timer.hpp"
 #include "math/unit.hpp"
-#include "motor/custom_motor.hpp"
+#include "motor/dji/m3508.hpp"
 
-CustomMotor motor({
-    .can = bsp.can(1),
-    .master_id = 0x1FF,
-    .slave_id = 0x205,
-    .control_mode = Motor::OPEN_LOOP_MODE,
+static M3508 motor({
+    .protocol = {.can = Can(1), .master_id = 0x201, .slave_id = 0x200},
+    .control = {.control_mode = Motor::OPEN_LOOP_MODE},
 });
 
-void send_can_cmd() {
-    const int16_t cmd5 = motor.get_can_cmd();
-    std::array<uint8_t, 8> data{};
-    data[0] = cmd5 >> 8;
-    data[1] = cmd5;
-    data[2] = 0;
-    data[3] = 0;
-    data[4] = 0;
-    data[5] = 0;
-    data[6] = 0;
-    data[7] = 0;
-    motor.config.can.send({.id = 0x1FF, .data = data, .size = 8});
+static bool send_can_cmd() {
+    const int16_t command = motor.command_value();
+    CanFrame frame{.id = 0x200, .size = 8};
+    frame.data[0] = command >> 8;
+    frame.data[1] = command;
+    return motor.config.protocol.can.send(frame);
 }
 
 extern "C" void app_main() {
 
     Timer timer;
     while (true) {
-        if (timer.poll_timeout(1 * ms)) {
-            motor.set_current(0.1);
-            motor.on_loop();
+        if (timer.elapsed() > 1 * ms) {
+            timer.restart();
+            motor.set_current(0.1f);
+            motor.update_control();
             send_can_cmd();
         }
     }

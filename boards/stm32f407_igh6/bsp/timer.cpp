@@ -1,9 +1,9 @@
 #include "bsp/timer.hpp"
-#include "bsp/timer.h"
-#include "peripherals.hpp"
-#include "stm32f4xx.h"
+#include "stm32f4xx_hal.h"
 #include <algorithm>
 #include <cmath>
+
+static constexpr uint32_t DWT_MAX_ELAPSED_MS = 10'000;
 
 void timer_init() {
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
@@ -11,62 +11,44 @@ void timer_init() {
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 }
 
-float Timer::get_dt() {
-    if (!has_baseline_)
-        reset();
-    dt = timer_get_dt(last_tick_);
-    if (dt > max_dt_)
-        at_limit_ = true;
-    dt = at_limit_ ? max_dt_ : std::max(dt, min_dt_);
-    return dt;
-}
-
-float Timer::update_dt() {
-    get_dt();
-    last_tick_ = DWT->CYCCNT;
-    at_limit_ = false;
-    freq = dt > 0 ? 1.0f / dt : 0;
-    return dt;
-}
-
-bool Timer::poll_timeout(float seconds) {
-    if (get_dt() < seconds)
-        return false;
-    update_dt();
-    return true;
-}
-
-void Timer::reset() {
-    last_tick_ = DWT->CYCCNT;
-    has_baseline_ = true;
-    at_limit_ = false;
-}
-
-void Timer::delay(float seconds) {
+void Timer::delay(const float seconds) {
     if (!std::isfinite(seconds) || seconds <= 0)
         return;
-    // Short chunks keep the cycle difference valid across counter wraparound.
-    while (seconds > 0) {
-        const float chunk = std::min(seconds, 1.0f);
-        const auto ticks = static_cast<std::uint32_t>(chunk * SystemCoreClock);
+
+    const float delay_ms = seconds * 1000.0f;
+    if (delay_ms <= static_cast<float>(DWT_MAX_ELAPSED_MS)) {
+        const auto ticks = static_cast<uint32_t>(seconds * static_cast<float>(SystemCoreClock));
         const auto begin = DWT->CYCCNT;
-        while (static_cast<std::uint32_t>(DWT->CYCCNT - begin) < ticks) {
+        while (DWT->CYCCNT - begin < ticks) {
         }
-        seconds -= chunk;
+    } else {
+        const auto begin = HAL_GetTick();
+        while (static_cast<float>(HAL_GetTick() - begin) < delay_ms) {
+        }
     }
 }
 
-extern "C" float timer_get_dt(uint32_t last_tick) {
-    return static_cast<float>(static_cast<uint32_t>(DWT->CYCCNT - last_tick)) / SystemCoreClock;
-}
+float Timer::elapsed() {
+    const auto now_tick = DWT->CYCCNT;
+    const auto elapsed_ticks = now_tick - last_tick_;
 
-extern "C" float timer_update_dt(uint32_t* last_tick) {
-    const auto now = DWT->CYCCNT;
-    const float dt = static_cast<float>(static_cast<uint32_t>(now - *last_tick)) / SystemCoreClock;
-    *last_tick = now;
+    const auto now_ms = HAL_GetTick();
+    const auto elapsed_ms = now_ms - last_ms_;
+
+    float seconds;
+    if (elapsed_ms <= DWT_MAX_ELAPSED_MS)
+        seconds = static_cast<float>(elapsed_ticks) / static_cast<float>(SystemCoreClock);
+    else
+        seconds = static_cast<float>(elapsed_ms) / 1000.0f;
+
+    dt = std::clamp(seconds, min_dt_, max_dt_);
+
     return dt;
 }
 
-extern "C" void timer_delay(float seconds) {
-    Timer::delay(seconds);
+float Timer::restart() {
+    const float result = elapsed();
+    last_tick_ = DWT->CYCCNT;
+    last_ms_ = HAL_GetTick();
+    return result;
 }

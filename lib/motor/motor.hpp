@@ -1,117 +1,117 @@
 #pragma once
 
-#include "algorithm/pid.hpp"
 #include "bsp/can.hpp"
-#include "bsp/timer.hpp"
 #include "math/angle.hpp"
-#include "math/unit.hpp"
+#include "pid.hpp"
 
 class Motor {
   public:
-    // 电机闭环模式
     enum ControlMode {
-        OPEN_LOOP_MODE,   // 开环电流/力矩控制
-        SPEED_MODE,       // 速度闭环
-        ANGLE_MODE,       // 角度闭环
-        ANGLE_SPEED_MODE, // 角度-角度闭环（串级PID）
+        OPEN_LOOP_MODE,
+        SPEED_MODE,
+        SINGLE_TURN_MODE,
+        SINGLE_TURN_SPEED_MODE,
+        MULTI_TURN_MODE,
+        MULTI_TURN_SPEED_MODE,
     };
 
-    // PID输出类型
-    enum PidOutType {
-        CURRENT_OUTPUT, // PID输出电流
-        TORQUE_OUTPUT,  // PID输出扭矩
+    enum PidOutputType {
+        CURRENT_OUTPUT,
+        TORQUE_OUTPUT,
     };
 
-    // SI values: s, rad, rad/s, A, N*m, N*m/A, ohm. Temperatures remain Celsius.
-    // 电机配置
+    // 单位为 s、rad、rad/s、A、N*m、N*m/A
     struct Config {
-        // CAN通信参数
-        Can can;
-        uint32_t master_id = 0, slave_id = 0;
-        float timeout = 100.0f * ms; // 电机断联超时时间
+        struct Protocol {
+            Can can;                              // CAN 通道
+            uint32_t master_id = 0, slave_id = 0; // 反馈、命令 ID
+            float timeout = 100 * ms;             // 反馈超时，s
+        } const protocol;
 
-        // 电机参数
-        float reduction = 0.0f; // 减速比
-        float kt = 0.0f;        // 力矩系数
-        float r = 0.0f;         // 相电阻（两相间电阻/2）
+        struct Physical {
+            float kt = 0;          // 输出转矩常数，N*m/A；零采用型号默认值
+            float max_current = 0; // 电流协议量程，A；零采用型号默认值
+            float max_torque = 0;  // 转矩协议量程，N*m；零采用型号默认值
+        } physical;
 
-        // 电机安装参数
-        bool is_invert = false;     // 电机反转标志
-        Angle offset;               // 电机角度偏移量
-        bool is_limit = false;      // false-圆周模式，true-限位模式
-        Angle limit_min, limit_max; // min-右限位（负值），max-左限位（正值），相对于offset的角度
+        struct Install {
+            float offset = 0;       // 电机轴安装偏移，rad，可运行时校准
+            bool is_invert = false; // 输出轴方向反转
+            float reduction = 0;    // 减速比；零采用型号默认值
+        } install;
 
-        // PID相关
-        ControlMode control_mode = OPEN_LOOP_MODE;     // 电机闭环模式
-        PidOutType pid_out_type = CURRENT_OUTPUT;      // PID输出类型
-        const Pid::Config* speed_pid_config = nullptr; // 速度PID参数
-        const Pid::Config* angle_pid_config = nullptr; // 角度PID参数
+        struct Control {
+            ControlMode control_mode = OPEN_LOOP_MODE;        // 开环、速度或位置闭环
+            PidOutputType pid_output_type = CURRENT_OUTPUT;   // PID 输出单位
+            const Pid::Config* speed_pid_config = nullptr;    // 速度环参数
+            const Pid::Config* position_pid_config = nullptr; // 位置环参数
+            bool is_limit = false;                            // 是否限制位置目标
+            float position_min = 0, position_max = 0;         // 位置目标范围，rad
+        } control;
     } config;
 
-    bool is_connect = false; // 电机连接状态
-    bool is_enable = false;  // 电机使能状态
+    bool is_connected = false;
+    bool is_enabled = false;
 
-    // 电流
     struct {
-        float ref{}, measure{};
-    } current;
+        float ref = 0, measure = 0;
+    } current, torque;
 
-    // 扭矩
     struct {
-        float ref{}, measure{};
-    } torque;
-
-    // 转速
-    struct {
-        float ref{}, outer{}, measure{};
+        float ref = 0, outer = 0, measure = 0;
     } speed;
 
-    // 减速比!=1时累积编码器角增量，存储值仍归一化到 [-pi, pi)。
     struct {
-        Angle ref, measure;
-    } angle;
+        float ref = 0, measure = 0, measure_multi = 0;
+    } position;
 
-    // 温度
     struct {
-        float mos{}, motor{};
+        float mos = 0, motor = 0;
     } temperature;
 
-    // 电机反转、偏移修正之前的值
+    // 修正前反馈；速度已换算为输出轴 rad/s，位置为电机轴 rad
     struct Raw {
-        float current{};
-        float torque{};
-        float speed{};
-        Angle angle;
+        float current = 0, torque = 0, speed = 0, position = 0;
     } raw;
 
-    Motor(const Config& config);
+    virtual ~Motor() = default;
+    Motor(const Motor&) = delete;
+    Motor& operator=(const Motor&) = delete;
+    Motor(Motor&&) = delete;
+    Motor& operator=(Motor&&) = delete;
 
-    // 设置电机使能/失能
-    void set_enable(bool is_enable);
-
-    // 设置电流
+    virtual void set_enable(bool enable);
     void set_current(float current);
-
-    // 设置扭矩
     void set_torque(float torque);
-
-    // 设置速度
     void set_speed(float speed);
-
-    // 设置角度
-    Angle set_angle(Angle angle, float speed_ff = 0.0f);
-
-    // 需要在循环中调用
-    virtual void on_loop();
+    float set_position(float position, float speed_ff = 0);
+    bool set_offset(float offset);
+    bool set_position_zero();
+    virtual void update_control();
 
   protected:
-    Timer timer_connect_; // 用于电机断联检测
-
-    // CAN接收回调，子类重写后要调用
-    void callback(const Raw& raw);
+    explicit Motor(const Config& config);
+    static Config apply_defaults(Config config, const Config& defaults);
+    void subscribe();
+    virtual void receive(const CanFrame& frame) = 0;
+    bool is_feedback_frame(const CanFrame& frame) const;
+    void update_connection();
+    void mark_received();
+    void accept_feedback(const Raw& feedback);
+    void record_position(float sample);
+    float output_current(float maximum) const;
+    float output_torque(float maximum) const;
 
   private:
-    Pid speed_pid_, angle_pid_;      // PID控制器
-    Angle last_angle_;               // 用于多圈计数
-    bool is_first_setangle_ = false; // 断联/使能后第一次设置角度标志，防止电机一下子飞起来
+    Timer timer_connect_;
+    Pid speed_pid_, position_pid_;
+    float last_position_sample_ = 0;
+    float accumulated_position_ = 0;
+    bool has_position_sample_ = false;
+    bool position_pending_ = true;
+    bool is_multi_turn() const;
+    float selected_position() const;
+    void refresh_position();
+    void clear_control();
+    float output(float value, float maximum) const;
 };

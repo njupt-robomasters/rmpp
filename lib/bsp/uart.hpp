@@ -1,26 +1,23 @@
 #pragma once
 
-#include "bytes.hpp"
+#include <cstdint>
 #include <functional>
 
 class Uart {
   public:
-    using RxCallback = std::function<void(Bytes)>;
-    Uart() = default;
+    // 接收数据仅在回调期间有效
+    using RxCallback = std::function<void(const uint8_t*, std::size_t)>;
+
     explicit Uart(int id);
 
     explicit operator bool() const {
-        return state_ != nullptr;
+        return context_ != nullptr;
     }
 
-    bool send(Bytes bytes) const;
+    // 成功时复制到通道发送缓冲区，DMA 发送期间保持有效
+    bool send(const uint8_t* data, std::size_t size) const;
     bool add_rx_callback(RxCallback callback) const;
 
-  private:
-    struct State;
-    int id_ = 0;
-    State* state_ = nullptr;
-    friend void uart_init();
-    friend void uart_receive(int id, std::uint16_t size);
-    friend void uart_error(int id);
+    struct Context;
+    Context* context_ = nullptr;
 };

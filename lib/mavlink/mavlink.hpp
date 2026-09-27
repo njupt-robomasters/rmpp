@@ -10,8 +10,8 @@
 
 class Mavlink {
   public:
-    // Members use SI units (angles rad, angular speeds rad/s).
-    // The wire protocol still uses degrees and rpm; conversion occurs in parse/send.
+    // 成员使用国际单位制，角度为 rad，角速度为 rad/s
+    // 通信协议仍使用度和 rpm，在解析与发送时换算
     struct Config {
         Cdc cdc;
         float timeout = 100 * ms; // 断联超时时间
@@ -59,7 +59,7 @@ class Mavlink {
 
     // 接收
     struct {
-        // Angles in rad; NaN means no detection. Confidence is dimensionless.
+        // 角度单位为 rad，NaN 表示未检测到目标；置信度无量纲
         float a0 = NAN, c0 = 0;
         float a1 = NAN, c1 = 0;
         float a2 = NAN, c2 = 0;
@@ -81,7 +81,7 @@ class Mavlink {
     Mavlink(const Config& config);
 
     // 需要在循环中调用
-    void on_loop();
+    void update();
 
   private:
     static constexpr uint8_t SYSTEM_ID = 1;    // mavlink参数
@@ -95,7 +95,7 @@ class Mavlink {
 
     uint8_t idx_ = 0; // 报文分散在不同的时间点发送
 
-    // CDC接收回调
+    // UART接收回调
     void callback(const uint8_t data[], uint32_t size);
 
     // 解析接收到的MAVLink消息

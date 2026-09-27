@@ -28,7 +28,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "bsp.hpp"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -106,6 +105,9 @@ int main(void)
   MX_USART6_UART_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
+  extern void bsp_init(void);
+  extern void app_main(void);
+
   bsp_init();
   app_main();
   /* USER CODE END 2 */

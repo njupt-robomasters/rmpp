@@ -1,21 +1,39 @@
 #pragma once
 
-#include "bsp/bsp.hpp"
+#include "bsp/can.hpp"
+#include "bsp/cdc.hpp"
+#include "bsp/pwm.hpp"
+#include "bsp/uart.hpp"
 
 #include "bsp/storage.hpp"
 #include "mavlink/mavlink.hpp"
 #include "misc/buzzer.hpp"
+#include "misc/rgb.hpp"
 #include "rc/rc.hpp"
 #include "referee/referee.hpp"
-#include "rgb/rgb.hpp"
 #include "ui/ui.hpp"
 
-inline Rgb rgb({.red = bsp.pwm(5, 3), .green = bsp.pwm(5, 2), .blue = bsp.pwm(5, 1)});
-inline Buzzer buzzer(bsp.pwm(4, 3));
+inline Rgb rgb({.red = Pwm(5, 3), .green = Pwm(5, 2), .blue = Pwm(5, 1)});
+inline Buzzer buzzer(Pwm(4, 3));
 inline Storage storage("infantry");
-inline Rc rc({.uart = bsp.uart(3)}, {.uart = bsp.uart(6)});
-inline Mavlink mavlink({.send_freq = 150});
-inline Referee referee({.can = bsp.can(1)});
+inline FSi6X fsi6x({.uart = Uart(3)});
+inline VT13 vt13({.uart = Uart(6)});
+inline Rc rc({
+                 .vxy_max = 5.0f,     // 75W下2.4m/s，不限功率6.3m/s
+                 .wr_max = 150 * rpm, // 75W下125rpm，不限功率240rpm
+                 .axy = 100.0f,
+                 .dxy = 100.0f,
+                 .ar = 1000 * rpm,
+                 .dr = 1000 * rpm,
+
+                 .wyaw = 360 * deg_s,
+                 .wpitch = 360 * deg_s,
+                 .ayaw = 3600 * deg_s,
+                 .apitch = 3600 * deg_s,
+             },
+             fsi6x, vt13);
+inline Mavlink mavlink({.cdc = Cdc(1), .send_freq = 150});
+inline Referee referee({.can = Can(1)});
 inline Ui ui({
-    .can = bsp.can(1),
+    .can = Can(1),
 });

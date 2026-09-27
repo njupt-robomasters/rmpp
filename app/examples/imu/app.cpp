@@ -1,4 +1,4 @@
-#include "bsp.hpp"
+#include "bsp/timer.hpp"
 #include "imu.hpp"
 
 #include "math/unit.hpp"
@@ -7,8 +7,9 @@ extern "C" void app_main() {
 
     Timer timer;
     while (true) {
-        if (timer.poll_timeout(1 * ms)) {
-            imu.on_loop();
+        if (timer.elapsed() > 1 * ms) {
+            timer.restart();
+            imu.update();
         }
     }
 }

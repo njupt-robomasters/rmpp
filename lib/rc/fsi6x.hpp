@@ -27,7 +27,14 @@ class FSi6X {
 
     FSi6X(const Config& config);
 
-    void on_loop();
+    // 串口回调捕获实例地址，订阅期间实例不可复制、移动或销毁
+    FSi6X(const FSi6X&) = delete;
+    FSi6X& operator=(const FSi6X&) = delete;
+    FSi6X(FSi6X&&) = delete;
+    FSi6X& operator=(FSi6X&&) = delete;
+
+    // 独立使用时由应用周期调用，接入 Rc 后由管理器调用
+    void update();
 
   private:
     // 通道原始值

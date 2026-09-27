@@ -1,43 +1,19 @@
 #pragma once
 
-#include "motor.hpp"
+#include "mit_motor.hpp"
 
-class CyberDogMotor : public Motor {
+class CyberDogMotor : public MitMotor {
   public:
-    static constexpr float REDUCTION = 1.0f;
-    static constexpr float KT = 0.9f;
-    static constexpr float R = 0.17f;
+    static constexpr Config DEFAULT_CONFIG{
+        .physical = {.kt = 0.9f, .max_current = 40},
+        .install = {.reduction = 1},
+    };
+    static constexpr Protocol DEFAULT_PROTOCOL{.max_speed = 65, .max_position = 12.5f};
 
-    CyberDogMotor(const Config& config);
-
-    void send_can_cmd();
+    explicit CyberDogMotor(const Config& config, Protocol protocol = {});
+    bool send_can_cmd() override;
 
   private:
-    constexpr static float P_MAX = 12.5f;   // 位置最大值 rad
-    constexpr static float V_MAX = 65.0f;   // 速度最大值 rad/s
-    constexpr static float KP_MAX = 500.0f; // Kp最大值 Nm/rad
-    constexpr static float KD_MAX = 5.0f;   // Kd最大值 Mm*s/rad
-    constexpr static float I_MAX = 40.0f;   // 最大电流 A
-
-    // 用于定期发送使能命令
-    uint32_t send_cnt_ = 0;
-
-    // CAN接收函数
-    void callback(uint32_t id, const uint8_t data[8], uint8_t dlc);
-
-    static float uint_to_float(int x_int, float x_min, float x_max, int bits);
-
-    static int float_to_uint(float x, float x_min, float x_max, int bits);
-
-    // 发送电机使能
-    void send_enable() const;
-
-    // 发送电机失能
-    void send_disable() const;
-
-    // 发送零位设置指令
-    void send_zero() const;
-
-    // 发送MIT控制指令
-    void send_mit() const;
+    uint32_t send_count_ = 0;
+    void receive(const CanFrame& frame) override;
 };

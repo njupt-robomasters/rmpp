@@ -1,6 +1,7 @@
-#include "bsp.hpp"
+#include "bsp/pwm.hpp"
+#include "bsp/timer.hpp"
 #include "misc/buzzer.hpp"
-Buzzer buzzer(bsp.pwm(4, 3));
+Buzzer buzzer(Pwm(4, 3));
 #include "math/unit.hpp"
 
 extern "C" void app_main() {
@@ -8,8 +9,9 @@ extern "C" void app_main() {
 
     Timer timer;
     while (true) {
-        if (timer.poll_timeout(1 * ms)) {
-            buzzer.on_loop();
+        if (timer.elapsed() > 1 * ms) {
+            timer.restart();
+            buzzer.update();
         }
     }
 }

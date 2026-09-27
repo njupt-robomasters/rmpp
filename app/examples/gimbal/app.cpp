@@ -1,24 +1,39 @@
-#include "bsp.hpp"
+#include "bsp/can.hpp"
+#include "bsp/timer.hpp"
+#include "bsp/uart.hpp"
 #include "gimbal.hpp"
+#include "math/math.hpp"
 #include "rc/rc.hpp"
-Rc rc({.uart = bsp.uart(3)}, {.uart = bsp.uart(6)});
-#include "math/unit.hpp"
 
-static constexpr float YAW_SPEED_MAX = 360 * deg_s;
-static constexpr float PITCH_SPEED_MAX = 360 * deg_s;
+static FSi6X fsi6x({.uart = Uart(3)});
+static VT13 vt13({.uart = Uart(6)});
+static Rc rc({
+                 .vxy_max = 1.0f,
+                 .wr_max = 60 * rpm,
+                 .axy = 100.0f,
+                 .dxy = 100.0f,
+                 .ar = 1000 * rpm,
+                 .dr = 1000 * rpm,
+                 .wyaw = 360 * deg_s,
+                 .wpitch = 360 * deg_s,
+                 .ayaw = 3600 * deg_s,
+                 .apitch = 3600 * deg_s,
+             },
+             fsi6x, vt13);
 
 void send_can_cmd() {
-    const int16_t cmd5 = yaw.get_can_cmd();
-    std::array<uint8_t, 8> data{};
-    data[0] = cmd5 >> 8;
-    data[1] = cmd5;
-    data[2] = 0;
-    data[3] = 0;
-    data[4] = 0;
-    data[5] = 0;
-    data[6] = 0;
-    data[7] = 0;
-    bsp.can(1).send({.id = 0x1FF, .data = data, .size = 8});
+    const int16_t cmd5 = yaw.command_value();
+    CanFrame frame{.id = 0x1FF, .size = 8};
+    frame.data[0] = cmd5 >> 8;
+    frame.data[1] = cmd5;
+    frame.data[2] = 0;
+    frame.data[3] = 0;
+    frame.data[4] = 0;
+    frame.data[5] = 0;
+    frame.data[6] = 0;
+    frame.data[7] = 0;
+    Can(1).send(frame);
+
     pitch.send_can_cmd();
 }
 
@@ -27,15 +42,15 @@ extern "C" void app_main() {
 
     Timer timer;
     while (true) {
-        if (timer.poll_timeout(1 * ms)) {
-            rc.on_loop();
+        if (timer.elapsed() > 1 * ms) {
+            timer.restart();
+            rc.update();
 
             gimbal.set_enable(rc.is_enable);
-            const float yaw_speed = rc.yaw * YAW_SPEED_MAX;
-            const float pitch_speed = rc.pitch * PITCH_SPEED_MAX;
+            const float yaw_speed = clamp(rc.wyaw, rc.config.wyaw);
+            const float pitch_speed = clamp(rc.wpitch, rc.config.wpitch);
             gimbal.set_speed(yaw_speed, pitch_speed);
-            imu.on_loop();
-            gimbal.on_loop();
+            gimbal.update();
 
             send_can_cmd();
         }

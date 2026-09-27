@@ -1,11 +1,10 @@
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
 
 struct SpiTransfer {
-    const std::uint8_t* tx = nullptr;
-    std::uint8_t* rx = nullptr;
+    const uint8_t* tx = nullptr;
+    uint8_t* rx = nullptr;
     std::size_t size = 0;
 };
 
@@ -15,13 +14,13 @@ class Spi {
     Spi(int bus, int chip_select);
 
     explicit operator bool() const {
-        return state_ != nullptr;
+        return context_ != nullptr;
     }
 
     bool transfer(const SpiTransfer& transfer) const;
 
   private:
-    struct State;
+    struct Context;
     int bus_ = 0, chip_select_ = 0;
-    State* state_ = nullptr;
+    Context* context_ = nullptr;
 };

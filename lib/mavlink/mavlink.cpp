@@ -1,39 +1,47 @@
 #include "mavlink.hpp"
+#include "bsp/uart.hpp"
 #include "math/unit.hpp"
 
-Mavlink::Mavlink(const Config& config) : config(config) {
-    // 注册CDC接收回调
-    config.cdc.add_rx_callback([this](Bytes bytes) {
-        this->callback(bytes.data, bytes.size);
+Mavlink::Mavlink(const Config& config)
+    : config(config) {
+    // 注册 CDC 接收回调
+    config.cdc.add_rx_callback([this](const uint8_t* data, std::size_t size) {
+        this->callback(data, size);
     });
 }
 
-void Mavlink::on_loop() {
-    // CDC串口断联检测
-    if (timer_cdc_.get_dt() > config.timeout) {
+void Mavlink::update() {
+    // 串口断联检测
+    if (timer_cdc_.elapsed() > config.timeout) {
+        timer_cdc_.restart();
         is_connect_cdc = false;
     }
 
     // 各报文断联检测
-    if (timer_auto_aim_.get_dt() > config.timeout) {
+    if (timer_auto_aim_.elapsed() > config.timeout) {
+        timer_auto_aim_.restart();
         is_connect_vision = false;
         vision = {};
     }
-    if (timer_insta360_.get_dt() > config.timeout) {
+    if (timer_insta360_.elapsed() > config.timeout) {
+        timer_insta360_.restart();
         is_connect_insta360 = false;
         insta360 = {};
     }
-    if (timer_current_position_.get_dt() > config.timeout) {
+    if (timer_current_position_.elapsed() > config.timeout) {
+        timer_current_position_.restart();
         is_connect_current_position = false;
         current_position = {};
     }
-    if (timer_chassis_speed_.get_dt() > config.timeout) {
+    if (timer_chassis_speed_.elapsed() > config.timeout) {
+        timer_chassis_speed_.restart();
         is_connect_chassis_speed = false;
         chassis_speed = {};
     }
 
     // 轮流发送
-    if (timer_send_freq_.poll_timeout(1 / config.send_freq)) {
+    if (timer_send_freq_.elapsed() > 1 / config.send_freq) {
+        timer_send_freq_.restart();
         switch (idx_) {
         case 0:
             send_imu();
@@ -58,7 +66,7 @@ void Mavlink::callback(const uint8_t data[], const uint32_t size) {
         mavlink_message_t msg;
         mavlink_status_t status;
         if (mavlink_parse_char(MAVLINK_COMM_0, data[i], &msg, &status)) {
-            timer_cdc_.update_dt();
+            timer_cdc_.restart();
             is_connect_cdc = true;
             parse(msg);
         }
@@ -68,7 +76,7 @@ void Mavlink::callback(const uint8_t data[], const uint32_t size) {
 void Mavlink::parse(const mavlink_message_t& msg) {
     switch (msg.msgid) {
     case MAVLINK_MSG_ID_auto_aim: {
-        timer_auto_aim_.update_dt();
+        timer_auto_aim_.restart();
         is_connect_vision = true;
         mavlink_auto_aim_t auto_aim;
         mavlink_msg_auto_aim_decode(&msg, &auto_aim);
@@ -88,7 +96,7 @@ void Mavlink::parse(const mavlink_message_t& msg) {
     }
 
     case MAVLINK_MSG_ID_insta360: {
-        timer_insta360_.update_dt();
+        timer_insta360_.restart();
         is_connect_insta360 = true;
         mavlink_insta360_t ui;
         mavlink_msg_insta360_decode(&msg, &ui);
@@ -107,7 +115,7 @@ void Mavlink::parse(const mavlink_message_t& msg) {
     }
 
     case MAVLINK_MSG_ID_current_position: {
-        timer_current_position_.update_dt();
+        timer_current_position_.restart();
         is_connect_current_position = true;
         mavlink_current_position_t current_position;
         mavlink_msg_current_position_decode(&msg, &current_position);
@@ -120,7 +128,7 @@ void Mavlink::parse(const mavlink_message_t& msg) {
     }
 
     case MAVLINK_MSG_ID_chassis_speed: {
-        timer_chassis_speed_.update_dt();
+        timer_chassis_speed_.restart();
         is_connect_chassis_speed = true;
         mavlink_chassis_speed_t chassis_speed;
         mavlink_msg_chassis_speed_decode(&msg, &chassis_speed);
@@ -136,12 +144,9 @@ void Mavlink::parse(const mavlink_message_t& msg) {
 }
 
 void Mavlink::send(const mavlink_message_t& msg) const {
-    // 序列化
-    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
-    const uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
-
-    // 通过CDC发送
-    config.cdc.send({buf, len});
+    uint8_t tx_buf[MAVLINK_MAX_PACKET_LEN];
+    const uint16_t size = mavlink_msg_to_send_buffer(tx_buf, &msg);
+    config.cdc.send(tx_buf, size);
 }
 
 void Mavlink::send_imu() const {

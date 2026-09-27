@@ -1,13 +1,20 @@
 #pragma once
 
-#include "bsp/bsp.hpp"
+#include "bsp/can.hpp"
+#include "bsp/pwm.hpp"
+#include "bsp/spi.hpp"
 
-#include "imu.hpp"
+#include "imu/imu.hpp"
 #include "math/unit.hpp"
-#include "module/gimbal/gimbal_dual_yaw.hpp"
-#include "motor/dm4310.hpp"
-#include "motor/gm6020.hpp"
-#include "motor/mf9025.hpp"
+#include "motor/dji/gm6020.hpp"
+#include "motor/dm/dm4310.hpp"
+#include "motor/lk/mf9025.hpp"
+#include "robot/gimbal/gimbal_dual_yaw.hpp"
+
+// 惯性测量单元
+inline Imu::Dir imu_dir = {.yaw = 90 * deg, .pitch = 0 * deg, .roll = 0 * deg};
+inline Imu::Calib imu_calib = {.gx_offset = -0.000674135052, .gy_offset = 0.00137436262, .gz_offset = 0.00146490871, .g_norm = 9.54711819};
+inline Imu imu(imu_dir, imu_calib, {.accel = Spi(1, 1), .gyro = Spi(1, 2), .heater = Pwm(10, 1)});
 
 // 用于Ozone调参
 // #define yaw1_pid angle_pid
@@ -29,13 +36,9 @@ inline Pid::Config yaw1_pid = {
     .fc = 10,
 };
 inline MF9025 yaw1({
-    .can = bsp.can(1),
-    .master_id = 0x141,
-    .slave_id = 0x141,
-    .is_invert = false,
-    .control_mode = Motor::ANGLE_MODE,
-    .pid_out_type = Motor::CURRENT_OUTPUT,
-    .angle_pid_config = &yaw1_pid,
+    .protocol = {.can = Can(1), .master_id = 0x141, .slave_id = 0x141},
+    .install = {.is_invert = false},
+    .control = {.control_mode = Motor::SINGLE_TURN_MODE, .pid_output_type = Motor::CURRENT_OUTPUT, .position_pid_config = &yaw1_pid},
 });
 
 // 小yaw电机
@@ -50,17 +53,9 @@ inline Pid::Config yaw2_angle_pid = {
     .max_out = 720 * deg_s,
 };
 inline GM6020 yaw2({
-    .can = bsp.can(1),
-    .master_id = 0x205,
-    .slave_id = 0x1FF,
-    .offset = 0 * deg,
-    .is_limit = true,
-    .limit_min = -40 * deg,
-    .limit_max = 40 * deg,
-    .control_mode = Motor::ANGLE_SPEED_MODE,
-    .pid_out_type = Motor::CURRENT_OUTPUT,
-    .speed_pid_config = &yaw2_speed_pid,
-    .angle_pid_config = &yaw2_angle_pid,
+    .protocol = {.can = Can(1), .master_id = 0x205, .slave_id = 0x1FF},
+    .install = {.offset = 0 * deg},
+    .control = {.control_mode = Motor::SINGLE_TURN_SPEED_MODE, .pid_output_type = Motor::CURRENT_OUTPUT, .speed_pid_config = &yaw2_speed_pid, .position_pid_config = &yaw2_angle_pid, .is_limit = true, .position_min = -40 * deg, .position_max = 40 * deg},
 });
 
 // pitch电机
@@ -74,19 +69,12 @@ inline Pid::Config pitch_angle_pid = {
     .max_out = 720 * deg_s,
 };
 inline DM4310 pitch({
-    .can = bsp.can(2),
-    .master_id = 0x10,
-    .slave_id = 0x11,
-    .is_invert = true,
-    .offset = -72 * deg,
-    .is_limit = true,
-    .limit_min = -22 * deg,
-    .limit_max = 15 * deg,
-    .control_mode = Motor::ANGLE_SPEED_MODE,
-    .pid_out_type = Motor::TORQUE_OUTPUT,
-    .speed_pid_config = &pitch_speed_pid,
-    .angle_pid_config = &pitch_angle_pid,
+    .protocol = {.can = Can(2), .master_id = 0x10, .slave_id = 0x11},
+    .install = {.offset = -72 * deg, .is_invert = true},
+    .control = {.control_mode = Motor::SINGLE_TURN_SPEED_MODE, .pid_output_type = Motor::TORQUE_OUTPUT, .speed_pid_config = &pitch_speed_pid, .position_pid_config = &pitch_angle_pid, .is_limit = true, .position_min = -22 * deg, .position_max = 15 * deg},
 });
 
 // 云台
 inline GimbalDualYaw gimbal(imu, {yaw1, yaw2, pitch});
+
+void gimbal_loop();

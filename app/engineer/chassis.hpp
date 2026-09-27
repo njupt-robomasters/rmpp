@@ -1,20 +1,20 @@
 #pragma once
 
-#include "bsp/bsp.hpp"
+#include "bsp/can.hpp"
 
 #include "math/unit.hpp"
-#include "module/chassis/chassis_mecanum.hpp"
-#include "motor/m3508.hpp"
+#include "motor/dji/m3508.hpp"
+#include "robot/chassis/chassis_mecanum.hpp"
 
 // 底盘电机参数
 static constexpr float REDUCTION = 14.0f;
-static constexpr float Kt = M3508::Kt / M3508::REDUCTION * REDUCTION;
+static constexpr float Kt = M3508::DEFAULT_CONFIG.physical.kt / M3508::DEFAULT_CONFIG.install.reduction * REDUCTION;
 static constexpr bool IS_INVERT = true;
 
 // 底盘参数
 static constexpr float CHASSIS_RADIUS = 26.4f * cm;
 static constexpr float WHEEL_RADIUS = 7.6f * cm;
-static constexpr float MAX_F = M3508::MAX_CURRENT * Kt / WHEEL_RADIUS * 4;
+static constexpr float MAX_F = M3508::DEFAULT_CONFIG.physical.max_current * Kt / WHEEL_RADIUS * 4;
 
 // 底盘PID参数
 inline Pid::Config vxyz_pid = {
@@ -27,36 +27,24 @@ inline Pid::Config vxyz_pid = {
 
 // 底盘电机
 inline M3508 w1({
-    .can = bsp.can(2),
-    .master_id = 0x201,
-    .slave_id = 0x200,
-    .reduction = REDUCTION,
-    .Kt = Kt,
-    .is_invert = IS_INVERT,
+    .protocol = {.can = Can(2), .master_id = 0x201, .slave_id = 0x200},
+    .physical = {.kt = Kt},
+    .install = {.is_invert = IS_INVERT, .reduction = REDUCTION},
 });
 inline M3508 w2({
-    .can = bsp.can(2),
-    .master_id = 0x202,
-    .slave_id = 0x200,
-    .reduction = REDUCTION,
-    .Kt = Kt,
-    .is_invert = IS_INVERT,
+    .protocol = {.can = Can(2), .master_id = 0x202, .slave_id = 0x200},
+    .physical = {.kt = Kt},
+    .install = {.is_invert = IS_INVERT, .reduction = REDUCTION},
 });
 inline M3508 w3({
-    .can = bsp.can(2),
-    .master_id = 0x203,
-    .slave_id = 0x200,
-    .reduction = REDUCTION,
-    .Kt = Kt,
-    .is_invert = IS_INVERT,
+    .protocol = {.can = Can(2), .master_id = 0x203, .slave_id = 0x200},
+    .physical = {.kt = Kt},
+    .install = {.is_invert = IS_INVERT, .reduction = REDUCTION},
 });
 inline M3508 w4({
-    .can = bsp.can(2),
-    .master_id = 0x204,
-    .slave_id = 0x200,
-    .reduction = REDUCTION,
-    .Kt = Kt,
-    .is_invert = IS_INVERT,
+    .protocol = {.can = Can(2), .master_id = 0x204, .slave_id = 0x200},
+    .physical = {.kt = Kt},
+    .install = {.is_invert = IS_INVERT, .reduction = REDUCTION},
 });
 
 // 底盘

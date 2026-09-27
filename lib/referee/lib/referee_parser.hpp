@@ -4,7 +4,7 @@
 #include "bsp/timer.hpp"
 #include "math/unit.hpp"
 #include "packet.hpp"
-#include <cstdint>
+#include <stdint.h>
 
 class RefereeParser {
   public:
@@ -63,7 +63,7 @@ class RefereeParser {
     RefereeParser(const Config& config);
 
     // 需要在循环中调用
-    void on_loop();
+    void update();
 
   private:
     // 用于断联检测

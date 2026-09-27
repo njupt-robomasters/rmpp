@@ -45,7 +45,14 @@ class VT13 {
 
     VT13(const Config& config);
 
-    void on_loop();
+    // 串口回调捕获实例地址，订阅期间实例不可复制、移动或销毁
+    VT13(const VT13&) = delete;
+    VT13& operator=(const VT13&) = delete;
+    VT13(VT13&&) = delete;
+    VT13& operator=(VT13&&) = delete;
+
+    // 独立使用时由应用周期调用，接入 Rc 后由管理器调用
+    void update();
 
   private:
     static constexpr uint16_t MOUSE_MAX = 500; // 鼠标xy最大速度

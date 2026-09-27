@@ -18,12 +18,4 @@ CLion：打开根目录，使用项目 CMake Presets，选中所需应用的配�
 - 引脚、波特率等硬件参数：板卡 .ioc；外设实现和启动：板卡 bsp/。
 - 新增应用后执行：python tools/update_presets.py。
 - 完整编译检查：python tools/check_builds.py。
-
-外设用法：auto can = bsp.can(1);
-也可直接构造：Can can(1);
-发送：can.send({.id = 0x123, .data = {1, 2}, .size = 2});
-接收：can.add_rx_callback([](const CanFrame& frame) { /* 处理中断报文 */ });
-
-目录、接口及新板卡接入：docs/architecture.md
-验证结果与人工审计入口：docs/verification.md
-数值单位和历史问题：docs/unit-migration.md
+- CMake 结构、依赖关系图与验证说明：docs/build.md。

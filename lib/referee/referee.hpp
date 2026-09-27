@@ -2,6 +2,7 @@
 
 #include "lib/referee_parser.hpp"
 #include "math/angle.hpp"
+#include <optional>
 
 class Referee {
   public:
@@ -120,8 +121,8 @@ class Referee {
     struct {
         // 机器人RFID模块状态
         // 0x0209 rfid_status
-        bool in_home = false;   // bit 19
-        bool in_center = false; // bit 23
+        bool in_home = false;   // 第 19 位
+        bool in_center = false; // 第 23 位
 
         // 中心增益点的占领状态
         // 0x0101 event_data
@@ -141,7 +142,7 @@ class Referee {
     void set_yaw(float yaw_ecd, float yaw_imu);
 
     // 需要在循环中调用
-    void on_loop();
+    void update();
 
   private:
     static constexpr float HURT_TIMEOUT = 1;
@@ -149,7 +150,7 @@ class Referee {
     RefereeParser parser_; // 裁判系统报文解析库
 
     // 用于维护伤害方向
-    Timer timer_hurt_;
+    std::optional<Timer> timer_hurt_;
     Angle yaw_ecd_, yaw_imu_;
     Angle hurt_dir_by_imu_; // 伤害方向，相对于IMU参考系
 };

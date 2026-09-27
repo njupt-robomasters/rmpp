@@ -1,11 +1,11 @@
 #pragma once
 
-#include "algorithm/pid.hpp"
 #include "bsp/pwm.hpp"
 #include "bsp/spi.hpp"
 #include "bsp/timer.hpp"
 #include "math/angle.hpp"
 #include "math/unit.hpp"
+#include "motor/pid.hpp"
 #include <tuple>
 
 class Imu {
@@ -40,7 +40,7 @@ class Imu {
 
     // 欧拉角
     Angle yaw, pitch, roll;
-    float yaw_total_angle{}; // rad, unwrapped
+    float yaw_total_angle{}; // 累积偏航角，单位 rad，不归一化
 
     Imu(const Dir& dir, Calib& calib, const Config& config);
 
@@ -63,19 +63,20 @@ class Imu {
     static void quaternion_update(float q[4], float gx, float gy, float gz, float dt);
 
     // 需要在循环中调用
-    void on_loop();
+    void update();
 
   private:
     // imu加热
     class TemperatureControl {
       public:
-        explicit TemperatureControl(Pwm heater) : pid_(&pid_config_), heater_(heater) {}
+        explicit TemperatureControl(Pwm heater)
+            : pid_(&pid_config_), heater_(heater) {}
 
         // 需要在循环中调用
-        void on_loop();
+        void update();
 
       private:
-        static constexpr float REF = 45.0f; // Celsius
+        static constexpr float REF = 45.0f; // 摄氏度
         float measure_{};
         float power_{};
 

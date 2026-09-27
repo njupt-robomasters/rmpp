@@ -4,16 +4,18 @@
 #include <cmath>
 #include <cstring> // memcpy
 
-VT13::VT13(const Config& config) : config(config) {
+VT13::VT13(const Config& config)
+    : config(config) {
     // 注册串口回调
-    config.uart.add_rx_callback([this](Bytes bytes) {
-        this->callback(bytes.data, bytes.size);
+    config.uart.add_rx_callback([this](const uint8_t* data, std::size_t size) {
+        this->callback(data, size);
     });
 }
 
-void VT13::on_loop() {
+void VT13::update() {
     // 断联检测
-    if (timer_connect_.get_dt() > config.timeout) {
+    if (timer_connect_.elapsed() > config.timeout) {
+        timer_connect_.restart();
         reset_data();
     }
 }
@@ -34,7 +36,7 @@ void VT13::callback(const uint8_t data[], const uint16_t size) {
 
     // 复位断联检测
     is_connect = true;
-    timer_connect_.update_dt();
+    timer_connect_.restart();
 
     // 解析原始通道值
     std::memcpy(&raw_, data, sizeof(raw_));

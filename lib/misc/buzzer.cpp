@@ -1,7 +1,7 @@
 #include "buzzer.hpp"
 #include "math/unit.hpp"
 
-void Buzzer::on_loop() {
+void Buzzer::update() {
     if (i_ >= len_) {
         output_.set_duty(0);
         return;
@@ -13,10 +13,10 @@ void Buzzer::on_loop() {
         wait_play_ = false;
     }
 
-    if (timer_.get_dt() > music_[i_][1] * ms) {
+    if (timer_.elapsed() > music_[i_][1] * ms) {
+        timer_.restart();
         output_.set_duty(0);
         i_++;
-        timer_.reset();
         wait_play_ = true;
     }
 }

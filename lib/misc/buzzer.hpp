@@ -41,7 +41,8 @@ class Buzzer {
         {784, 250},
     };
 
-    explicit Buzzer(Pwm output) : output_(output) {}
+    explicit Buzzer(Pwm output)
+        : output_(output) {}
 
     template <std::size_t N>
     void play(const float (&music)[N][2]) {
@@ -49,10 +50,10 @@ class Buzzer {
         i_ = 0;
         len_ = N;
         wait_play_ = true;
-        timer_.reset();
+        timer_.restart();
     }
 
-    void on_loop();
+    void update();
 
   private:
     Pwm output_;

@@ -5,10 +5,15 @@
 
 class Vesc : public Motor {
   public:
+    static constexpr Config DEFAULT_CONFIG{
+        .physical = {.kt = 1},
+        .install = {.reduction = 1},
+    };
+
     struct VescConfig {
-        uint8_t pole_pair = 7;                // 极对数
-        float auto_release_speed = 120 * rpm; // 自动释放电机的转速，避免持续的高频注入声音（0表示禁用）
-    } vesc_config;
+        uint8_t pole_pair = 0;         // 电机极对数；零采用默认值 7
+        float auto_release_speed = -1; // 低速自动释放阈值，rad/s；负值采用默认值，零禁用
+    } const vesc_config;
 
     // 母线电压电流
     struct Bus {
@@ -18,12 +23,13 @@ class Vesc : public Motor {
 
     float duty{}; // 占空比
 
-    Vesc(const Config& config, const VescConfig& vesc_config);
+    explicit Vesc(const Config& config);
+    Vesc(const Config& config, VescConfig vesc_config);
 
     // 重写父类的闭环操作
-    void on_loop() override;
+    void update_control() override;
 
-    void send_can_cmd();
+    bool send_can_cmd();
 
   private:
     enum Command {
@@ -48,14 +54,14 @@ class Vesc : public Motor {
     };
 
     // CAN接收回调
-    void callback(uint32_t id, const uint8_t data[8], uint8_t dlc);
+    void receive(const CanFrame& frame) override;
 
     // 构造CAN报文
     static void make_can_data(uint8_t data[4], float value, float scale);
 
     // 发送erpm
-    void send_erpm(float erpm) const;
+    bool send_erpm(float erpm) const;
 
     // 发送刹车电流
-    void send_current_brake(float current) const;
+    bool send_current_brake(float current) const;
 };

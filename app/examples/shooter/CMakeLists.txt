@@ -1,2 +1,2 @@
-# 此应用使用的板卡。
-set(RMPP_BOARD stm32f407_igh6)
+file(GLOB_RECURSE APP_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.*")
+add_library(rmpp_app OBJECT ${APP_SOURCES})

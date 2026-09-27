@@ -10,7 +10,8 @@
 uint8_t Ui::txbuf[TXBUF_SIZE];
 size_t Ui::head, Ui::tail;
 
-Ui::Ui(const Config& config) : config(config) {}
+Ui::Ui(const Config& config)
+    : config(config) {}
 
 void Ui::add_can_data(const uint8_t data[], const size_t len) {
     for (size_t i = 0; i < len; i++) {
@@ -27,12 +28,13 @@ void Ui::init() {
     update_index_ = 0;
 }
 
-void Ui::on_loop() {
+void Ui::update() {
     update_rmui_robot_id();
 
     update_lib(); // 更新UI库
 
-    if (timer_.poll_timeout(1 / SEND_FREQ)) { // 发送频率控制
+    if (timer_.elapsed() > 1 / SEND_FREQ) { // 发送频率控制
+        timer_.restart();
         if (state_ == INIT) {
             ui_init_g[init_index_]();
             init_index_++;
@@ -51,17 +53,16 @@ void Ui::on_loop() {
 
 void Ui::send_can_cmd() {
     if (head != tail) { // 队列有数据
-        std::array<uint8_t, 8> data{};
-        uint8_t dlc = 0;
+        CanFrame frame{.id = config.slave_id};
         auto next_head = head;
         for (int i = 0; i < 8; i++) {
             if (next_head == tail)
                 break;
-            data[i] = txbuf[next_head];
+            frame.data[i] = txbuf[next_head];
             next_head = (next_head + 1) % TXBUF_SIZE;
-            dlc++;
+            frame.size++;
         }
-        if (config.can.send({.id = config.slave_id, .data = data, .size = dlc}))
+        if (config.can.send(frame))
             head = next_head;
     }
 }

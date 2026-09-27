@@ -1,22 +1,22 @@
 #pragma once
 
-#include "bsp/bsp.hpp"
+#include "bsp/can.hpp"
 
 #include "math/unit.hpp"
-#include "module/chassis/chassis_dual_steer.hpp"
-#include "motor/gm6020.hpp"
-#include "motor/m3508.hpp"
+#include "motor/dji/gm6020.hpp"
+#include "motor/dji/m3508.hpp"
+#include "robot/chassis/chassis_dual_steer.hpp"
 
 // 电机参数
 static constexpr float REDUCTION = 14.0f;
-static constexpr float KT = M3508::KT / M3508::REDUCTION * REDUCTION;
+static constexpr float KT = M3508::DEFAULT_CONFIG.physical.kt / M3508::DEFAULT_CONFIG.install.reduction * REDUCTION;
 static constexpr bool IS_WHEEL_INVERT = false;
 static constexpr bool IS_SERVO_INVERT = true;
 
 // 底盘参数
 static constexpr float CHASSIS_RADIUS = 21.5f * cm;
 static constexpr float WHEEL_RADIUS = 5.25f * cm;
-static constexpr float MAX_F = M3508::MAX_CURRENT * KT / WHEEL_RADIUS * 2;
+static constexpr float MAX_F = M3508::DEFAULT_CONFIG.physical.max_current * KT / WHEEL_RADIUS * 2;
 
 // 轮电机PID参数
 inline Pid::Config wheel_pid = {
@@ -41,48 +41,28 @@ inline Pid::Config vxyz_pid = {
 
 // 轮电机
 inline M3508 w1({
-    .can = bsp.can(1),
-    .master_id = 0x201,
-    .slave_id = 0x200,
-    .reduction = REDUCTION,
-    .kt = KT,
-    .is_invert = IS_WHEEL_INVERT,
-    .control_mode = Motor::SPEED_MODE,
-    .pid_out_type = Motor::CURRENT_OUTPUT,
-    .speed_pid_config = &wheel_pid,
+    .protocol = {.can = Can(1), .master_id = 0x201, .slave_id = 0x200},
+    .physical = {.kt = KT},
+    .install = {.is_invert = IS_WHEEL_INVERT, .reduction = REDUCTION},
+    .control = {.control_mode = Motor::SPEED_MODE, .pid_output_type = Motor::CURRENT_OUTPUT, .speed_pid_config = &wheel_pid},
 });
 inline M3508 w2({
-    .can = bsp.can(1),
-    .master_id = 0x202,
-    .slave_id = 0x200,
-    .reduction = REDUCTION,
-    .kt = KT,
-    .is_invert = IS_WHEEL_INVERT,
-    .control_mode = Motor::SPEED_MODE,
-    .pid_out_type = Motor::CURRENT_OUTPUT,
-    .speed_pid_config = &wheel_pid,
+    .protocol = {.can = Can(1), .master_id = 0x202, .slave_id = 0x200},
+    .physical = {.kt = KT},
+    .install = {.is_invert = IS_WHEEL_INVERT, .reduction = REDUCTION},
+    .control = {.control_mode = Motor::SPEED_MODE, .pid_output_type = Motor::CURRENT_OUTPUT, .speed_pid_config = &wheel_pid},
 });
 
 // 舵电机
 inline GM6020 s1({
-    .can = bsp.can(1),
-    .master_id = 0x207,
-    .slave_id = 0x1FF,
-    .is_invert = IS_SERVO_INVERT,
-    .offset = 135 * deg,
-    .control_mode = Motor::ANGLE_MODE,
-    .pid_out_type = Motor::CURRENT_OUTPUT,
-    .angle_pid_config = &servo_pid,
+    .protocol = {.can = Can(1), .master_id = 0x207, .slave_id = 0x1FF},
+    .install = {.offset = 135 * deg, .is_invert = IS_SERVO_INVERT},
+    .control = {.control_mode = Motor::SINGLE_TURN_MODE, .pid_output_type = Motor::CURRENT_OUTPUT, .position_pid_config = &servo_pid},
 });
 inline GM6020 s2({
-    .can = bsp.can(1),
-    .master_id = 0x208,
-    .slave_id = 0x1FF,
-    .is_invert = IS_SERVO_INVERT,
-    .offset = -15 * deg,
-    .control_mode = Motor::ANGLE_MODE,
-    .pid_out_type = Motor::CURRENT_OUTPUT,
-    .angle_pid_config = &servo_pid,
+    .protocol = {.can = Can(1), .master_id = 0x208, .slave_id = 0x1FF},
+    .install = {.offset = -15 * deg, .is_invert = IS_SERVO_INVERT},
+    .control = {.control_mode = Motor::SINGLE_TURN_MODE, .pid_output_type = Motor::CURRENT_OUTPUT, .position_pid_config = &servo_pid},
 });
 
 // 底盘
@@ -91,4 +71,6 @@ inline ChassisDualSteer chassis({
                                     .wheel_radius = WHEEL_RADIUS,
                                     .vxyz_pid_config = &vxyz_pid,
                                 },
-                                {w1, w2, s1, s2});
+                                {w1, w2, s1, s2}, {.wheel_resistance = 0.194f / 2});
+
+void chassis_loop();

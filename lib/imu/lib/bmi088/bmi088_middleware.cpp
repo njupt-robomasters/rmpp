@@ -1,10 +1,10 @@
-#include "bmi088_middleware.h"
+#include "bmi088_middleware.hpp"
 #include "bsp/timer.hpp"
 #include "math/unit.hpp"
 #include <array>
 #include <cstring>
 
-// 原有 BMI088 驱动使用一个实例；绑定只在 Imu 初始化时进行。
+// 原有 BMI088 驱动使用一个实例；绑定只在 Imu 初始化时进行
 static Spi accel_spi;
 static Spi gyro_spi;
 
@@ -24,7 +24,7 @@ static void write_reg(Spi spi, uint8_t reg, uint8_t value) {
 }
 
 static void read_regs(Spi spi, uint8_t reg, uint8_t* data, uint8_t size, uint8_t prefix, uint8_t dummy) {
-    // 最长读取为陀螺仪的 8 字节，额外预留地址和空读字节。
+    // 最长读取为陀螺仪的 8 字节，额外预留地址和空读字节
     if (!data || size == 0 || size > 8)
         return;
     std::array<uint8_t, 10> tx{}, rx{};

@@ -11,8 +11,8 @@ class Storage {
     bool write(const char* key, float value);
 
   private:
-    struct State;
+    struct Context;
     const char* name_;
-    State* state_;
+    Context* context_;
     bool init();
 };

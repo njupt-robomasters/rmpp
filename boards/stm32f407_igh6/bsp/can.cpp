@@ -1,68 +1,41 @@
+/*
+ * CubeMX 配置：Connectivity → CAN1 / CAN2，APB1 = 42 MHz 时为 1 Mbps
+ *
+ * 两路通用参数
+ * | 页面               | 参数                             | 设置               |
+ * | ------------------ | -------------------------------- | ------------------ |
+ * | Mode               | Activated                        | 勾选               |
+ * | Parameter Settings | Operating Mode                   | Normal             |
+ * | Parameter Settings | Prescaler (for Time Quantum)     | 3                  |
+ * | Parameter Settings | Time Quanta in Bit Segment 1 / 2 | 10 Times / 3 Times |
+ * | Parameter Settings | ReSynchronization Jump Width     | 1 Time             |
+ * | Parameter Settings | Automatic Bus-Off Management     | Enable             |
+ * | Parameter Settings | Automatic Retransmission         | Disable            |
+ *
+ * 引脚与 NVIC Settings
+ * | 外设 | Pinout                       | 勾选中断           | Preemption / Sub Priority |
+ * | ---- | ---------------------------- | ------------------ | ------------------------- |
+ * | CAN1 | PD0 = CAN1_RX，PD1 = CAN1_TX | CAN1 RX0、CAN1 SCE | 0 / 0                     |
+ * | CAN2 | PB5 = CAN2_RX，PB6 = CAN2_TX | CAN2 RX1、CAN2 SCE | 0 / 0                     |
+ *
+ * 过滤器及接收通知由 can_init() 设置，时钟、GPIO 和 IRQHandler 由 CubeMX 生成
+ */
+
 #include "bsp/can.hpp"
+#include "bsp/monitor.hpp"
 #include "can.h"
-#include "peripherals.hpp"
-#include <utility>
-#include <vector>
 
-struct Can::State {
+struct Can::Context {
     int id;
-    CAN_HandleTypeDef* handle;
+    CAN_HandleTypeDef* hcan;
     std::vector<RxCallback> callbacks;
-
-    struct Metrics {
-        float last_callback_us = 0;
-        float cpu_usage = 0;
-        std::uint32_t bus_off_count = 0;
-    };
-
-    volatile Metrics metrics{};
-    CallbackTiming timing;
+    Monitor monitor;
+    uint32_t bus_off_count = 0; // 总线关闭（bus-off）次数
 };
 
-Can::Can(int id) : id_(id) {
-    static constinit State states[] = {
-        {.id = 1, .handle = &hcan1},
-        {.id = 2, .handle = &hcan2},
-    };
-    for (auto& state : states) {
-        if (state.id == id_) {
-            state_ = &state;
-            break;
-        }
-    }
-}
-
-bool Can::send(const CanFrame& frame) const {
-    if (!state_ || frame.size > frame.data.size() || frame.id > (frame.extended ? 0x1fffffffu : 0x7ffu))
-        return false;
-    CAN_TxHeaderTypeDef header{
-        .StdId = frame.extended ? 0 : frame.id,
-        .ExtId = frame.extended ? frame.id : 0,
-        .IDE = frame.extended ? CAN_ID_EXT : CAN_ID_STD,
-        .RTR = frame.remote ? CAN_RTR_REMOTE : CAN_RTR_DATA,
-        .DLC = frame.size,
-    };
-    std::uint32_t mailbox;
-    const auto primask = __get_PRIMASK();
-    __disable_irq();
-    const bool success = HAL_CAN_AddTxMessage(state_->handle, &header, frame.data.data(), &mailbox) == HAL_OK;
-    __set_PRIMASK(primask);
-    return success;
-}
-
-bool Can::add_rx_callback(RxCallback callback) const {
-    if (!state_ || !callback)
-        return false;
-    const auto primask = __get_PRIMASK();
-    __disable_irq();
-    state_->callbacks.push_back(std::move(callback));
-    __set_PRIMASK(primask);
-    return true;
-}
-
 void can_init() {
-    for (int id : {1, 2}) {
-        auto* state = Can(id).state_;
+    for (const int id : {1, 2}) {
+        auto* context = Can(id).context_;
         CAN_FilterTypeDef filter{
             .FilterFIFOAssignment = id == 1 ? CAN_RX_FIFO0 : CAN_RX_FIFO1,
             .FilterBank = id == 1 ? 0u : 14u,
@@ -71,61 +44,98 @@ void can_init() {
             .FilterActivation = ENABLE,
             .SlaveStartFilterBank = 14,
         };
-        state->timing.window_start_ms = HAL_GetTick();
-        HAL_CAN_ConfigFilter(state->handle, &filter);
-        HAL_CAN_Start(state->handle);
-        HAL_CAN_ActivateNotification(state->handle,
+        HAL_CAN_ConfigFilter(context->hcan, &filter);
+        HAL_CAN_Start(context->hcan);
+        HAL_CAN_ActivateNotification(context->hcan,
                                      (id == 1 ? CAN_IT_RX_FIFO0_MSG_PENDING : CAN_IT_RX_FIFO1_MSG_PENDING) | CAN_IT_ERROR | CAN_IT_BUSOFF);
     }
 }
 
-void can_receive(int id, std::uint32_t fifo) {
-    auto* state = Can(id).state_;
-    if (!state)
-        return;
-    while (HAL_CAN_GetRxFifoFillLevel(state->handle, fifo)) {
-        CAN_RxHeaderTypeDef header{};
-        std::array<std::uint8_t, 8> data{};
-        if (HAL_CAN_GetRxMessage(state->handle, fifo, &header, data.data()) != HAL_OK)
-            break;
-        if (header.DLC > data.size())
-            continue;
+Can::Can(const int id) {
+    static constinit Context contexts[] = {
+        {.id = 1, .hcan = &hcan1},
+        {.id = 2, .hcan = &hcan2},
+    };
+    if (id == 1)
+        context_ = &contexts[0];
+    else if (id == 2)
+        context_ = &contexts[1];
+}
 
-        const CanFrame frame{
-            .id = header.IDE == CAN_ID_EXT ? header.ExtId : header.StdId,
-            .data = data,
-            .size = static_cast<std::uint8_t>(header.DLC),
-            .extended = header.IDE == CAN_ID_EXT,
-            .remote = header.RTR == CAN_RTR_REMOTE,
-        };
-        const auto begin = DWT->CYCCNT;
-        for (const auto& callback : state->callbacks)
+bool Can::send(const CanFrame& frame) const {
+    if (!context_)
+        return false;
+
+    const CAN_TxHeaderTypeDef header{
+        .StdId = frame.is_extend ? 0 : frame.id,
+        .ExtId = frame.is_extend ? frame.id : 0,
+        .IDE = frame.is_extend ? CAN_ID_EXT : CAN_ID_STD,
+        .RTR = frame.is_remote ? CAN_RTR_REMOTE : CAN_RTR_DATA,
+        .DLC = frame.size,
+    };
+    uint32_t mailbox;
+    const bool success = HAL_CAN_AddTxMessage(context_->hcan, &header, frame.data, &mailbox) == HAL_OK;
+
+    return success;
+}
+
+bool Can::add_rx_callback(RxCallback callback) const {
+    if (!context_)
+        return false;
+
+    const auto primask = __get_PRIMASK();
+    __disable_irq();
+    context_->callbacks.push_back(std::move(callback));
+    __set_PRIMASK(primask);
+
+    return true;
+}
+
+static void can_receive(CAN_HandleTypeDef* hcan, const uint32_t fifo) {
+    Can::Context* context;
+    if (hcan == &hcan1)
+        context = Can(1).context_;
+    else if (hcan == &hcan2)
+        context = Can(2).context_;
+    else
+        return;
+
+    while (HAL_CAN_GetRxFifoFillLevel(hcan, fifo)) {
+        CanFrame frame;
+
+        CAN_RxHeaderTypeDef header{};
+        if (HAL_CAN_GetRxMessage(hcan, fifo, &header, frame.data) != HAL_OK)
+            break;
+
+        frame.id = header.IDE == CAN_ID_STD ? header.StdId : header.ExtId;
+        frame.is_extend = header.IDE == CAN_ID_EXT;
+        frame.is_remote = header.RTR == CAN_RTR_REMOTE;
+        frame.size = static_cast<uint8_t>(header.DLC);
+
+        context->monitor.begin();
+        for (const auto& callback : context->callbacks)
             callback(frame);
-        const float duration_us = static_cast<std::uint32_t>(DWT->CYCCNT - begin) * (1000000.0f / SystemCoreClock);
-        state->metrics.last_callback_us = duration_us;
-        state->timing.record(duration_us, HAL_GetTick(), state->metrics.cpu_usage);
+        context->monitor.end();
     }
 }
 
-void can_error(int id) {
-    auto* state = Can(id).state_;
-    if (state && (state->handle->ErrorCode & HAL_CAN_ERROR_BOF))
-        state->metrics.bus_off_count = state->metrics.bus_off_count + 1;
+extern "C" void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
+    can_receive(hcan, CAN_RX_FIFO0);
 }
 
-extern "C" void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* handle) {
-    can_receive(handle == &hcan1 ? 1 : handle == &hcan2 ? 2
-                                                        : 0,
-                CAN_RX_FIFO0);
+extern "C" void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef* hcan) {
+    can_receive(hcan, CAN_RX_FIFO1);
 }
 
-extern "C" void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef* handle) {
-    can_receive(handle == &hcan1 ? 1 : handle == &hcan2 ? 2
-                                                        : 0,
-                CAN_RX_FIFO1);
-}
+extern "C" void HAL_CAN_ErrorCallback(CAN_HandleTypeDef* hcan) {
+    Can::Context* context;
+    if (hcan == &hcan1)
+        context = Can(1).context_;
+    else if (hcan == &hcan2)
+        context = Can(2).context_;
+    else
+        return;
 
-extern "C" void HAL_CAN_ErrorCallback(CAN_HandleTypeDef* handle) {
-    can_error(handle == &hcan1 ? 1 : handle == &hcan2 ? 2
-                                                      : 0);
+    if (hcan->ErrorCode & HAL_CAN_ERROR_BOF)
+        context->bus_off_count += 1;
 }

@@ -1,15 +1,16 @@
 #include "referee.hpp"
 #include "math/unit.hpp"
 
-Referee::Referee(const Config& config) : config(config), parser_(config) {}
+Referee::Referee(const Config& config)
+    : config(config), parser_(config) {}
 
 void Referee::set_yaw(float yaw_ecd, float yaw_imu) {
     this->yaw_ecd_ = yaw_ecd;
     this->yaw_imu_ = yaw_imu;
 }
 
-void Referee::on_loop() {
-    parser_.on_loop();
+void Referee::update() {
+    parser_.update();
 
     is_connect = parser_.is_connect;
 
@@ -55,9 +56,10 @@ void Referee::on_loop() {
     rfid.center_buff = CenterBuff((parser_.event_data.event_data >> 23) & 0b11); // 中心增益点的占领状态
 
     // 伤害方向
-    if (timer_hurt_ != parser_.timer_hurt_data) {         // 有新的伤害
-        if (parser_.hurt_data.HP_deduction_reason == 0) { // 0：装甲模块被弹丸攻击导致扣血
-            timer_hurt_ = parser_.timer_hurt_data;
+    if (parser_.timer_hurt_data != Timer{} && (!timer_hurt_ || *timer_hurt_ != parser_.timer_hurt_data)) { // 有新的伤害
+        if (parser_.hurt_data.HP_deduction_reason == 0) {                                                  // 0：装甲模块被弹丸攻击导致扣血
+            // 复制接收时刻，避免轮询延迟延长受击状态
+            timer_hurt_.emplace(parser_.timer_hurt_data);
 
             // 计算伤害方向
             switch (parser_.hurt_data.armor_id) {
@@ -80,6 +82,6 @@ void Referee::on_loop() {
     }
 
     // 更新伤害方向
-    hurt.is_hurt = timer_hurt_.get_dt() < HURT_TIMEOUT;
+    hurt.is_hurt = timer_hurt_ && timer_hurt_->elapsed() < HURT_TIMEOUT;
     hurt.dir = hurt_dir_by_imu_ - yaw_imu_;
 }

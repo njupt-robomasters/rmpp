@@ -2,7 +2,7 @@
 
 inline constexpr float pi = 3.14159265358979323846f;
 
-// Conversion factors into the internal SI representation.
+// 换算到内部国际单位制表示的系数
 inline constexpr float ms = 1.0e-3f;
 inline constexpr float us = 1.0e-6f;
 
@@ -16,7 +16,7 @@ inline constexpr float mA = 1.0e-3f;
 
 inline constexpr float pct = 1.0e-2f;
 
-inline constexpr float deg_s = deg; // degrees/s -> rad/s
+inline constexpr float deg_s = deg; // 度每秒 -> rad/s
 inline constexpr float rpm = rev / 60.0f;
-inline constexpr float rps = rev;    // revolutions/s -> rad/s
-inline constexpr float deg_ss = deg; // degrees/s^2 -> rad/s^2
+inline constexpr float rps = rev;    // 转每秒 -> rad/s
+inline constexpr float deg_ss = deg; // 度每二次方秒 -> rad/s^2

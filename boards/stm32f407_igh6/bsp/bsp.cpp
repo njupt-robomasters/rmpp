@@ -1,7 +1,6 @@
-#include "bsp.hpp"
-#include "peripherals.hpp"
+#include "bsp/bsp.hpp"
 
-void bsp_init() {
+extern "C" void bsp_init() {
     timer_init();
     pwm_init();
     can_init();

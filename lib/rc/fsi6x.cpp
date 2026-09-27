@@ -3,15 +3,17 @@
 #include <cmath>
 #include <cstring> // memcpy
 
-FSi6X::FSi6X(const Config& config) : config(config) {
+FSi6X::FSi6X(const Config& config)
+    : config(config) {
     // 注册串口回调
-    config.uart.add_rx_callback([this](Bytes bytes) {
-        this->callback(bytes.data, bytes.size);
+    config.uart.add_rx_callback([this](const uint8_t* data, std::size_t size) {
+        this->callback(data, size);
     });
 }
 
-void FSi6X::on_loop() {
-    if (timer_connect_.get_dt() > config.timeout) {
+void FSi6X::update() {
+    if (timer_connect_.elapsed() > config.timeout) {
+        timer_connect_.restart();
         reset_data();
     }
 }
@@ -36,7 +38,7 @@ void FSi6X::callback(const uint8_t data[], const uint16_t size) {
 
     // 复位断联检测
     is_connect = true;
-    timer_connect_.update_dt();
+    timer_connect_.restart();
 
     // 解析摇杆和拨杆
     y = -get_joystick(raw_.ch0);    // 右手水平
@@ -71,5 +73,5 @@ void FSi6X::reset_data() {
     is_connect = false;
     x = y = pitch = yaw = 0.0f;
     vra = vrb = 0.0f;
-    swb = swc = ERR;
+    swa = swb = swc = swd = ERR;
 }

@@ -5,10 +5,12 @@
 
 class Angle {
   public:
-    constexpr Angle() : radians_(0.0f) {}
+    constexpr Angle()
+        : radians_(0.0f) {}
 
-    // Angles are always represented in radians and normalized at construction.
-    constexpr Angle(float radians) : radians_(normalize(radians)) {}
+    // 角度统一使用弧度，构造时归一化
+    constexpr Angle(float radians)
+        : radians_(normalize(radians)) {}
 
     constexpr operator float() const {
         return radians_;
@@ -47,8 +49,8 @@ class Angle {
         if (radians >= -pi && radians < pi)
             return radians;
 
-        // Binary remainder is constexpr in C++14 and bounded by the float exponent range.
-        // Subtracting one turn repeatedly can stop making progress for large inputs.
+        // 二进制取余支持 C++14 常量求值，迭代次数受浮点指数范围限制
+        // 逐次减去一圈时，大数输入可能因浮点精度限制而无法继续减小
         float result = radians < 0.0f ? -radians : radians;
         float period = rev;
         while (period <= result / 2.0f)

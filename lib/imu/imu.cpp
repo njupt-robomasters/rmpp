@@ -1,15 +1,16 @@
 #include "imu.hpp"
 
 #include "bsp/pwm.hpp"
-#include "lib/bmi088/bmi088.h"
-#include "lib/bmi088/bmi088_middleware.h"
+#include "lib/bmi088/bmi088.hpp"
+#include "lib/bmi088/bmi088_middleware.hpp"
 #include "lib/ekf/QuaternionEKF.h"
 #include "math/angle.hpp"
 #include "math/unit.hpp"
 #include <cmath>
 #include <tuple>
 
-Imu::Imu(const Dir& dir, Calib& calib, const Config& config) : temperature_control_(config.heater), config_(config), dir_(dir), calib_(calib) {
+Imu::Imu(const Dir& dir, Calib& calib, const Config& config)
+    : temperature_control_(config.heater), config_(config), dir_(dir), calib_(calib) {
     IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0);
 }
 
@@ -29,7 +30,7 @@ void Imu::calibrate() {
         .g_norm = BMI088.gNorm};
 }
 
-void Imu::on_loop() {
+void Imu::update() {
     if (!config_.accel || !config_.gyro)
         return;
     if (is_init_ == false) {
@@ -38,7 +39,7 @@ void Imu::on_loop() {
     }
 
     // 计算dt
-    const float dt = timer_.update_dt();
+    const float dt = timer_.restart();
 
     // 读取bmi088数据
     BMI088_Read(&BMI088);
@@ -67,7 +68,7 @@ void Imu::on_loop() {
     yaw_total_angle = QEKF_INS.YawTotalAngle * deg;
 
     // imu加热
-    temperature_control_.on_loop();
+    temperature_control_.update();
 }
 
 void Imu::init() const {
@@ -92,7 +93,7 @@ void Imu::dir_correct(const Dir& dir, float gyro[3], float accel[3]) {
         const float sin_pitch = arm_sin_f32(dir.pitch);
         const float sin_roll = arm_sin_f32(dir.roll);
 
-        // 1.yaw(alpha) 2.pitch(beta) 3.roll(gamma)
+        // 旋转顺序：1. 偏航角（alpha） 2. 俯仰角（beta） 3. 横滚角（gamma）
         c_11 = cos_yaw * cos_roll + sin_yaw * sin_pitch * sin_roll;
         c_12 = cos_pitch * sin_yaw;
         c_13 = cos_yaw * sin_roll - cos_roll * sin_yaw * sin_pitch;
@@ -186,7 +187,7 @@ void Imu::quaternion_update(float q[4], float gx, float gy, float gz, const floa
     q[3] += qa * gz + qb * gy - qc * gx;
 }
 
-void Imu::TemperatureControl::on_loop() {
+void Imu::TemperatureControl::update() {
     measure_ = BMI088.Temperature;
     power_ = pid_.calculate(REF - measure_);
     heater_.set_duty(power_);

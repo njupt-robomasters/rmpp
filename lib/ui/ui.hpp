@@ -13,7 +13,7 @@ class Ui {
         uint32_t master_id = 0;
         uint32_t slave_id = 1;
 
-        // SI ranges: ratio, rad/s, m/s (hero) or shots/s, A.
+        // 量程单位：比值、rad/s、m/s（英雄）或发每秒、A
         float max_cap = 1.0f;
         float max_wr = 120 * rpm;
         float max_bullet = 25.0f;
@@ -47,7 +47,7 @@ class Ui {
     float cap{};                  // 超级电容剩余能量比例
     float wr{};                   // 底盘旋转速度
     float bullet{};               // 英雄弹速/步兵弹频
-    bool bullet_is_speed = false; // m/s when true, shots/s otherwise
+    bool bullet_is_speed = false; // 为真时表示弹速（m/s），否则表示发射频率（发每秒）
     float shoot{};                // 拨弹电机电流
 
     // 机器人状态
@@ -68,7 +68,7 @@ class Ui {
     void init();
 
     // 需要在循环中调用
-    void on_loop();
+    void update();
 
     void send_can_cmd();
 

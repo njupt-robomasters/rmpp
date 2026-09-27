@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 
 // 0x0001，比赛状态数据（1Hz）
 // 服务器→全体机器人
