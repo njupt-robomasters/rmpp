@@ -15,7 +15,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 
@@ -33,10 +33,6 @@ add_subdirectory("app/${RMPP_APP}" app)
 # 应用使用公共接口，板卡实现还需要 CubeMX 的头文件和宏
 target_link_libraries(rmpp_app PRIVATE rmpp_lib)
 target_link_libraries(rmpp_bsp PRIVATE rmpp_lib stm32cubemx)
-
-# TODO: 解除公共库 EKF 对板卡 CMSIS-DSP 编译接口的依赖，届时删除此行
-# DSP 二进制仍由 CubeMX 接入最终固件，此处只为公共库提供编译接口
-target_link_libraries(rmpp_lib PRIVATE stm32cubemx)
 
 # 显式组装三组对象文件；与 CubeMX 对同一固件目标使用的 plain 签名保持一致
 target_link_libraries(${CMAKE_PROJECT_NAME}

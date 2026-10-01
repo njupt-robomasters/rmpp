@@ -2,17 +2,13 @@
 
 class Storage {
   public:
+    // 所有句柄共享唯一 Context，首次成功初始化的 name 决定应用标记
     explicit Storage(const char* name);
-    ~Storage();
-    Storage(const Storage&) = delete;
-    Storage& operator=(const Storage&) = delete;
 
     float read(const char* key);
-    bool write(const char* key, float value);
+    void write(const char* key, float value);
 
   private:
     struct Context;
-    const char* name_;
     Context* context_;
-    bool init();
 };

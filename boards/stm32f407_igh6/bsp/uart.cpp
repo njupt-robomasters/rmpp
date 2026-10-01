@@ -85,25 +85,21 @@ Uart::Uart(const int id) {
 }
 
 bool Uart::send(const uint8_t* data, const size_t size) const {
-    if (!context_ || !data || !size || size > UART_BUFFER_CAPACITY)
+    if (!context_ || !context_->huart->hdmatx || context_->huart->gState != HAL_UART_STATE_READY)
         return false;
 
     std::memcpy(context_->tx_buf, data, size);
-    const bool success = HAL_UART_Transmit_DMA(context_->huart, context_->tx_buf, size) == HAL_OK;
-
-    return success;
+    return HAL_UART_Transmit_DMA(context_->huart, context_->tx_buf, size) == HAL_OK;
 }
 
-bool Uart::add_rx_callback(RxCallback callback) const {
-    if (!context_ || !callback)
-        return false;
+void Uart::add_rx_callback(RxCallback callback) const {
+    if (!context_)
+        return;
 
     const auto primask = __get_PRIMASK();
     __disable_irq();
     context_->callbacks.push_back(std::move(callback));
     __set_PRIMASK(primask);
-
-    return true;
 }
 
 extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t size) {

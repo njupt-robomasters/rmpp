@@ -62,8 +62,8 @@ void Ui::send_can_cmd() {
             next_head = (next_head + 1) % TXBUF_SIZE;
             frame.size++;
         }
-        if (config.can.send(frame))
-            head = next_head;
+        config.can.send(frame);
+        head = next_head;
     }
 }
 

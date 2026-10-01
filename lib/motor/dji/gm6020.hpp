@@ -4,14 +4,16 @@
 
 class GM6020 : public DjiMotor {
   public:
-    static constexpr Config DEFAULT_CONFIG{
-        .physical = {.kt = 0.741f, .max_current = 3},
-        .install = {.reduction = 1},
-    };
-    static constexpr Protocol DEFAULT_PROTOCOL{.feedback_scale = 16384, .command_scale = 25000};
+    // 型号默认物理参数
+    static constexpr Config::Drive DRIVE{.kt = 0.741f, .max_current = 3, .reduction = 1};
 
-    explicit GM6020(const Config& config, Protocol protocol = {});
+    // 公开反馈
+    float temperature = 0; // 电机温度，℃
+
+    // 构造与命令
+    explicit GM6020(const Config& config);
+    bool write_can_frame(CanFrame& frame) const override;
 
   private:
-    void parse_feedback(const uint8_t data[8]) override;
+    void can_callback(const CanFrame& frame);
 };

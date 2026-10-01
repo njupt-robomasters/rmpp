@@ -1,47 +1,30 @@
 #include "app.hpp"
 #include "bsp/can.hpp"
 #include "bsp/timer.hpp"
+#include "misc/music/c5d5g5.hpp"
 
 static void send_can_cmd() {
     // CAN1
     ui.send_can_cmd();
 
-    const int16_t cmd1 = w1.command_value();
-    const int16_t cmd2 = w2.command_value();
-    const int16_t cmd3 = 0;
-    const int16_t cmd4 = 0;
-    const int16_t cmd5 = yaw2.command_value();
-    const int16_t cmd6 = shoot.command_value();
-    const int16_t cmd7 = s1.command_value();
-    const int16_t cmd8 = s2.command_value();
+    CanFrame chassis_frame{.id = 0x200, .size = 8};
+    w1.write_can_frame(chassis_frame);
+    w2.write_can_frame(chassis_frame);
+    Can(1).send(chassis_frame);
 
-    CanFrame frame{.id = 0x200, .size = 8};
-    frame.data[0] = cmd1 >> 8;
-    frame.data[1] = cmd1;
-    frame.data[2] = cmd2 >> 8;
-    frame.data[3] = cmd2;
-    frame.data[4] = cmd3 >> 8;
-    frame.data[5] = cmd3;
-    frame.data[6] = cmd4 >> 8;
-    frame.data[7] = cmd4;
-    Can(1).send(frame);
-    frame.data[0] = cmd5 >> 8;
-    frame.data[1] = cmd5;
-    frame.data[2] = cmd6 >> 8;
-    frame.data[3] = cmd6;
-    frame.data[4] = cmd7 >> 8;
-    frame.data[5] = cmd7;
-    frame.data[6] = cmd8 >> 8;
-    frame.data[7] = cmd8;
-    frame.id = 0x1FF;
-    Can(1).send(frame);
+    CanFrame gimbal_frame{.id = 0x1FF, .size = 8};
+    yaw2.write_can_frame(gimbal_frame);
+    shoot.write_can_frame(gimbal_frame);
+    s1.write_can_frame(gimbal_frame);
+    s2.write_can_frame(gimbal_frame);
+    Can(1).send(gimbal_frame);
 
-    yaw1.send_can_cmd();
+    yaw1.send();
 
     // CAN2
-    pitch.send_can_cmd();
-    rub1.send_can_cmd();
-    rub2.send_can_cmd();
+    pitch.send();
+    rub1.send();
+    rub2.send();
 }
 
 static void update_ui() {
@@ -58,15 +41,9 @@ static void update_ui() {
     ui.is_detect = mavlink.vision.is_detect;
 
     // 提示条
-    ui.cap = 0.0f;                             // 超级电容剩余能量比例
-    ui.wr = chassis.wr.measure;                // 底盘旋转速度
-    if (referee.robot.type == Referee::HERO) { // 英雄显示弹速
-        ui.bullet = shooter.config.bullet_speed;
-        ui.bullet_is_speed = true;
-    } else if (referee.robot.type == Referee::INFANTRY) { // 步兵显示弹频
-        ui.bullet = shooter.config.bullet_freq;
-        ui.bullet_is_speed = false;
-    }
+    // 弹速或弹频由 shooter_loop 写入
+    ui.cap = 0.0f;                    // 超级电容剩余能量比例
+    ui.wr = chassis.wr.measure;       // 底盘旋转速度
     ui.shoot = shooter.shoot_current; // 拨弹电机电流
 
     // 机器人状态
@@ -80,23 +57,21 @@ static void update_ui() {
 }
 
 extern "C" void app_main() {
-    // gimbal.imu.calibrate();
+    // gimbal.imu.start_calibration();
     gimbal.load_yaw_offset(storage);
-    buzzer.play(Buzzer::C5D5G5);
+    buzzer.play(C5D5G5);
 
     [[maybe_unused]] static float cpu_usage{};
     Timer timer;
     while (true) {
         if (timer.elapsed() > 1 * ms) {
             timer.restart();
-            rgb.update();
+            misc_loop();
             buzzer.update();
             referee.set_yaw(gimbal.yaw.ecd.measure, gimbal.yaw.imu.measure);
             referee.update();
-            rc.set_ignore_disconnect(referee.game.game_progress == Referee::REFEREE_SELF_CHECK ||
-                                     referee.game.game_progress == Referee::COUNTDOWN_5SEC ||
-                                     referee.game.game_progress == Referee::GAMING);
-            rc.update();
+            vt13.update();
+            fsi6x.update();
             mavlink.imu = {.yaw = gimbal.imu.yaw, .pitch = gimbal.imu.pitch, .roll = gimbal.imu.roll};
             mavlink.referee = {
                 .is_red = referee.game.is_red,
@@ -110,7 +85,7 @@ extern "C" void app_main() {
             gimbal_loop();
             shooter_loop();
 
-            if (rc.is_refresh_ui)
+            if (vt13.key.f) // F 键刷新 UI
                 ui.init();
             update_ui();
             send_can_cmd();

@@ -21,20 +21,20 @@ void ChassisMecanum::set_enable(const bool is_enable) {
 }
 
 void ChassisMecanum::update_ui(Ui& ui) {
-    ui.robot.w1 = motor.w1.is_connected ? Ui::GREEN : Ui::PINK;
-    ui.robot.w2 = motor.w2.is_connected ? Ui::GREEN : Ui::PINK;
-    ui.robot.w3 = motor.w3.is_connected ? Ui::GREEN : Ui::PINK;
-    ui.robot.w4 = motor.w4.is_connected ? Ui::GREEN : Ui::PINK;
+    ui.robot.w1 = motor.w1.is_connect ? Ui::GREEN : Ui::PINK;
+    ui.robot.w2 = motor.w2.is_connect ? Ui::GREEN : Ui::PINK;
+    ui.robot.w3 = motor.w3.is_connect ? Ui::GREEN : Ui::PINK;
+    ui.robot.w4 = motor.w4.is_connect ? Ui::GREEN : Ui::PINK;
 }
 
 void ChassisMecanum::update() {
     Chassis::update();
 
     // 更新电机
-    motor.w1.update_control();
-    motor.w2.update_control();
-    motor.w3.update_control();
-    motor.w4.update_control();
+    motor.w1.update();
+    motor.w2.update();
+    motor.w3.update();
+    motor.w4.update();
 }
 
 void ChassisMecanum::forward() {

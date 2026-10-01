@@ -13,9 +13,6 @@ class Shooter17mm : public Shooter {
 
     Shooter17mm(const Config& config, const Motors& motor);
 
-    // 每步调整 5 发/秒，基础弹频限制为 5 至 25 发/秒
-    void adjust_bullet(int8_t step);
-
     // 设置发射结构使能/失能
     void set_enable(bool is_enable) override;
 

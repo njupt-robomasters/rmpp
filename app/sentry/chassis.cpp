@@ -1,7 +1,18 @@
 #include "app.hpp"
+#include "bsp/timer.hpp"
 #include "math/math.hpp"
+#include <algorithm>
 #include <cmath>
 
+// 操控参数
+static constexpr float VXY_MAX = 5.0f;     // 平移最大速度，100W下2.3m/s，不限功率3.2m/s
+static constexpr float WR_MAX = 120 * rpm; // 旋转最大角速度，100W下107rpm，不限功率155rpm
+static constexpr float AXY = 100.0f;       // 键盘平移加速度，m/s^2
+static constexpr float DXY = 100.0f;       // 键盘平移减速度，m/s^2
+static constexpr float AR = 1000 * rpm;    // 键盘旋转角加速度，rad/s^2
+static constexpr float DR = 1000 * rpm;    // 键盘旋转角减速度，rad/s^2
+
+// 自主导航参数
 static constexpr bool FORCE_GAME_POSITION = false;
 static constexpr bool FORCE_TEST_POSITION = false;
 static constexpr float GAME_CENTER_X = 4 - 2 + 0.2f, GAME_CENTER_Y = 6 - 1.5f + 0.2f;
@@ -13,12 +24,38 @@ static constexpr int GO_HOME_HP = 120, GO_CENTER_HP = 400;
 enum ChassisState { GO_CENTER,
                     GO_HOME };
 
+// 跨周期状态
 static ChassisState chassis_state = GO_CENTER;
+static Timer timer_dt;
+static float key_vx = 0, key_vy = 0, key_wr = 0;
+
+// 按住正向或反向键时加速，松开时减速到 0
+static float key_speed(const float speed, const bool positive, const bool negative, const float maximum, const float acceleration, const float deceleration, const float dt) {
+    if (positive)
+        return std::clamp(std::max(speed, 0.0f) + acceleration * dt, -maximum, maximum);
+    if (negative)
+        return std::clamp(std::min(speed, 0.0f) - acceleration * dt, -maximum, maximum);
+    if (speed > 0)
+        return std::max(0.0f, speed - deceleration * dt);
+    return std::min(0.0f, speed + deceleration * dt);
+}
 
 void chassis_loop() {
-    chassis.set_enable(rc.is_enable);
-    if (rc.is_fn)
+    const float dt = timer_dt.restart();
+    chassis.set_enable(sentry_enable());
+    if (rc_fn())
         chassis.set_mode(Chassis::FOLLOW_MODE);
+
+    // 键盘：WASD 平移，Shift、Ctrl 旋转；断联时直接清零
+    if (vt13.is_connect) {
+        key_vx = key_speed(key_vx, vt13.key.w, vt13.key.s, VXY_MAX, AXY, DXY, dt);
+        key_vy = key_speed(key_vy, vt13.key.a, vt13.key.d, VXY_MAX, AXY, DXY, dt);
+        key_wr = key_speed(key_wr, vt13.key.shift, vt13.key.ctrl, WR_MAX, AR, DR, dt);
+    } else {
+        key_vx = key_vy = key_wr = 0;
+    }
+
+    // 自主导航速度，按平移速度在最大转速和保留转速间插值小陀螺
     float vx = 0, vy = 0, wr = 0;
     if (sentry_active()) {
         const bool game_position = FORCE_GAME_POSITION || (!FORCE_TEST_POSITION && sentry_in_game());
@@ -34,13 +71,19 @@ void chassis_loop() {
                 chassis_state = GO_CENTER;
         }
         std::tie(vx, vy) = rotate(mavlink.chassis_speed.vx, mavlink.chassis_speed.vy, yaw2.position.measure);
-        const float speed = std::sqrtf(square(vx) + square(vy));
-        wr = map(speed, 0.0f, rc.config.vxy_max, rc.config.wr_max, chassis.config.reserve_wr);
+        const float speed = std::hypotf(vx, vy);
+        wr = map(speed, 0.0f, VXY_MAX, WR_MAX, chassis.config.reserve_wr);
     } else {
         chassis_state = GO_CENTER;
         mavlink.target_position = {};
     }
-    chassis.set_speed(clamp(rc.vx + vx, rc.config.vxy_max), clamp(rc.vy + vy, rc.config.vxy_max), clamp(rc.wr + wr, rc.config.wr_max));
+
+    // 叠加摇杆与键盘，断联时摇杆已复位为 0
+    vx += (vt13.x + fsi6x.x) * VXY_MAX + key_vx;
+    vy += (vt13.y + fsi6x.y) * VXY_MAX + key_vy;
+    wr += vt13.wheel * WR_MAX + key_wr;
+    chassis.set_speed(std::clamp(vx, -VXY_MAX, VXY_MAX), std::clamp(vy, -VXY_MAX, VXY_MAX), std::clamp(wr, -WR_MAX, WR_MAX));
+
     chassis.set_gimbal_yaw(gimbal.yaw.ecd.measure);
     chassis.set_power_limit(referee.chassis.power_limit);
     chassis.set_buffer_energy(referee.chassis.buffer_energy);

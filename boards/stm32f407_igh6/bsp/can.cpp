@@ -74,21 +74,17 @@ bool Can::send(const CanFrame& frame) const {
         .DLC = frame.size,
     };
     uint32_t mailbox;
-    const bool success = HAL_CAN_AddTxMessage(context_->hcan, &header, frame.data, &mailbox) == HAL_OK;
-
-    return success;
+    return HAL_CAN_AddTxMessage(context_->hcan, &header, frame.data, &mailbox) == HAL_OK;
 }
 
-bool Can::add_rx_callback(RxCallback callback) const {
+void Can::add_rx_callback(RxCallback callback) const {
     if (!context_)
-        return false;
+        return;
 
     const auto primask = __get_PRIMASK();
     __disable_irq();
     context_->callbacks.push_back(std::move(callback));
     __set_PRIMASK(primask);
-
-    return true;
 }
 
 static void can_receive(CAN_HandleTypeDef* hcan, const uint32_t fifo) {

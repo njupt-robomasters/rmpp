@@ -1,64 +1,37 @@
 #pragma once
 
+#include <cstdint>
+#include <span>
+
 #include "bsp/pwm.hpp"
 #include "bsp/timer.hpp"
 
+// MIDI 音符，midi 为 0 表示休止；len 单位 10 ms，曲目由 tools/midi_to_music.py 生成，见 docs/music.md
+struct Note {
+    uint8_t midi;
+    uint8_t len;
+};
+
 class Buzzer {
   public:
-    static constexpr float C5D5G5[][2] = {
-        {523, 250},
-        {587, 250},
-        {784, 500},
-    };
+    explicit Buzzer(const Pwm output)
+        : pwm_(output) {}
 
-    static constexpr float C5[][2] = {
-        {523, 250},
-    };
+    // 从头播放曲目，打断当前播放；曲目须在播放期间保持有效
+    void play(std::span<const Note> music);
 
-    static constexpr float C5C5C5[][2] = {
-        {523, 250},
-        {523, 250},
-        {523, 250},
-    };
+    // 停止播放并重置状态
+    void stop();
 
-    static constexpr float D5[][2] = {
-        {587, 250},
-    };
-
-    static constexpr float D5D5D5[][2] = {
-        {587, 250},
-        {587, 250},
-        {587, 250},
-    };
-
-    static constexpr float G5[][2] = {
-        {784, 250},
-    };
-
-    static constexpr float G5G5G5[][2] = {
-        {784, 250},
-        {784, 250},
-        {784, 250},
-    };
-
-    explicit Buzzer(Pwm output)
-        : output_(output) {}
-
-    template <std::size_t N>
-    void play(const float (&music)[N][2]) {
-        this->music_ = music;
-        i_ = 0;
-        len_ = N;
-        wait_play_ = true;
-        timer_.restart();
-    }
-
+    // 周期调用，到时切换音符
     void update();
 
   private:
-    Pwm output_;
-    const float (*music_)[2] = nullptr;
-    uint32_t i_ = 0, len_ = 0;
-    bool wait_play_ = false;
+    // 输出
+    Pwm pwm_;
+
+    // 播放进度，idx_ 指向下一个音符，timer_ 对当前音符计时
+    std::span<const Note> music_;
+    size_t idx_ = 0;
     Timer timer_;
 };

@@ -42,7 +42,7 @@ auto another_timer = bsp.timer();
 
 Bsp 只构造句柄，构造函数保存编号并绑定板卡资源。构造不访问硬件，可在全局创建；同通道句柄共享缓冲、回调和 metrics。Timer 各自保存时间基准，首次计时建立基准。
 
-编号允许不连续；默认构造或不存在的编号得到无效句柄，bool 为 false，各操作返回失败且不操作硬件。bool 表示资源存在，实际收发在硬件初始化后执行。
+编号允许不连续；Can、Spi 必须显式指定硬件，不提供默认构造。不存在的编号得到无效句柄，各操作静默返回且不操作硬件。外设操作不返回成败、不检查参数合法性，参数范围由调用方保证，调试看 `monitor`；实际收发在硬件初始化后执行。
 
 Timer 提供 get_dt、update_dt、poll_timeout、reset、delay，时间为秒，默认 dt 限制为 0.0001–10 秒。底层采用 32 位周期计数；168 MHz 下观测间隔应小于约 25.56 秒，以保留完整时间信息。
 
@@ -51,26 +51,33 @@ Timer 提供 get_dt、update_dt、poll_timeout、reset、delay，时间为秒，
 业务库接收句柄，app 指定通道。通信配置在对象构造时确定，注册回调后保持稳定。
 
 ```cpp
-M3508 motor({.can = bsp.can(1), .master_id = 0x201});
-Rc rc({.uart = bsp.uart(3)}, {.uart = bsp.uart(6)});
+C620 motor({.bus = {.can = Can(1), .rx_id = 0x201}});
+FSi6X fsi6x({.uart = Uart(3)});
+VT13 vt13({.uart = Uart(6)});
 Mavlink mavlink({.cdc = bsp.cdc(1)});
-Buzzer buzzer(bsp.pwm(4, 3));
+Buzzer buzzer(Pwm(4, 3));
 Rgb rgb({.red = bsp.pwm(5, 3), .green = bsp.pwm(5, 2), .blue = bsp.pwm(5, 1)});
-Imu imu(dir, calib, {.accel = bsp.spi(1, 1), .gyro = bsp.spi(1, 2), .heater = bsp.pwm(10, 1)});
+Imu imu({.hardware = {.accel = Spi(1, 1), .gyro = Spi(1, 2), .heater = Pwm(10, 1)}});
 Storage storage("hero");
 ```
 
-Rgb 提供 set_rgb、set_hsv、on_loop；最后一个用于周期变色，period 以秒计。三个颜色通道都有效时 bool 为 true。
+电机各层构造函数只接收并传递唯一的 config。公共配置分为 bus（CAN 通道、命令与反馈 ID、超时）、drive（kt、电流与转矩量程、减速比）、install（零点偏移、方向）和 control；config() 只读访问实际配置，校准使用 set_offset。型号子类通过 Config::with_defaults() 使用单个 DRIVE 补齐零值物理参数，再交给基类换算缺失的电流或转矩量程，不另设全局型号配置包装。DmMotor 和 Vesc 的专用 Config 内含 motor 公共配置及专用参数，DM 型号配置额外提供使能帧发送频率。
 
-Storage 的 read/write 保存 float：缺失键读零，写入返回成功与否。构造只分配软件状态，首次访问初始化，成功后复用。对象由 app 持有，业务模块接收引用。当前每个应用使用一个实例；名称字符串保持有效。分区仍是 768 KiB 偏移、256 KiB 长度；应用标记缺失时按原规则重置配置。
+DJI 最终型号注册 CAN 回调，私有 can_callback 先校验报文并解析型号特有字段，再调用 DjiMotor::can_callback 解析公共反馈，最后进入 Motor::can_callback 完成方向修正、多圈累计和在线计时。其他协议子类直接注册并解析 raw。update 每周期先判断反馈超时，再计算闭环；set_current、set_torque 在赋值时处理非有限值、限幅和单位换算。DJI 同组命令由 app 创建零初始化组帧，各电机通过 write_can_frame 按控制帧 ID 和反馈 ID 写入对应槽位，再由 app 统一发送。DM 电机按配置频率定时发送使能帧，该周期不发送 MIT 帧；VESC 不要求在线反馈，只支持开环速度发送。
+
+Imu 使用 hardware / adjust / control 三组配置，组合独立 Bmi088 和 QuaternionEkf 实例。构造只保存配置，首次 update 尝试初始化；失败后由后续轮询重试。温控 PID 借用内部配置，Imu 禁止复制和移动。校准由 start_calibration 发起、update 推进；转换约定和调参见 [IMU](imu.md)。
+
+Rgb 只提供 set_rgb、set_hsv；周期变色由各车 `misc.cpp` 的 `misc_loop()` 执行。
+
+Storage 的 read/write 保存 float：缺失键读零，写入不返回结果。所有句柄共享唯一的静态 Context，构造只绑定指针，不分配堆内存或访问 Flash；首次读写时初始化，成功后复用。首次成功初始化所用的名称决定应用标记，后续构造不切换应用或重置分区；名称字符串保持有效。对象由 app 持有，业务模块接收引用。分区仍是 768 KiB 偏移、256 KiB 长度；首次初始化发现应用标记缺失时按原规则重置配置。
 
 ## 收发与指标
 
 ```cpp
 can.add_rx_callback([this](const CanFrame& frame) {
-    receive(frame);
+    handle_frame(frame);
 });
-bool submitted = can.send({.id = 0x123, .data = {1, 2}, .size = 2});
+can.send({.id = 0x123, .size = 2, .data = {1, 2}});
 ```
 
 CanFrame 为经典 CAN 报文，array 容量 8 字节，size 表示实际长度；array 自身无堆分配。收发头与配置优先指定成员初始化。
@@ -78,12 +85,12 @@ CanFrame 为经典 CAN 报文，array 容量 8 字节，size 表示实际长度�
 - 每通道 vector 保存 std::function，支持 `[this]`，每帧在中断内依序通知全部订阅者。CAN 使用 FIFO 中断，UART 使用空闲/收满通知。
 - 启动前后均可在普通上下文注册；注册时保存、关闭、恢复 PRIMASK。回调中保持短小、非阻塞，订阅列表保持稳定，捕获对象地址与生命周期保持有效。数据视图仅在回调期间有效。
 - vector/std::function 可能在注册时分配内存；当前禁用异常，内存不足不保证返回 false。
-- CAN 直接调用一次 HAL_CAN_AddTxMessage，成功表示提交邮箱。UI 队列在提交成功后出队。
-- UART/CDC 接收 Bytes，发送先复制到 BSP 缓冲；忙或超长返回 false。UART RX 128 字节、TX 256 字节；CDC TX 2048 字节，printf 最多 127 字节。
+- CAN 直接调用一次 HAL_CAN_AddTxMessage，邮箱满时该帧丢弃。UI 队列每次发送后直接出队。
+- UART/CDC 接收 Bytes，发送先复制到 BSP 缓冲；忙时丢弃，size 不得超过缓冲容量。UART RX 128 字节、TX 256 字节；CDC TX 2048 字节，printf 最多 127 字节。
 - 调试器可查看 `can.state_->metrics`，包含最近回调总耗时 last_callback_us、平滑 cpu_usage（0–1）、bus_off_count；UART 使用 error_count。统计由通道共享，独立查询 API 已移除。
 - 累计回调耗时至少 100 ms 后，以实际经过时间计算占用率；平滑权重为 elapsed_ms / (400 + elapsed_ms)。仅在回调时更新，停收保留结果，恢复后将空闲时间计入区间。耗时包含全部订阅者分发，可能包含中断抢占；用于调试估算。
 
-SPI 使用 `(总线, 片选)`。`transfer(SpiTransfer{tx, rx, size})` 是同步完整事务，自动拉低并恢复片选，失败也释放。普通上下文调用，BSP 超时 10 ms，传输期间中断保持可用。BMI088 通信适配在 lib 内用传入的两个 Spi；原 C 驱动和 EKF 仍按单 IMU 实例使用。
+SPI 使用 `(总线, 片选)`。`transfer(tx_buf, rx_buf, size)` 是同步完整事务，自动拉低并恢复片选，失败也释放。普通上下文调用，BSP 使用 `HAL_MAX_DELAY` 等待，传输期间中断保持可用。Bmi088 直接持有 app 传入的两个 Spi；驱动缓存和 EKF 状态均按实例保存，无全局绑定。
 
 ## 当前板卡资源
 

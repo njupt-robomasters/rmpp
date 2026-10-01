@@ -1,0 +1,210 @@
+# IMU EKF：从公式到代码审阅
+
+本文假设你能阅读 C++，主要补齐 EKF 基础。目标是看懂 `quaternion_ekf.cpp` 中每段矩阵、符号和分支为什么存在；硬件配置与接口查 [imu.md](/E:/rm/code/potential/rmpp/docs/imu.md)。行号对应本文编写时的实现，后续改动以函数名定位。
+
+## 1. EKF 到底维护什么
+
+滤波器同时维护**状态估计 s**和**估计误差的协方差 P**。本项目的状态是：
+
+$$
+s=[w,x,y,z,b_x,b_y]^T,\qquad q=[w,x,y,z]^T
+$$
+
+q 是机体到世界的单位四元数，后两项是机体 X/Y 剩余角速度零偏。四元数有单位长度约束，所以六个状态分量并非六个独立自由度。
+
+P 是 6×6 矩阵：`P[i][i]` 是第 i 个状态误差的**方差**，不是误差本身；`P[i][j]` 表示两项误差的关联。非对角项很重要：它让“观测到姿态偏差”能够反过来修正零偏。
+
+记误差 e=真实状态−估计状态，误差近似零均值时，P=E[eeᵀ]；E 表示统计平均，ᵀ 表示转置。下面 I 表示单位矩阵，diag 表示用给定元素组成对角阵；测量记作 m，避免与四元数分量 z 混淆。
+
+先看一维卡尔曼滤波，理解它为什么要算增益：
+
+$$
+K=\frac{P^-}{P^-+R},\qquad s^+=s^-+K(m-s^-)
+$$
+
+上标 − 表示融合测量前的**预测**，+ 表示融合后的**后验**；R 为测量误差方差。例如预测 10、测量 12，预测方差 4、测量方差 1，则 K=0.8，修正结果为 11.6。预测越不确定、测量越可信，通常修正越多。多维 K 是矩阵，元素并不都限制在 [0,1]。
+
+EKF 将这个思路用于非线性模型：`s_new = f(s_old, gyro, dt)`，`m = h(s) + 测量噪声`。它用**雅可比矩阵**传播小误差：F=∂f/∂s、H=∂h/∂s；第 i 行第 j 列就是“第 j 个输入略变，会使第 i 个输出变化多少”。F 在旧状态处计算，H 在预测状态处计算。
+
+| 数学量 | 维度 | 当前代码 |
+| --- | --- | --- |
+| s、P | 6、6×6 | `q` + `bias`、`covariance_` |
+| F、Q | 6×6、6×6 | `transition`、预测时加入的噪声对角项 |
+| m、h、r=m−h | 3、3、3 | `filtered_accel_/norm`、`gravity`、`residual` |
+| H、R | 3×6、3×3 | `observation`、`accel_noise * I` |
+| S、K | 3×3、6×3 | `innovation`、`gain` |
+
+注意命名：通常“innovation”指残差 r；这份代码的 `innovation` 实际存放**残差协方差 S**。
+
+## 2. 预测：状态怎么转，误差怎么传
+
+### 2.1 四元数预测，对应第 83、103、128 行
+
+先扣除剩余零偏：`rate = [gx−bx, gy−by, gz]`。设角速度模长为 Ω，本轮转角 θ=Ωdt，在周期内角速度恒定的假设下：
+
+$$
+\delta q=\left[\cos\frac\theta2,\ \frac{\sin(\theta/2)}\Omega\,\text{rate}\right],\qquad
+q^-=q_{old}\otimes\delta q
+$$
+
+`rotation_increment()` 算 δq，`multiply_quaternions()` 算右乘。右乘对应**机体系角速度**；换乘法顺序会改变旋转含义。小角度时 sin(Ωdt/2)/Ω≈dt/2，所以 `scale` 默认取 `0.5*dt`，同时避免零角速度除零。
+
+首轮没有旧姿态可预测：第 112 行先从加速度求 `roll=atan2(ay,az)`、`pitch=atan2(−ax,hypot(ay,az))`，取 yaw=0，代入标准 Z-Y-X 欧拉角转四元数公式，并初始化低通缓存后返回。有效加速度不等于静止；初始姿态仍依赖启动时以重力为主要测量来源。
+
+### 2.2 逐项看懂 F，对应第 136 行
+
+将 F 拆成四元数和零偏两部分：
+
+$$
+F=\begin{bmatrix}A&B\\0&I_2\end{bmatrix},\quad
+A=\begin{bmatrix}
+d_w&-d_x&-d_y&-d_z\\
+d_x&d_w&d_z&-d_y\\
+d_y&-d_z&d_w&d_x\\
+d_z&d_y&-d_x&d_w
+\end{bmatrix},\quad
+B\approx\frac{dt}{2}\begin{bmatrix}
+x&y\\-w&z\\-z&-w\\y&-x
+\end{bmatrix}
+$$
+
+A 直接来自 q⊗δq 对旧 q 的偏导；`d*` 就是 δq 的四项。B 来自一阶近似 `q_new ≈ q + dt/2 · q⊗[0,rate]` 对 bx/by 求导，使用**旧 q**。例如 `w_new ≈ w−dt/2·(x(gx−bx)+…)`，所以 ∂w_new/∂bx=+xdt/2；这解释了右上角每项的符号。
+
+左下为零、右下为单位阵，表示零偏预测均值保持不变；其缓慢变化用过程噪声描述。**当前均值预测使用精确旋转增量，B 却只保留 dt 的一阶项**，不能把整个 F 当成精确离散模型的完整导数。
+
+### 2.3 P 的预测，对应第 144–156 行
+
+$$
+P^-=F P_{prior}F^T+Q,\qquad
+Q=dt\cdot\operatorname{diag}(Q_q,Q_q,Q_q,Q_q,Q_b,Q_b)
+$$
+
+`Q_q=quaternion_noise`，`Q_b=bias_noise`。因为小误差满足 `e_new≈F*e_old+过程噪声`，对误差外积取平均就得到 FPFᵀ+Q，前提是过程噪声与旧误差不相关。第一项传播旧误差，Q 增加本轮模型的不确定度；Q 为对角阵是简化假设，并非由真实传感器噪声完整推导。
+
+`prior` 是旧 P 的副本。代码先对两个零偏对角项除以 `bias_fading`，再限制为不超过 10000：小于 1 的 fading 会放大方差，避免过度相信旧零偏。它**只改两个对角项，不是整张 P 除以 fading**。
+
+`intermediate=F*prior`，随后右乘 Fᵀ，再加 Q。检查成功后，q 和 P 在第 155 行提交预测；后面的提前返回通常意味着“保留这一预测”。
+
+## 3. 观测：为什么加速度能修正 q 和零偏
+
+### 3.1 h 与 H，对应第 158–180 行
+
+低通更新为 `filtered += α*(accel−filtered)`，其中 α=dt/(τ+dt)，τ=`accel_filter_tau`；τ=0 时直接使用当前样本。然后取单位方向 `m=filtered/|filtered|`，不使用加速度大小作为姿态观测。
+
+世界 +Z 的参考方向转到机体系，得到预测观测：
+
+$$
+h(q)=\begin{bmatrix}
+2(xz-wy)\\2(wx+yz)\\w^2-x^2-y^2+z^2
+\end{bmatrix},\qquad
+H=\begin{bmatrix}
+-2y&2z&-2w&2x&0&0\\
+2x&2w&2z&2y&0&0\\
+2w&-2x&-2y&2z&0&0
+\end{bmatrix}
+$$
+
+H 就是逐项求导，例如 ∂h₁/∂w=−2y。最后两列为零，因为当前重力方向不直接依赖零偏。这里使用**预测 q**，与 F 使用旧 q 不同。
+
+不要先把 h₃ 利用单位约束改写成 `1−2x²−2y²`，再把它的四维无约束导数直接替换进来：两种写法只在单位球面上等价，离开约束面的导数不同。当前实现采用上面的齐次表达式。
+
+### 3.2 残差和增益，对应第 178–185、233–246 行
+
+标准 EKF 的测量更新是：
+
+$$
+r=m-h(s^-),\quad C=P^-H^T,\quad S=HC+R,\quad K=CS^{-1},\quad \Delta s=Kr
+$$
+
+代码中 C 是 `cross_covariance`，S 是 `innovation`。R=`accel_noise*I₃`；归一化加速度实际上带有方向约束，按三个独立同方差分量处理也是近似。
+
+这些式子来自 `r≈H*e⁻+测量噪声`：S=HP⁻Hᵀ+R 是预计残差方差，C 是状态误差与残差的交叉协方差。在小误差线性模型、预测误差与测量噪声不相关的假设下，让修正后均方误差最小，会得到 `K*S=C`，即 K=CS⁻¹。
+
+**H 的零偏列为零，为什么仍能估计零偏？** 将 P 按 q/b 分块，增益的零偏部分为：
+
+$$
+K_b=P^-_{bq}H_q^TS^{-1}
+$$
+
+预测中的 B 建立了“零偏误差导致姿态误差”的关联，即交叉协方差 P_bq。加速度看到姿态误差后，就能沿这个关联修正零偏。把 P 的非对角项每轮清零，会破坏这条通路。
+
+## 4. 求解、拒绝与增益调整：本实现加了什么
+
+### 4.1 Cholesky 求解，对应第 187–209 行及 `solve_cholesky()`
+
+当 P 满足协方差要求且 R 正定时，S 应为对称正定矩阵，可以分解成 `S=L Lᵀ`，L 为下三角阵，从而避免直接求逆。双重循环依次计算：
+
+$$
+t=S_{ij}-\sum_{k<j}L_{ik}L_{jk},\qquad
+L_{ij}=\begin{cases}\sqrt t&i=j\\t/L_{jj}&i>j\end{cases}
+$$
+
+代码先平均 S 的对称位置，以减轻浮点不对称；对角余量 t 太小（≤原对角的 1e−7 倍）或非有限，就放弃本轮融合。
+
+`solve_cholesky(L,rhs,out)` 先从上到下解 Ly=rhs，再从下到上解 Lᵀout=y，同一数组复用为 y/out。因此：
+
+- 输入 r 得到 `weighted_residual=S⁻¹r`，内积得到 `distance=rᵀS⁻¹r`
+- 输入 C 的每一行，得到 K 的对应行；成立的原因是 S⁻¹ 对称
+
+### 4.2 门控，对应第 210–231 行
+
+`distance` 衡量“相对于预计噪声，这次残差有多异常”，不是角度误差。令 T=`innovation_threshold`：
+
+| 条件 | 实际动作 |
+| --- | --- |
+| distance < 0.5T | 标记 `converged_`，这是经验判据，不代表数学收敛证明 |
+| 已收敛且 distance > T | 通常返回，只使用预测 |
+| 上述拒绝时，修正后角速度模长 <0.3 rad/s，低通加速度模长距 9.81 小于 0.5 m/s² | 增加拒绝计数；超过 50 则 `reset_bias()` 后返回，下一轮重建融合 |
+| 拒绝时不满足静稳条件，或进入正常融合分支 | 拒绝计数清零 |
+| 正常融合且已收敛、distance > 0.1T | `gain_scale=(T−distance)/(0.9T)`，否则为 1 |
+
+这个形式常用于卡方检验，但**当前 T=1e−8、R=1e7 是沿用的工程调参量级，不能解释成某个标准卡方置信度**。增大 R 会减小 distance，也通常减小 K；R 与 T 需要一起审视。
+
+### 4.3 增益修改，对应第 233–255 行
+
+标准 K 算完后还有三层处理：
+
+1. 所有行乘 `gain_scale`，减弱接近门限的观测
+2. 两个零偏行分别乘 `acos(clamp(abs(gravity[axis]),0,1))/(π/2)`：该轴接近重力方向时趋于 0，垂直时趋于 1；这是降低弱可观测轴修正的经验权重
+3. 已收敛时，如果某个零偏修正超过 `0.01*dt`，同步缩小该修正和 K 的整行；单位是 rad/s 的本轮增量，不是把零偏总值限制在 ±0.01
+
+所以最终 `gain` 已不是原始的最优卡尔曼增益。后续协方差必须使用**实际修改后的 K**，这也是采用 Joseph 形式的原因之一。
+
+## 5. 后验、归一化与恢复：读懂最后几十行
+
+第 257 行先形成候选 `q+correction[0:4]` 并归一化，检查零偏候选有限，然后计算：
+
+$$
+M=I-KH,\qquad P^+=MP^-M^T+KRK^T
+$$
+
+由 `e⁺≈(I−KH)e⁻−K*测量噪声`，对误差外积取平均即可得到上式。`remaining` 就是 M；`intermediate` 存 MP⁻。因为 R=rₐI，三重循环的 `gain[i][k] * accel_noise * gain[j][k]` 正好累计 KRKᵀ 的第 i,j 项。Joseph 形式对给定 K 同时计入预测误差与测量噪声的影响，浮点计算通常比简写 `(I−KH)P⁻` 更稳健；自适应门控、限幅使实际误差统计不再严格等同于线性高斯模型。
+
+候选后验 P 检查通过后，第 279 行才一起提交候选 q、P、bias；失败不会把候选四元数单独写入。注意低通缓存、收敛标志和拒绝计数可能已经更新，“保留预测”并不意味着所有内部成员都没变。
+
+逐行审阅时，还应明确以下边界：
+
+- **归一化仅作用于 q，未同步作用于 P。** 若 u 归一化为 q̂，严格的一阶误差变换还需使用 `J=(I−q̂q̂ᵀ)/|u|` 变换四元数协方差及与零偏的交叉项。当前预测与后验都省略了这一步，属于直接四元数 EKF 的工程近似；不能把 P 当作严格满足单位约束的统计结果
+- **对称化不是正定性证明。** `symmetrize_covariance()` 只检查有限值、非负对角并平均对称项。单独压低零偏对角到 10000 也不保证保持半正定，尤其在强交叉相关时；Cholesky 后续检查的是 S，不是整张 P
+- **`reset_bias()` 不清姿态。** 它清 bx/by、收敛标志与计数，将 q 对角设为 100000、零偏对角为 100、非对角为 0.1；后者是保留的初始相关假设，不是独立误差初始化。它保留 q、初始化标志和低通缓存，构造、校准提交及静稳恢复都会用到
+- **重力不提供绝对 yaw。** 本模型只估计 X/Y 零偏，没有 Z 零偏状态。不能据此推断任意倾角和运动条件下机体 Z 零偏都不可观测；这是当前模型的取舍，常见近水平工况下 yaw 仍会漂移
+
+## 6. 按这个索引逐段核对代码
+
+以下链接跳到当前文件的段落起点；结合上述公式，可以检查每个矩阵元素、循环索引和提前返回。
+
+| 代码入口 | 审阅要点 |
+| --- | --- |
+| [矩阵乘法，第 12 行](/E:/rm/code/potential/rmpp/lib/imu/quaternion_ekf.cpp:12) | 普通乘法累加 a[i][k]b[k][j]；右转置乘法累加 a[i][k]b[j][k]；模板参数决定数组维度，输出不能覆盖输入 |
+| [三角求解，第 36 行](/E:/rm/code/potential/rmpp/lib/imu/quaternion_ekf.cpp:36) | 前代用已算出的较小行，回代用已算出的较大行 |
+| [数值检查，第 51 行](/E:/rm/code/potential/rmpp/lib/imu/quaternion_ekf.cpp:51) | P 对称化；q 的四项除模长；过小或非有限值返回失败 |
+| [旋转运算，第 74 行](/E:/rm/code/potential/rmpp/lib/imu/quaternion_ekf.cpp:74) | q⊗δq 的四行展开；小角度分支；无效 dt/角速度不推进 |
+| [构造与初始化，第 99 行](/E:/rm/code/potential/rmpp/lib/imu/quaternion_ekf.cpp:99) | 构造只保存配置、重建 P；首个有效测量确定倾角并返回 |
+| [预测，第 128 行](/E:/rm/code/potential/rmpp/lib/imu/quaternion_ekf.cpp:128) | A/B 的符号、旧 q 的使用、fading、Q 乘 dt、预测提交位置 |
+| [观测，第 158 行](/E:/rm/code/potential/rmpp/lib/imu/quaternion_ekf.cpp:158) | 零加速度只预测；低通后归一化；h/H 使用预测 q；r 的符号 |
+| [分解与门控，第 187 行](/E:/rm/code/potential/rmpp/lib/imu/quaternion_ekf.cpp:187) | S 的三角分解、rᵀS⁻¹r、拒绝计数与恢复分支 |
+| [增益与修正，第 233 行](/E:/rm/code/potential/rmpp/lib/imu/quaternion_ekf.cpp:233) | 解 K 每行；全局缩放、方向权重、零偏限幅同时修改 K |
+| [后验提交，第 257 行](/E:/rm/code/potential/rmpp/lib/imu/quaternion_ekf.cpp:257) | 候选 q 归一化；Joseph 使用预测 P 和最终 K；检查后提交 |
+| [重置与纯积分，第 285 行](/E:/rm/code/potential/rmpp/lib/imu/quaternion_ekf.cpp:285) | `reset_bias()` 保留哪些成员；`integrate()` 只组合旋转并归一化，不融合加速度或更新 P |
+
+最后回到 [Imu::update()](/E:/rm/code/potential/rmpp/lib/imu/imu.cpp:17)：传感器坐标系扣固定零偏、修正尺度 → 安装旋转到机体系 → EKF 内再扣剩余零偏。输出 `gyro` 没有扣 EKF 的 bias；q 转为标准 roll-X/pitch-Y/yaw-Z，累计 yaw 通过归一化相邻角差跨过 ±π，但不消除漂移。

@@ -11,13 +11,9 @@ class Cdc {
 
     explicit Cdc(int id);
 
-    explicit operator bool() const {
-        return context_ != nullptr;
-    }
-
-    // 成功时复制到 STM32 CDC 发送缓冲区，USB 发送期间保持有效
+    // 成功时复制到 STM32 CDC 发送缓冲区；size 不超过 APP_TX_DATA_SIZE
     bool send(const uint8_t* data, std::size_t size) const;
-    bool add_rx_callback(RxCallback callback) const;
+    void add_rx_callback(RxCallback callback) const;
 
     struct Context;
     Context* context_ = nullptr;

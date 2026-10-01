@@ -1,105 +1,87 @@
 #pragma once
 
+#include "bmi088.hpp"
 #include "bsp/pwm.hpp"
-#include "bsp/spi.hpp"
 #include "bsp/timer.hpp"
 #include "math/angle.hpp"
-#include "math/unit.hpp"
 #include "motor/pid.hpp"
+#include "quaternion_ekf.hpp"
 #include <tuple>
 
 class Imu {
   public:
-    static constexpr auto X = 0;
-    static constexpr auto Y = 1;
-    static constexpr auto Z = 2;
-
-    struct Config {
+    struct Hardware {
         Spi accel;
         Spi gyro;
         Pwm heater;
     };
 
-    // 安装方向参数
-    struct Dir {
-        Angle yaw, pitch, roll;
+    struct Adjust {
+        // 传感器到机体的固定旋转：Rz(yaw) Ry(pitch) Rx(roll)
+        Angle yaw{}, pitch{}, roll{};
+        float gyro_offset[3]{}; // 传感器坐标系零偏，rad/s
+        float gravity = 9.81f;  // 标定时原始加速度模长，m/s²，必须 > 0
     };
 
-    // 校准参数
-    struct Calib {
-        float gx_offset = 0, gy_offset = 0, gz_offset = 0;
-        float g_norm = 1;
+    struct Control {
+        float temperature = 45.0f; // °C
+        Pid::Config temperature_pid{.kp = 1.0f, .ki = 0.01f, .max_i = 0.4f, .max_out = 1.0f};
+        QuaternionEkf::Config ekf{};
     };
 
-    // 陀螺仪原始数据
-    float gyro[3]{};  // rad/s
-    float accel[3]{}; // m/s^2
+    struct Config {
+        Hardware hardware;
+        Adjust adjust{};
+        Control control{};
+    };
 
-    // 四元数
-    float q[4]{};
+    enum class Calibration {
+        IDLE,
+        SAMPLING,
+        SUCCEEDED,
+        FAILED
+    };
+    static constexpr int X = 0, Y = 1, Z = 2;
 
-    // 欧拉角
-    Angle yaw, pitch, roll;
-    float yaw_total_angle{}; // 累积偏航角，单位 rad，不归一化
+    // 校准及安装修正后的机体系量；gyro 尚未减去 EKF 估计的剩余零偏
+    float gyro[3]{};              // rad/s
+    float accel[3]{};             // m/s²
+    float q[4]{1, 0, 0, 0};       // [w, x, y, z]，机体到世界
+    Angle yaw{}, pitch{}, roll{}; // Z-Y-X 欧拉角，rad
+    float yaw_total_angle{};      // 累积偏航角，rad，不归一化
+    float temperature{};          // °C
+    float heater_duty{};          // 实际加热占空比，[0, 1]
+    Calibration calibration = Calibration::IDLE;
+    unsigned calibration_samples = 0;
 
-    Imu(const Dir& dir, Calib& calib, const Config& config);
+    explicit Imu(const Config& config);
+    // PID 借用内部配置，实例地址必须保持稳定
+    Imu(const Imu&) = delete;
+    Imu& operator=(const Imu&) = delete;
 
-    // 校准陀螺仪，校准数据存放在calib成员变量
-    void calibrate();
-
-    // 欧拉角转四元数
-    static void eular_angle_to_quaternion(Angle yaw, Angle pitch, Angle roll, float q[4]);
-
-    // 四元数转欧拉角
-    static std::tuple<Angle, Angle, Angle> quaternion_to_eular_angle(const float q[4]);
-
-    // 机体坐标系 -> 世界坐标系
-    static void body_frame_to_earth_frame(const float vecBF[3], float vecEF[3], const float q[4]);
-
-    // 世界坐标系 -> 机体坐标系
-    static void earth_frame_to_body_frame(const float vecEF[3], float vecBF[3], const float q[4]);
-
-    // 更新四元数
-    static void quaternion_update(float q[4], float gx, float gy, float gz, float dt);
-
-    // 需要在循环中调用
+    const Config& config() const;
     void update();
+    // 立即开始采样；由 update 推进，调用方负责热机和静止时机
+    void start_calibration();
+
+    // 右手系，roll-X、pitch-Y、yaw-Z；四元数转换接口要求单位四元数
+    static void euler_to_quaternion(Angle yaw, Angle pitch, Angle roll, float q[4]);
+    static std::tuple<Angle, Angle, Angle> quaternion_to_euler(const float q[4]); // yaw, pitch, roll
+    // 向量转换支持输入输出使用同一数组
+    static void body_to_world(const float body[3], float world[3], const float q[4]);
+    static void world_to_body(const float world[3], float body[3], const float q[4]);
+    static void integrate_quaternion(float q[4], float gx, float gy, float gz, float dt);
 
   private:
-    // imu加热
-    class TemperatureControl {
-      public:
-        explicit TemperatureControl(Pwm heater)
-            : pid_(&pid_config_), heater_(heater) {}
-
-        // 需要在循环中调用
-        void update();
-
-      private:
-        static constexpr float REF = 45.0f; // 摄氏度
-        float measure_{};
-        float power_{};
-
-        Pid::Config pid_config_ = {
-            .kp = 100.0f * (pct),
-            .ki = 1.0f * (pct),
-            .max_i = 40.0f * pct,
-            .max_out = 100.0f * pct};
-        Pid pid_;
-        Pwm heater_;
-    } temperature_control_;
-
     Config config_;
-    Dir dir_;     // 安装方向参数
-    Calib calib_; // 校准参数
-
-    bool is_init_ = false; // 用于自动初始化陀螺仪
-
-    Timer timer_; // 用于计算dt
-
-    // 初始化陀螺仪
-    void init() const;
-
-    // 安装方向修正
-    static void dir_correct(const Dir& dir, float gyro[3], float accel[3]);
+    Bmi088 sensor_;
+    QuaternionEkf ekf_;
+    Pid temperature_pid_;
+    Timer timer_;
+    Timer calibration_timer_;
+    bool initialized_ = false;
+    float installation_q_[4]{};
+    float calibration_mean_[4]{}; // 原始 gx、gy、gz、加速度模长
+    float calibration_min_[4]{};
+    float calibration_max_[4]{};
 };

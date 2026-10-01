@@ -2,14 +2,14 @@
 
 #include "bsp/timer.hpp"
 #include "bsp/uart.hpp"
-#include "math/unit.hpp"
 
 class VT13 {
   public:
     struct Config {
         Uart uart;
-        float timeout = 500 * ms;          // 断联检测超时时间
-        float joystick_deadline = 5 * pct; // 摇杆死区，小于此值认为是0
+        float timeout = 0.5f;            // 断联检测超时时间
+        float joystick_deadline = 0.05f; // 摇杆死区，小于此值认为是0
+        uint16_t mouse_max = 500;        // 鼠标xy最大速度
     } config;
 
     enum Mode {
@@ -37,26 +37,16 @@ class VT13 {
     struct Key {
         bool w = false, s = false, a = false, d = false;
         bool shift = false, ctrl = false;
-        bool q = false, e = false;
-        bool r = false, f = false, g = false;
-        bool z = false, x = false, c = false;
-        bool v = false, b = false;
+        bool q = false, e = false, r = false, f = false, g = false;
+        bool z = false, x = false, c = false, v = false, b = false;
     } key;
 
     VT13(const Config& config);
 
-    // 串口回调捕获实例地址，订阅期间实例不可复制、移动或销毁
-    VT13(const VT13&) = delete;
-    VT13& operator=(const VT13&) = delete;
-    VT13(VT13&&) = delete;
-    VT13& operator=(VT13&&) = delete;
-
-    // 独立使用时由应用周期调用，接入 Rc 后由管理器调用
+    // 断联检测，需要在循环中调用；断联时数据复位为默认值
     void update();
 
   private:
-    static constexpr uint16_t MOUSE_MAX = 500; // 鼠标xy最大速度
-
     // 通道原始值
     struct __attribute__((packed)) {
         uint8_t sof_1 : 8;   // 0xA9
@@ -92,8 +82,8 @@ class VT13 {
     // 串口接收回调
     void callback(const uint8_t data[], uint16_t size);
 
+    void reset_data();
+
     // 解析摇杆值，归一化到±1
     float get_joy_stick(uint16_t value) const;
-
-    void reset_data();
 };

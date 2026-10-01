@@ -12,8 +12,6 @@ class Shooter {
         float block_time = 500 * ms;         // 卡弹检测时间
         float reverse_time = 250 * ms;       // 卡弹倒转时间
         float rub_radius = 3.0f * cm;        // 摩擦轮半径
-        float bullet_speed{};                // 基础弹速，m/s
-        float bullet_freq{};                 // 基础弹频，发/秒
         uint16_t heat_protect = 0;           // 剩余热量保护阈值
     } config;
 
@@ -40,17 +38,17 @@ class Shooter {
     // 设置发射结构使能/失能
     virtual void set_enable(bool is_enable);
 
-    // 设置基础弹速
+    // 设置弹速参考值，m/s，保持到下次设置
     void set_bullet_speed(float bullet_speed);
 
-    // 设置基础弹频
+    // 设置弹频参考值，发/秒，保持到下次设置
     void set_bullet_freq(float bullet_freq);
 
     // 设置摩擦轮
     void set_rub(bool is_rub);
 
-    // 设置拨弹电机及基础弹频倍率，不改写基础设定
-    void set_shoot(bool is_shoot, float rate = 1);
+    // 设置拨弹电机
+    void set_shoot(bool is_shoot);
 
     // 传入裁判剩余热量，允许过热时的负值
     void set_heat_remain(int32_t heat_remain);
@@ -72,6 +70,5 @@ class Shooter {
     virtual void backward() = 0;
 
   private:
-    float shoot_rate_ = 1;
     int32_t heat_remain_ = INT32_MAX; // 独立示例未接入裁判时不限制
 };

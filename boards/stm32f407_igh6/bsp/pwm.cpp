@@ -24,7 +24,6 @@
 #include "tim.h"
 #include <algorithm>
 #include <cmath>
-#include <cstdint>
 
 struct Pwm::Context {
     int timer;
@@ -43,7 +42,7 @@ void pwm_init() {
     }
 }
 
-Pwm::Pwm(const int timer, const int c)  {
+Pwm::Pwm(const int timer, const int c) {
     static constinit Context contexts[] = {
         {.timer = 1, .channel = 1, .htim = &htim1},
         {.timer = 1, .channel = 2, .htim = &htim1},
@@ -59,16 +58,16 @@ Pwm::Pwm(const int timer, const int c)  {
         {.timer = 10, .channel = 1, .htim = &htim10},
     };
     for (auto& context : contexts) {
-        if (context.timer == timer && context.channel == timer) {
+        if (context.timer == timer && context.channel == c) {
             context_ = &context;
             break;
         }
     }
 }
 
-bool Pwm::set_frequency(const float hz) const {
+void Pwm::set_frequency(const float hz) const {
     if (!context_)
-        return false;
+        return;
 
     // APB1 定时器时钟为 HCLK / 2，APB2 定时器时钟为 HCLK
     const auto clock = context_->timer == 4 || context_->timer == 5 ? SystemCoreClock / 2 : SystemCoreClock;
@@ -90,19 +89,15 @@ bool Pwm::set_frequency(const float hz) const {
 
     // 触发更新时间，使预分频系数生效
     HAL_TIM_GenerateEvent(context_->htim, TIM_EVENTSOURCE_UPDATE);
-
-    return true;
 }
 
-bool Pwm::set_duty(const float duty) const {
+void Pwm::set_duty(const float duty) const {
     if (!context_)
-        return false;
+        return;
 
     context_->duty = std::clamp(duty, 0.0f, 1.0f);
 
     const auto arr = __HAL_TIM_GET_AUTORELOAD(context_->htim);
     const auto ccr = static_cast<uint32_t>(static_cast<float>(arr + 1) * context_->duty);
     __HAL_TIM_SET_COMPARE(context_->htim, (context_->channel - 1) * 4, ccr);
-
-    return true;
 }

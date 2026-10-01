@@ -7,8 +7,7 @@ class Timer {
   public:
     float dt = 0;
 
-    constexpr Timer(const float min_dt = 0, const float max_dt = INFINITY)
-        : min_dt_(min_dt), max_dt_(max_dt) {}
+    constexpr Timer(const float min_dt = 0, const float max_dt = INFINITY) : min_dt_(min_dt), max_dt_(max_dt) {}
 
     // 延时指定秒数
     static void delay(float seconds);

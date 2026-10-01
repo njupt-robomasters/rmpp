@@ -18,26 +18,30 @@ void GimbalDualYaw::load_yaw_offset(Storage& storage) {
 }
 
 void GimbalDualYaw::save_yaw_offset(Storage& storage) {
-    storage.write("yaw_offset", motor.yaw1.config.install.offset);
+    storage.write("yaw_offset", motor.yaw1.config().install.offset);
 }
 
 void GimbalDualYaw::set_yaw_zero() {
-    motor.yaw1.set_position_zero();
+    if (!motor.yaw1.is_connect)
+        return;
+    const auto& config = motor.yaw1.config();
+    const float dir = config.install.is_invert ? -1.0f : 1.0f;
+    motor.yaw1.set_offset(config.install.offset + dir * motor.yaw1.position.measure_multi * config.drive.reduction);
 }
 
 void GimbalDualYaw::update_ui(Ui& ui) {
-    ui.robot.yaw1 = motor.yaw1.is_connected ? Ui::GREEN : Ui::PINK;
-    ui.robot.yaw2 = motor.yaw2.is_connected ? Ui::GREEN : Ui::PINK;
-    ui.robot.pitch = motor.pitch.is_connected ? Ui::GREEN : Ui::PINK;
+    ui.robot.yaw1 = motor.yaw1.is_connect ? Ui::GREEN : Ui::PINK;
+    ui.robot.yaw2 = motor.yaw2.is_connect ? Ui::GREEN : Ui::PINK;
+    ui.robot.pitch = motor.pitch.is_connect ? Ui::GREEN : Ui::PINK;
 }
 
 void GimbalDualYaw::update() {
     Gimbal::update();
 
     // 更新电机
-    motor.yaw1.update_control();
-    motor.yaw2.update_control();
-    motor.pitch.update_control();
+    motor.yaw1.update();
+    motor.yaw2.update();
+    motor.pitch.update();
 }
 
 void GimbalDualYaw::forward() {

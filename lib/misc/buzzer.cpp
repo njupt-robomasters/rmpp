@@ -1,22 +1,43 @@
 #include "buzzer.hpp"
-#include "math/unit.hpp"
+#include <cmath>
+
+void Buzzer::play(const std::span<const Note> music) {
+    music_ = music;
+    idx_ = 0;
+}
+
+void Buzzer::stop() {
+    music_ = {};
+    idx_ = 0;
+    pwm_.set_duty(0);
+}
 
 void Buzzer::update() {
-    if (i_ >= len_) {
-        output_.set_duty(0);
+    // 未开始播放
+    if (music_.empty())
+        return;
+
+    // 逐音符计时，首个音符立即开始
+    if (idx_ > 0 && timer_.elapsed() < static_cast<float>(music_[idx_ - 1].len) * 0.01f)
+        return;
+
+    // 播放完成
+    if (idx_ >= music_.size()) {
+        stop();
         return;
     }
 
-    if (wait_play_) {
-        const bool valid_note = output_.set_frequency(music_[i_][0]);
-        output_.set_duty(valid_note ? 0.5f : 0.0f);
-        wait_play_ = false;
+    // 只在音高切换时操作输出，休止只关闭占空比，不改频率
+    const auto midi = music_[idx_].midi;
+    if (idx_ == 0 || midi != music_[idx_ - 1].midi) {
+        if (midi == 0) {
+            pwm_.set_duty(0);
+        } else {
+            pwm_.set_frequency(440.0f * std::exp2((static_cast<float>(midi) - 69.0f) / 12.0f));
+            pwm_.set_duty(0.5f);
+        }
     }
 
-    if (timer_.elapsed() > music_[i_][1] * ms) {
-        timer_.restart();
-        output_.set_duty(0);
-        i_++;
-        wait_play_ = true;
-    }
+    idx_++;
+    timer_.restart();
 }

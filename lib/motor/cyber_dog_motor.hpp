@@ -1,19 +1,24 @@
 #pragma once
 
-#include "mit_motor.hpp"
+#include "motor.hpp"
 
-class CyberDogMotor : public MitMotor {
+class CyberDogMotor : public Motor {
   public:
-    static constexpr Config DEFAULT_CONFIG{
-        .physical = {.kt = 0.9f, .max_current = 40},
-        .install = {.reduction = 1},
-    };
-    static constexpr Protocol DEFAULT_PROTOCOL{.max_speed = 65, .max_position = 12.5f};
+    using Config = Motor::Config;
 
-    explicit CyberDogMotor(const Config& config, Protocol protocol = {});
-    bool send_can_cmd() override;
+    static constexpr Config::Drive DRIVE{.kt = 0.9f, .max_current = 40, .reduction = 1};
+    static constexpr float MAX_SPEED = 65;       // rad/s
+    static constexpr float MAX_POSITION = 12.5f; // rad
+
+    explicit CyberDogMotor(const Config& config);
+
+    void send();
 
   private:
     uint32_t send_count_ = 0;
-    void receive(const CanFrame& frame) override;
+
+    void can_callback(const CanFrame& frame);
+    void send_mit() const;
+    void send_enable() const;
+    void send_disable() const;
 };

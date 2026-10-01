@@ -24,40 +24,35 @@
 
 #include "bsp/spi.hpp"
 #include "spi.h"
-#include <limits>
 
 struct Spi::Context {
     int bus;
     int chip_select;
-    SPI_HandleTypeDef* handle;
+    SPI_HandleTypeDef* hspi;
     GPIO_TypeDef* port;
     uint16_t pin;
 };
 
-Spi::Spi(int bus, int chip_select)
-    : bus_(bus), chip_select_(chip_select) {
+Spi::Spi(const int bus, const int chip_select) {
     // 同一总线上的两个独立片选：BMI088 加速度计、陀螺仪
     static Context contexts[] = {
-        {.bus = 1, .chip_select = 1, .handle = &hspi1, .port = CS1_ACCEL_GPIO_Port, .pin = CS1_ACCEL_Pin},
-        {.bus = 1, .chip_select = 2, .handle = &hspi1, .port = CS1_GYRO_GPIO_Port, .pin = CS1_GYRO_Pin},
+        {.bus = 1, .chip_select = 1, .hspi = &hspi1, .port = CS1_ACCEL_GPIO_Port, .pin = CS1_ACCEL_Pin},
+        {.bus = 1, .chip_select = 2, .hspi = &hspi1, .port = CS1_GYRO_GPIO_Port, .pin = CS1_GYRO_Pin},
     };
     for (auto& context : contexts) {
-        if (context.bus == bus_ && context.chip_select == chip_select_) {
+        if (context.bus == bus && context.chip_select == chip_select) {
             context_ = &context;
             break;
         }
     }
 }
 
-bool Spi::transfer(const SpiTransfer& transfer) const {
-    if (!context_ || !transfer.tx || !transfer.rx || transfer.size == 0 || transfer.size > std::numeric_limits<uint16_t>::max())
-        return false;
-    if (context_->handle->State != HAL_SPI_STATE_READY)
-        return false;
+void Spi::transfer(const uint8_t* tx_buf, uint8_t* rx_buf, std::size_t size) const {
+    if (!context_)
+        return;
 
     // 同步事务仅在普通上下文调用，整个传输期间保持中断可用
     HAL_GPIO_WritePin(context_->port, context_->pin, GPIO_PIN_RESET);
-    const bool success = HAL_SPI_TransmitReceive(context_->handle, transfer.tx, transfer.rx, transfer.size, HAL_MAX_DELAY) == HAL_OK;
+    HAL_SPI_TransmitReceive(context_->hspi, tx_buf, rx_buf, size, HAL_MAX_DELAY);
     HAL_GPIO_WritePin(context_->port, context_->pin, GPIO_PIN_SET);
-    return success;
 }

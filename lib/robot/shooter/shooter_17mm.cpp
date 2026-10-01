@@ -1,13 +1,8 @@
 #include "shooter_17mm.hpp"
-#include "math/math.hpp"
 #include <cmath>
 
 Shooter17mm::Shooter17mm(const Config& config, const Motors& motor)
     : Shooter(config), motor(motor) {}
-
-void Shooter17mm::adjust_bullet(int8_t step) {
-    set_bullet_freq(clamp(config.bullet_freq + step * 5.0f, 5.0f, 25.0f));
-}
 
 void Shooter17mm::set_enable(const bool is_enable) {
     if (this->is_enable == is_enable)
@@ -26,7 +21,7 @@ void Shooter17mm::set_enable(const bool is_enable) {
 }
 
 void Shooter17mm::update_ui(Ui& ui) {
-    if (motor.rub1.is_connected == false) {
+    if (motor.rub1.is_connect == false) {
         ui.robot.rub1 = Ui::PINK;
         ui.robot.rub3 = Ui::PINK;
     } else if (std::fabsf(bullet_speed.ref - rub1_measure_) > 1) {
@@ -37,7 +32,7 @@ void Shooter17mm::update_ui(Ui& ui) {
         ui.robot.rub3 = Ui::GREEN;
     }
 
-    if (motor.rub2.is_connected == false) {
+    if (motor.rub2.is_connect == false) {
         ui.robot.rub2 = Ui::PINK;
         ui.robot.rub4 = Ui::PINK;
     } else if (std::fabsf(bullet_speed.ref - rub2_measure_) > 1) {
@@ -48,16 +43,16 @@ void Shooter17mm::update_ui(Ui& ui) {
         ui.robot.rub4 = Ui::GREEN;
     }
 
-    ui.robot.shoot = motor.shoot.is_connected ? Ui::GREEN : Ui::PINK;
+    ui.robot.shoot = motor.shoot.is_connect ? Ui::GREEN : Ui::PINK;
 }
 
 void Shooter17mm::update() {
     Shooter::update();
 
     // 更新电机
-    motor.rub1.update_control();
-    motor.rub2.update_control();
-    motor.shoot.update_control();
+    motor.rub1.update();
+    motor.rub2.update();
+    motor.shoot.update();
 }
 
 void Shooter17mm::backward() {
@@ -79,7 +74,7 @@ void Shooter17mm::backward() {
             motor.shoot.set_speed(shoot_speed);
 
             // 卡弹检测
-            if (motor.shoot.current.ref >= motor.shoot.config.control.speed_pid_config->max_out) { // 达到速度环最大输出
+            if (motor.shoot.current.ref >= motor.shoot.config().control.speed_pid_config->max_out) { // 达到速度环最大输出
                 // 卡弹计时
                 if (timer_block_.elapsed() > config.block_time) {
                     timer_block_.restart();

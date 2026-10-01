@@ -14,9 +14,6 @@ class Shooter42mm : public Shooter {
 
     Shooter42mm(const Config& config, const Motors& motor);
 
-    // 每步调整 0.1 m/s
-    void adjust_bullet(int8_t step);
-
     // 设置发射结构使能/失能
     void set_enable(bool is_enable) override;
 

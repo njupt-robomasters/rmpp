@@ -1,8 +1,16 @@
 #include "app.hpp"
 #include "bsp/timer.hpp"
-#include "math/math.hpp"
+#include "misc/music/g5g5g5.hpp"
+#include <algorithm>
 #include <cmath>
 
+// 操控参数
+static constexpr float WYAW_MAX = 360 * deg_s;   // yaw 最大角速度，rad/s
+static constexpr float WPITCH_MAX = 360 * deg_s; // pitch 最大角速度，rad/s
+static constexpr float AYAW = 3600 * deg_s;      // 鼠标 yaw 最大角加速度，rad/s^2
+static constexpr float APITCH = 3600 * deg_s;    // 鼠标 pitch 最大角加速度，rad/s^2
+
+// 自主扫描与锁定参数
 static constexpr float YAW_SPEED = 180 * deg_s, PITCH_SPEED = 60 * deg_s;
 static constexpr Angle PITCH_MIN = -22 * deg, PITCH_MAX = 0 * deg;
 static constexpr float LOCK_DISTANCE = 5, LOCK_TIMEOUT = 500 * ms;
@@ -13,22 +21,53 @@ enum GimbalState { SCAN,
                    INSTA360_CHECK,
                    LOCK };
 
+// 跨周期状态
 static GimbalState gimbal_state = SCAN;
 static Timer timer_lock_lost, timer_insta360_check, timer_insta360_punish;
 static Angle target_yaw, target_pitch;
 static bool scan_up = false;
+static Timer timer_dt;
+static float mouse_wyaw = 0, mouse_wpitch = 0;
+static bool last_calib = false, last_r = false;
 
 void gimbal_loop() {
-    gimbal.set_enable(rc.is_enable);
-    if (rc.is_calib) {
+    const float dt = timer_dt.restart();
+    gimbal.set_enable(sentry_enable());
+
+    // yaw 零点校准：VT13 C 挡按住 fn 和 photo，或 FSi6X SWC 上、SWA 下、SWD 下，按下时触发一次
+    const bool calib = (vt13.mode == VT13::C && vt13.fn && vt13.photo) ||
+                       (fsi6x.swc == FSi6X::UP && fsi6x.swa == FSi6X::DOWN && fsi6x.swd == FSi6X::DOWN);
+    if (calib && !last_calib) {
         gimbal.set_yaw_zero();
         gimbal.save_yaw_offset(storage);
-        buzzer.play(Buzzer::G5G5G5);
+        buzzer.play(G5G5G5);
     }
-    if (rc.is_turn_back) {
+    last_calib = calib;
+
+    // R 键掉头
+    if (vt13.key.r && !last_r) {
         gimbal.yaw.ecd.ref += 180 * deg;
         gimbal.yaw.imu.ref += 180 * deg;
     }
+    last_r = vt13.key.r;
+
+    // 鼠标限制角加速度；断联时直接清零
+    if (vt13.is_connect) {
+        mouse_wyaw += std::clamp(vt13.mouse.yaw * WYAW_MAX - mouse_wyaw, -AYAW * dt, AYAW * dt);
+        mouse_wpitch += std::clamp(vt13.mouse.pitch * WPITCH_MAX - mouse_wpitch, -APITCH * dt, APITCH * dt);
+    } else {
+        mouse_wyaw = mouse_wpitch = 0;
+    }
+
+    // 摇杆：射击开关打开时 pitch 摇杆改为调节弹频，不再控制云台
+    const float yaw = vt13.yaw + fsi6x.yaw;
+    float pitch = 0;
+    if (!vt13.trigger)
+        pitch += vt13.pitch;
+    if (fsi6x.swb != FSi6X::DOWN)
+        pitch += fsi6x.pitch;
+
+    // 自主扫描与锁定，输出角度目标或叠加速度
     float wyaw = 0, wpitch = 0;
     bool angle_mode = false;
     if (sentry_active()) {
@@ -96,12 +135,16 @@ void gimbal_loop() {
     }
 
     // 人工自瞄优先，其次为自主角度目标，最后叠加速度
-    if (rc.is_auto_aim && mavlink.vision.is_detect)
+    // 自瞄：VT13 photo、FSi6X SWD 下或按住鼠标右键，识别到目标时跟随视觉角度
+    const bool is_auto_aim = vt13.photo || fsi6x.swd == FSi6X::DOWN || vt13.mouse.right;
+    wyaw += yaw * WYAW_MAX + mouse_wyaw;
+    wpitch += pitch * WPITCH_MAX + mouse_wpitch;
+    if (is_auto_aim && mavlink.vision.is_detect)
         gimbal.set_angle(mavlink.vision.yaw, mavlink.vision.pitch);
     else if (angle_mode)
         gimbal.set_angle(target_yaw, target_pitch);
     else
-        gimbal.set_speed(clamp(rc.wyaw + wyaw, rc.config.wyaw), clamp(rc.wpitch + wpitch, rc.config.wpitch));
+        gimbal.set_speed(std::clamp(wyaw, -WYAW_MAX, WYAW_MAX), std::clamp(wpitch, -WPITCH_MAX, WPITCH_MAX));
     gimbal.set_chassis_wr(chassis.wr.measure);
     gimbal.update();
 }

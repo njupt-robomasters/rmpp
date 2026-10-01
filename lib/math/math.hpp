@@ -3,27 +3,7 @@
 #include <cmath>
 #include <tuple>
 
-constexpr float square(float value) {
-    return value * value;
-}
-
-constexpr float clamp(float value, float max_value) {
-    if (value > max_value)
-        return max_value;
-    if (value < -max_value)
-        return -max_value;
-    return value;
-}
-
-constexpr float clamp(float value, float min_value, float max_value) {
-    if (value > max_value)
-        return max_value;
-    if (value < min_value)
-        return min_value;
-    return value;
-}
-
-constexpr float map(float value, float x_min, float x_max, float y_min, float y_max) {
+constexpr float map(const float value, const float x_min, const float x_max, const float y_min, const float y_max) {
     if (value < x_min)
         return y_min;
     if (value > x_max)
@@ -31,7 +11,7 @@ constexpr float map(float value, float x_min, float x_max, float y_min, float y_
     return (value - x_min) * (y_max - y_min) / (x_max - x_min) + y_min;
 }
 
-inline std::tuple<float, float> rotate(float x, float y, float angle) {
+inline std::tuple<float, float> rotate(const float x, const float y, const float angle) {
     const float c = std::cos(angle);
     const float s = std::sin(angle);
     return {c * x - s * y, s * x + c * y};

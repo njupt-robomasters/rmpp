@@ -2,6 +2,7 @@
 #include "math/angle.hpp"
 #include "math/math.hpp"
 #include "math/unit.hpp"
+#include <algorithm>
 #include <cmath>
 
 static const float SQRT2DIV2 = std::sqrt(2.0f) / 2.0f;
@@ -23,20 +24,20 @@ void ChassisDualSteer::set_enable(const bool is_enable) {
 }
 
 void ChassisDualSteer::update_ui(Ui& ui) {
-    ui.robot.w1 = motor.w1.is_connected ? Ui::GREEN : Ui::PINK;
-    ui.robot.w4 = motor.w2.is_connected ? Ui::GREEN : Ui::PINK;
-    ui.robot.s1 = motor.s1.is_connected ? Ui::GREEN : Ui::PINK;
-    ui.robot.s4 = motor.s2.is_connected ? Ui::GREEN : Ui::PINK;
+    ui.robot.w1 = motor.w1.is_connect ? Ui::GREEN : Ui::PINK;
+    ui.robot.w4 = motor.w2.is_connect ? Ui::GREEN : Ui::PINK;
+    ui.robot.s1 = motor.s1.is_connect ? Ui::GREEN : Ui::PINK;
+    ui.robot.s4 = motor.s2.is_connect ? Ui::GREEN : Ui::PINK;
 }
 
 void ChassisDualSteer::update() {
     Chassis::update();
 
     // 更新电机
-    motor.w1.update_control();
-    motor.w2.update_control();
-    motor.s1.update_control();
-    motor.s2.update_control();
+    motor.w1.update();
+    motor.w2.update();
+    motor.s1.update();
+    motor.s2.update();
 
     power_control_after_motor_update();
 }
@@ -181,7 +182,7 @@ void ChassisDualSteer::backward() {
 void ChassisDualSteer::power_control_after_motor_update() {
     // 功率估计
     power.estimate = motor.w1.torque.measure * motor.w1.speed.measure + motor.w2.torque.measure * motor.w2.speed.measure +
-                     3 * (square(motor.w1.current.measure) + square(motor.w2.current.measure)) * power_config_.wheel_resistance;
+                     3 * (motor.w1.current.measure * motor.w1.current.measure + motor.w2.current.measure * motor.w2.current.measure) * power_config_.wheel_resistance;
 
     // 裁判系统设置无限功率时，读出来是65535，禁用功率控制（这时候缓冲能量还在异常工作，必须在这里禁用）
     if (power.limit == 65535)
@@ -195,11 +196,11 @@ void ChassisDualSteer::power_control_after_motor_update() {
     // a = I^2*R
     // b = kt*I*w
     // c = -P
-    const float a = 3 * (square(motor.w1.current.ref) + square(motor.w2.current.ref)) * power_config_.wheel_resistance;
+    const float a = 3 * (motor.w1.current.ref * motor.w1.current.ref + motor.w2.current.ref * motor.w2.current.ref) * power_config_.wheel_resistance;
     const float b = motor.w1.torque.ref * motor.w1.speed.measure + motor.w2.torque.ref * motor.w2.speed.measure;
     const float c = -power.limit;
     power.gain = (-b + std::sqrtf(b * b - 4 * a * c)) / (2 * a); // 一定为一正根和一负根（x1*x2 = c/a < 0)
-    power.gain = clamp(power.gain, 0 * pct, 100 * pct);          // 钳位
+    power.gain = std::clamp(power.gain, 0 * pct, 100 * pct);     // 钳位
 
     // 基于缓冲能量的功率控制
     const auto& buffer_energy = power.buffer_energy;

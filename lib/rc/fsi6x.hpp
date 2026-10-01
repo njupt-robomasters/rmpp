@@ -2,14 +2,13 @@
 
 #include "bsp/timer.hpp"
 #include "bsp/uart.hpp"
-#include "math/unit.hpp"
 
 class FSi6X {
   public:
     struct Config {
         Uart uart;
-        float timeout = 500 * ms;          // 断联检测超时时间
-        float joystick_deadline = 5 * pct; // 摇杆死区，小于此值认为是0
+        float timeout = 0.5f;            // 断联检测超时时间
+        float joystick_deadline = 0.05f; // 摇杆死区，小于此值认为是0
     } config;
 
     enum Switch {
@@ -22,18 +21,12 @@ class FSi6X {
     bool is_connect = false; // 连接标志
 
     float x{}, y{}, pitch{}, yaw{};                    // 摇杆
-    float vra{}, vrb{};                                // 旋钮
     Switch swa = ERR, swb = ERR, swc = ERR, swd = ERR; // 拨杆
+    float vra{}, vrb{};                                // 旋钮
 
     FSi6X(const Config& config);
 
-    // 串口回调捕获实例地址，订阅期间实例不可复制、移动或销毁
-    FSi6X(const FSi6X&) = delete;
-    FSi6X& operator=(const FSi6X&) = delete;
-    FSi6X(FSi6X&&) = delete;
-    FSi6X& operator=(FSi6X&&) = delete;
-
-    // 独立使用时由应用周期调用，接入 Rc 后由管理器调用
+    // 断联检测，需要在循环中调用；断联时数据复位为默认值
     void update();
 
   private:
@@ -43,16 +36,16 @@ class FSi6X {
 
         // 摇杆范围：240(-784) ~ 1024 ~ 1807(+783)
         // 拨杆范围：UP:240(-784) ~ MID:1024 ~ DOWN:1807(+783)
-        uint16_t ch0 : 11; // 右手水平
-        uint16_t ch1 : 11; // 右手竖直
-        uint16_t ch2 : 11; // 左手竖直
-        uint16_t ch3 : 11; // 左手水平
-        uint16_t ch4 : 11;
-        uint16_t ch5 : 11;
-        uint16_t ch6 : 11;
-        uint16_t ch7 : 11;
-        uint16_t ch8 : 11;
-        uint16_t ch9 : 11;
+        uint16_t ch0 : 11; // 右手水平，x
+        uint16_t ch1 : 11; // 右手竖直，y
+        uint16_t ch2 : 11; // 左手竖直，pitch
+        uint16_t ch3 : 11; // 左手水平，yaw
+        uint16_t ch4 : 11; // swa
+        uint16_t ch5 : 11; // swb
+        uint16_t ch6 : 11; // swc
+        uint16_t ch7 : 11; // swd
+        uint16_t ch8 : 11; // vra
+        uint16_t ch9 : 11; // vrb
         uint16_t ch10 : 11;
         uint16_t ch11 : 11;
         uint16_t ch12 : 11;
@@ -70,11 +63,11 @@ class FSi6X {
     // 串口接收回调
     void callback(const uint8_t data[], uint16_t size);
 
+    void reset_data();
+
     // 解析摇杆值，归一化到±1
     float get_joystick(uint16_t value) const;
 
     // 解析拨杆值
     static Switch get_switch(uint16_t value);
-
-    void reset_data();
 };

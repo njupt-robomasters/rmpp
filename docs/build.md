@@ -23,7 +23,7 @@ flowchart TD
 
 例如 `lib/bsp/can.hpp` 声明 `Can` 接口，板卡的 `bsp/can.cpp` 实现成员函数并调用 HAL。app 和公共组件使用接口；根构建选择板卡实现并把它加入固件。接口关系不等于 CMake 目标必须逐层链接的关系，也不需要建立 lib 与 BSP 的循环目标依赖
 
-当前公共库中的 EKF 包含 `arm_math.h`，因此 `rmpp_lib` 仍需要本板 CMSIS-DSP 的编译接口
+IMU 的固定维度 EKF 使用独立 C++ 实现，`rmpp_lib` 不再依赖本板 CMSIS-DSP 的头文件和编译接口
 
 ## CMake 文件如何协作
 
@@ -76,13 +76,11 @@ CubeMX 把 main、启动文件和外设初始化源码直接加入可执行目�
 target_link_libraries(rmpp_app PRIVATE rmpp_lib)
 target_link_libraries(rmpp_bsp PRIVATE rmpp_lib stm32cubemx)
 
-# TODO: 解除公共库 EKF 对板卡 CMSIS-DSP 编译接口的依赖，届时删除此行
-target_link_libraries(rmpp_lib PRIVATE stm32cubemx)
 ```
 
-根配置显式加入 `rmpp_app`、`rmpp_bsp`、`rmpp_lib` 三组对象文件，不依赖对象文件跨多层目标自动传递。`rmpp_app` 不需要包含板卡实现目录；BSP 实现由最终固件组装。DSP `.a` 继续使用，但只由 CubeMX 接入一次，不再给公共库重复添加绝对路径依赖
+根配置显式加入 `rmpp_app`、`rmpp_bsp`、`rmpp_lib` 三组对象文件，不依赖对象文件跨多层目标自动传递。`rmpp_app` 不需要包含板卡实现目录；BSP 实现由最终固件组装。生成配置仍声明 DSP `.a`，IMU 已无相关符号引用；不为移除这一声明改写 CubeMX 生成文件
 
-`rmpp_lib → stm32cubemx` 是待解决的板卡耦合，当前为了 EKF 编译保留；移除相应源码依赖后再删除该链接声明。FlashDB 的 `<flashdb.h>`、`<fdb_cfg.h>` 等引用需要显式搜索路径，即使文件同目录也不能默认省略 `target_include_directories(rmpp_bsp PRIVATE flashdb)`
+`rmpp_lib → stm32cubemx` 的链接声明已随 IMU 重构删除。FlashDB 的 `<flashdb.h>`、`<fdb_cfg.h>` 等引用需要显式搜索路径，即使文件同目录也不能默认省略 `target_include_directories(rmpp_bsp PRIVATE flashdb)`
 
 ## plain 与 keyword 链接形式
 
@@ -107,7 +105,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
 ## 语言标准、告警与生成器
 
-根配置在创建任何目标前统一设置 C11、C++20，启用 `STANDARD_REQUIRED` 和 GNU 扩展。子目录继承这些默认值，不再重复给 `rmpp_lib` 设置 `target_compile_features`；目标仍可显式覆盖标准
+根配置在创建任何目标前统一设置 C11、C++23，启用 `STANDARD_REQUIRED` 和 GNU 扩展。子目录继承这些默认值，不再重复给 `rmpp_lib` 设置 `target_compile_features`；目标仍可显式覆盖标准
 
 `-Wno-packed-bitfield-compat` 通过 `target_compile_options(rmpp_lib PRIVATE ...)` 仅作用于公共库源码，不传给 app、BSP、HAL 或 USB。它屏蔽某些 packed 位域相对旧 GCC 的布局兼容性提示，不改变结构体布局，也不是 MAVLink 专用开关
 
@@ -131,7 +129,7 @@ flowchart LR
 
 ## 编译接口
 
-- `Can{}` 是可常量初始化的未绑定句柄，用于电机型号的 `constexpr DEFAULT_CONFIG`；实际通道仍由应用通过 `Can(1)`、`Can(2)` 选择，未绑定句柄的发送和回调注册返回失败
+- `Can`、`Spi` 没有默认构造，硬件必须由应用显式指定；电机型号的 `constexpr DRIVE` 类型为 `Motor::Config::Drive`，包含 kt、电流与转矩量程、默认减速比，不依赖空硬件句柄
 - MAVLink 发送缓冲使用协议的 `MAVLINK_MAX_PACKET_LEN`，覆盖最大载荷、帧头、校验和及签名，不依赖 UART 实现内部的缓冲区容量
 - 应用显式向 MAVLink 传入 `Cdc(1)`，与 STM32F407 板卡唯一的 USB CDC 通道及接收回调一致
 

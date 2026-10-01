@@ -13,9 +13,10 @@ CLion：打开根目录，使用项目 CMake Presets，选中所需应用的配�
 板卡调试配置：boards/stm32f407_igh6/stm32f4discovery.cfg。
 
 常用修改
-- 业务逻辑和车辆参数：app/<应用>/。
+- 业务逻辑和车辆参数：app/<应用>/；遥控器映射、操控手感、弹速弹频及按键调整步长在 chassis.cpp、gimbal.cpp、shooter.cpp 顶部常量中。
 - 公共算法及设备逻辑：lib/。
 - 引脚、波特率等硬件参数：板卡 .ioc；外设实现和启动：板卡 bsp/。
 - 新增应用后执行：python tools/update_presets.py。
-- 完整编译检查：python tools/check_builds.py。
+- 完整编译检查：python tools/check_builds.py；cmake、ninja 不在 PATH 时用 --cmake、--ninja 指定 CLion 自带版本。
+- 格式化：python tools/format_code.py [路径]；用 --clang-format 指定 CLion 自带的 clang-format。
 - CMake 结构、依赖关系图与验证说明：docs/build.md。

@@ -4,16 +4,15 @@
 
 class RM6623 : public DjiMotor {
   public:
-    static constexpr Config DEFAULT_CONFIG{
-        .physical = {.kt = 0.38f, .max_current = 5},
-        .install = {.reduction = 1},
-    };
-    static constexpr Protocol DEFAULT_PROTOCOL{.feedback_scale = 5000, .command_scale = 5000};
+    // 型号默认物理参数
+    static constexpr Config::Drive DRIVE{.kt = 0.38f, .max_current = 5, .reduction = 1};
 
-    explicit RM6623(const Config& config, Protocol protocol = {});
+    // 构造与命令
+    explicit RM6623(const Config& config);
+    bool write_can_frame(CanFrame& frame) const override;
 
-    bool send_calibrate_cmd() const;
+    void send_calibrate_cmd() const;
 
   private:
-    void parse_feedback(const uint8_t data[8]) override;
+    void can_callback(const CanFrame& frame);
 };

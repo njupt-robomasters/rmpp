@@ -1,7 +1,6 @@
 #include "bsp/timer.hpp"
 #include "stm32f4xx_hal.h"
 #include <algorithm>
-#include <cmath>
 
 static constexpr uint32_t DWT_MAX_ELAPSED_MS = 10'000;
 
@@ -12,9 +11,6 @@ void timer_init() {
 }
 
 void Timer::delay(const float seconds) {
-    if (!std::isfinite(seconds) || seconds <= 0)
-        return;
-
     const float delay_ms = seconds * 1000.0f;
     if (delay_ms <= static_cast<float>(DWT_MAX_ELAPSED_MS)) {
         const auto ticks = static_cast<uint32_t>(seconds * static_cast<float>(SystemCoreClock));

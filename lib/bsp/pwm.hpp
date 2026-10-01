@@ -4,12 +4,9 @@ class Pwm {
   public:
     Pwm(int timer, int channel);
 
-    explicit operator bool() const {
-        return context_ != nullptr;
-    }
-
-    bool set_frequency(float hz) const;
-    bool set_duty(float duty) const;
+    // 同一定时器各通道共享频率，hz 须大于 0
+    void set_frequency(float hz) const;
+    void set_duty(float duty) const;
 
     struct Context;
     Context* context_ = nullptr;

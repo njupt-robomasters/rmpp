@@ -34,30 +34,27 @@ Cdc::Cdc(const int id) {
 }
 
 bool Cdc::send(const uint8_t* data, const size_t size) const {
-    if (!context_ || !data || !size || size > APP_TX_DATA_SIZE)
+    if (!context_)
         return false;
 
-    bool success = false;
+    // USB 未枚举完成时 pClassData 为空，静默丢弃
     const auto* cdc = static_cast<USBD_CDC_HandleTypeDef*>(hUsbDeviceFS.pClassData);
-    if (hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED && cdc && cdc->TxBuffer) {
-        // CDC_Init_FS 将 TxBuffer 绑定到生成的 UserTxBufferFS
-        std::memcpy(cdc->TxBuffer, data, size);
-        success = CDC_Transmit_FS(cdc->TxBuffer, size) == USBD_OK;
-    }
+    if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED || !cdc || !cdc->TxBuffer || cdc->TxState)
+        return false;
 
-    return success;
+    // CDC_Init_FS 将 TxBuffer 绑定到生成的 UserTxBufferFS
+    std::memcpy(cdc->TxBuffer, data, size);
+    return CDC_Transmit_FS(cdc->TxBuffer, size) == USBD_OK;
 }
 
-bool Cdc::add_rx_callback(RxCallback callback) const {
-    if (!context_ || !callback)
-        return false;
+void Cdc::add_rx_callback(RxCallback callback) const {
+    if (!context_)
+        return;
 
     const auto primask = __get_PRIMASK();
     __disable_irq();
     context_->callbacks.push_back(std::move(callback));
     __set_PRIMASK(primask);
-
-    return true;
 }
 
 extern "C" void bsp_cdc_receive(const uint8_t* data, uint32_t size) {

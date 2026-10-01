@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-VENDOR = ("lib/mavlink/lib/", "lib/ui/lib/", "lib/imu/lib/ekf/", "/bsp/flashdb/")
+VENDOR = ("lib/mavlink/lib/", "lib/ui/lib/", "/bsp/flashdb/")
 
 
 def main():
@@ -25,9 +25,6 @@ def main():
                 continue
             relative = path.relative_to(ROOT).as_posix()
             if path.suffix not in (".c", ".h", ".cpp", ".hpp") or any(part in relative for part in VENDOR):
-                continue
-            # BMI088 驱动已迁移为 C++；寄存器定义保持第三方排版
-            if relative == "lib/imu/lib/bmi088/bmi088_reg.h":
                 continue
             files.append(str(path))
     mode = ["--dry-run", "--Werror"] if args.check else ["-i"]

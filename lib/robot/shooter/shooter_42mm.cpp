@@ -6,10 +6,6 @@
 Shooter42mm::Shooter42mm(const Config& config, const Motors& motor)
     : Shooter(config), motor(motor) {}
 
-void Shooter42mm::adjust_bullet(int8_t step) {
-    set_bullet_speed(config.bullet_speed + step * 0.1f);
-}
-
 void Shooter42mm::set_enable(const bool is_enable) {
     if (this->is_enable == is_enable)
         return;
@@ -29,7 +25,7 @@ void Shooter42mm::set_enable(const bool is_enable) {
 }
 
 void Shooter42mm::update_ui(Ui& ui) {
-    if (motor.rub1.is_connected == false) {
+    if (motor.rub1.is_connect == false) {
         ui.robot.rub1 = Ui::PINK;
     } else if (std::fabsf(bullet_speed.ref * RUB12_RATIO - rub1_measure_) < 1) {
         ui.robot.rub1 = Ui::GREEN;
@@ -37,7 +33,7 @@ void Shooter42mm::update_ui(Ui& ui) {
         ui.robot.rub1 = Ui::ORANGE;
     }
 
-    if (motor.rub2.is_connected == false) {
+    if (motor.rub2.is_connect == false) {
         ui.robot.rub2 = Ui::PINK;
     } else if (std::fabsf(bullet_speed.ref * RUB12_RATIO - rub2_measure_) < 1) {
         ui.robot.rub2 = Ui::GREEN;
@@ -45,7 +41,7 @@ void Shooter42mm::update_ui(Ui& ui) {
         ui.robot.rub2 = Ui::ORANGE;
     }
 
-    if (motor.rub3.is_connected == false) {
+    if (motor.rub3.is_connect == false) {
         ui.robot.rub3 = Ui::PINK;
     } else if (std::fabsf(bullet_speed.ref - rub3_measure_) < 1) {
         ui.robot.rub3 = Ui::GREEN;
@@ -53,7 +49,7 @@ void Shooter42mm::update_ui(Ui& ui) {
         ui.robot.rub3 = Ui::ORANGE;
     }
 
-    if (motor.rub4.is_connected == false) {
+    if (motor.rub4.is_connect == false) {
         ui.robot.rub4 = Ui::PINK;
     } else if (std::fabsf(bullet_speed.ref - rub4_measure_) < 1) {
         ui.robot.rub4 = Ui::GREEN;
@@ -61,18 +57,18 @@ void Shooter42mm::update_ui(Ui& ui) {
         ui.robot.rub4 = Ui::ORANGE;
     }
 
-    ui.robot.shoot = motor.shoot.is_connected ? Ui::GREEN : Ui::PINK;
+    ui.robot.shoot = motor.shoot.is_connect ? Ui::GREEN : Ui::PINK;
 }
 
 void Shooter42mm::update() {
     Shooter::update();
 
     // 更新电机
-    motor.rub1.update_control();
-    motor.rub2.update_control();
-    motor.rub3.update_control();
-    motor.rub4.update_control();
-    motor.shoot.update_control();
+    motor.rub1.update();
+    motor.rub2.update();
+    motor.rub3.update();
+    motor.rub4.update();
+    motor.shoot.update();
 }
 
 void Shooter42mm::backward() {
@@ -146,8 +142,8 @@ void Shooter42mm::backward() {
         }
 
         // 卡弹检测
-        if (motor.shoot.torque.ref >= motor.shoot.config.control.position_pid_config->max_out) { // 达到角度环最大输出
-            if (timer_block_.elapsed() > config.block_time) {                                    // 卡弹计时
+        if (motor.shoot.torque.ref >= motor.shoot.config().control.position_pid_config->max_out) { // 达到角度环最大输出
+            if (timer_block_.elapsed() > config.block_time) {                                      // 卡弹计时
                 timer_block_.restart();
                 state_ = SHAKE;
                 timer_shake_.restart();

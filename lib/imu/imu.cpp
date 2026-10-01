@@ -1,194 +1,131 @@
 #include "imu.hpp"
-
-#include "bsp/pwm.hpp"
-#include "lib/bmi088/bmi088.hpp"
-#include "lib/bmi088/bmi088_middleware.hpp"
-#include "lib/ekf/QuaternionEKF.h"
-#include "math/angle.hpp"
-#include "math/unit.hpp"
+#include <algorithm>
 #include <cmath>
-#include <tuple>
+#include <cstring>
 
-Imu::Imu(const Dir& dir, Calib& calib, const Config& config)
-    : temperature_control_(config.heater), config_(config), dir_(dir), calib_(calib) {
-    IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0);
+Imu::Imu(const Config& config)
+    : config_(config), sensor_({.accel = config_.hardware.accel, .gyro = config_.hardware.gyro}),
+      ekf_(config_.control.ekf), temperature_pid_(&config_.control.temperature_pid) {
+    euler_to_quaternion(config_.adjust.yaw, config_.adjust.pitch, config_.adjust.roll, installation_q_);
 }
 
-void Imu::calibrate() {
-    if (!config_.accel || !config_.gyro)
-        return;
-    if (is_init_ == false) {
-        init();
-        is_init_ = true;
-    }
-
-    BMI088_Calibrate();
-    calib_ = {
-        .gx_offset = BMI088.GyroOffset[X],
-        .gy_offset = BMI088.GyroOffset[Y],
-        .gz_offset = BMI088.GyroOffset[Z],
-        .g_norm = BMI088.gNorm};
+const Imu::Config& Imu::config() const {
+    return config_;
 }
 
 void Imu::update() {
-    if (!config_.accel || !config_.gyro)
-        return;
-    if (is_init_ == false) {
-        init();
-        is_init_ = true;
+    // 超时保留旧标定；通信失败也不延长总等待时间
+    if (calibration == Calibration::SAMPLING && calibration_timer_.elapsed() > 10.0f)
+        calibration = Calibration::FAILED;
+    if (!initialized_) {
+        if (!sensor_.init())
+            return;
+        initialized_ = true;
+        timer_.restart();
+        temperature_pid_.clear();
     }
-
-    // 计算dt
     const float dt = timer_.restart();
-
-    // 读取bmi088数据
-    BMI088_Read(&BMI088);
-    accel[X] = BMI088.Accel[X];
-    accel[Y] = BMI088.Accel[Y];
-    accel[Z] = BMI088.Accel[Z];
-    gyro[X] = BMI088.Gyro[X];
-    gyro[Y] = BMI088.Gyro[Y];
-    gyro[Z] = BMI088.Gyro[Z];
-
-    // 安装方向修正
-    dir_correct(dir_, gyro, accel);
-
-    // 核心函数，EKF更新四元数
-    IMU_QuaternionEKF_Update(gyro[X], gyro[Y], gyro[Z],
-                             accel[X], accel[Y], accel[Z],
-                             dt);
-
-    // 获取四元数
-    memcpy(q, QEKF_INS.q, sizeof(QEKF_INS.q));
-
-    // 获取欧拉角
-    yaw = QEKF_INS.Yaw * deg;
-    pitch = QEKF_INS.Pitch * deg;
-    roll = QEKF_INS.Roll * deg;
-    yaw_total_angle = QEKF_INS.YawTotalAngle * deg;
-
-    // imu加热
-    temperature_control_.update();
-}
-
-void Imu::init() const {
-    bmi088_bind(config_.accel, config_.gyro);
-    BMI088_Init();
-    BMI088_SetCalibrateParam(calib_.gx_offset, calib_.gy_offset, calib_.gz_offset, calib_.g_norm);
-}
-
-void Imu::dir_correct(const Dir& dir, float gyro[3], float accel[3]) {
-    static Dir last_dir;
-    static bool first_flag = true;
-    static float c_11, c_12, c_13, c_21, c_22, c_23, c_31, c_32, c_33;
-
-    if (first_flag ||
-        dir.yaw != last_dir.yaw ||
-        dir.pitch != last_dir.pitch ||
-        dir.roll != last_dir.roll) {
-        const float cos_yaw = arm_cos_f32(dir.yaw);
-        const float cos_pitch = arm_cos_f32(dir.pitch);
-        const float cos_roll = arm_cos_f32(dir.roll);
-        const float sin_yaw = arm_sin_f32(dir.yaw);
-        const float sin_pitch = arm_sin_f32(dir.pitch);
-        const float sin_roll = arm_sin_f32(dir.roll);
-
-        // 旋转顺序：1. 偏航角（alpha） 2. 俯仰角（beta） 3. 横滚角（gamma）
-        c_11 = cos_yaw * cos_roll + sin_yaw * sin_pitch * sin_roll;
-        c_12 = cos_pitch * sin_yaw;
-        c_13 = cos_yaw * sin_roll - cos_roll * sin_yaw * sin_pitch;
-        c_21 = cos_yaw * sin_pitch * sin_roll - cos_roll * sin_yaw;
-        c_22 = cos_yaw * cos_pitch;
-        c_23 = -sin_yaw * sin_roll - cos_yaw * cos_roll * sin_pitch;
-        c_31 = -cos_pitch * sin_roll;
-        c_32 = sin_pitch;
-        c_33 = cos_pitch * cos_roll;
-
-        first_flag = false;
+    if (!sensor_.read()) {
+        heater_duty = 0;
+        config_.hardware.heater.set_duty(heater_duty);
+        temperature_pid_.clear();
+        return;
     }
 
-    float gyro_temp[3];
-    for (uint8_t i = 0; i < 3; i++) {
-        gyro_temp[i] = gyro[i];
-    }
-    gyro[X] = c_11 * gyro_temp[X] + c_12 * gyro_temp[Y] + c_13 * gyro_temp[Z];
-    gyro[Y] = c_21 * gyro_temp[X] + c_22 * gyro_temp[Y] + c_23 * gyro_temp[Z];
-    gyro[Z] = c_31 * gyro_temp[X] + c_32 * gyro_temp[Y] + c_33 * gyro_temp[Z];
+    // 温控与校准共用本轮采样，校准期间继续维持温度和姿态输出
+    temperature = sensor_.temperature;
+    heater_duty = std::clamp(temperature_pid_.calculate(config_.control.temperature - temperature), 0.0f, 1.0f);
+    config_.hardware.heater.set_duty(heater_duty);
 
-    float accel_temp[3];
-    for (uint8_t i = 0; i < 3; i++) {
-        accel_temp[i] = accel[i];
+    if (calibration == Calibration::SAMPLING) {
+        const float sample[4]{sensor_.gyro[0], sensor_.gyro[1], sensor_.gyro[2],
+                              std::hypot(sensor_.accel[0], sensor_.accel[1], sensor_.accel[2])};
+        if (calibration_samples == 0) {
+            std::memcpy(calibration_min_, sample, sizeof(sample));
+            std::memcpy(calibration_max_, sample, sizeof(sample));
+            std::memcpy(calibration_mean_, sample, sizeof(sample));
+        }
+        ++calibration_samples;
+        bool disturbed = std::abs(sample[3] - 9.81f) > 0.5f;
+        for (int i = 0; i < 4; ++i) {
+            calibration_min_[i] = std::min(calibration_min_[i], sample[i]);
+            calibration_max_[i] = std::max(calibration_max_[i], sample[i]);
+            calibration_mean_[i] += (sample[i] - calibration_mean_[i]) / calibration_samples;
+            const float range = i < 3 ? 0.15f : 0.5f;
+            disturbed |= calibration_max_[i] - calibration_min_[i] > range;
+        }
+        if (disturbed) {
+            calibration_samples = 0;
+        } else if (calibration_samples == 6000) {
+            bool valid = true;
+            for (int i = 0; i < 3; ++i)
+                valid &= std::abs(calibration_mean_[i]) <= 0.01f;
+            if (valid) {
+                for (int i = 0; i < 3; ++i)
+                    config_.adjust.gyro_offset[i] = calibration_mean_[i];
+                config_.adjust.gravity = calibration_mean_[3];
+                calibration = Calibration::SUCCEEDED;
+                ekf_.reset_bias();
+            } else {
+                calibration_samples = 0;
+            }
+        }
     }
-    accel[X] = c_11 * accel_temp[X] + c_12 * accel_temp[Y] + c_13 * accel_temp[Z];
-    accel[Y] = c_21 * accel_temp[X] + c_22 * accel_temp[Y] + c_23 * accel_temp[Z];
-    accel[Z] = c_31 * accel_temp[X] + c_32 * accel_temp[Y] + c_33 * accel_temp[Z];
 
-    last_dir = dir;
+    // 先在传感器坐标系校准，再旋转到机体坐标系
+    for (int i = 0; i < 3; ++i) {
+        gyro[i] = sensor_.gyro[i] - config_.adjust.gyro_offset[i];
+        accel[i] = sensor_.accel[i] * (9.81f / config_.adjust.gravity);
+    }
+    body_to_world(gyro, gyro, installation_q_);
+    body_to_world(accel, accel, installation_q_);
+    ekf_.update(gyro, accel, dt);
+    std::memcpy(q, ekf_.q, sizeof(q));
+
+    const Angle last_yaw = yaw;
+    std::tie(yaw, pitch, roll) = quaternion_to_euler(q);
+    yaw_total_angle += Angle(yaw - last_yaw);
 }
 
-void Imu::eular_angle_to_quaternion(Angle yaw, Angle pitch, Angle roll, float q[4]) {
-    const float cos_pitch = arm_cos_f32(pitch / 2);
-    const float cos_yaw = arm_cos_f32(yaw / 2);
-    const float cos_roll = arm_cos_f32(roll / 2);
-    const float sin_pitch = arm_sin_f32(pitch / 2);
-    const float sin_yaw = arm_sin_f32(yaw / 2);
-    const float sin_roll = arm_sin_f32(roll / 2);
-    q[0] = cos_pitch * cos_roll * cos_yaw + sin_pitch * sin_roll * sin_yaw;
-    q[1] = sin_pitch * cos_roll * cos_yaw - cos_pitch * sin_roll * sin_yaw;
-    q[2] = sin_pitch * cos_roll * sin_yaw + cos_pitch * sin_roll * cos_yaw;
-    q[3] = cos_pitch * cos_roll * sin_yaw - sin_pitch * sin_roll * cos_yaw;
+void Imu::start_calibration() {
+    calibration = Calibration::SAMPLING;
+    calibration_samples = 0;
+    calibration_timer_.restart();
 }
 
-std::tuple<Angle, Angle, Angle> Imu::quaternion_to_eular_angle(const float q[4]) {
-    Angle yaw = std::atan2f(2.0f * (q[0] * q[3] + q[1] * q[2]), 2.0f * (q[0] * q[0] + q[1] * q[1]) - 1.0f);
-    Angle pitch = std::atan2f(2.0f * (q[0] * q[1] + q[2] * q[3]), 2.0f * (q[0] * q[0] + q[3] * q[3]) - 1.0f);
-    Angle roll = std::asinf(2.0f * (q[0] * q[2] - q[1] * q[3]));
+void Imu::euler_to_quaternion(const Angle yaw, const Angle pitch, const Angle roll, float q[4]) {
+    const float cy = std::cos(yaw * 0.5f), sy = std::sin(yaw * 0.5f);
+    const float cp = std::cos(pitch * 0.5f), sp = std::sin(pitch * 0.5f);
+    const float cr = std::cos(roll * 0.5f), sr = std::sin(roll * 0.5f);
+    q[0] = cr * cp * cy + sr * sp * sy;
+    q[1] = sr * cp * cy - cr * sp * sy;
+    q[2] = cr * sp * cy + sr * cp * sy;
+    q[3] = cr * cp * sy - sr * sp * cy;
+}
+
+std::tuple<Angle, Angle, Angle> Imu::quaternion_to_euler(const float q[4]) {
+    const Angle yaw = std::atan2(2 * (q[0] * q[3] + q[1] * q[2]), 1 - 2 * (q[2] * q[2] + q[3] * q[3]));
+    const Angle pitch = std::asin(std::clamp(2 * (q[0] * q[2] - q[1] * q[3]), -1.0f, 1.0f));
+    const Angle roll = std::atan2(2 * (q[0] * q[1] + q[2] * q[3]), 1 - 2 * (q[1] * q[1] + q[2] * q[2]));
     return {yaw, pitch, roll};
 }
 
-void Imu::body_frame_to_earth_frame(const float vecBF[3], float vecEF[3], const float q[4]) {
-    vecEF[0] = 2.0f * ((0.5f - q[2] * q[2] - q[3] * q[3]) * vecBF[0] +
-                       (q[1] * q[2] - q[0] * q[3]) * vecBF[1] +
-                       (q[1] * q[3] + q[0] * q[2]) * vecBF[2]);
-
-    vecEF[1] = 2.0f * ((q[1] * q[2] + q[0] * q[3]) * vecBF[0] +
-                       (0.5f - q[1] * q[1] - q[3] * q[3]) * vecBF[1] +
-                       (q[2] * q[3] - q[0] * q[1]) * vecBF[2]);
-
-    vecEF[2] = 2.0f * ((q[1] * q[3] - q[0] * q[2]) * vecBF[0] +
-                       (q[2] * q[3] + q[0] * q[1]) * vecBF[1] +
-                       (0.5f - q[1] * q[1] - q[2] * q[2]) * vecBF[2]);
+void Imu::body_to_world(const float body[3], float world[3], const float q[4]) {
+    const float x = body[0], y = body[1], z = body[2];
+    world[0] = (1 - 2 * (q[2] * q[2] + q[3] * q[3])) * x +
+               2 * (q[1] * q[2] - q[0] * q[3]) * y + 2 * (q[1] * q[3] + q[0] * q[2]) * z;
+    world[1] = 2 * (q[1] * q[2] + q[0] * q[3]) * x +
+               (1 - 2 * (q[1] * q[1] + q[3] * q[3])) * y + 2 * (q[2] * q[3] - q[0] * q[1]) * z;
+    world[2] = 2 * (q[1] * q[3] - q[0] * q[2]) * x +
+               2 * (q[2] * q[3] + q[0] * q[1]) * y + (1 - 2 * (q[1] * q[1] + q[2] * q[2])) * z;
 }
 
-void Imu::earth_frame_to_body_frame(const float vecEF[3], float vecBF[3], const float q[4]) {
-    vecBF[0] = 2.0f * ((0.5f - q[2] * q[2] - q[3] * q[3]) * vecEF[0] +
-                       (q[1] * q[2] + q[0] * q[3]) * vecEF[1] +
-                       (q[1] * q[3] - q[0] * q[2]) * vecEF[2]);
-
-    vecBF[1] = 2.0f * ((q[1] * q[2] - q[0] * q[3]) * vecEF[0] +
-                       (0.5f - q[1] * q[1] - q[3] * q[3]) * vecEF[1] +
-                       (q[2] * q[3] + q[0] * q[1]) * vecEF[2]);
-
-    vecBF[2] = 2.0f * ((q[1] * q[3] + q[0] * q[2]) * vecEF[0] +
-                       (q[2] * q[3] - q[0] * q[1]) * vecEF[1] +
-                       (0.5f - q[1] * q[1] - q[2] * q[2]) * vecEF[2]);
+void Imu::world_to_body(const float world[3], float body[3], const float q[4]) {
+    const float conjugate[4]{q[0], -q[1], -q[2], -q[3]};
+    body_to_world(world, body, conjugate);
 }
 
-void Imu::quaternion_update(float q[4], float gx, float gy, float gz, const float dt) {
-    gx *= 0.5f * dt;
-    gy *= 0.5f * dt;
-    gz *= 0.5f * dt;
-    const float qa = q[0];
-    const float qb = q[1];
-    const float qc = q[2];
-    q[0] += -qb * gx - qc * gy - q[3] * gz;
-    q[1] += qa * gx + qc * gz - q[3] * gy;
-    q[2] += qa * gy - qb * gz + q[3] * gx;
-    q[3] += qa * gz + qb * gy - qc * gx;
-}
-
-void Imu::TemperatureControl::update() {
-    measure_ = BMI088.Temperature;
-    power_ = pid_.calculate(REF - measure_);
-    heater_.set_duty(power_);
+void Imu::integrate_quaternion(float q[4], const float gx, const float gy, const float gz, const float dt) {
+    const float gyro[3]{gx, gy, gz};
+    QuaternionEkf::integrate(q, gyro, dt);
 }

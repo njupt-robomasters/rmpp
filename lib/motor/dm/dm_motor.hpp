@@ -1,9 +1,19 @@
 #pragma once
 
-#include "motor/mit_motor.hpp"
+#include "motor/motor.hpp"
 
-class DmMotor : public MitMotor {
+class DmMotor : public Motor {
   public:
+    struct Protocol {
+        float max_speed = 0, max_position = 0; // 原始速度、位置对称量程，rad/s、rad
+    };
+
+    struct Config {
+        Motor::Config motor;
+        Protocol protocol;
+        float enable_frequency = 10; // 使能帧发送频率，Hz
+    };
+
     enum ErrCode {
         NONE = 0x00,
         ENABLED = 0x01,
@@ -16,15 +26,22 @@ class DmMotor : public MitMotor {
         OVERLOAD = 0x0E,  // 过载
     } err_code = NONE;
 
-    void set_enable(bool enable) override;
-    bool send_can_cmd() override;
+    struct {
+        float mos = 0, motor = 0; // ℃
+    } temperature;
+
+    void send();
 
   protected:
-    DmMotor(const Config& config, Protocol protocol);
+    explicit DmMotor(const Config& config);
 
   private:
-    unsigned send_count_ = 0;
-    bool enable_submitted_ = false;
+    const Protocol protocol_;
+    const float enable_frequency_;
+    Timer enable_timer_;
 
-    void receive(const CanFrame& frame) final;
+    void can_callback(const CanFrame& frame);
+    void send_mit() const;
+    void send_enable() const;
+    void send_disable() const;
 };
