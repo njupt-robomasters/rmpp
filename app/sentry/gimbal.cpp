@@ -79,16 +79,16 @@ void gimbal_loop() {
                 scan_up = false;
             if (gimbal.pitch.imu.measure < PITCH_MIN)
                 scan_up = true;
-            if (mavlink.vision.is_detect && mavlink.vision.distance <= LOCK_DISTANCE) {
+            if (aim.vision.is_detect && aim.vision.distance <= LOCK_DISTANCE) {
                 gimbal_state = LOCK;
-                target_yaw = mavlink.vision.yaw;
-                target_pitch = mavlink.vision.pitch;
+                target_yaw = aim.vision.yaw;
+                target_pitch = aim.vision.pitch;
                 timer_lock_lost.restart();
             }
-            if (!std::isnan(mavlink.insta360.a0) &&
+            if (!std::isnan(aim.insta360.a0) &&
                 timer_insta360_punish.elapsed() > INSTA360_PUNISH_TIME) {
                 timer_insta360_punish.restart();
-                target_yaw = mavlink.insta360.a0 + gimbal.yaw.imu_minus_ecd;
+                target_yaw = aim.insta360.a0 + gimbal.yaw.imu_minus_ecd;
                 target_pitch = (PITCH_MIN + PITCH_MAX) / 2;
                 angle_mode = true;
                 gimbal_state = INSTA360_CHECK;
@@ -97,10 +97,10 @@ void gimbal_loop() {
             break;
         case INSTA360_CHECK:
             angle_mode = true;
-            if (mavlink.vision.is_detect && mavlink.vision.distance <= LOCK_DISTANCE) {
+            if (aim.vision.is_detect && aim.vision.distance <= LOCK_DISTANCE) {
                 gimbal_state = LOCK;
-                target_yaw = mavlink.vision.yaw;
-                target_pitch = mavlink.vision.pitch;
+                target_yaw = aim.vision.yaw;
+                target_pitch = aim.vision.pitch;
                 timer_lock_lost.restart();
             }
             if (timer_insta360_check.elapsed() > INSTA360_CHECK_TIMEOUT) {
@@ -112,12 +112,12 @@ void gimbal_loop() {
             break;
         case LOCK:
             angle_mode = true;
-            if (referee.robot.hp <= GO_HOME_HP) {
+            if (referee.robot_status.current_HP <= GO_HOME_HP) {
                 gimbal_state = SCAN;
                 angle_mode = false;
-            } else if (mavlink.vision.is_detect && mavlink.vision.distance <= LOCK_DISTANCE) {
-                target_yaw = mavlink.vision.yaw;
-                target_pitch = mavlink.vision.pitch;
+            } else if (aim.vision.is_detect && aim.vision.distance <= LOCK_DISTANCE) {
+                target_yaw = aim.vision.yaw;
+                target_pitch = aim.vision.pitch;
                 timer_lock_lost.restart();
             } else if (timer_lock_lost.elapsed() > LOCK_TIMEOUT) {
                 timer_lock_lost.restart();
@@ -130,7 +130,7 @@ void gimbal_loop() {
         gimbal_state = SCAN;
         scan_up = false;
         target_yaw = target_pitch = 0 * deg;
-        if (referee.game.game_progress == Referee::REFEREE_SELF_CHECK)
+        if (referee.game_status.game_progress == 2)
             wyaw = YAW_SPEED;
     }
 
@@ -139,8 +139,8 @@ void gimbal_loop() {
     const bool is_auto_aim = vt13.photo || fsi6x.swd == FSi6X::DOWN || vt13.mouse.right;
     wyaw += yaw * WYAW_MAX + mouse_wyaw;
     wpitch += pitch * WPITCH_MAX + mouse_wpitch;
-    if (is_auto_aim && mavlink.vision.is_detect)
-        gimbal.set_angle(mavlink.vision.yaw, mavlink.vision.pitch);
+    if (is_auto_aim && aim.vision.is_detect)
+        gimbal.set_angle(aim.vision.yaw, aim.vision.pitch);
     else if (angle_mode)
         gimbal.set_angle(target_yaw, target_pitch);
     else

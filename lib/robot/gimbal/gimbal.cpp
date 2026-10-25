@@ -1,13 +1,21 @@
 #include "gimbal.hpp"
 #include "math/angle.hpp"
 
-Gimbal::Gimbal(Imu& imu)
-    : imu(imu) {}
+Gimbal::Gimbal(Imu& imu, const Config& config)
+    : imu(imu), config_(config), yaw_speed_pid_(config.yaw_speed_pid_config), yaw_position_pid_(config.yaw_position_pid_config),
+      pitch_speed_pid_(config.pitch_speed_pid_config), pitch_position_pid_(config.pitch_position_pid_config) {}
 
 void Gimbal::set_enable(const bool is_enable) {
     if (this->is_enable == is_enable)
         return;
     this->is_enable = is_enable;
+
+    if (!is_enable) {
+        yaw_speed_pid_.clear();
+        yaw_position_pid_.clear();
+        pitch_speed_pid_.clear();
+        pitch_position_pid_.clear();
+    }
 
     // 这里设置电机
 }

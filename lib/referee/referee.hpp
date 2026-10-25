@@ -1,156 +1,105 @@
 #pragma once
 
-#include "lib/referee_parser.hpp"
-#include "math/angle.hpp"
-#include <optional>
+#include "bsp/can.hpp"
+#include "bsp/timer.hpp"
+#include "bsp/uart.hpp"
+#include "protocol.hpp"
+#include <functional>
+#include <variant>
+#include <vector>
 
 class Referee {
   public:
-    using Config = RefereeParser::Config;
-
-    Config config;
-
-    enum RobotType {
-        HERO = 1,     // 英雄
-        ENGINEER = 2, // 工程
-        INFANTRY = 3, // 步兵
-        SENTRY = 7,   // 哨兵
+    struct Config {
+        std::variant<Can, Uart> bus;
+        uint32_t rx_id = 0;   // CAN 转发接收 ID，UART 不使用
+        uint32_t tx_id = 1;   // CAN 转发发送 ID，UART 不使用
+        float timeout = 1.0f; // 连接超时，秒
     };
 
-    enum GameType {
-        UNKNOWN = 0,
-        RMUC = 1,     // RoboMaster机甲大师超级对抗赛
-        RMUT = 2,     // RoboMaster机甲大师高校单项赛
-        RMUA = 3,     // ICRA RoboMaster高校人工智能挑战赛
-        RMUL_3V3 = 4, // RoboMaster机甲大师高校联盟赛3V3对抗
-        RMUL_1V1 = 5, // RoboMaster机甲大师高校联盟赛步兵对抗
+    // 回调在接收上下文执行，数据仅在回调期间有效；启动前注册
+    using RxCallback = std::function<void(const uint8_t*, size_t)>;
+
+    enum GameProgress : uint8_t {
+        NOT_STARTED,
+        PREPARING,
+        REFEREE_SELF_CHECK,
+        COUNTDOWN_5SEC,
+        GAMING,
+        SETTLING
     };
 
-    enum GameProgress {
-        NOT_STARTED = 0,        // 未开始比赛
-        PREPARING = 1,          // 准备阶段
-        REFEREE_SELF_CHECK = 2, // 十五秒裁判系统自检阶段
-        COUNTDOWN_5SEC = 3,     // 五秒倒计时
-        GAMING = 4,             // 比赛中
-        SETTLING = 5,           // 比赛结算中
-    };
+    bool is_connected = false;
+    GameStatus game_status{};
+    GameResult game_result{};
+    GameRobotHp game_robot_hp{};
+    EventData event_data{};
+    RefereeWarning referee_warning{};
+    DartInfo dart_info{};
+    RobotStatus robot_status{};
+    PowerHeatData power_heat_data{};
+    RobotPos robot_pos{};
+    Buff buff{};
+    HurtData hurt_data{};
+    ShootData shoot_data{};
+    ProjectileAllowance projectile_allowance{};
+    RfidStatus rfid_status{};
+    DartClientCmd dart_client_cmd{};
+    GroundRobotPosition ground_robot_position{};
+    RadarMarkData radar_mark_data{};
+    SentryInfo sentry_info{};
+    RadarInfo radar_info{};
+    Interaction interaction{};
+    CustomData custom_robot_data{}; // 0x0302，自定义控制器发给机器人
+    MapCommand map_command{};
+    MapRobotData map_robot_data{};
+    CustomClientData custom_client_data{}; // 0x0306，键鼠控制器发给选手端
+    MapData map_data{};
+    CustomInfo custom_info{};
+    CustomData robot_custom_data{};        // 0x0309，机器人发给自定义控制器
+    ClientData robot_custom_client_data{}; // 0x0310，机器人发给自定义客户端
+    CustomData custom_client_command{};    // 0x0311，自定义客户端发给机器人
+    RadarPosition radar_position{};
+    RadarHp radar_hp{};
+    RadarAllowance radar_allowance{};
+    RadarTeam radar_team{};
+    RadarBuff radar_buff{};
+    RadarKey radar_key{};
 
-    enum CenterBuff {
-        EMPTY = 0,
-        WE = 1,
-        ENEMY = 2,
-        BOTH = 3,
-    };
+    // 每次有效伤害报文递增，避免依赖字段变化判断新事件
+    uint32_t hurt_sequence = 0;
+    Timer hurt_received;
 
-    bool is_connect = false;
+    // 实例及其绑定对象在 BSP 回调有效期间不得销毁或移动
+    explicit Referee(const Config& config);
+    Referee(const Referee&) = delete;
+    Referee& operator=(const Referee&) = delete;
 
-    // 机器人数据
-    struct {
-        // 机器人ID
-        // 0x0201 robot_status.robot_id
-        uint8_t id = 3;
+    const Config& config() const {
+        return config_;
+    }
 
-        // 机器人类型
-        // 0x0201 robot_status.robot_id
-        uint8_t type = INFANTRY;
-
-        // 当前血量
-        // 0x0201 robot_status.current_HP
-        uint16_t hp = 0;
-    } robot;
-
-    // 比赛数据
-    struct {
-        // 红蓝方
-        // 0x0201 robot_status.robot_id
-        bool is_red = true;
-
-        // 比赛类型
-        // 0x0001 game_status.game_type
-        GameType type = RMUC;
-
-        // 当前比赛阶段
-        // 0x0001 game_status.game_progress
-        GameProgress game_progress = NOT_STARTED;
-
-        // 当前阶段剩余时间
-        // 0x0001 game_status.stage_remain_time
-        float stage_remain_time{};
-    } game;
-
-    // 底盘数据
-    struct {
-        // 底盘功率上限
-        // 0x0201 robot_status.chassis_power_limit
-        float power_limit{};
-
-        // 缓冲能量
-        // 0x0202 power_heat_data.buffer_energy
-        float buffer_energy{};
-    } chassis;
-
-    // 发射机构数据
-    struct {
-        // 射击热量上限
-        // 0x0201 robot_status.shooter_barrel_heat_limit
-        uint16_t heat_limit = 0;
-
-        // 当前射击热量
-        // 0x0202 power_heat_data.shooter_17mm_1_barrel_heat
-        // 0x0202 power_heat_data.shooter_42mm_barrel_heat
-        uint16_t heat_current = 0;
-
-        // 剩余射击热量
-        int32_t heat_remain = 0;
-
-        // 射击频率
-        // 0x0207 shoot_data.launching_frequency
-        float bullet_freq{};
-
-        // 弹丸初速度
-        // 0x0207 shoot_data.initial_speed
-        float bullet_speed{};
-
-        // 允许发弹量
-        // 0x0208 projectile_allowance.projectile_allowance_17mm
-        // 0x0208 projectile_allowance.projectile_allowance_42mm
-        uint16_t bullet_allowance = 0;
-    } shooter;
-
-    // RFID数据
-    struct {
-        // 机器人RFID模块状态
-        // 0x0209 rfid_status
-        bool in_home = false;   // 第 19 位
-        bool in_center = false; // 第 23 位
-
-        // 中心增益点的占领状态
-        // 0x0101 event_data
-        CenterBuff center_buff = EMPTY;
-    } rfid;
-
-    // 伤害数据
-    struct {
-        // 伤害方向
-        bool is_hurt = false;
-        Angle dir; // 伤害方向，相对于云台参考系
-    } hurt;
-
-    Referee(const Config& config);
-
-    // 设置yaw角度，用于计算伤害方向
-    void set_yaw(float yaw_ecd, float yaw_imu);
-
-    // 需要在循环中调用
+    void add_0311_callback(RxCallback callback);
     void update();
 
+    // 拷贝完整载荷到待发帧；忙或非法长度返回 false，不部分接收
+    // 0x0301 的所有调用共用 30 Hz 限额；仅在主循环调用
+    bool send(uint16_t cmd_id, const uint8_t* data, size_t size);
+
+    bool is_sending() const {
+        return tx_size_ != 0;
+    }
+
   private:
-    static constexpr float HURT_TIMEOUT = 1;
+    Config config_;
+    std::vector<RxCallback> callbacks_0311_;
+    Timer timer_connect_, timer_rx_, timer_interaction_;
+    uint8_t rx_buf_[309]{};
+    size_t rx_size_ = 0;
+    uint8_t tx_buf_[309]{};
+    size_t tx_size_ = 0, tx_pos_ = 0;
+    uint8_t seq_ = 0;
 
-    RefereeParser parser_; // 裁判系统报文解析库
-
-    // 用于维护伤害方向
-    std::optional<Timer> timer_hurt_;
-    Angle yaw_ecd_, yaw_imu_;
-    Angle hurt_dir_by_imu_; // 伤害方向，相对于IMU参考系
+    void receive(const uint8_t* data, size_t size);
+    bool deserialize(uint16_t cmd_id, const uint8_t* data, size_t size);
 };

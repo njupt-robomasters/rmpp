@@ -1,6 +1,6 @@
 #include "chassis.hpp"
-#include "math/angle.hpp"
 #include <cmath>
+#include "math/angle.hpp"
 
 Chassis::Chassis(const Config& config)
     : config(config),

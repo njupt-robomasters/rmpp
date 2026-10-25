@@ -4,6 +4,10 @@
 
 `lib/imu` 由三对 C++ 文件组成，共 690 行，原先为 13 个文件、2510 行：
 
+数学类型统一使用随项目固定的 Eigen 3.4.0。`Vector2/3/4`、`Quaternion`、`Matrix3/6`
+均为定长 `float` 类型；IMU 和 EKF 不使用动态矩阵、堆分配或 Eigen 向量化。Eigen 头文件位于
+`third_party/eigen-3.4.0/Eigen`，由 CMake 的 `eigen` 接口目标公开给 `rmpp_lib`。
+
 | 文件 | 职责与审阅重点 |
 | --- | --- |
 | `imu.hpp/.cpp` | 三组配置、温控、校准、安装旋转、姿态输出与五项转换接口 |
@@ -16,7 +20,7 @@
 
 ```cpp
 inline Imu imu({
-    .hardware = {.accel = Spi(1, 1), .gyro = Spi(1, 2), .heater = Pwm(10, 1)},
+    .hardware = {.sensor = Bmi088({.accel = Spi(1, 1), .gyro = Spi(1, 2)}), .heater = Pwm(10, 1)},
 });
 ```
 
@@ -45,12 +49,12 @@ inline Imu imu({
 
 ## 参数：外部 21 个标量均有默认值
 
-三个顶层分组为 `hardware`、`adjust`、`control`。硬件的两个 SPI 和一个 PWM 必须显式绑定，没有板卡默认值。
+三个顶层分组为 `hardware`、`adjust`、`control`。硬件的 BMI088 对象和加热 PWM 必须显式绑定，没有板卡默认值；BMI088 在外部由加速度计和陀螺仪 SPI 构造。
 
 | 位置 | 项目数 | 默认值与作用 |
 | --- | ---: | --- |
-| `adjust.yaw/pitch/roll` | 3 | 0 rad；传感器到机体安装旋转 |
-| `adjust.gyro_offset[3]` | 3 | 0 rad/s；传感器坐标系静态零偏 |
+| `adjust.orientation` | 1 | 单位四元数；传感器到机体安装旋转，外部可用 `Imu::euler_to_quaternion()` 从欧拉角构造 |
+| `adjust.gyro_offset` | 3 | `Vector3`，0 rad/s；传感器坐标系静态零偏 |
 | `adjust.gravity` | 1 | 9.81 m/s²；静止原始加速度模长，必须大于 0，修正比例为 9.81/gravity |
 | `control.temperature` | 1 | 45°C |
 | `control.temperature_pid` | 7 | kp=1、ki=0.01、kd=0、ff=0、max_i=0.4、max_out=1、fc=0；输出限制为 [0,1] 加热占空比 |
@@ -80,13 +84,13 @@ inline Imu imu({
 
 ## 校准与解算行为
 
-`start_calibration()` 立即开始新窗口，`update()` 每次有效读取推进一次；调用方负责温稳和静止时机。输出 `calibration` 为 IDLE/SAMPLING/SUCCEEDED/FAILED，`calibration_samples` 为当前有效窗口样本数。以 1 kHz 调用时约 6 秒收满，运动干扰清空窗口但不重置总超时。
+`start_calibration()` 请求开始新窗口，下一次 `update()` 初始化计时和样本计数后开始采样；调用方负责温稳和静止时机。以 1 kHz 调用时约 6 秒收满，运动干扰清空窗口但不重置总超时。校准状态和样本数为内部状态，不对外开放。
 
-成功时一次提交三个零偏与重力模长，通过 `config().adjust` 读取；不会自动写 Flash。超时保留旧标定。采样过程中温控与旧标定解算继续运行；提交时清除 EKF 剩余零偏、重建协方差，保留 q 和累计 yaw。通信失败不计样本，并将加热输出置零。
+成功时一次提交三个零偏与重力模长，通过 `config.adjust` 读取；不会自动写 Flash。超时保留旧标定。采样过程中温控与旧标定解算继续运行；提交时清除 EKF 剩余零偏、重建协方差，保留 q 和累计 yaw。BMI088 读取失败时仍使用当前传感器数据继续温控、校准和姿态解算。
 
 解算从首个有效加速度建立倾角，初始 yaw=0。它只观测重力方向，没有磁力计或绝对航向源，Z 零偏仍无法估计，yaw 仍会漂移。
 
-EKF 的预测、观测、残差门控、增益、修正与 Joseph 协方差更新顺序展开。使用固定原生数组，3×3 Cholesky 求解代替显式求逆，预测和后验四元数均归一化，协方差每次对称化。无效 gyro/dt 不推进，零加速度仅预测；量测求解失败保留有效预测，不清空姿态。持续静稳失配时重建协方差及剩余零偏，避免旧交叉协方差把倾角误差积成虚假的零偏。
+EKF 的预测、观测、残差门控、增益、修正与 Joseph 协方差更新顺序展开。使用固定尺寸 Eigen 类型，3×3 `LLT` 求解代替显式求逆，预测和后验四元数均归一化，协方差每次对称化。无效 gyro/dt 不推进，零加速度仅预测；量测求解失败保留有效预测，不清空姿态。持续静稳失配时重建协方差及剩余零偏，避免旧交叉协方差把倾角误差积成虚假的零偏。
 
 已删除通用 Kalman 的动态内存、动态维数、控制输入、量测重映射、用户回调、SkipEq 开关、调试副本，以及未使用的 OLS/ramp 工具、BMI088 全局数据、绑定中间层和未使用寄存器宏。IMU 不再依赖 CMSIS-DSP，未改写 CubeMX 生成的 DSP 链接声明。
 
@@ -128,7 +132,7 @@ IMU 示例 Debug/Release 均清理后完整构建成功，分别为 0 错误/0 �
 | Debug | 25448 B | 50388 B | `build/examples-imu-debug/rmpp.elf`、`rmpp.map` |
 | Release | 25456 B | 49916 B | `build/examples-imu-release/rmpp.elf`、`rmpp.map` |
 
-ARM `-O2 -fstack-usage` 报告 `QuaternionEkf::update()` 自身栈帧 1408 B；这不包含被调用函数、中断嵌套和外层应用。链接脚本最低栈预留为 12288 B。EKF 对象未引用 malloc/new，单周期矩阵使用栈，尚未测量板端栈高水位或周期耗时。
+ARM `-O2 -fstack-usage` 报告 `QuaternionEkf::update()` 自身栈帧 1408 B；这不包含被调用函数、中断嵌套和外层应用。链接脚本最低栈预留为 12288 B。EKF 对象未引用 malloc/new，单周期 Eigen 矩阵使用栈，尚未测量板端栈高水位或周期耗时。
 
 全 24 个预设已尝试，22 个完整目标构建通过，结果见 `build/imu-verification/results.json` 与同目录日志。哨兵的两个预设各有 4 条编译错误，均因 `app/sentry/gimbal.hpp` 引用已删除的 `motor/lk/mf9025.hpp`；这是当前并行电机改动范围，本次未修改或恢复该文件。除 IMU 示例清理重建外，其余预设为增量构建；RC Release 另记录同一 UI 编译警告和一条 Ninja 日志恢复提示，最终构建成功。
 

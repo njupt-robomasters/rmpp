@@ -14,8 +14,8 @@ struct Note {
 
 class Buzzer {
   public:
-    explicit Buzzer(const Pwm output)
-        : pwm_(output) {}
+    explicit Buzzer(const Pwm pwm)
+        : pwm_(pwm) {}
 
     // 从头播放曲目，打断当前播放；曲目须在播放期间保持有效
     void play(std::span<const Note> music);

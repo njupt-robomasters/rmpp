@@ -1,6 +1,3 @@
-#include "bsp/timer.hpp"
-#include "bsp/uart.hpp"
-#include "math/unit.hpp"
 #include "rc/fsi6x.hpp"
 #include "rc/vt13.hpp"
 
@@ -10,7 +7,7 @@ static FSi6X fsi6x({.uart = Uart(3)});
 extern "C" void app_main() {
     Timer timer;
     while (true) {
-        if (timer.elapsed() > 1 * ms) {
+        if (timer.elapsed() > 0.001f) {
             timer.restart();
             vt13.update();
             fsi6x.update();

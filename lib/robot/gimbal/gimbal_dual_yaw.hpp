@@ -16,7 +16,7 @@ class GimbalDualYaw : public Gimbal {
         Angle ref, measure;
     } yaw1, yaw2; // yaw1-大yaw，yaw2-小yaw
 
-    GimbalDualYaw(Imu& imu, const Motors& motor);
+    GimbalDualYaw(Imu& imu, const Config& config, const Motors& motor);
 
     // 云台使能/失能
     void set_enable(bool is_enable) override;
@@ -28,7 +28,7 @@ class GimbalDualYaw : public Gimbal {
     void set_yaw_zero() override;
 
     // 在自定义UI上显示电机连接状态
-    void update_ui(Ui& ui) override;
+    void update_ui(RobotUi& ui) override;
 
     // 需要在循环中调用
     void update() override;

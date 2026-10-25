@@ -1,18 +1,27 @@
 #pragma once
 
 #include "math/unit.hpp"
-#include "ui/ui.hpp"
+#include "pid/pid.hpp"
+#include "referee/ui.hpp"
 #include <stdint.h>
 
 class Shooter {
   public:
+    enum PidOutput { CURRENT_OUTPUT,
+                     TORQUE_OUTPUT };
+
     // 发射机构配置
     struct Config {
-        float bullet_per_angle = 1.0f / rev; // 每弧度发射弹数，默认每转一发
-        float block_time = 500 * ms;         // 卡弹检测时间
-        float reverse_time = 250 * ms;       // 卡弹倒转时间
-        float rub_radius = 3.0f * cm;        // 摩擦轮半径
-        uint16_t heat_protect = 0;           // 剩余热量保护阈值
+        const Pid::Config* rub_pid_config;
+        const Pid::Config* shoot_pid_config;
+        PidOutput rub_output = CURRENT_OUTPUT;
+        PidOutput shoot_output = CURRENT_OUTPUT;
+        float bullet_per_angle = 1.0f / rev;  // 每弧度发射弹数，默认每转一发
+        float block_time = 500 * ms;          // 卡弹检测时间
+        float reverse_time = 250 * ms;        // 卡弹倒转时间
+        float rub_radius = 3.0f * cm;         // 摩擦轮半径
+        float auto_release_speed = 120 * rpm; // 停止且低速时释放摩擦轮，rad/s；零禁用
+        uint16_t heat_protect = 0;            // 剩余热量保护阈值
     } config;
 
     bool is_enable = false;       // 使能标志
@@ -54,12 +63,14 @@ class Shooter {
     void set_heat_remain(int32_t heat_remain);
 
     // 在自定义UI上显示电机连接状态
-    virtual void update_ui(Ui& ui) = 0;
+    virtual void update_ui(RobotUi& ui) = 0;
 
     // 需要在循环中调用
     virtual void update();
 
   protected:
+    Pid rub_pid_;
+    Pid shoot_pid_;
     bool is_block_ = false; // 堵转标志
     Timer timer_block_;     // 堵转计时器
 

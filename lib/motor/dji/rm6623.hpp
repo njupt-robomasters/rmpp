@@ -1,18 +1,23 @@
 #pragma once
 
-#include "dji_motor.hpp"
+#include "motor/motor.hpp"
 
-class RM6623 : public DjiMotor {
+class RM6623 : public Motor {
   public:
     // 型号默认物理参数
-    static constexpr Config::Drive DRIVE{.kt = 0.38f, .max_current = 5, .reduction = 1};
+    static constexpr float MAX_CURRENT = 5;
+    static constexpr float MAX_TORQUE = 1.9f;
+    static constexpr float KT = 0.38f;
+    static constexpr float REDUCTION = 1;
 
-    // 构造与命令
     explicit RM6623(const Config& config);
-    bool write_can_frame(CanFrame& frame) const override;
-
+    bool write_can_frame(CanFrame& frame) const;
     void send_calibrate_cmd() const;
 
   private:
     void can_callback(const CanFrame& frame);
+
+    Timer speed_timer_;
+    float position_last_ = 0;
+    bool has_position_ = false;
 };

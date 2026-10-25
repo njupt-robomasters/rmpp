@@ -60,22 +60,22 @@ void chassis_loop() {
     if (sentry_active()) {
         const bool game_position = FORCE_GAME_POSITION || (!FORCE_TEST_POSITION && sentry_in_game());
         if (chassis_state == GO_CENTER) {
-            mavlink.target_position.x = game_position ? GAME_CENTER_X : TEST_CENTER_X;
-            mavlink.target_position.y = game_position ? GAME_CENTER_Y : TEST_CENTER_Y;
-            if (referee.robot.hp <= GO_HOME_HP)
+            nav.target_position.x = game_position ? GAME_CENTER_X : TEST_CENTER_X;
+            nav.target_position.y = game_position ? GAME_CENTER_Y : TEST_CENTER_Y;
+            if (referee.robot_status.current_HP <= GO_HOME_HP)
                 chassis_state = GO_HOME;
         } else {
-            mavlink.target_position.x = game_position ? GAME_HOME_X : TEST_HOME_X;
-            mavlink.target_position.y = game_position ? GAME_HOME_Y : TEST_HOME_Y;
-            if (referee.robot.hp >= GO_CENTER_HP)
+            nav.target_position.x = game_position ? GAME_HOME_X : TEST_HOME_X;
+            nav.target_position.y = game_position ? GAME_HOME_Y : TEST_HOME_Y;
+            if (referee.robot_status.current_HP >= GO_CENTER_HP)
                 chassis_state = GO_CENTER;
         }
-        std::tie(vx, vy) = rotate(mavlink.chassis_speed.vx, mavlink.chassis_speed.vy, yaw2.position.measure);
+        std::tie(vx, vy) = rotate(nav.chassis_speed.vx, nav.chassis_speed.vy, yaw2.position);
         const float speed = std::hypotf(vx, vy);
         wr = map(speed, 0.0f, VXY_MAX, WR_MAX, chassis.config.reserve_wr);
     } else {
         chassis_state = GO_CENTER;
-        mavlink.target_position = {};
+        nav.target_position = {};
     }
 
     // 叠加摇杆与键盘，断联时摇杆已复位为 0
@@ -85,7 +85,7 @@ void chassis_loop() {
     chassis.set_speed(std::clamp(vx, -VXY_MAX, VXY_MAX), std::clamp(vy, -VXY_MAX, VXY_MAX), std::clamp(wr, -WR_MAX, WR_MAX));
 
     chassis.set_gimbal_yaw(gimbal.yaw.ecd.measure);
-    chassis.set_power_limit(referee.chassis.power_limit);
-    chassis.set_buffer_energy(referee.chassis.buffer_energy);
+    chassis.set_power_limit(referee.robot_status.chassis_power_limit);
+    chassis.set_buffer_energy(referee.power_heat_data.buffer_energy);
     chassis.update();
 }

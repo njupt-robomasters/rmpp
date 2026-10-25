@@ -1,4 +1,5 @@
 #include "chassis_mecanum.hpp"
+#include <cmath>
 #include "math/math.hpp"
 
 static const float SQRT2 = std::sqrt(2.0f);
@@ -20,11 +21,11 @@ void ChassisMecanum::set_enable(const bool is_enable) {
     motor.w4.set_enable(is_enable);
 }
 
-void ChassisMecanum::update_ui(Ui& ui) {
-    ui.robot.w1 = motor.w1.is_connect ? Ui::GREEN : Ui::PINK;
-    ui.robot.w2 = motor.w2.is_connect ? Ui::GREEN : Ui::PINK;
-    ui.robot.w3 = motor.w3.is_connect ? Ui::GREEN : Ui::PINK;
-    ui.robot.w4 = motor.w4.is_connect ? Ui::GREEN : Ui::PINK;
+void ChassisMecanum::update_ui(RobotUi& ui) {
+    ui.robot.w1 = motor.w1.is_connect ? RobotUi::GREEN : RobotUi::PINK;
+    ui.robot.w2 = motor.w2.is_connect ? RobotUi::GREEN : RobotUi::PINK;
+    ui.robot.w3 = motor.w3.is_connect ? RobotUi::GREEN : RobotUi::PINK;
+    ui.robot.w4 = motor.w4.is_connect ? RobotUi::GREEN : RobotUi::PINK;
 }
 
 void ChassisMecanum::update() {
@@ -39,10 +40,10 @@ void ChassisMecanum::update() {
 
 void ChassisMecanum::forward() {
     // 读取电机转速
-    const float v1 = motor.w1.speed.measure * config.wheel_radius;
-    const float v2 = motor.w2.speed.measure * config.wheel_radius;
-    const float v3 = motor.w3.speed.measure * config.wheel_radius;
-    const float v4 = motor.w4.speed.measure * config.wheel_radius;
+    const float v1 = motor.w1.speed * config.wheel_radius;
+    const float v2 = motor.w2.speed * config.wheel_radius;
+    const float v3 = motor.w3.speed * config.wheel_radius;
+    const float v4 = motor.w4.speed * config.wheel_radius;
 
     // 速度正解
     float vx{}, vy{}, vz{};
@@ -56,10 +57,10 @@ void ChassisMecanum::forward() {
     wr.measure = vz / config.chassis_radius;
 
     // 读取电机扭矩
-    const float f1 = motor.w1.torque.measure / config.wheel_radius;
-    const float f2 = motor.w2.torque.measure / config.wheel_radius;
-    const float f3 = motor.w3.torque.measure / config.wheel_radius;
-    const float f4 = motor.w4.torque.measure / config.wheel_radius;
+    const float f1 = motor.w1.torque / config.wheel_radius;
+    const float f2 = motor.w2.torque / config.wheel_radius;
+    const float f3 = motor.w3.torque / config.wheel_radius;
+    const float f4 = motor.w4.torque / config.wheel_radius;
 
     // 力学正解
     float fx{}, fy{}, fz{};
@@ -73,24 +74,6 @@ void ChassisMecanum::forward() {
 }
 
 void ChassisMecanum::backward() {
-    // 速度逆解
-    auto [vx, vy] = rotate(this->vx.ref, this->vy.ref, gimbal_yaw_);
-    auto vz = this->vz.ref;
-    float v1{}, v2{}, v3{}, v4{};
-    // 麦克纳姆轮速度逆解 begin
-    v1 = -vx + vy + SQRT2 * vz;
-    v2 = -vx - vy + SQRT2 * vz;
-    v3 = +vx - vy + SQRT2 * vz;
-    v4 = +vx + vy + SQRT2 * vz;
-    // 麦克纳姆轮速度逆解 end
-
-    // 设置电机转速
-    // 目前使用底盘速度PID，不使用轮速PID，这里设置不会生效，仅用于调试
-    motor.w1.set_speed(v1 / config.wheel_radius);
-    motor.w2.set_speed(v2 / config.wheel_radius);
-    motor.w3.set_speed(v3 / config.wheel_radius);
-    motor.w4.set_speed(v4 / config.wheel_radius);
-
     // 力学逆解
     auto [fx, fy] = rotate(this->fx.ref, this->fy.ref, gimbal_yaw_);
     auto fz = this->fz.ref;

@@ -60,7 +60,7 @@ void chassis_loop() {
     chassis.set_speed(std::clamp(vx, -VXY_MAX, VXY_MAX), std::clamp(vy, -VXY_MAX, VXY_MAX), std::clamp(wr, -WR_MAX, WR_MAX));
 
     chassis.set_gimbal_yaw(gimbal.yaw.ecd.measure);
-    chassis.set_power_limit(referee.chassis.power_limit);
-    chassis.set_buffer_energy(referee.chassis.buffer_energy);
+    chassis.set_power_limit(referee.robot_status.chassis_power_limit);
+    chassis.set_buffer_energy(referee.power_heat_data.buffer_energy);
     chassis.update();
 }

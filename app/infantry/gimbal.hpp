@@ -1,5 +1,7 @@
 #pragma once
 
+#include "pid/pid.hpp"
+
 #include "bsp/can.hpp"
 #include "bsp/pwm.hpp"
 #include "bsp/spi.hpp"
@@ -12,8 +14,8 @@
 
 // 惯性测量单元
 inline Imu imu({
-    .hardware = {.accel = Spi(1, 1), .gyro = Spi(1, 2), .heater = Pwm(10, 1)},
-    .adjust = {.gyro_offset = {0.00316276052f, -0.00411193585f, -0.00242328411f}, .gravity = 9.79961872f},
+    .hardware = {.sensor = Bmi088({.accel = Spi(1, 1), .gyro = Spi(1, 2)}), .heater = Pwm(10, 1)},
+    .adjust = {.gyro_offset = Vector3(0.00316276052f, -0.00411193585f, -0.00242328411f), .gravity = 9.79961872f},
 });
 
 // 用于Ozone调参
@@ -38,8 +40,8 @@ inline Pid::Config yaw_angle_pid = {
 };
 inline GM6020 yaw({
     .bus = {.can = Can(1), .rx_id = 0x205},
+    .drive = {.max_current = GM6020::MAX_CURRENT, .kt = GM6020::KT, .reduction = GM6020::REDUCTION},
     .install = {.is_invert = false},
-    .control = {.mode = Motor::SINGLE_TURN_POSITION_SPEED_MODE, .pid_output_type = Motor::CURRENT_OUTPUT, .speed_pid_config = &yaw_speed_pid, .position_pid_config = &yaw_angle_pid},
 });
 
 // pitch电机
@@ -53,14 +55,21 @@ inline Pid::Config pitch_angle_pid = {
     .max_out = 720 * deg_s,
 };
 inline DM4310 pitch({
-    .motor = {
-        .bus = {.can = Can(2), .tx_id = 0x11, .rx_id = 0x10},
-        .install = {.offset = -150 * deg, .is_invert = false},
-        .control = {.mode = Motor::SINGLE_TURN_POSITION_SPEED_MODE, .pid_output_type = Motor::TORQUE_OUTPUT, .speed_pid_config = &pitch_speed_pid, .position_pid_config = &pitch_angle_pid, .is_limit = true, .position_min = -15 * deg, .position_max = 30 * deg},
-    },
+    .bus = {.can = Can(2), .tx_id = 0x11, .rx_id = 0x10},
+    .drive = {.max_torque = DM4310::MAX_TORQUE, .kt = DM4310::KT, .reduction = DM4310::REDUCTION},
+    .install = {.offset = -150 * deg, .is_invert = false},
 });
 
 // 云台
-inline GimbalClassic gimbal(imu, {yaw, pitch});
+inline GimbalClassic gimbal(imu,
+                            {.yaw_speed_pid_config = &yaw_speed_pid,
+                             .yaw_position_pid_config = &yaw_angle_pid,
+                             .pitch_speed_pid_config = &pitch_speed_pid,
+                             .pitch_position_pid_config = &pitch_angle_pid,
+                             .pitch_output = Gimbal::TORQUE_OUTPUT,
+                             .pitch_min = -15 * deg,
+                             .pitch_max = 30 * deg,
+                             .is_pitch_limit = true},
+                            {yaw, pitch});
 
 void gimbal_loop();

@@ -1,7 +1,7 @@
 #include "shooter.hpp"
 
 Shooter::Shooter(const Config& config)
-    : config(config) {}
+    : config(config), rub_pid_(config.rub_pid_config), shoot_pid_(config.shoot_pid_config) {}
 
 void Shooter::set_enable(bool is_enable) {
     if (this->is_enable == is_enable)
@@ -12,6 +12,8 @@ void Shooter::set_enable(bool is_enable) {
     if (!is_enable) {
         is_rub = false;
         is_shoot = false;
+        rub_pid_.clear();
+        shoot_pid_.clear();
     }
 
     // 这里设置电机

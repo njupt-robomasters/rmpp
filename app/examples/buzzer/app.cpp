@@ -1,7 +1,7 @@
 #include "misc/buzzer.hpp"
 #include "misc/music/always_with_me.hpp"
 
-Buzzer buzzer(Pwm(4, 3));
+static Buzzer buzzer(Pwm(4, 3));
 
 extern "C" void app_main() {
     buzzer.play(ALWAYS_WITH_ME);

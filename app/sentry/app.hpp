@@ -30,7 +30,7 @@ inline bool rc_fn() {
 }
 
 inline bool sentry_in_game() {
-    return referee.game.game_progress == Referee::GAMING && referee.robot.type == Referee::SENTRY;
+    return referee.game_status.game_progress == 4 && (referee.robot_status.robot_id == 7 || referee.robot_status.robot_id == 107);
 }
 
 inline bool sentry_active() {
@@ -39,6 +39,6 @@ inline bool sentry_active() {
 
 // 自检、倒计时和比赛中遥控器断联也保持使能
 inline bool sentry_enable() {
-    const auto progress = referee.game.game_progress;
-    return rc_enable() || progress == Referee::REFEREE_SELF_CHECK || progress == Referee::COUNTDOWN_5SEC || progress == Referee::GAMING;
+    const auto progress = referee.game_status.game_progress;
+    return rc_enable() || progress == 2 || progress == 3 || progress == 4;
 }

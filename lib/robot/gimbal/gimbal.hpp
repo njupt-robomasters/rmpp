@@ -3,10 +3,24 @@
 #include "bsp/storage.hpp"
 #include "imu/imu.hpp"
 #include "math/angle.hpp"
-#include "ui/ui.hpp"
+#include "pid/pid.hpp"
+#include "referee/ui.hpp"
 
 class Gimbal {
   public:
+    enum PidOutput { CURRENT_OUTPUT, TORQUE_OUTPUT };
+
+    struct Config {
+        const Pid::Config* yaw_speed_pid_config;
+        const Pid::Config* yaw_position_pid_config;
+        const Pid::Config* pitch_speed_pid_config;
+        const Pid::Config* pitch_position_pid_config;
+        PidOutput yaw_output = CURRENT_OUTPUT;
+        PidOutput pitch_output = CURRENT_OUTPUT;
+        float pitch_min = 0;
+        float pitch_max = 0;
+        bool is_pitch_limit = false;
+    };
     Imu& imu; // 对陀螺仪的引用，用于云台IMU闭环模式
 
     bool is_enable = false; // 云台使能标志
@@ -28,7 +42,7 @@ class Gimbal {
 
     float yaw_speed{}, pitch_speed{}; // 云台速度
 
-    Gimbal(Imu& imu);
+    Gimbal(Imu& imu, const Config& config);
 
     // 云台使能/失能
     virtual void set_enable(bool is_enable);
@@ -52,13 +66,15 @@ class Gimbal {
     virtual void set_yaw_zero() = 0;
 
     // 在自定义UI上显示电机连接状态
-    virtual void update_ui(Ui& ui) = 0;
+    virtual void update_ui(RobotUi& ui) = 0;
 
     // 需要在循环中调用
     virtual void update();
 
   protected:
     float chassis_wr_{}; // yaw速度前馈（小陀螺模式需要）
+    const Config config_;
+    Pid yaw_speed_pid_, yaw_position_pid_, pitch_speed_pid_, pitch_position_pid_;
 
     // 角度正解：电机角度 -> 云台姿态
     virtual void forward() = 0;

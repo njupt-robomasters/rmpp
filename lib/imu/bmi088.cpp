@@ -1,23 +1,23 @@
 #include "bmi088.hpp"
-
 #include "bsp/timer.hpp"
 #include <cstring>
 
-Bmi088::Bmi088(const Config& config) : config_(config) {}
+Bmi088::Bmi088(const Config& config) : config(config) {}
 
-bool Bmi088::init() {
+bool Bmi088::init() const {
     uint8_t id = 0;
 
-    // 加速度计上电及复位后的第一次读取用于切换到 SPI 模式
-    read_registers(config_.accel, 0x00, &id, 1, 2);
+    // 初始化加速度计
+    // 上电及复位后的第一次读取用于切换到 SPI 模式，因此这里连续读两次
+    read_registers(config.accel, 0x00, &id, 1, 2);
     Timer::delay(0.001f);
-    read_registers(config_.accel, 0x00, &id, 1, 2);
+    read_registers(config.accel, 0x00, &id, 1, 2);
     Timer::delay(0.001f);
-    write_register(config_.accel, 0x7E, 0xB6);
+    write_register(config.accel, 0x7E, 0xB6);
     Timer::delay(0.080f);
-    read_registers(config_.accel, 0x00, &id, 1, 2);
+    read_registers(config.accel, 0x00, &id, 1, 2);
     Timer::delay(0.001f);
-    read_registers(config_.accel, 0x00, &id, 1, 2);
+    read_registers(config.accel, 0x00, &id, 1, 2);
     Timer::delay(0.001f);
     if (id != 0x1E)
         return false;
@@ -26,28 +26,32 @@ bool Bmi088::init() {
     static constexpr uint8_t ACCEL_REGISTERS[][2] = {
         {0x7D, 0x04}, // 加速度计使能
         {0x7C, 0x00}, // 正常功耗
-        {0x40, 0xAB}, // normal 带宽，800 Hz
+        {0x40, 0xAB}, // 800 Hz，normal 带宽
         {0x41, 0x01}, // ±6 g
     };
     for (const auto& reg : ACCEL_REGISTERS) {
-        write_register(config_.accel, reg[0], reg[1]);
+        // 写寄存器
+        write_register(config.accel, reg[0], reg[1]);
         Timer::delay(0.001f);
+
+        // 读出检验
         uint8_t value = 0;
-        read_registers(config_.accel, reg[0], &value, 1, 2);
+        read_registers(config.accel, reg[0], &value, 1, 2);
         Timer::delay(0.001f);
         if (value != reg[1])
             return false;
     }
 
-    read_registers(config_.gyro, 0x00, &id, 1, 1);
+    // 初始化角速度计
+    read_registers(config.gyro, 0x00, &id, 1, 1);
     Timer::delay(0.001f);
-    read_registers(config_.gyro, 0x00, &id, 1, 1);
+    read_registers(config.gyro, 0x00, &id, 1, 1);
     Timer::delay(0.001f);
-    write_register(config_.gyro, 0x14, 0xB6);
+    write_register(config.gyro, 0x14, 0xB6);
     Timer::delay(0.080f);
-    read_registers(config_.gyro, 0x00, &id, 1, 1);
+    read_registers(config.gyro, 0x00, &id, 1, 1);
     Timer::delay(0.001f);
-    read_registers(config_.gyro, 0x00, &id, 1, 1);
+    read_registers(config.gyro, 0x00, &id, 1, 1);
     Timer::delay(0.001f);
     if (id != 0x0F)
         return false;
@@ -58,22 +62,26 @@ bool Bmi088::init() {
         {0x11, 0x00}, // 正常功耗
     };
     for (const auto& reg : GYRO_REGISTERS) {
-        write_register(config_.gyro, reg[0], reg[1]);
+        // 写寄存器
+        write_register(config.gyro, reg[0], reg[1]);
         Timer::delay(0.001f);
+
+        // 读出检验
         uint8_t value = 0;
-        read_registers(config_.gyro, reg[0], &value, 1, 1);
+        read_registers(config.gyro, reg[0], &value, 1, 1);
         Timer::delay(0.001f);
         if (value != reg[1])
             return false;
     }
+
     return true;
 }
 
-bool Bmi088::read() {
+bool Bmi088::update() {
     uint8_t accel_buf[6]{}, gyro_buf[8]{}, temp_buf[2]{};
-    read_registers(config_.accel, 0x12, accel_buf, 6, 2);
-    read_registers(config_.gyro, 0x00, gyro_buf, 8, 1);
-    read_registers(config_.accel, 0x22, temp_buf, 2, 2);
+    read_registers(config.accel, 0x12, accel_buf, 6, 2);
+    read_registers(config.gyro, 0x00, gyro_buf, 8, 1);
+    read_registers(config.accel, 0x22, temp_buf, 2, 2);
     if (gyro_buf[0] != 0x0F)
         return false;
 
@@ -83,10 +91,12 @@ bool Bmi088::read() {
         accel[i] = raw_accel * 0.00179443359375f;
         gyro[i] = raw_gyro * 0.0010652644360316953f;
     }
+
     int raw_temperature = (temp_buf[0] << 3) | (temp_buf[1] >> 5);
     if (raw_temperature > 1023)
         raw_temperature -= 2048;
     temperature = raw_temperature * 0.125f + 23.0f;
+
     return true;
 }
 

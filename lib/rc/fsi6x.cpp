@@ -65,7 +65,7 @@ void FSi6X::reset_data() {
 float FSi6X::get_joystick(const uint16_t value) const {
     float ret = (static_cast<float>(value) - 1024.0f) / 783.0f; // 240(-784) ~ 1024 ~ 1807(+783)
     ret = std::clamp(ret, -1.0f, 1.0f);
-    if (std::fabs(ret) < config.joystick_deadline)
+    if (std::fabs(ret) < config.deadline)
         ret = 0.0f;
     return ret;
 }

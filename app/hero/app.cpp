@@ -5,7 +5,6 @@
 
 static void send_can_cmd() {
     // CAN1
-    ui.send_can_cmd();
 
     CanFrame chassis_frame{.id = 0x200, .size = 8};
     w1.write_can_frame(chassis_frame);
@@ -35,11 +34,11 @@ static void update_ui() {
     ui.pitch = gimbal.pitch.imu.measure;
 
     // 伤害方向
-    ui.is_hurt = referee.hurt.is_hurt;
-    ui.hurt_dir = referee.hurt.dir;
+    ui.is_hurt = referee.hurt_received.elapsed() < 0.2f;
+    ui.hurt_dir = 0 * deg;
 
     // 自瞄识别
-    ui.is_detect = mavlink.vision.is_detect;
+    ui.is_detect = aim.vision.is_detect;
 
     // 提示条
     // 弹速或弹频由 shooter_loop 写入
@@ -48,11 +47,11 @@ static void update_ui() {
     ui.shoot = shooter.shoot_current; // 拨弹电机电流
 
     // 机器人状态
-    chassis.update_ui(ui);                                           // 底盘
-    gimbal.update_ui(ui);                                            // 云台
-    shooter.update_ui(ui);                                           // 发射机构
-    ui.robot.referee = referee.is_connect ? Ui::GREEN : Ui::PINK;    // 裁判系统
-    ui.robot.aim = mavlink.is_connect_vision ? Ui::GREEN : Ui::PINK; // 自瞄
+    chassis.update_ui(ui);                                          // 底盘
+    gimbal.update_ui(ui);                                           // 云台
+    shooter.update_ui(ui);                                          // 发射机构
+    ui.robot.referee = referee.is_connected ? RobotUi::GREEN : RobotUi::PINK; // 裁判系统
+    ui.robot.aim = aim.is_connect_vision ? RobotUi::GREEN : RobotUi::PINK;    // 自瞄
 
     ui.update();
 }
@@ -71,16 +70,15 @@ extern "C" void app_main() {
             buzzer.update();
             vt13.update();
             fsi6x.update();
-            referee.set_yaw(gimbal.yaw.ecd.measure, gimbal.yaw.imu.measure);
             referee.update();
-            mavlink.imu = {.yaw = gimbal.imu.yaw, .pitch = gimbal.imu.pitch, .roll = gimbal.imu.roll};
-            mavlink.referee = {
-                .is_red = referee.game.is_red,
-                .game_progress = referee.game.game_progress,
-                .stage_remain_time = referee.game.stage_remain_time,
-                .bullet_speed = referee.shooter.bullet_speed,
+            aim.imu = {.yaw = gimbal.imu.yaw, .pitch = gimbal.imu.pitch, .roll = gimbal.imu.roll};
+            aim.referee = {
+                .is_red = referee.robot_status.robot_id < 100,
+                .game_progress = static_cast<Referee::GameProgress>(referee.game_status.game_progress),
+                .stage_remain_time = static_cast<float>(referee.game_status.stage_remain_time),
+                .bullet_speed = referee.robot_status.bullet_speed_limit,
             };
-            mavlink.update();
+            aim.update();
 
             chassis_loop();
             gimbal_loop();

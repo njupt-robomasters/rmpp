@@ -16,7 +16,7 @@ class ChassisOmni : public Chassis {
     void set_enable(bool is_enable) override;
 
     // 在自定义UI上显示电机连接状态
-    void update_ui(Ui& ui) override;
+    void update_ui(RobotUi& ui) override;
 
     // 需要在循环中调用
     void update() override;

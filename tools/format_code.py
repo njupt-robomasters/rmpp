@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-VENDOR = ("lib/mavlink/lib/", "lib/ui/lib/", "/bsp/flashdb/")
+VENDOR = ("lib/mavlink/lib/", "/bsp/flashdb/")
 
 
 def main():

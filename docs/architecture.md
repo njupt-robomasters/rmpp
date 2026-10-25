@@ -51,19 +51,20 @@ Timer 提供 get_dt、update_dt、poll_timeout、reset、delay，时间为秒，
 业务库接收句柄，app 指定通道。通信配置在对象构造时确定，注册回调后保持稳定。
 
 ```cpp
-C620 motor({.bus = {.can = Can(1), .rx_id = 0x201}});
+M3508 motor({.bus = {.can = Can(1), .rx_id = 0x201}});
 FSi6X fsi6x({.uart = Uart(3)});
 VT13 vt13({.uart = Uart(6)});
-Mavlink mavlink({.cdc = bsp.cdc(1)});
+Aim aim({.cdc = bsp.cdc(1)});
+Nav nav({.cdc = bsp.cdc(1)});
 Buzzer buzzer(Pwm(4, 3));
 Rgb rgb({.red = bsp.pwm(5, 3), .green = bsp.pwm(5, 2), .blue = bsp.pwm(5, 1)});
 Imu imu({.hardware = {.accel = Spi(1, 1), .gyro = Spi(1, 2), .heater = Pwm(10, 1)}});
 Storage storage("hero");
 ```
 
-电机各层构造函数只接收并传递唯一的 config。公共配置分为 bus（CAN 通道、命令与反馈 ID、超时）、drive（kt、电流与转矩量程、减速比）、install（零点偏移、方向）和 control；config() 只读访问实际配置，校准使用 set_offset。型号子类通过 Config::with_defaults() 使用单个 DRIVE 补齐零值物理参数，再交给基类换算缺失的电流或转矩量程，不另设全局型号配置包装。DmMotor 和 Vesc 的专用 Config 内含 motor 公共配置及专用参数，DM 型号配置额外提供使能帧发送频率。
+电机各层构造函数只接收并传递唯一的 config。公共配置分为 bus（CAN 通道、命令与反馈 ID、超时）、drive（kt、电流与转矩量程、减速比）和 install（零点偏移、方向）；config() 只读访问实际配置，校准使用 set_offset。型号物理参数使用公开的 static constexpr 独立常量，不另设全局型号配置包装。速度和位置闭环由底盘、云台、发射机构持有，Motor 只提供电流和力矩设置。DmMotor 和 Vesc 的专用 Config 内含 motor 公共配置及专用参数，DM 型号配置额外提供使能帧发送频率。
 
-DJI 最终型号注册 CAN 回调，私有 can_callback 先校验报文并解析型号特有字段，再调用 DjiMotor::can_callback 解析公共反馈，最后进入 Motor::can_callback 完成方向修正、多圈累计和在线计时。其他协议子类直接注册并解析 raw。update 每周期先判断反馈超时，再计算闭环；set_current、set_torque 在赋值时处理非有限值、限幅和单位换算。DJI 同组命令由 app 创建零初始化组帧，各电机通过 write_can_frame 按控制帧 ID 和反馈 ID 写入对应槽位，再由 app 统一发送。DM 电机按配置频率定时发送使能帧，该周期不发送 MIT 帧；VESC 不要求在线反馈，只支持开环速度发送。
+DJI 最终型号注册 CAN 回调，私有 can_callback 先校验报文并解析型号特有字段，再直接调用 Motor::can_callback 完成方向修正、多圈累计和在线计时。其他协议子类直接注册并解析 raw。update 每周期先判断反馈超时，再计算闭环；set_current、set_torque 在赋值时处理非有限值、限幅和单位换算。DJI 同组命令由 app 创建零初始化组帧，各电机通过 write_can_frame 按控制帧 ID 和反馈 ID 写入对应槽位，再由 app 统一发送。DM 电机按配置频率定时发送使能帧，该周期不发送 MIT 帧；VESC 不要求在线反馈，只支持开环速度发送。型号物理参数使用公开的 static constexpr 独立常量。
 
 Imu 使用 hardware / adjust / control 三组配置，组合独立 Bmi088 和 QuaternionEkf 实例。构造只保存配置，首次 update 尝试初始化；失败后由后续轮询重试。温控 PID 借用内部配置，Imu 禁止复制和移动。校准由 start_calibration 发起、update 推进；转换约定和调参见 [IMU](imu.md)。
 
@@ -112,7 +113,7 @@ PWM 频率依据实际 APB 时钟计算，同一定时器通道共享频率，�
 根目录保留 CMake 3.22 最低版本声明；缺少 RMPP_APP 直接报错。Preset 的 cacheVariables 保存在构建目录；更换板卡应使用新的构建目录。
 工具链文件在识别编译器前加载，修正搬迁后的链接脚本和 map 路径；BSP CMake 在此后创建编译目标。DSP 依赖由板卡接入。
 
-新增应用：复制 app 的 CMake、实现 app_main、绑定外设，然后运行 `python tools/update_presets.py`。每个应用生成 Debug/Release；产物为 `build/<preset>/rmpp.elf` 和 `rmpp.map`。
+新增应用：复制 app 的 CMake、实现 app_main、绑定外设，然后运行 `python tools/update_presets.py`。每个应用只生成默认 Debug 配置预设，名称不带构建类型后缀；Release 按需在 CLion 中复制配置后修改。产物为 `build/<preset>/rmpp.elf` 和 `rmpp.map`。
 新增板卡：放入 CubeMX 工程，提供 BSP 工具链和 `lib/bsp` 接口实现，定义硬件映射；C main 和 USB 桥接位于 USER CODE 区。
 
 `CMAKE_CURRENT_SOURCE_DIR` 是当前 add_subdirectory 的源目录，include 不改变它；根目录因此直接用 RMPP_APP 拼接应用路径。手写源码用 `GLOB_RECURSE CONFIGURE_DEPENDS "*.*"` 扫描。

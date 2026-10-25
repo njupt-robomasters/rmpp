@@ -28,7 +28,7 @@ class ChassisDualSteer : public Chassis {
     void set_enable(bool is_enable) override;
 
     // 在自定义UI上显示电机连接状态
-    void update_ui(Ui& ui) override;
+    void update_ui(RobotUi& ui) override;
 
     // 需要在循环中调用
     void update() override;
@@ -40,6 +40,7 @@ class ChassisDualSteer : public Chassis {
 
     bool is_invert_v1_ = false, is_invert_v2_ = false;
     bool is_invert_f1_ = false, is_invert_f2_ = false;
+    Pid s1_pid_, s2_pid_;
 
     // 速度和力学正解
     void forward() override;

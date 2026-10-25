@@ -8,7 +8,7 @@
             "binaryDir": "${sourceDir}/build/${presetName}"
         },
         {
-            "name": "examples-buzzer-debug",
+            "name": "examples-buzzer",
             "inherits": "default",
             "cacheVariables": {
                 "RMPP_APP": "examples/buzzer",
@@ -16,15 +16,7 @@
             }
         },
         {
-            "name": "examples-buzzer-release",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "examples/buzzer",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "examples-chassis-debug",
+            "name": "examples-chassis",
             "inherits": "default",
             "cacheVariables": {
                 "RMPP_APP": "examples/chassis",
@@ -32,15 +24,7 @@
             }
         },
         {
-            "name": "examples-chassis-release",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "examples/chassis",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "examples-gimbal-debug",
+            "name": "examples-gimbal",
             "inherits": "default",
             "cacheVariables": {
                 "RMPP_APP": "examples/gimbal",
@@ -48,15 +32,7 @@
             }
         },
         {
-            "name": "examples-gimbal-release",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "examples/gimbal",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "examples-imu-debug",
+            "name": "examples-imu",
             "inherits": "default",
             "cacheVariables": {
                 "RMPP_APP": "examples/imu",
@@ -64,15 +40,7 @@
             }
         },
         {
-            "name": "examples-imu-release",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "examples/imu",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "examples-motor-debug",
+            "name": "examples-motor",
             "inherits": "default",
             "cacheVariables": {
                 "RMPP_APP": "examples/motor",
@@ -80,15 +48,7 @@
             }
         },
         {
-            "name": "examples-motor-release",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "examples/motor",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "examples-rc-debug",
+            "name": "examples-rc",
             "inherits": "default",
             "cacheVariables": {
                 "RMPP_APP": "examples/rc",
@@ -96,15 +56,7 @@
             }
         },
         {
-            "name": "examples-rc-release",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "examples/rc",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "examples-referee-debug",
+            "name": "examples-referee",
             "inherits": "default",
             "cacheVariables": {
                 "RMPP_APP": "examples/referee",
@@ -112,15 +64,7 @@
             }
         },
         {
-            "name": "examples-referee-release",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "examples/referee",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "examples-rgb-debug",
+            "name": "examples-rgb",
             "inherits": "default",
             "cacheVariables": {
                 "RMPP_APP": "examples/rgb",
@@ -128,15 +72,7 @@
             }
         },
         {
-            "name": "examples-rgb-release",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "examples/rgb",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "examples-shooter-debug",
+            "name": "examples-shooter",
             "inherits": "default",
             "cacheVariables": {
                 "RMPP_APP": "examples/shooter",
@@ -144,15 +80,7 @@
             }
         },
         {
-            "name": "examples-shooter-release",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "examples/shooter",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "hero-debug",
+            "name": "hero",
             "inherits": "default",
             "cacheVariables": {
                 "RMPP_APP": "hero",
@@ -160,15 +88,7 @@
             }
         },
         {
-            "name": "hero-release",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "hero",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "infantry-debug",
+            "name": "infantry",
             "inherits": "default",
             "cacheVariables": {
                 "RMPP_APP": "infantry",
@@ -176,126 +96,12 @@
             }
         },
         {
-            "name": "infantry-release",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "infantry",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "sentry-debug",
+            "name": "sentry",
             "inherits": "default",
             "cacheVariables": {
                 "RMPP_APP": "sentry",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
-        },
-        {
-            "name": "sentry-release",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "sentry",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        }
-    ],
-    "buildPresets": [
-        {
-            "name": "examples-buzzer-debug",
-            "configurePreset": "examples-buzzer-debug"
-        },
-        {
-            "name": "examples-buzzer-release",
-            "configurePreset": "examples-buzzer-release"
-        },
-        {
-            "name": "examples-chassis-debug",
-            "configurePreset": "examples-chassis-debug"
-        },
-        {
-            "name": "examples-chassis-release",
-            "configurePreset": "examples-chassis-release"
-        },
-        {
-            "name": "examples-gimbal-debug",
-            "configurePreset": "examples-gimbal-debug"
-        },
-        {
-            "name": "examples-gimbal-release",
-            "configurePreset": "examples-gimbal-release"
-        },
-        {
-            "name": "examples-imu-debug",
-            "configurePreset": "examples-imu-debug"
-        },
-        {
-            "name": "examples-imu-release",
-            "configurePreset": "examples-imu-release"
-        },
-        {
-            "name": "examples-motor-debug",
-            "configurePreset": "examples-motor-debug"
-        },
-        {
-            "name": "examples-motor-release",
-            "configurePreset": "examples-motor-release"
-        },
-        {
-            "name": "examples-rc-debug",
-            "configurePreset": "examples-rc-debug"
-        },
-        {
-            "name": "examples-rc-release",
-            "configurePreset": "examples-rc-release"
-        },
-        {
-            "name": "examples-referee-debug",
-            "configurePreset": "examples-referee-debug"
-        },
-        {
-            "name": "examples-referee-release",
-            "configurePreset": "examples-referee-release"
-        },
-        {
-            "name": "examples-rgb-debug",
-            "configurePreset": "examples-rgb-debug"
-        },
-        {
-            "name": "examples-rgb-release",
-            "configurePreset": "examples-rgb-release"
-        },
-        {
-            "name": "examples-shooter-debug",
-            "configurePreset": "examples-shooter-debug"
-        },
-        {
-            "name": "examples-shooter-release",
-            "configurePreset": "examples-shooter-release"
-        },
-        {
-            "name": "hero-debug",
-            "configurePreset": "hero-debug"
-        },
-        {
-            "name": "hero-release",
-            "configurePreset": "hero-release"
-        },
-        {
-            "name": "infantry-debug",
-            "configurePreset": "infantry-debug"
-        },
-        {
-            "name": "infantry-release",
-            "configurePreset": "infantry-release"
-        },
-        {
-            "name": "sentry-debug",
-            "configurePreset": "sentry-debug"
-        },
-        {
-            "name": "sentry-release",
-            "configurePreset": "sentry-release"
         }
     ]
 }

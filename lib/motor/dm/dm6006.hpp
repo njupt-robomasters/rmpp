@@ -2,15 +2,13 @@
 
 #include "dm_motor.hpp"
 
-class DM6006 : public DmMotor {
+class DM6006 : public DmMotor<3.14159f, 45.0f, 12.0f> {
   public:
-    struct Config {
-        Motor::Config motor;
-        float enable_frequency = 10; // 使能帧发送频率，Hz
-    };
+    static constexpr float MAX_CURRENT = 13.0f;
+    static constexpr float MAX_TORQUE = 11.0f;
+    static constexpr float KT = 1.0f;
+    static constexpr float REDUCTION = 1.0f;
 
-    static constexpr Motor::Config::Drive DRIVE{.kt = 1, .max_torque = 12, .reduction = 1};
-    static constexpr Protocol PROTOCOL{.max_speed = 45, .max_position = 3.14159f};
-
-    explicit DM6006(const Config& config);
+    explicit DM6006(const Config& config)
+        : DmMotor(config) {}
 };

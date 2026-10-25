@@ -7,9 +7,9 @@ class VT13 {
   public:
     struct Config {
         Uart uart;
-        float timeout = 0.5f;            // 断联检测超时时间
-        float joystick_deadline = 0.05f; // 摇杆死区，小于此值认为是0
-        uint16_t mouse_max = 500;        // 鼠标xy最大速度
+        float timeout = 0.5f;     // 断联检测超时时间
+        float deadline = 0.05f;   // 摇杆死区，小于此值认为是0
+        uint16_t mouse_max = 500; // 鼠标xy最大速度
     } config;
 
     enum Mode {
@@ -78,9 +78,12 @@ class VT13 {
     } raw_{};
 
     Timer timer_connect_; // 用于断联检测
+    uint8_t rx_buf_[64]{};
+    uint8_t rx_size_ = 0;
 
     // 串口接收回调
-    void callback(const uint8_t data[], uint16_t size);
+    void callback(const uint8_t data[], size_t size);
+    void parse_raw();
 
     void reset_data();
 

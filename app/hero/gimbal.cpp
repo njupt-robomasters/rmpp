@@ -55,8 +55,8 @@ void gimbal_loop() {
 
     // 自瞄：VT13 photo、FSi6X SWD 下或按住鼠标右键，识别到目标时跟随视觉角度
     const bool is_auto_aim = vt13.photo || fsi6x.swd == FSi6X::DOWN || vt13.mouse.right;
-    if (is_auto_aim && mavlink.vision.is_detect)
-        gimbal.set_angle(mavlink.vision.yaw, mavlink.vision.pitch);
+    if (is_auto_aim && aim.vision.is_detect)
+        gimbal.set_angle(aim.vision.yaw, aim.vision.pitch);
     else
         gimbal.set_speed(std::clamp(wyaw, -WYAW_MAX, WYAW_MAX), std::clamp(wpitch, -WPITCH_MAX, WPITCH_MAX));
 

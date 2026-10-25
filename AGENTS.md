@@ -10,7 +10,7 @@ RMPP 是 STM32 机器人控制项目，入门见 `README.md`
 
 - `app/**`：`docs/application.md`
 - `lib/bsp/**`、`boards/**/bsp/**`：`docs/bsp.md`
-- `lib/motor/**`：`docs/motor.md`
+- `lib/motor/**`：`docs/motor/motor.md`
 - CMake、构建链：`docs/build.md`
 - IMU：`docs/imu.md`；需理解算法时再读 `docs/imu-principles.md`
 - 单位迁移：`docs/unit-migration.md`
@@ -66,6 +66,7 @@ RMPP 是 STM32 机器人控制项目，入门见 `README.md`
 - 函数、变量、文件：snake_case
 - 私有及受保护成员：尾随 `_`
 - 常量、枚举：UPPER_SNAKE_CASE
+- 项目手写代码不声明 C++ 命名空间，类型和函数直接使用项目作用域名称
 - 单位符号、型号：保留领域惯例
 - 文件私有函数和变量：全局作用域 `static`
 
@@ -78,6 +79,13 @@ RMPP 是 STM32 机器人控制项目，入门见 `README.md`
 - 配置开关、协议字段和 `last_*` 历史状态不机械添加 `is_`
 
 ## 代码结构
+
+### 电机与闭环
+
+- `Motor` 只负责反馈、在线状态和电流/力矩设置，状态字段直接使用 `current/current_ref`、`torque/torque_ref`、`speed`、`position`、`position_multi`
+- `Motor::update()` 只维护连接状态，不执行闭环控制；速度和位置 PID 由底盘、云台、发射机构持有
+- PID 实现在 `lib/pid/pid.hpp` 与 `lib/pid/pid.cpp`，机构配置直接传入 PID 参数指针，不提供隐式默认 PID 参数
+- 电机型号在具体类中保留电流、力矩和 `kt` 常量，构造时传给 `Motor`
 
 ### 表达
 
@@ -104,8 +112,7 @@ RMPP 是 STM32 机器人控制项目，入门见 `README.md`
 
 ### 注释
 
-- 说明性注释使用中文，单句尽量不加句号
-- 注释重点说明单位、边界、职责和不直观的原因
+- 代码注释保持精炼，优先用简短中文概括代码段作用，让人一眼识别其职责；不直观处再补充配置、单位、边界、约束或原因，单句尽量不加句号
 - STM32 生成代码和第三方原始代码保持原样
 - 生成文件中的应用修改放在 USER CODE 区域
 
@@ -115,6 +122,7 @@ RMPP 是 STM32 机器人控制项目，入门见 `README.md`
 - 函数与逻辑块合理留空行
 - 只格式化本任务修改的手写代码
 - 使用 `tools/format_code.py` 调用 CLion 同版本 clang-format
+- `.cpp` 先包含对应头文件，再连续包含 `<...>` 公共库，最后连续包含 `"..."` 项目库，三组之间不插空行
 
 ## 协作
 
@@ -137,6 +145,7 @@ RMPP 是 STM32 机器人控制项目，入门见 `README.md`
 - 命令尽量限定到职责范围，避免改写无关文件
 - 无关错误只报告，不擅自扩大任务范围
 - 修改重叠且无法安全合并时，停止并说明冲突
+- 存在其他 AI 并行修改时，只编译验证本次修改涉及的文件
 
 ### 推进
 

@@ -1,131 +1,128 @@
 #include "imu.hpp"
+
 #include <algorithm>
 #include <cmath>
-#include <cstring>
 
 Imu::Imu(const Config& config)
-    : config_(config), sensor_({.accel = config_.hardware.accel, .gyro = config_.hardware.gyro}),
-      ekf_(config_.control.ekf), temperature_pid_(&config_.control.temperature_pid) {
-    euler_to_quaternion(config_.adjust.yaw, config_.adjust.pitch, config_.adjust.roll, installation_q_);
-}
-
-const Imu::Config& Imu::config() const {
-    return config_;
+    : config(config), sensor_(config.hardware.sensor),
+      ekf_(config.control.ekf), temperature_pid_(&config.control.temperature_pid_config) {
 }
 
 void Imu::update() {
-    // 超时保留旧标定；通信失败也不延长总等待时间
-    if (calibration == Calibration::SAMPLING && calibration_timer_.elapsed() > 10.0f)
-        calibration = Calibration::FAILED;
+    // 初始化陀螺仪
     if (!initialized_) {
         if (!sensor_.init())
             return;
         initialized_ = true;
-        timer_.restart();
-        temperature_pid_.clear();
-    }
-    const float dt = timer_.restart();
-    if (!sensor_.read()) {
-        heater_duty = 0;
-        config_.hardware.heater.set_duty(heater_duty);
-        temperature_pid_.clear();
-        return;
     }
 
-    // 温控与校准共用本轮采样，校准期间继续维持温度和姿态输出
-    temperature = sensor_.temperature;
-    heater_duty = std::clamp(temperature_pid_.calculate(config_.control.temperature - temperature), 0.0f, 1.0f);
-    config_.hardware.heater.set_duty(heater_duty);
+    // 读取陀螺仪
+    sensor_.update();
 
-    if (calibration == Calibration::SAMPLING) {
-        const float sample[4]{sensor_.gyro[0], sensor_.gyro[1], sensor_.gyro[2],
-                              std::hypot(sensor_.accel[0], sensor_.accel[1], sensor_.accel[2])};
-        if (calibration_samples == 0) {
-            std::memcpy(calibration_min_, sample, sizeof(sample));
-            std::memcpy(calibration_max_, sample, sizeof(sample));
-            std::memcpy(calibration_mean_, sample, sizeof(sample));
-        }
-        ++calibration_samples;
-        bool disturbed = std::abs(sample[3] - 9.81f) > 0.5f;
-        for (int i = 0; i < 4; ++i) {
-            calibration_min_[i] = std::min(calibration_min_[i], sample[i]);
-            calibration_max_[i] = std::max(calibration_max_[i], sample[i]);
-            calibration_mean_[i] += (sample[i] - calibration_mean_[i]) / calibration_samples;
-            const float range = i < 3 ? 0.15f : 0.5f;
-            disturbed |= calibration_max_[i] - calibration_min_[i] > range;
-        }
-        if (disturbed) {
-            calibration_samples = 0;
-        } else if (calibration_samples == 6000) {
-            bool valid = true;
-            for (int i = 0; i < 3; ++i)
-                valid &= std::abs(calibration_mean_[i]) <= 0.01f;
-            if (valid) {
-                for (int i = 0; i < 3; ++i)
-                    config_.adjust.gyro_offset[i] = calibration_mean_[i];
-                config_.adjust.gravity = calibration_mean_[3];
-                calibration = Calibration::SUCCEEDED;
-                ekf_.reset_bias();
-            } else {
-                calibration_samples = 0;
-            }
-        }
-    }
+    update_heater();
+    update_calibration();
 
-    // 先在传感器坐标系校准，再旋转到机体坐标系
-    for (int i = 0; i < 3; ++i) {
-        gyro[i] = sensor_.gyro[i] - config_.adjust.gyro_offset[i];
-        accel[i] = sensor_.accel[i] * (9.81f / config_.adjust.gravity);
-    }
-    body_to_world(gyro, gyro, installation_q_);
-    body_to_world(accel, accel, installation_q_);
-    ekf_.update(gyro, accel, dt);
-    std::memcpy(q, ekf_.q, sizeof(q));
+    // 修正陀螺仪读数
+    gyro = sensor_.gyro - config.adjust.gyro_offset;
+    accel = sensor_.accel * (9.81f / config.adjust.gravity);
+    gyro = config.adjust.orientation * gyro;
+    accel = config.adjust.orientation * accel;
 
+    // 陀螺仪ekf解算
+    ekf_.update(gyro, accel);
+    q = ekf_.q;
+
+    // 四元数 -> 欧拉角
     const Angle last_yaw = yaw;
-    std::tie(yaw, pitch, roll) = quaternion_to_euler(q);
+    const auto euler = quaternion_to_euler(q);
+    yaw = euler.yaw;
+    pitch = euler.pitch;
+    roll = euler.roll;
     yaw_total_angle += Angle(yaw - last_yaw);
 }
 
 void Imu::start_calibration() {
-    calibration = Calibration::SAMPLING;
-    calibration_samples = 0;
-    calibration_timer_.restart();
+    calibration_ = Calibration::STARTING;
 }
 
-void Imu::euler_to_quaternion(const Angle yaw, const Angle pitch, const Angle roll, float q[4]) {
-    const float cy = std::cos(yaw * 0.5f), sy = std::sin(yaw * 0.5f);
-    const float cp = std::cos(pitch * 0.5f), sp = std::sin(pitch * 0.5f);
-    const float cr = std::cos(roll * 0.5f), sr = std::sin(roll * 0.5f);
-    q[0] = cr * cp * cy + sr * sp * sy;
-    q[1] = sr * cp * cy - cr * sp * sy;
-    q[2] = cr * sp * cy + sr * cp * sy;
-    q[3] = cr * cp * sy - sr * sp * cy;
+Quaternion Imu::euler_to_quaternion(const EulerAngles& euler) {
+    const Eigen::AngleAxisf yaw(euler.yaw, Eigen::Vector3f::UnitZ());
+    const Eigen::AngleAxisf pitch(euler.pitch, Eigen::Vector3f::UnitY());
+    const Eigen::AngleAxisf roll(euler.roll, Eigen::Vector3f::UnitX());
+    return yaw * pitch * roll;
 }
 
-std::tuple<Angle, Angle, Angle> Imu::quaternion_to_euler(const float q[4]) {
-    const Angle yaw = std::atan2(2 * (q[0] * q[3] + q[1] * q[2]), 1 - 2 * (q[2] * q[2] + q[3] * q[3]));
-    const Angle pitch = std::asin(std::clamp(2 * (q[0] * q[2] - q[1] * q[3]), -1.0f, 1.0f));
-    const Angle roll = std::atan2(2 * (q[0] * q[1] + q[2] * q[3]), 1 - 2 * (q[1] * q[1] + q[2] * q[2]));
-    return {yaw, pitch, roll};
+EulerAngles Imu::quaternion_to_euler(const Quaternion& quaternion) {
+    Quaternion q = quaternion;
+    const float norm = q.norm();
+    if (std::isfinite(norm) && norm > 1.0e-6f)
+        q.normalize();
+    const float yaw = std::atan2(2 * (q.w() * q.z() + q.x() * q.y()),
+                                 1 - 2 * (q.y() * q.y() + q.z() * q.z()));
+    const float pitch = std::asin(std::clamp(2 * (q.w() * q.y() - q.x() * q.z()), -1.0f, 1.0f));
+    const float roll = std::atan2(2 * (q.w() * q.x() + q.y() * q.z()),
+                                  1 - 2 * (q.x() * q.x() + q.y() * q.y()));
+    return {.yaw = Angle(yaw), .pitch = Angle(pitch), .roll = Angle(roll)};
 }
 
-void Imu::body_to_world(const float body[3], float world[3], const float q[4]) {
-    const float x = body[0], y = body[1], z = body[2];
-    world[0] = (1 - 2 * (q[2] * q[2] + q[3] * q[3])) * x +
-               2 * (q[1] * q[2] - q[0] * q[3]) * y + 2 * (q[1] * q[3] + q[0] * q[2]) * z;
-    world[1] = 2 * (q[1] * q[2] + q[0] * q[3]) * x +
-               (1 - 2 * (q[1] * q[1] + q[3] * q[3])) * y + 2 * (q[2] * q[3] - q[0] * q[1]) * z;
-    world[2] = 2 * (q[1] * q[3] - q[0] * q[2]) * x +
-               2 * (q[2] * q[3] + q[0] * q[1]) * y + (1 - 2 * (q[1] * q[1] + q[2] * q[2])) * z;
+Vector3 Imu::body_to_world(const Vector3& body, const Quaternion& q) {
+    return q * body;
 }
 
-void Imu::world_to_body(const float world[3], float body[3], const float q[4]) {
-    const float conjugate[4]{q[0], -q[1], -q[2], -q[3]};
-    body_to_world(world, body, conjugate);
+Vector3 Imu::world_to_body(const Vector3& world, const Quaternion& q) {
+    return q.conjugate() * world;
 }
 
-void Imu::integrate_quaternion(float q[4], const float gx, const float gy, const float gz, const float dt) {
-    const float gyro[3]{gx, gy, gz};
-    QuaternionEkf::integrate(q, gyro, dt);
+void Imu::update_heater() {
+    temperature = sensor_.temperature;
+    heater_duty = std::clamp(temperature_pid_.calculate(config.control.temperature - temperature), 0.0f, 1.0f);
+    config.hardware.heater.set_duty(heater_duty);
+}
+
+void Imu::update_calibration() {
+    // 延迟到更新周期开始新窗口，确保计时和样本计数同步
+    if (calibration_ == Calibration::STARTING) {
+        calibration_samples_ = 0;
+        calibration_timer_.restart();
+        calibration_ = Calibration::SAMPLING;
+    }
+
+    if (calibration_ == Calibration::SAMPLING && calibration_timer_.elapsed() > 10.0f) {
+        calibration_ = Calibration::FAILED;
+        return;
+    }
+
+    if (calibration_ != Calibration::SAMPLING)
+        return;
+
+    // 用陀螺仪零偏和加速度模长判断静止窗口
+    const Vector4 sample{sensor_.gyro.x(), sensor_.gyro.y(), sensor_.gyro.z(), sensor_.accel.norm()};
+    if (calibration_samples_ == 0) {
+        calibration_min_ = calibration_max_ = calibration_mean_ = sample;
+    }
+    calibration_samples_++;
+    bool disturbed = std::abs(sample[3] - 9.81f) > 0.5f;
+    for (int i = 0; i < 4; i++) {
+        calibration_min_[i] = std::min(calibration_min_[i], sample[i]);
+        calibration_max_[i] = std::max(calibration_max_[i], sample[i]);
+        calibration_mean_[i] += (sample[i] - calibration_mean_[i]) / calibration_samples_;
+        const float range = i < 3 ? 0.15f : 0.5f;
+        disturbed |= calibration_max_[i] - calibration_min_[i] > range;
+    }
+    if (disturbed) {
+        calibration_samples_ = 0;
+    } else if (calibration_samples_ == 6000) {
+        // 仅在静止窗口完整且平均零偏足够小时提交
+        bool valid = true;
+        for (int i = 0; i < 3; i++)
+            valid &= std::abs(calibration_mean_[i]) <= 0.01f;
+        if (valid) {
+            config.adjust.gyro_offset = calibration_mean_.head<3>();
+            config.adjust.gravity = calibration_mean_[3];
+            calibration_ = Calibration::SUCCEEDED;
+            ekf_.reset_bias();
+        } else {
+            calibration_samples_ = 0;
+        }
+    }
 }

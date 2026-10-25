@@ -3,10 +3,10 @@ RMPP：STM32 机器人控制程序
 快速开始
 1. 安装 Arm GNU Toolchain、CMake 3.22+、Ninja，加入 PATH；更新预设需要 Python 3。
 2. 在根目录执行：
-   cmake --preset hero-debug
-   cmake --build --preset hero-debug
-3. 固件：build/hero-debug/rmpp.elf；业务入口：app/hero/app.cpp 的 app_main()。
-4. 用 cmake --list-presets 查看应用；可选 hero、infantry、sentry 及九个 examples，每个均有 debug/release。
+   cmake --preset hero
+   cmake --build build/hero
+3. 固件：build/hero/rmpp.elf；业务入口：app/hero/app.cpp 的 app_main()。
+4. 用 cmake --list-presets 查看应用；可选 hero、infantry、sentry 及九个 examples，每个默认使用 Debug，名称不带构建类型后缀。
 
 CLion：打开根目录，使用项目 CMake Presets，选中所需应用的配置后构建。
 格式化启用项目 .clang-format；命令行使用同一 clang-format 运行 tools/format_code.py。

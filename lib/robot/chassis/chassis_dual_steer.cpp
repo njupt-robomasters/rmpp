@@ -1,14 +1,15 @@
 #include "chassis_dual_steer.hpp"
+#include <algorithm>
+#include <cmath>
+#include <tuple>
 #include "math/angle.hpp"
 #include "math/math.hpp"
 #include "math/unit.hpp"
-#include <algorithm>
-#include <cmath>
 
 static const float SQRT2DIV2 = std::sqrt(2.0f) / 2.0f;
 
 ChassisDualSteer::ChassisDualSteer(const Config& config, const Motors& motor, PowerConfig power_config)
-    : Chassis(config), motor(motor), power_config_(power_config) {}
+    : Chassis(config), motor(motor), power_config_(power_config), s1_pid_(config.steer_pid_config), s2_pid_(config.steer_pid_config) {}
 
 void ChassisDualSteer::set_enable(const bool is_enable) {
     if (this->is_enable == is_enable)
@@ -21,13 +22,18 @@ void ChassisDualSteer::set_enable(const bool is_enable) {
     motor.w2.set_enable(is_enable);
     motor.s1.set_enable(is_enable);
     motor.s2.set_enable(is_enable);
+
+    if (!is_enable) {
+        s1_pid_.clear();
+        s2_pid_.clear();
+    }
 }
 
-void ChassisDualSteer::update_ui(Ui& ui) {
-    ui.robot.w1 = motor.w1.is_connect ? Ui::GREEN : Ui::PINK;
-    ui.robot.w4 = motor.w2.is_connect ? Ui::GREEN : Ui::PINK;
-    ui.robot.s1 = motor.s1.is_connect ? Ui::GREEN : Ui::PINK;
-    ui.robot.s4 = motor.s2.is_connect ? Ui::GREEN : Ui::PINK;
+void ChassisDualSteer::update_ui(RobotUi& ui) {
+    ui.robot.w1 = motor.w1.is_connect ? RobotUi::GREEN : RobotUi::PINK;
+    ui.robot.w4 = motor.w2.is_connect ? RobotUi::GREEN : RobotUi::PINK;
+    ui.robot.s1 = motor.s1.is_connect ? RobotUi::GREEN : RobotUi::PINK;
+    ui.robot.s4 = motor.s2.is_connect ? RobotUi::GREEN : RobotUi::PINK;
 }
 
 void ChassisDualSteer::update() {
@@ -44,12 +50,12 @@ void ChassisDualSteer::update() {
 
 void ChassisDualSteer::forward() {
     // 读取舵向
-    s1.measure = motor.s1.position.measure;
-    s2.measure = motor.s2.position.measure;
+    s1.measure = motor.s1.position;
+    s2.measure = motor.s2.position;
 
     // 读取电机转速
-    const float v1 = motor.w1.speed.measure * config.wheel_radius;
-    const float v2 = motor.w2.speed.measure * config.wheel_radius;
+    const float v1 = motor.w1.speed * config.wheel_radius;
+    const float v2 = motor.w2.speed * config.wheel_radius;
 
     // 速度正解
     float vx{}, vy{}, vz{};
@@ -69,8 +75,8 @@ void ChassisDualSteer::forward() {
     wr.measure = vz / config.chassis_radius;
 
     // 读取电机扭矩
-    const float f1 = motor.w1.torque.measure / config.wheel_radius;
-    const float f2 = motor.w2.torque.measure / config.wheel_radius;
+    const float f1 = motor.w1.torque / config.wheel_radius;
+    const float f2 = motor.w2.torque / config.wheel_radius;
 
     // 力学正解
     float fx{}, fy{}, fz{};
@@ -123,14 +129,6 @@ void ChassisDualSteer::backward() {
     }
     // 两舵轮速度逆解 end
 
-    // 设置电机转速
-    if (is_invert_v1_)
-        v1 = -v1;
-    if (is_invert_v2_)
-        v2 = -v2;
-    motor.w1.set_speed(v1 / config.wheel_radius);
-    motor.w2.set_speed(v2 / config.wheel_radius);
-
     // 力学逆解
     auto [fx, fy] = rotate(this->fx.ref, this->fy.ref, gimbal_yaw_);
     auto fz = this->fz.ref;
@@ -172,17 +170,16 @@ void ChassisDualSteer::backward() {
     motor.w1.set_torque(f1 * config.wheel_radius);
     motor.w2.set_torque(f2 * config.wheel_radius);
 
-    // 设置舵向
-    motor.s1.set_position(s1.ref_v);
-    motor.s2.set_position(s2.ref_v);
-    // motor.s1.set_position(s1.ref_f);
-    // motor.s2.set_position(s2.ref_f);
+    // 舵向误差按最短角度计算，PID输出为舵电机力矩
+    motor.s1.set_torque(s1_pid_.calculate(Angle(s1.ref_v - s1.measure)));
+    motor.s2.set_torque(s2_pid_.calculate(Angle(s2.ref_v - s2.measure)));
+
 }
 
 void ChassisDualSteer::power_control_after_motor_update() {
     // 功率估计
-    power.estimate = motor.w1.torque.measure * motor.w1.speed.measure + motor.w2.torque.measure * motor.w2.speed.measure +
-                     3 * (motor.w1.current.measure * motor.w1.current.measure + motor.w2.current.measure * motor.w2.current.measure) * power_config_.wheel_resistance;
+    power.estimate = motor.w1.torque * motor.w1.speed + motor.w2.torque * motor.w2.speed +
+                     3 * (motor.w1.current * motor.w1.current + motor.w2.current * motor.w2.current) * power_config_.wheel_resistance;
 
     // 裁判系统设置无限功率时，读出来是65535，禁用功率控制（这时候缓冲能量还在异常工作，必须在这里禁用）
     if (power.limit == 65535)
@@ -196,8 +193,8 @@ void ChassisDualSteer::power_control_after_motor_update() {
     // a = I^2*R
     // b = kt*I*w
     // c = -P
-    const float a = 3 * (motor.w1.current.ref * motor.w1.current.ref + motor.w2.current.ref * motor.w2.current.ref) * power_config_.wheel_resistance;
-    const float b = motor.w1.torque.ref * motor.w1.speed.measure + motor.w2.torque.ref * motor.w2.speed.measure;
+    const float a = 3 * (motor.w1.current_ref * motor.w1.current_ref + motor.w2.current_ref * motor.w2.current_ref) * power_config_.wheel_resistance;
+    const float b = motor.w1.torque_ref * motor.w1.speed + motor.w2.torque_ref * motor.w2.speed;
     const float c = -power.limit;
     power.gain = (-b + std::sqrtf(b * b - 4 * a * c)) / (2 * a); // 一定为一正根和一负根（x1*x2 = c/a < 0)
     power.gain = std::clamp(power.gain, 0 * pct, 100 * pct);     // 钳位
@@ -211,6 +208,6 @@ void ChassisDualSteer::power_control_after_motor_update() {
     }
 
     // 衰减电机扭矩
-    motor.w1.set_torque(motor.w1.torque.ref * power.gain);
-    motor.w2.set_torque(motor.w2.torque.ref * power.gain);
+    motor.w1.set_torque(motor.w1.torque_ref * power.gain);
+    motor.w2.set_torque(motor.w2.torque_ref * power.gain);
 }

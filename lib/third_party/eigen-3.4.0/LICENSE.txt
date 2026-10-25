@@ -1,0 +1,2 @@
+Eigen 3.4.0 is distributed under the Mozilla Public License 2.0.
+See COPYING.MPL2 in this directory for the complete license text.

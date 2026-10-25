@@ -7,8 +7,8 @@ class FSi6X {
   public:
     struct Config {
         Uart uart;
-        float timeout = 0.5f;            // 断联检测超时时间
-        float joystick_deadline = 0.05f; // 摇杆死区，小于此值认为是0
+        float timeout = 0.5f;   // 断联检测超时时间
+        float deadline = 0.05f; // 摇杆死区，小于此值认为是0
     } config;
 
     enum Switch {

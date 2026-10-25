@@ -1,5 +1,5 @@
 #include "vt13.hpp"
-#include "referee/lib/crc.hpp"
+#include "referee/crc.hpp"
 #include <algorithm>
 #include <cstring>
 
@@ -19,26 +19,37 @@ void VT13::update() {
     }
 }
 
-void VT13::callback(const uint8_t data[], const uint16_t size) {
-    // 长度检查
-    if (size != 21)
-        return;
+void VT13::callback(const uint8_t data[], const size_t size) {
+    for (size_t i = 0; i < size; i++) {
+        if (rx_size_ == sizeof(rx_buf_))
+            rx_size_ = 0;
+        rx_buf_[rx_size_++] = data[i];
 
-    // 帧头检查
-    if (data[0] != 0xA9 || data[1] != 0x53)
-        return;
+        while (rx_size_ >= 2) {
+            if (rx_buf_[0] != 0xA9 || rx_buf_[1] != 0x53) {
+                std::memmove(rx_buf_, rx_buf_ + 1, --rx_size_);
+                continue;
+            }
+            if (rx_size_ < sizeof(raw_))
+                break;
 
-    // CRC16校验
-    const uint16_t crc16 = data[19] | (data[20] << 8);
-    if (!CRC16::verify(data, 19, crc16))
-        return;
+            const uint16_t crc16 = rx_buf_[19] | (static_cast<uint16_t>(rx_buf_[20]) << 8);
+            if (!CRC16::verify(rx_buf_, 19, crc16)) {
+                std::memmove(rx_buf_, rx_buf_ + 1, --rx_size_);
+                continue;
+            }
 
-    // 复位断联检测
-    is_connect = true;
-    timer_connect_.restart();
+            is_connect = true;
+            timer_connect_.restart();
+            std::memcpy(&raw_, rx_buf_, sizeof(raw_));
+            std::memmove(rx_buf_, rx_buf_ + sizeof(raw_), rx_size_ - sizeof(raw_));
+            rx_size_ -= sizeof(raw_);
+            parse_raw();
+        }
+    }
+}
 
-    // 解析原始通道值
-    std::memcpy(&raw_, data, sizeof(raw_));
+void VT13::parse_raw() {
 
     // 解析摇杆
     y = -get_joy_stick(raw_.ch_0);      // 右手水平
@@ -98,7 +109,7 @@ void VT13::reset_data() {
 float VT13::get_joy_stick(const uint16_t value) const {
     float ret = (static_cast<float>(value) - 1024.0f) / 660.0f;
     ret = std::clamp(ret, -1.0f, 1.0f);
-    if (std::fabs(ret) < config.joystick_deadline)
+    if (std::fabs(ret) < config.deadline)
         ret = 0.0f;
     return ret;
 }

@@ -2,8 +2,8 @@
 
 #include "math/angle.hpp"
 #include "math/unit.hpp"
-#include "motor/pid.hpp"
-#include "ui/ui.hpp"
+#include "pid/pid.hpp"
+#include "referee/ui.hpp"
 
 class Chassis {
   public:
@@ -13,8 +13,9 @@ class Chassis {
         float chassis_radius{};                         // 底盘半径
         float wheel_radius{};                           // 轮子半径
         float reserve_wr = 60 * rpm;                    // 功率限制下，优先衰减旋转速度到保留值
-        const Pid::Config* vxyz_pid_config = nullptr;   // 底盘运动PID参数
-        const Pid::Config* follow_pid_config = nullptr; // 底盘跟随PID参数
+        const Pid::Config* vxyz_pid_config;   // 底盘运动PID参数
+        const Pid::Config* follow_pid_config; // 底盘跟随PID参数
+        const Pid::Config* steer_pid_config;  // 舵向位置PID参数
     } config;
 
     bool is_enable = false; // 底盘使能标志
@@ -81,7 +82,7 @@ class Chassis {
     void set_buffer_energy(float buffer_energy);
 
     // 在自定义UI上显示电机连接状态
-    virtual void update_ui(Ui& ui) = 0;
+    virtual void update_ui(RobotUi& ui) = 0;
 
     // 需要在循环中调用
     virtual void update();

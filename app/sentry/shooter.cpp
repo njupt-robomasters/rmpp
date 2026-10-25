@@ -55,13 +55,13 @@ void shooter_loop() {
     // 人工自瞄时需视觉开火许可，右键双击强制开火除外
     bool is_shoot = false;
     float rate = 0;
-    if (radio_shoot && (!radio_auto_aim || mavlink.vision.is_fire)) {
+    if (radio_shoot && (!radio_auto_aim || aim.vision.is_fire)) {
         is_shoot = true;
         rate = radio_rate;
-    } else if (mouse.left && (!mouse.right || is_force_shoot || mavlink.vision.is_fire)) {
+    } else if (mouse.left && (!mouse.right || is_force_shoot || aim.vision.is_fire)) {
         is_shoot = true;
         rate = 1;
-    } else if (sentry_active() && mavlink.vision.is_fire) {
+    } else if (sentry_active() && aim.vision.is_fire) {
         is_shoot = true;
         rate = 1;
     }
@@ -70,15 +70,15 @@ void shooter_loop() {
     const int step = static_cast<int>(vt13.key.c && !last_c) - static_cast<int>(vt13.key.z && !last_z);
     last_c = vt13.key.c;
     last_z = vt13.key.z;
-    if (referee.robot.type == Referee::INFANTRY)
-        bullet_freq = std::clamp(bullet_freq + step * BULLET_FREQ_STEP, BULLET_FREQ_MIN, BULLET_FREQ_MAX);
+    bullet_freq = std::clamp(bullet_freq + step * BULLET_FREQ_STEP, BULLET_FREQ_MIN, BULLET_FREQ_MAX);
 
     // 比赛中自主模式常开摩擦轮
     shooter.set_rub(radio_rub || (sentry_active() && sentry_in_game()));
     shooter.set_shoot(is_shoot);
     shooter.set_bullet_speed(BULLET_SPEED);
     shooter.set_bullet_freq(bullet_freq * rate);
-    shooter.set_heat_remain(referee.shooter.heat_remain);
+    shooter.set_heat_remain(static_cast<int32_t>(referee.robot_status.shooter_barrel_heat_limit) -
+                            referee.power_heat_data.shooter_17mm_barrel_heat);
     shooter.update();
 
     // UI 显示基础弹频

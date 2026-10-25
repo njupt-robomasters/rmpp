@@ -1,14 +1,18 @@
 # 构建与验证
 
-在 CLion 打开项目根目录，选择根 `CMakePresets.json` 中的应用预设，例如 `hero-debug`
+在 CLion 打开项目根目录，选择根 `CMakePresets.json` 中的应用预设，例如 `hero`
 
 ```sh
-cmake --preset hero-debug
-cmake --build --preset hero-debug --clean-first --parallel 8
+cmake --preset hero
+cmake --build build/hero --clean-first --parallel 8
 python tools/check_builds.py
 ```
 
 未将构建工具加入 PATH 时，`check_builds.py` 可通过 `--cmake`、`--ninja` 指定 CLion 自带程序的路径；各预设日志保存在 `build/checks/`
+
+`python tools/update_presets.py` 只生成配置预设（`configurePresets`），避免 CLion 同时导入配置预设和构建预设后出现 `xxx`、`xxx - xxx` 两组条目。构建直接指定 `build/<preset>` 目录，不再使用 `cmake --build --preset`。重新生成后在 CLion 执行“重新加载 CMake 项目”以更新预设列表
+
+每个应用只生成一个默认 Debug 预设，名称不带 `-debug`，不自动生成 Release。需要 Release 时，在 CLion 复制为普通配置后修改构建类型，并使用独立构建目录；若复制结果仍含 `--preset`，移除该选项并显式设置对应的 `-DRMPP_APP=<应用路径>`
 
 ## 接口与板卡实现
 
@@ -107,7 +111,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
 根配置在创建任何目标前统一设置 C11、C++23，启用 `STANDARD_REQUIRED` 和 GNU 扩展。子目录继承这些默认值，不再重复给 `rmpp_lib` 设置 `target_compile_features`；目标仍可显式覆盖标准
 
-`-Wno-packed-bitfield-compat` 通过 `target_compile_options(rmpp_lib PRIVATE ...)` 仅作用于公共库源码，不传给 app、BSP、HAL 或 USB。它屏蔽某些 packed 位域相对旧 GCC 的布局兼容性提示，不改变结构体布局，也不是 MAVLink 专用开关
+`-Wno-packed-bitfield-compat` 通过 `target_compile_options(rmpp_lib PRIVATE ...)` 仅作用于公共库源码，不传给 app、BSP、HAL 或 USB。它屏蔽某些 packed 位域相对旧 GCC 的布局兼容性提示，不改变结构体布局
 
 ```mermaid
 flowchart LR
@@ -118,7 +122,7 @@ flowchart LR
     Compiler --> ELF["固件 ELF 与 map"]
 ```
 
-`cmake --build` 调用选定的底层构建工具，本项目是 Ninja。普通 Ninja 每个构建目录对应一个构建类型；当前 presets 分别提供 Debug/Release 目录。Ninja Multi-Config、Visual Studio 等支持一个目录包含多种配置，本项目不需要切换
+`cmake --build` 调用选定的底层构建工具，本项目是 Ninja。普通 Ninja 每个构建目录对应一个构建类型；当前 presets 默认使用 Debug，目录为 `build/<应用预设名>`。Ninja Multi-Config、Visual Studio 等支持一个目录包含多种配置，本项目不需要切换
 
 ## 修改与重新生成后的检查
 
@@ -129,9 +133,9 @@ flowchart LR
 
 ## 编译接口
 
-- `Can`、`Spi` 没有默认构造，硬件必须由应用显式指定；电机型号的 `constexpr DRIVE` 类型为 `Motor::Config::Drive`，包含 kt、电流与转矩量程、默认减速比，不依赖空硬件句柄
-- MAVLink 发送缓冲使用协议的 `MAVLINK_MAX_PACKET_LEN`，覆盖最大载荷、帧头、校验和及签名，不依赖 UART 实现内部的缓冲区容量
-- 应用显式向 MAVLink 传入 `Cdc(1)`，与 STM32F407 板卡唯一的 USB CDC 通道及接收回调一致
+- `Can`、`Spi` 没有默认构造，硬件必须由应用显式指定；电机型号的公开 `static constexpr` 物理常量包含 kt、电流与转矩量程、默认减速比，不依赖空硬件句柄
+- MiniPC 当前只保留 `Aim`、`Nav` 的状态和定时更新接口，通信协议由后续实现
+- 应用显式向 MiniPC 传入 `Cdc(1)`，为后续协议实现保留板卡通道绑定
 
 ## 验证记录
 

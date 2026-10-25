@@ -1,49 +1,79 @@
 #pragma once
 
-#include "math/unit.hpp"
+#include <cstdint>
+
 #include "motor.hpp"
 
-// 只支持开环速度控制：set_speed 后由 send 下发 eRPM，update 仍需每周期调用以刷新在线状态
 class Vesc : public Motor {
   public:
-    // 公共电机配置与 VESC 专用参数
-    struct Config {
-        Motor::Config motor;
-        uint8_t pole_pair = 7;                // 电机极对数
-        float auto_release_speed = 120 * rpm; // 零目标时低于该转速自动释放，rad/s；零禁用
-    };
+    static constexpr float MAX_CURRENT = 60;
+    static constexpr float KT = 1;
+    static constexpr float REDUCTION = 7;
 
-    struct {
-        float mos = 0, motor = 0; // ℃
-    } temperature;
+    float temp_fet = 0;
+    float temp_motor = 0;
+    float current_in = 0;
+    float voltage_in = 0;
+    float duty_cycle = 0;
+    float amp_hours = 0;
+    float amp_hours_charged = 0;
+    float watt_hours = 0;
+    float watt_hours_charged = 0;
+    float pid_pos = 0;
+    float tachometer = 0;
+    float adc1 = 0;
+    float adc2 = 0;
+    float adc3 = 0;
+    float ppm = 0;
 
-    struct {
-        float voltage = 0, current = 0; // 母线电压、电流，V、A
-    } input;
+    explicit Vesc(const Motor::Config& config);
 
-    float duty = 0; // 占空比
-
-    explicit Vesc(const Config& config);
-
+    void set_current(float current) override;
+    void set_torque(float torque) override;
+    void set_duty(float duty);
+    void set_current_brake(float current);
+    void set_rpm(float rpm);
+    void set_position(float position);
+    void set_current_relative(float current);
+    void set_current_brake_relative(float current);
+    void set_handbrake(float current);
+    void set_handbrake_relative(float current);
+    void set_current_off_delay(float current, float delay);
+    void set_current_relative_off_delay(float current, float delay);
     void send() const;
 
   private:
-    // VESC 专用配置
-    const uint8_t pole_pair_;
-    const float auto_release_speed_;
-
-    enum Command {
+    enum Command : uint8_t {
+        CAN_PACKET_SET_DUTY = 0,
+        CAN_PACKET_SET_CURRENT = 1,
         CAN_PACKET_SET_CURRENT_BRAKE = 2,
-        CAN_PACKET_SET_RPM = 3
+        CAN_PACKET_SET_RPM = 3,
+        CAN_PACKET_SET_POS = 4,
+        CAN_PACKET_SET_CURRENT_REL = 10,
+        CAN_PACKET_SET_CURRENT_BRAKE_REL = 11,
+        CAN_PACKET_SET_CURRENT_HANDBRAKE = 12,
+        CAN_PACKET_SET_CURRENT_HANDBRAKE_REL = 13,
     };
 
-    enum Status {
+    enum Status : uint8_t {
         CAN_PACKET_STATUS = 9,
+        CAN_PACKET_STATUS_2 = 14,
+        CAN_PACKET_STATUS_3 = 15,
         CAN_PACKET_STATUS_4 = 16,
-        CAN_PACKET_STATUS_5 = 27
+        CAN_PACKET_STATUS_5 = 27,
+        CAN_PACKET_STATUS_6 = 58,
     };
+
+    Command command_ = CAN_PACKET_SET_CURRENT;
+    uint8_t command_data_[8]{};
+    uint8_t command_size_ = 4;
 
     void can_callback(const CanFrame& frame);
-    // 发送 4 字节大端定点数命令
-    void send_command(Command command, float value, float scale) const;
+    void set_int32(Command command, int32_t value);
+    void set_int16(Command command, int32_t first, int16_t second);
+
+    static int16_t encode16(float value, float scale);
+    static int32_t encode32(float value, float scale);
+    static int16_t read16(const uint8_t* data);
+    static int32_t read32(const uint8_t* data);
 };
