@@ -7,15 +7,16 @@
 ```text
 app/<应用>/                 app_main()、硬件绑定、车辆参数、应用 CMake
 app/examples/<示例>/        rgb、rc、imu、buzzer、motor、referee、chassis、gimbal、shooter、mc02
-lib/bsp/                   无 HAL 依赖的公共外设声明（Can、Uart、Cdc、Rgb、Buzzer、Imu、Storage、Timer、Monitor）
+lib/bsp/                   无 HAL 依赖的公共外设声明（Can、Uart、Cdc、Rgb、Buzzer、Imu、KvStore、Timer、Monitor）
 lib/attitude/              姿态解算：Attitude 与算法类 QuaternionEkf
 lib/math/                  单位、角度、低通滤波、Eigen 类型与姿态转换
 lib/melody/                  Melody 与曲目
-lib/third_party/           Eigen、CherryUSB（v1.6.1 子集）
+lib/third_party/           纯软件第三方库：Eigen
+third_party/               含硬件移植层、由板卡 BSP 编译的第三方库：CherryUSB v1.6.1、FlashDB 2.2.0
 boards/<板卡>/              CubeMX 工程与生成 CMake
 boards/<板卡>/bsp/          外设实现、入口、手写 CMake、工具链适配、usb_config.h
   include/board/           板卡专用接口（如 mc02 的 power.hpp）
-  flashdb/                 FlashDB、FAL（C 板）
+  flashdb/                 FlashDB 配置 fdb_cfg.h、fal_cfg.h 与 Flash 驱动
 tools/                     presets、批量构建与格式化
 ```
 
@@ -61,7 +62,7 @@ Rgb rgb;
 Melody melody;
 Imu imu;
 Attitude attitude(imu, {.gyro_offset = Vector3(0.003f, -0.004f, -0.002f), .gravity = 9.80f});
-Storage storage("infantry");
+KvStore kv_store("infantry");
 ```
 
 电机各层构造函数只接收并传递唯一的 config。公共配置分为 bus（CAN 通道、命令与反馈 ID、超时）、drive（kt、电流与转矩量程、减速比）和 install（零点偏移、方向）；config() 只读访问实际配置，校准使用 set_offset。型号物理参数使用公开的 static constexpr 独立常量，不另设全局型号配置包装。速度和位置闭环由底盘、云台、发射机构持有，Motor 只提供电流和力矩设置。DmMotor 和 Vesc 的专用 Config 内含 motor 公共配置及专用参数，DM 型号配置额外提供使能帧发送频率。
@@ -72,7 +73,7 @@ BSP `Imu` 只负责 BMI088 读取和恒温加热，输出传感器系原始量�
 
 `Rgb` 提供 `set(red, green, blue)` 和 `set_hsv`，范围 [0, 1]；周期变色由各车 `misc.cpp` 的 `misc_loop()` 执行。`Melody` 在板载 `Buzzer` 上播放曲目，见 [蜂鸣器曲目](music.md)。
 
-Storage 的 read/write 保存 float：缺失键读零，写入不返回结果。所有实例共享同一数据库，首次构造时初始化，所用名称决定应用标记，更换名称时格式化；名称字符串保持有效。C 板分区为内部 Flash 768 KiB 偏移、256 KiB 长度；mc02 暂未实现。
+KvStore 的 read/write 保存 float：缺失键读零，写入不返回结果。所有实例共享同一数据库，首次构造时初始化，所用名称决定应用标记，更换名称时格式化；名称字符串保持有效。C 板分区为内部 Flash 768 KiB 偏移、256 KiB 长度；mc02 暂未实现。
 
 ## 收发
 
@@ -101,7 +102,7 @@ CanFrame 为经典 CAN 报文，数据容量 8 字节，size 表示实际长度�
 | Rgb | TIM5 CH3/CH2/CH1 | WS2812，SPI6 |
 | Buzzer | TIM4 CH3 | TIM12 CH2 |
 | Imu | SPI1，加热 TIM10 CH1 | SPI2，加热 TIM3 CH4 |
-| Storage | FlashDB | 暂无 |
+| KvStore | FlashDB，内部 Flash | 暂无 |
 | 板卡专用 | 无 | `board/power.hpp`：OUT1、OUT2、OUT_5V |
 
 ## 构建与扩展

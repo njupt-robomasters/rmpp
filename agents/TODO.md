@@ -11,7 +11,7 @@
 
 ## 第二轮：KvStore、FlashDB 重建、目录整理
 
-状态：规划中，用户未要求开始改代码
+状态：在 worktree `../rmpp-kvstore` 的 kvstore 分支实施；步骤 1–2 已完成并编译通过，步骤 3 等待用户在 CubeMX 配置 OCTOSPI1
 
 ### 设计要求（已写入 AGENTS.md）
 

@@ -5,7 +5,7 @@
 #include "bsp/rgb.hpp"
 #include "bsp/uart.hpp"
 
-#include "bsp/storage.hpp"
+#include "bsp/kv_store.hpp"
 #include "minipc/aim.hpp"
 #include "minipc/nav.hpp"
 #include "melody/melody.hpp"
@@ -16,7 +16,7 @@
 
 inline Rgb rgb;
 inline Melody melody;
-inline Storage storage("sentry");
+inline KvStore kv_store("sentry");
 inline VT13 vt13({.uart = Uart(6)});
 inline FSi6X fsi6x({.uart = Uart(3)});
 inline Aim aim({.cdc = Cdc(1)});

@@ -5,7 +5,7 @@ add_subdirectory(
 )
 
 # 编译 CherryUSB：设备栈、CDC ACM、DWC2 驱动及 ST 适配，配置见 usb_config.h
-set(CHERRYUSB "${CMAKE_SOURCE_DIR}/lib/third_party/CherryUSB")
+set(CHERRYUSB "${CMAKE_SOURCE_DIR}/third_party/CherryUSB")
 add_library(cherryusb OBJECT
         "${CHERRYUSB}/core/usbd_core.c"
         "${CHERRYUSB}/class/cdc/usbd_cdc_acm.c"

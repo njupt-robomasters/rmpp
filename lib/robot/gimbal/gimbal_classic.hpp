@@ -15,9 +15,9 @@ class GimbalClassic : public Gimbal {
     // 云台使能/失能
     void set_enable(bool is_enable) override;
 
-    void load_yaw_offset(Storage& storage) override;
+    void load_yaw_offset(KvStore& kv_store) override;
 
-    void save_yaw_offset(Storage& storage) override;
+    void save_yaw_offset(KvStore& kv_store) override;
 
     void set_yaw_zero() override;
 

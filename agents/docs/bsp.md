@@ -12,7 +12,7 @@
 | `Rgb` | 板载唯一 | TIM5 PWM | WS2812（SPI6） |
 | `Buzzer` | 板载唯一 | TIM4 CH3 | TIM12 CH2 |
 | `Imu` | 板载唯一 | BMI088 SPI1，加热 TIM10 CH1 | BMI088 SPI2，加热 TIM3 CH4 |
-| `Storage` | 共享数据库 | FlashDB，内部 Flash | 暂无（引用时链接失败） |
+| `KvStore` | 共享数据库 | FlashDB，内部 Flash | 暂无（引用时链接失败） |
 | `Timer` | 实例计时 | 64 位周期计数 | 同左 |
 | `board/power.hpp` | 板卡专用 | 无（引用时编译报错） | `set_power(PowerOutput, bool)`，上电全关 |
 
@@ -22,7 +22,7 @@
 - 运行数据放在各板外设 `.cpp` 的文件私有 static 表（`CanContext`、`UartContext`、`CdcContext`），头文件不暴露；操作时按编号查表，中断回调按 HAL 句柄查表
 - 不存在的编号各操作静默返回
 - `Rgb`、`Buzzer` 无状态，可任意构造；`Imu` 持有温控配置和 PID 状态，由 app 创建唯一实例
-- `Storage` 所有实例共享同一数据库，首次构造时初始化
+- `KvStore` 所有实例共享同一数据库，首次构造时初始化
 - 硬件启动由板卡 `bsp_init()` 执行，在 CubeMX 外设初始化后、`app_main()` 前调用
 
 ## 初始化入口
@@ -89,7 +89,7 @@
 
 ### USB CDC（CherryUSB）
 
-- 协议栈为 `lib/third_party/CherryUSB/`（v1.6.1 子集，原样），各板 BSP CMake 只编译 `usbd_core`、`usbd_cdc_acm`、`usb_dc_dwc2` 和 `usb_glue_st`，配置为各板 `bsp/usb_config.h`
+- 协议栈为 `third_party/CherryUSB/`（v1.6.1 子集，原样），各板 BSP CMake 只编译 `usbd_core`、`usbd_cdc_acm`、`usb_dc_dwc2` 和 `usb_glue_st`，配置为各板 `bsp/usb_config.h`
 - `usb_config.h` 定义 `CONFIG_USB_MEMCPY_DISABLE`：否则 `usb_memcpy.h` 把 `memcpy` 宏替换为 `usb_memcpy`，破坏 C++ 的 `std::memcpy`
 - CubeMX：启用 USB_OTG_FS（C 板）或 USB_OTG_HS 内置 FS PHY（mc02）为 Device_Only；不启用 USB_DEVICE 中间件、不勾选 OTG 中断、不生成 `MX_USB_OTG_*_PCD_Init` 调用
 - 生成的 `HAL_PCD_MspInit` 提供 GPIO 与时钟，由 CherryUSB `usb_dc_low_level_init` 调用；OTG IRQHandler 由 `usb_glue_st.c` 定义，`cdc_init()` 设置并开启 NVIC
@@ -97,6 +97,14 @@
 - 描述符常量放在各板 `cdc.cpp` 顶部：VID/PID 默认 CubeMX `0x0483 / 0x5740`，厂商、产品字符串可改；序列号同 CubeMX `Get_SerialNum`，由芯片 UID 生成 12 位十六进制
 - C 板 OTG_FS 除 EP0 只有 3 个 IN 端点，只能容纳 1 个 CDC；mc02 为 IAD 复合设备，接口 0 为 `Cdc(1)`、接口 2 为 `Cdc(2)`
 - 批量 IN 长度为包长整数倍时补发零长包
+
+### KvStore（FlashDB）
+
+- 源码为 `third_party/FlashDB/`（2.2.0 子集，原样）：`fdb.c`、`fdb_kvdb.c`、`fdb_utils.c` 与 FAL 的 `fal.c`、`fal_flash.c`、`fal_partition.c`
+- FlashDB 用 `#include <fdb_cfg.h>`、`<fal_cfg.h>` 取配置，不改源码；各板 `bsp/CMakeLists.txt` 创建 `flashdb` 目标，把本板 `bsp/flashdb/` 加入搜索路径，与 CherryUSB 的 `usb_config.h` 同法
+- 各板 `bsp/flashdb/` 放 `fdb_cfg.h`、`fal_cfg.h` 和 Flash 驱动；C 板驱动为上游示例 `fal_flash_stm32f4.c` 原样
+- 只有板卡 `kv_store.cpp` 包含 `flashdb.h`；`lib/bsp/kv_store.hpp` 不暴露 FlashDB
+- C 板：内部 Flash，分区 768 KiB 偏移、256 KiB，`FDB_WRITE_GRAN 8`
 
 ## 配置注释
 

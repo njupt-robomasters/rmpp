@@ -1,7 +1,7 @@
 #pragma once
 
 #include "attitude/attitude.hpp"
-#include "bsp/storage.hpp"
+#include "bsp/kv_store.hpp"
 #include "math/angle.hpp"
 #include "pid/pid.hpp"
 #include "referee/ui.hpp"
@@ -61,9 +61,9 @@ class Gimbal {
     // 设置底盘旋转速度，用于yaw轴前馈
     void set_chassis_wr(float chassis_wr);
 
-    virtual void load_yaw_offset(Storage& storage) = 0;
+    virtual void load_yaw_offset(KvStore& kv_store) = 0;
 
-    virtual void save_yaw_offset(Storage& storage) = 0;
+    virtual void save_yaw_offset(KvStore& kv_store) = 0;
 
     virtual void set_yaw_zero() = 0;
 

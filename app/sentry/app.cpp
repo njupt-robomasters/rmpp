@@ -57,7 +57,7 @@ static void update_ui() {
 
 extern "C" void app_main() {
     // gimbal.attitude.start_calibration();
-    gimbal.load_yaw_offset(storage);
+    gimbal.load_yaw_offset(kv_store);
     melody.play(C5D5G5);
 
     [[maybe_unused]] static float cpu_usage{};

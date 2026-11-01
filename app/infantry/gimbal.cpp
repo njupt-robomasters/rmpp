@@ -23,7 +23,7 @@ void gimbal_loop() {
                        (fsi6x.swc == FSi6X::UP && fsi6x.swa == FSi6X::DOWN && fsi6x.swd == FSi6X::DOWN);
     if (calib && !last_calib) {
         gimbal.set_yaw_zero();
-        gimbal.save_yaw_offset(storage);
+        gimbal.save_yaw_offset(kv_store);
         melody.play(G5G5G5);
     }
     last_calib = calib;

@@ -35,11 +35,12 @@ IMU 的固定维度 EKF 使用独立 C++ 实现，`rmpp_lib` 不再依赖本板 
 | 库 | 版本 | 位置 | 接入 |
 | --- | --- | --- | --- |
 | Eigen | 3.4.0 | `lib/third_party/eigen-3.4.0` | `lib/CMakeLists.txt` 的 `eigen` 接口目标 |
-| CherryUSB | v1.6.1 | `lib/third_party/CherryUSB` | 各板 `bsp/CMakeLists.txt` 的 `cherryusb` 目标，配置为各板 `bsp/usb_config.h` |
+| CherryUSB | v1.6.1 | `third_party/CherryUSB` | 各板 `bsp/CMakeLists.txt` 的 `cherryusb` 目标，配置为各板 `bsp/usb_config.h` |
+| FlashDB | 2.2.0 | `third_party/FlashDB` | 各板 `bsp/CMakeLists.txt` 的 `flashdb` 目标，配置与 Flash 驱动在各板 `bsp/flashdb/` |
 
 CherryUSB 只保留 `common`、`core`、`class/cdc`、`class/hub`、`port/dwc2` 及 LICENSE、VERSION，文件原样未改；`class/hub` 只因 `usb_glue_st.c` 引用主机头文件而保留。升级时按同一目录子集替换，并核对 `usb_glue_st.c` 对 F4/H7 的 FIFO 参数
 
-`lib/CMakeLists.txt` 排除 `third_party` 目录，CherryUSB 不会被 `rmpp_lib` 的 GLOB 收入
+`lib/third_party/` 只放不依赖 STM32 的纯软件库；含硬件移植层的库放根目录 `third_party/`，只由板卡 BSP 编译。FlashDB 只保留 `inc/`、KVDB 相关 `src/`、FAL 的 `inc/` 与 `src/`（不含 `fal_rtt.c`）及 LICENSE，文件原样未改
 
 ## CMake 文件如何协作
 
@@ -64,7 +65,7 @@ flowchart TD
 | --- | --- |
 | 根 `CMakeLists.txt` | 读取板卡选择，在 `project` 前指定工具链；统一语言标准；创建固件和模块目标；集中声明手写目标依赖；组装固件 |
 | `lib/CMakeLists.txt` | 编译公共组件；公开 `lib` 包含路径；仅对自身源码屏蔽 packed 位域兼容性提示 |
-| 板卡 `bsp/CMakeLists.txt` | 直接接入 CubeMX 内层配置；编译 CherryUSB 子集和手写 BSP（C 板含 FlashDB） |
+| 板卡 `bsp/CMakeLists.txt` | 直接接入 CubeMX 内层配置；编译 CherryUSB、FlashDB 子集和手写 BSP |
 | 应用 `CMakeLists.txt` | 收集选中应用的源码并创建对象库，依赖由根目录统一声明 |
 | 板卡 `bsp/toolchain.cmake` | 包含生成的 GCC 工具链，紧接着修正链接脚本和 map 路径；mc02 把链接脚本换成 `bsp/dma_buffer.ld` |
 
@@ -78,7 +79,8 @@ flowchart TD
 | --- | --- | --- |
 | `${CMAKE_PROJECT_NAME}` | 可执行目标 | 最终 `.elf`；工程名只在根 `project(rmpp ...)` 定义 |
 | `rmpp_lib` | `OBJECT` | 公共组件的对象文件，不再生成 `librmpp_lib.a` |
-| `rmpp_bsp` | `OBJECT` | 板卡外设实现与 FlashDB |
+| `rmpp_bsp` | `OBJECT` | 板卡外设实现与 Flash 驱动 |
+| `flashdb` | `OBJECT` | FlashDB KVDB 与 FAL，由板卡 BSP CMake 创建并加入固件 |
 | `rmpp_app` | `OBJECT` | 当前应用 |
 | `stm32cubemx` | `INTERFACE` | 生成代码的包含路径和宏，本身不编译 HAL |
 | `STM32_Drivers` | `OBJECT` | HAL 驱动 |
@@ -96,7 +98,7 @@ target_link_libraries(rmpp_bsp PRIVATE rmpp_lib stm32cubemx)
 
 根配置显式加入 `rmpp_app`、`rmpp_bsp`、`rmpp_lib` 三组对象文件，不依赖对象文件跨多层目标自动传递；`cherryusb` 对象由板卡 BSP CMake 用 `$<TARGET_OBJECTS:cherryusb>` 加入固件。`rmpp_app` 只额外包含 `boards/${RMPP_BOARD}/bsp/include`，供板卡专用接口 `board/*.hpp` 使用；其余 BSP 实现由最终固件组装
 
-`rmpp_lib → stm32cubemx` 的链接声明已随 IMU 重构删除。FlashDB 的 `<flashdb.h>`、`<fdb_cfg.h>` 等引用需要显式搜索路径，即使文件同目录也不能默认省略 `target_include_directories(rmpp_bsp PRIVATE flashdb)`
+`rmpp_lib → stm32cubemx` 的链接声明已随 IMU 重构删除。FlashDB 的 `<flashdb.h>`、`<fdb_cfg.h>` 等引用需要显式搜索路径，由 `flashdb` 目标以 PUBLIC 提供给 `rmpp_bsp`
 
 ## plain 与 keyword 链接形式
 

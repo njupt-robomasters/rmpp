@@ -13,12 +13,12 @@ void GimbalClassic::set_enable(const bool is_enable) {
     motor.pitch.set_enable(is_enable);
 }
 
-void GimbalClassic::load_yaw_offset(Storage& storage) {
-    motor.yaw.set_offset(storage.read("yaw_offset"));
+void GimbalClassic::load_yaw_offset(KvStore& kv_store) {
+    motor.yaw.set_offset(kv_store.read("yaw_offset"));
 }
 
-void GimbalClassic::save_yaw_offset(Storage& storage) {
-    storage.write("yaw_offset", motor.yaw.config.install.offset);
+void GimbalClassic::save_yaw_offset(KvStore& kv_store) {
+    kv_store.write("yaw_offset", motor.yaw.config.install.offset);
 }
 
 void GimbalClassic::set_yaw_zero() {

@@ -14,12 +14,12 @@ void GimbalDualYaw::set_enable(const bool is_enable) {
     motor.pitch.set_enable(is_enable);
 }
 
-void GimbalDualYaw::load_yaw_offset(Storage& storage) {
-    motor.yaw1.set_offset(storage.read("yaw_offset"));
+void GimbalDualYaw::load_yaw_offset(KvStore& kv_store) {
+    motor.yaw1.set_offset(kv_store.read("yaw_offset"));
 }
 
-void GimbalDualYaw::save_yaw_offset(Storage& storage) {
-    storage.write("yaw_offset", motor.yaw1.config.install.offset);
+void GimbalDualYaw::save_yaw_offset(KvStore& kv_store) {
+    kv_store.write("yaw_offset", motor.yaw1.config.install.offset);
 }
 
 void GimbalDualYaw::set_yaw_zero() {
