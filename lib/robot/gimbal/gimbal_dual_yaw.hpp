@@ -18,9 +18,6 @@ class GimbalDualYaw : public Gimbal {
 
     GimbalDualYaw(Attitude& attitude, const Config& config, const Motors& motor);
 
-    // 云台使能/失能
-    void set_enable(bool is_enable) override;
-
     void load_yaw_offset(KvStore& kv_store) override;
 
     void save_yaw_offset(KvStore& kv_store) override;
@@ -30,10 +27,11 @@ class GimbalDualYaw : public Gimbal {
     // 在自定义UI上显示电机连接状态
     void update_ui(RobotUi& ui) override;
 
-    // 需要在循环中调用
-    void update() override;
-
   private:
+    void set_motors_enable(bool is_enable) override;
+
+    void update_motors() override;
+
     // 角度正解：电机角度 -> 云台姿态
     void forward() override;
 

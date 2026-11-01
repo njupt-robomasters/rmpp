@@ -4,19 +4,10 @@
 #include <cmath>
 
 Shooter42mm::Shooter42mm(const Config& config, const Motors& motor)
-    : Shooter(config), motor(motor) {}
+    : Shooter(config), motor(motor),
+      rub1_pid_(config.rub_pid_config), rub2_pid_(config.rub_pid_config), rub3_pid_(config.rub_pid_config), rub4_pid_(config.rub_pid_config) {}
 
-void Shooter42mm::set_enable(const bool is_enable) {
-    if (this->is_enable == is_enable)
-        return;
-    this->is_enable = is_enable;
-
-    // 失能复位摩擦轮和拨弹电机状态
-    if (!is_enable) {
-        is_rub = false;
-        is_shoot = false;
-    }
-
+void Shooter42mm::set_motors_enable(const bool is_enable) {
     motor.rub1.set_enable(is_enable);
     motor.rub2.set_enable(is_enable);
     motor.rub3.set_enable(is_enable);
@@ -60,10 +51,7 @@ void Shooter42mm::update_ui(RobotUi& ui) {
     ui.robot.shoot = motor.shoot.is_connect ? RobotUi::GREEN : RobotUi::PINK;
 }
 
-void Shooter42mm::update() {
-    Shooter::update();
-
-    // 更新电机
+void Shooter42mm::update_motors() {
     motor.rub1.update();
     motor.rub2.update();
     motor.rub3.update();
@@ -72,45 +60,17 @@ void Shooter42mm::update() {
 }
 
 void Shooter42mm::backward() {
-    // 摩擦轮
-    if (is_rub) {
-        motor.rub1.set_enable(true);
-        motor.rub2.set_enable(true);
-        motor.rub3.set_enable(true);
-        motor.rub4.set_enable(true);
-        const float speed = bullet_speed.ref / config.rub_radius;
-        const float rub1_output = rub_pid_.calculate(speed * RUB12_RATIO - rub1_measure_);
-        const float rub2_output = rub_pid_.calculate(speed * RUB12_RATIO - rub2_measure_);
-        const float rub3_output = rub_pid_.calculate(speed - rub3_measure_);
-        const float rub4_output = rub_pid_.calculate(speed - rub4_measure_);
-        if (config.rub_output == CURRENT_OUTPUT) {
-            motor.rub1.set_current(rub1_output);
-            motor.rub2.set_current(rub2_output);
-            motor.rub3.set_current(rub3_output);
-            motor.rub4.set_current(rub4_output);
-        } else {
-            motor.rub1.set_torque(rub1_output);
-            motor.rub2.set_torque(rub2_output);
-            motor.rub3.set_torque(rub3_output);
-            motor.rub4.set_torque(rub4_output);
-        }
-    } else {
-        rub_pid_.clear();
-        motor.rub1.set_current(0);
-        motor.rub2.set_current(0);
-        motor.rub3.set_current(0);
-        motor.rub4.set_current(0);
-        if (config.auto_release_speed > 0) {
-            motor.rub1.set_enable(std::fabs(motor.rub1.speed) >= config.auto_release_speed);
-            motor.rub2.set_enable(std::fabs(motor.rub2.speed) >= config.auto_release_speed);
-            motor.rub3.set_enable(std::fabs(motor.rub3.speed) >= config.auto_release_speed);
-            motor.rub4.set_enable(std::fabs(motor.rub4.speed) >= config.auto_release_speed);
-        }
-    }
+    // 摩擦轮，各自处理离线
+    const float speed = bullet_speed.ref / config.rub_radius;
+    control_rub(motor.rub1, rub1_pid_, speed * RUB12_RATIO, motor.rub1.speed);
+    control_rub(motor.rub2, rub2_pid_, speed * RUB12_RATIO, motor.rub2.speed);
+    control_rub(motor.rub3, rub3_pid_, speed, motor.rub3.speed);
+    control_rub(motor.rub4, rub4_pid_, speed, motor.rub4.speed);
 
-    // 拨弹电机
-    if (!is_rub) { // 关摩擦轮
+    // 拨弹电机：关摩擦轮或离线时回到空闲，重连后从当前角度重新开始抖动
+    if (!is_rub || !motor.shoot.is_connect) {
         state_ = FREE;
+        shoot_pid_.clear();
     }
 
     switch (state_) {
@@ -120,7 +80,7 @@ void Shooter42mm::backward() {
         else
             motor.shoot.set_torque(0); // 保持当前状态
 
-        if (is_rub) { // 开摩擦轮
+        if (is_rub && motor.shoot.is_connect) { // 开摩擦轮
             state_ = SHAKE;
             timer_shake_.restart();
             shake_upper_ = motor.shoot.position;

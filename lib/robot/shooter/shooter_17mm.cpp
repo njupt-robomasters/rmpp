@@ -2,23 +2,7 @@
 #include <cmath>
 
 Shooter17mm::Shooter17mm(const Config& config, const Motors& motor)
-    : Shooter(config), motor(motor) {}
-
-void Shooter17mm::set_enable(const bool is_enable) {
-    if (this->is_enable == is_enable)
-        return;
-    this->is_enable = is_enable;
-
-    // 失能复位摩擦轮和拨弹电机状态
-    if (!is_enable) {
-        is_rub = false;
-        is_shoot = false;
-    }
-
-    motor.rub1.set_enable(is_enable);
-    motor.rub2.set_enable(is_enable);
-    motor.shoot.set_enable(is_enable);
-}
+    : Shooter(config), motor(motor), rub1_pid_(config.rub_pid_config), rub2_pid_(config.rub_pid_config) {}
 
 void Shooter17mm::update_ui(RobotUi& ui) {
     if (motor.rub1.is_connect == false) {
@@ -46,81 +30,49 @@ void Shooter17mm::update_ui(RobotUi& ui) {
     ui.robot.shoot = motor.shoot.is_connect ? RobotUi::GREEN : RobotUi::PINK;
 }
 
-void Shooter17mm::update() {
-    Shooter::update();
+void Shooter17mm::set_motors_enable(const bool is_enable) {
+    motor.rub1.set_enable(is_enable);
+    motor.rub2.set_enable(is_enable);
+    motor.shoot.set_enable(is_enable);
+}
 
-    // 更新电机
+void Shooter17mm::update_motors() {
     motor.rub1.update();
     motor.rub2.update();
     motor.shoot.update();
 }
 
 void Shooter17mm::backward() {
-    // 摩擦轮
-    if (is_rub) {
-        motor.rub1.set_enable(true);
-        motor.rub2.set_enable(true);
-        const float speed = bullet_speed.ref / config.rub_radius;
-        const float rub1_output = rub_pid_.calculate(speed - rub1_measure_);
-        const float rub2_output = rub_pid_.calculate(speed - rub2_measure_);
-        if (config.rub_output == CURRENT_OUTPUT) {
-            motor.rub1.set_current(rub1_output);
-            motor.rub2.set_current(rub2_output);
-        } else {
-            motor.rub1.set_torque(rub1_output);
-            motor.rub2.set_torque(rub2_output);
-        }
-    } else {
-        rub_pid_.clear();
-        motor.rub1.set_current(0);
-        motor.rub2.set_current(0);
-        if (config.auto_release_speed > 0) {
-            motor.rub1.set_enable(std::fabs(motor.rub1.speed) >= config.auto_release_speed);
-            motor.rub2.set_enable(std::fabs(motor.rub2.speed) >= config.auto_release_speed);
-        }
+    // 摩擦轮，各自处理离线
+    const float speed = bullet_speed.ref / config.rub_radius;
+    control_rub(motor.rub1, rub1_pid_, speed, motor.rub1.speed);
+    control_rub(motor.rub2, rub2_pid_, speed, motor.rub2.speed);
+
+    // 拨弹电机：摩擦轮开启、未热量保护、有发射信号且在线；不检查摩擦轮是否在线，便于单独调试
+    if (!is_rub || is_heat_protect || !is_shoot || !motor.shoot.is_connect) {
+        is_block_ = false;
+        timer_block_.restart();
+        shoot_pid_.clear();
+        motor.shoot.set_current(0);
+        return;
     }
 
-    // 拨弹电机
-    if (is_rub && !is_heat_protect && is_shoot) { // 确保摩擦轮开启、枪口热量保护、发射信号
-        if (!is_block_) {                         // 未卡弹
-            // 正转
-            const float shoot_speed = bullet_freq.ref / config.bullet_per_angle;
-            const float shoot_output = shoot_pid_.calculate(shoot_speed - bullet_freq.measure);
-            if (config.shoot_output == CURRENT_OUTPUT)
-                motor.shoot.set_current(shoot_output);
-            else
-                motor.shoot.set_torque(shoot_output);
+    // 未卡弹正转，卡弹反转
+    const float shoot_speed = bullet_freq.ref / config.bullet_per_angle;
+    const float shoot_speed_ref = is_block_ ? -shoot_speed : shoot_speed;
+    set_output(motor.shoot, config.shoot_output, shoot_pid_.calculate(shoot_speed_ref - motor.shoot.speed));
 
-            // 卡弹检测
-            if (motor.shoot.current_ref >= motor.shoot.config.drive.max_current) { // 达到电流限幅
-                // 卡弹计时
-                if (timer_block_.elapsed() > config.block_time) {
-                    timer_block_.restart();
-                    is_block_ = true;
-                }
-            } else {
-                timer_block_.restart(); // 未卡弹，重置计时器
-            }
-        } else { // 卡弹
-            // 反转
-            const float shoot_speed = bullet_freq.ref / config.bullet_per_angle;
-            const float shoot_output = shoot_pid_.calculate(-shoot_speed - bullet_freq.measure);
-            if (config.shoot_output == CURRENT_OUTPUT)
-                motor.shoot.set_current(shoot_output);
-            else
-                motor.shoot.set_torque(shoot_output);
-
-            // 反转计时
-            if (timer_block_.elapsed() > config.reverse_time) {
-                timer_block_.restart();
-                is_block_ = false;
-            }
+    if (!is_block_) {
+        // 达到电流限幅并持续 block_time 判为卡弹
+        if (motor.shoot.current_ref < motor.shoot.config.drive.max_current) {
+            timer_block_.restart();
+        } else if (timer_block_.elapsed() > config.block_time) {
+            timer_block_.restart();
+            is_block_ = true;
         }
-    } else {
-        is_block_ = false;      // 清除卡弹状态
-        timer_block_.restart(); // 重置计时器
-        shoot_pid_.clear();
-        motor.shoot.set_current(0); // 电流置零
+    } else if (timer_block_.elapsed() > config.reverse_time) {
+        timer_block_.restart();
+        is_block_ = false;
     }
 }
 

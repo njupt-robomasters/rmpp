@@ -4,15 +4,6 @@
 GimbalClassic::GimbalClassic(Attitude& attitude, const Config& config, const Motors& motor)
     : Gimbal(attitude, config), motor(motor) {}
 
-void GimbalClassic::set_enable(const bool is_enable) {
-    if (this->is_enable == is_enable)
-        return;
-    this->is_enable = is_enable;
-
-    motor.yaw.set_enable(is_enable);
-    motor.pitch.set_enable(is_enable);
-}
-
 void GimbalClassic::load_yaw_offset(KvStore& kv_store) {
     motor.yaw.set_offset(kv_store.read("yaw_offset"));
 }
@@ -35,10 +26,12 @@ void GimbalClassic::update_ui(RobotUi& ui) {
     ui.robot.pitch = motor.pitch.is_connect ? RobotUi::GREEN : RobotUi::PINK;
 }
 
-void GimbalClassic::update() {
-    Gimbal::update();
+void GimbalClassic::set_motors_enable(const bool is_enable) {
+    motor.yaw.set_enable(is_enable);
+    motor.pitch.set_enable(is_enable);
+}
 
-    // 更新电机
+void GimbalClassic::update_motors() {
     motor.yaw.update();
     motor.pitch.update();
 }
@@ -54,6 +47,10 @@ void GimbalClassic::forward() {
 }
 
 void GimbalClassic::backward() {
+    // 失能或离线的轴目标跟随实测，yaw、pitch 互不影响
+    const bool can_yaw = check_yaw(motor.yaw.is_connect);
+    const bool can_pitch = check_pitch(motor.pitch.is_connect);
+
     // 用于参考系转换
     yaw.imu_minus_ecd = yaw.imu.measure - yaw.ecd.measure;
     pitch.imu_minus_ecd = pitch.imu.measure - pitch.ecd.measure;
@@ -68,24 +65,27 @@ void GimbalClassic::backward() {
         pitch.ecd.ref = pitch.imu.ref - pitch.imu_minus_ecd;
     }
 
-    // 设置电机角度
+    // 软件限位
     if (config_.is_pitch_limit)
         pitch.ecd.ref = Angle(std::clamp(float(pitch.ecd.ref), config_.pitch_min, config_.pitch_max));
     yaw.ecd.ref = Angle(yaw.ecd.ref);
     pitch.ecd.ref = Angle(pitch.ecd.ref);
 
-    const float yaw_speed_ref = yaw_position_pid_.calculate(yaw.ecd.ref - yaw.ecd.measure) - chassis_wr_ + yaw_speed;
-    const float pitch_speed_ref = pitch_position_pid_.calculate(pitch.ecd.ref - pitch.ecd.measure) + pitch_speed;
-    const float yaw_output = yaw_speed_pid_.calculate(yaw_speed_ref - motor.yaw.speed);
-    const float pitch_output = pitch_speed_pid_.calculate(pitch_speed_ref - motor.pitch.speed);
-    if (config_.yaw_output == CURRENT_OUTPUT)
-        motor.yaw.set_current(yaw_output);
-    else
-        motor.yaw.set_torque(yaw_output);
-    if (config_.pitch_output == CURRENT_OUTPUT)
-        motor.pitch.set_current(pitch_output);
-    else
-        motor.pitch.set_torque(pitch_output);
+    // yaw 串级 PID
+    if (can_yaw) {
+        const float speed_ref = yaw_position_pid_.calculate(yaw.ecd.ref - yaw.ecd.measure) - chassis_wr_ + yaw_speed;
+        set_output(motor.yaw, config_.yaw_output, yaw_speed_pid_.calculate(speed_ref - motor.yaw.speed));
+    } else {
+        motor.yaw.set_current(0);
+    }
+
+    // pitch 串级 PID
+    if (can_pitch) {
+        const float speed_ref = pitch_position_pid_.calculate(pitch.ecd.ref - pitch.ecd.measure) + pitch_speed;
+        set_output(motor.pitch, config_.pitch_output, pitch_speed_pid_.calculate(speed_ref - motor.pitch.speed));
+    } else {
+        motor.pitch.set_current(0);
+    }
 
     // 传递软件限位到imu参考系
     yaw.imu.ref = yaw.ecd.ref + yaw.imu_minus_ecd;
