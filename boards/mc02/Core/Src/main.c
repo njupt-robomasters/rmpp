@@ -20,6 +20,7 @@
 #include "main.h"
 #include "dma.h"
 #include "fdcan.h"
+#include "octospi.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
@@ -115,6 +116,7 @@ int main(void)
   MX_UART5_Init();
   MX_UART7_Init();
   MX_USART10_UART_Init();
+  MX_OCTOSPI1_Init();
   /* USER CODE BEGIN 2 */
   extern void bsp_init();
   extern void app_main();

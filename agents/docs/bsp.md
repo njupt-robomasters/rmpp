@@ -12,7 +12,7 @@
 | `Rgb` | 板载唯一 | TIM5 PWM | WS2812（SPI6） |
 | `Buzzer` | 板载唯一 | TIM4 CH3 | TIM12 CH2 |
 | `Imu` | 板载唯一 | BMI088 SPI1，加热 TIM10 CH1 | BMI088 SPI2，加热 TIM3 CH4 |
-| `KvStore` | 共享数据库 | FlashDB，内部 Flash | 暂无（引用时链接失败） |
+| `KvStore` | 共享数据库 | FlashDB，内部 Flash | FlashDB，W25Q64（OCTOSPI1） |
 | `Timer` | 实例计时 | 64 位周期计数 | 同左 |
 | `board/power.hpp` | 板卡专用 | 无（引用时编译报错） | `set_power(PowerOutput, bool)`，上电全关 |
 
@@ -105,6 +105,8 @@
 - 各板 `bsp/flashdb/` 放 `fdb_cfg.h`、`fal_cfg.h` 和 Flash 驱动；C 板驱动为上游示例 `fal_flash_stm32f4.c` 原样
 - 只有板卡 `kv_store.cpp` 包含 `flashdb.h`；`lib/bsp/kv_store.hpp` 不暴露 FlashDB
 - C 板：内部 Flash，分区 768 KiB 偏移、256 KiB，`FDB_WRITE_GRAN 8`
+- mc02：板载 W25Q64，OCTOSPI1 Port1（Quad 引脚分配），HCLK 260 MHz 六分频得 43.3 MHz，CS 高电平 3 周期；驱动 `fal_flash_w25q64.c` 用间接模式单线命令（0x03 读、0x02 页编程按 256 字节拆分、0x20 扇区擦除），`HAL_OSPI_AutoPolling` 等待 BUSY 清零，初始化软复位并核对 JEDEC ID 0xEF4017；分区 0 起 1 MiB，`FDB_WRITE_GRAN 1`；CPU 读写 FIFO，无需 D-Cache 维护
+- 板卡配置里把 `FDB_PRINT`、`FAL_PRINTF` 定义为空，不输出日志
 
 ## 配置注释
 

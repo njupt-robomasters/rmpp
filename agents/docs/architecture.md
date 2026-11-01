@@ -73,7 +73,7 @@ BSP `Imu` 只负责 BMI088 读取和恒温加热，输出传感器系原始量�
 
 `Rgb` 提供 `set(red, green, blue)` 和 `set_hsv`，范围 [0, 1]；周期变色由各车 `misc.cpp` 的 `misc_loop()` 执行。`Melody` 在板载 `Buzzer` 上播放曲目，见 [蜂鸣器曲目](music.md)。
 
-KvStore 的 read/write 保存 float：缺失键读零，写入不返回结果。所有实例共享同一数据库，首次构造时初始化，所用名称决定应用标记，更换名称时格式化；名称字符串保持有效。C 板分区为内部 Flash 768 KiB 偏移、256 KiB 长度；mc02 暂未实现。
+KvStore 的 read/write 保存 float：缺失键读零，写入不返回结果。所有实例共享同一数据库，首次构造时初始化，所用名称决定应用标记，更换名称时格式化；名称字符串保持有效。C 板分区为内部 Flash 768 KiB 偏移、256 KiB 长度；mc02 为板载 W25Q64 从 0 起 1 MiB。
 
 ## 收发
 
@@ -102,7 +102,7 @@ CanFrame 为经典 CAN 报文，数据容量 8 字节，size 表示实际长度�
 | Rgb | TIM5 CH3/CH2/CH1 | WS2812，SPI6 |
 | Buzzer | TIM4 CH3 | TIM12 CH2 |
 | Imu | SPI1，加热 TIM10 CH1 | SPI2，加热 TIM3 CH4 |
-| KvStore | FlashDB，内部 Flash | 暂无 |
+| KvStore | FlashDB，内部 Flash | FlashDB，W25Q64 |
 | 板卡专用 | 无 | `board/power.hpp`：OUT1、OUT2、OUT_5V |
 
 ## 构建与扩展

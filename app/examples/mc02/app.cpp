@@ -1,9 +1,10 @@
-// mc02 外设自检：电源、RGB、蜂鸣器、IMU 姿态，以及 CAN、串口、CDC 的回环转发
+// mc02 外设自检：电源、RGB、蜂鸣器、IMU 姿态、KvStore 启动计数，以及 CAN、串口、CDC 的回环转发
 #include "attitude/attitude.hpp"
 #include "board/power.hpp"
 #include "bsp/can.hpp"
 #include "bsp/cdc.hpp"
 #include "bsp/imu.hpp"
+#include "bsp/kv_store.hpp"
 #include "bsp/rgb.hpp"
 #include "bsp/timer.hpp"
 #include "bsp/uart.hpp"
@@ -34,6 +35,11 @@ extern "C" void app_main() {
     set_power(PowerOutput::OUT_5V, true); // CAN 收发器与外设 5 V
     echo();
     melody.play(C5D5G5);
+
+    // 每次上电加 1，调试器查看 boot_count 验证 Flash 读写
+    KvStore kv_store("mc02");
+    [[maybe_unused]] static float boot_count = kv_store.read("boot_count") + 1;
+    kv_store.write("boot_count", boot_count);
 
     static constexpr float RGB_PERIOD = 1; // 色彩循环周期，s
     float hue = 0;
