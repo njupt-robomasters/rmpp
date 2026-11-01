@@ -10,7 +10,7 @@ app/examples/<示例>/        rgb、rc、imu、buzzer、motor、referee、chassi
 lib/bsp/                   无 HAL 依赖的公共外设声明（Can、Uart、Cdc、Rgb、Buzzer、Imu、Storage、Timer、Monitor）
 lib/attitude/              姿态解算：Attitude 与算法类 QuaternionEkf
 lib/math/                  单位、角度、低通滤波、Eigen 类型与姿态转换
-lib/misc/                  Melody 与曲目
+lib/melody/                  Melody 与曲目
 lib/third_party/           Eigen、CherryUSB（v1.6.1 子集）
 boards/<板卡>/              CubeMX 工程与生成 CMake
 boards/<板卡>/bsp/          外设实现、入口、手写 CMake、工具链适配、usb_config.h

@@ -2,7 +2,7 @@
 
 #include "bsp/can.hpp"
 
-#include "motor/dji/m3508.hpp"
+#include "motor/m3508.hpp"
 #include "robot/chassis/chassis_omni.hpp"
 
 // 电机参数

@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include "bsp/can.hpp"
 #include "bsp/timer.hpp"
-#include "misc/music/c5d5g5.hpp"
+#include "melody/music/c5d5g5.hpp"
 
 static void send_can_cmd() {
     // CAN1

@@ -1,5 +1,5 @@
-#include "misc/melody.hpp"
-#include "misc/music/always_with_me.hpp"
+#include "melody/melody.hpp"
+#include "melody/music/always_with_me.hpp"
 
 static Melody melody;
 

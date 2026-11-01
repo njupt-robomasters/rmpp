@@ -7,8 +7,8 @@
 #include "bsp/rgb.hpp"
 #include "bsp/timer.hpp"
 #include "bsp/uart.hpp"
-#include "misc/melody.hpp"
-#include "misc/music/c5d5g5.hpp"
+#include "melody/melody.hpp"
+#include "melody/music/c5d5g5.hpp"
 #include <cmath>
 
 static Rgb rgb;

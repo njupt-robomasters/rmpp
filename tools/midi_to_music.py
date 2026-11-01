@@ -164,7 +164,7 @@ def main():
         preview(convert(events, tracks, max_rest))
 
     notes = convert(events, tracks, max_rest)
-    output = ROOT / ask("输出目录", "lib/misc/music")
+    output = ROOT / ask("输出目录", "lib/melody/music")
     name = re.sub(r"[^0-9a-zA-Z]+", "_", path.stem).strip("_").lower() or "music"
     if name[0].isdigit():
         name = "music_" + name
@@ -176,7 +176,7 @@ def main():
     body = "".join(f"    {{{midi}, {length}}},\n" for midi, length in notes)
     output.mkdir(parents=True, exist_ok=True)
     file.write_text(
-        f'#pragma once\n\n#include "misc/melody.hpp"\n\ninline constexpr Note {name.upper()}[] = {{\n{body}}};\n',
+        f'#pragma once\n\n#include "melody/melody.hpp"\n\ninline constexpr Note {name.upper()}[] = {{\n{body}}};\n',
         encoding="utf-8",
         newline="\n",
     )

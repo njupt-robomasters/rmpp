@@ -1,5 +1,5 @@
 #include "math/angle.hpp"
-#include "motor/dm/dm4310.hpp"
+#include "motor/dm4310.hpp"
 #include "pid/pid.hpp"
 #include "rc/fsi6x.hpp"
 #include "rc/vt13.hpp"

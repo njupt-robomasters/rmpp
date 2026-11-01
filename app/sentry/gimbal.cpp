@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "bsp/timer.hpp"
-#include "misc/music/g5g5g5.hpp"
+#include "melody/music/g5g5g5.hpp"
 #include <algorithm>
 #include <cmath>
 

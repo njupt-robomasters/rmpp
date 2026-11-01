@@ -6,8 +6,8 @@
 #include "bsp/imu.hpp"
 
 #include "attitude/attitude.hpp"
-#include "motor/dji/gm6020.hpp"
-#include "motor/dm/dm4310.hpp"
+#include "motor/gm6020.hpp"
+#include "motor/dm4310.hpp"
 #include "robot/gimbal/gimbal_classic.hpp"
 
 // 惯性测量单元与姿态解算

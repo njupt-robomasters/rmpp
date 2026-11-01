@@ -5,7 +5,7 @@
 #include "bsp/can.hpp"
 
 #include "math/unit.hpp"
-#include "motor/dji/m3508.hpp"
+#include "motor/m3508.hpp"
 #include "motor/vesc.hpp"
 #include "robot/shooter/shooter_17mm.hpp"
 

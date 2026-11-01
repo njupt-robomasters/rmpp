@@ -1,10 +1,10 @@
 # 蜂鸣器曲目
 
-曲目是 `Note` 数组，每首一个 `.hpp`，放在 `lib/misc/music/`，由 `tools/midi_to_music.py` 从 MIDI 生成。
+曲目是 `Note` 数组，每首一个 `.hpp`，放在 `lib/melody/music/`，由 `tools/midi_to_music.py` 从 MIDI 生成。
 
 ```cpp
-#include "misc/melody.hpp"
-#include "misc/music/c5d5g5.hpp"
+#include "melody/melody.hpp"
+#include "melody/music/c5d5g5.hpp"
 
 Melody melody; // 使用板载蜂鸣器，周期调用 melody.update()
 melody.play(C5D5G5);
@@ -34,7 +34,7 @@ python tools/midi_to_music.py
 | MIDI 路径 | 无 | 可拖入文件，自动去掉引号 |
 | 休止最长时间 | 1000 ms | 限制 MIDI 中的长空白 |
 | 音轨 | 全部合并 | 输入序号选择，`p 序号` 试听单轨，`p` 试听合并结果；单音轨同样可试听 |
-| 输出目录 | `lib/misc/music` | 相对项目根目录 |
+| 输出目录 | `lib/melody/music` | 相对项目根目录 |
 | 曲目名 | MIDI 文件名的 snake_case | 文件名为 `曲目名.hpp`，数组名大写 |
 
 试听播放的是转换后的结果，与板上行为一致。

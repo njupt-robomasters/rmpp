@@ -3,8 +3,8 @@
 #include "bsp/can.hpp"
 
 #include "math/unit.hpp"
-#include "motor/dji/m3508.hpp"
-#include "motor/dji/gm6020.hpp"
+#include "motor/m3508.hpp"
+#include "motor/gm6020.hpp"
 #include "robot/chassis/chassis_dual_steer.hpp"
 
 // 电机参数

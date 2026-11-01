@@ -7,9 +7,8 @@
 
 #include "attitude/attitude.hpp"
 #include "math/unit.hpp"
-#include "motor/dji/gm6020.hpp"
-#include "motor/dm/dm4310.hpp"
-#include "motor/lk/mf9025.hpp"
+#include "motor/dm4310.hpp"
+#include "motor/gm6020.hpp"
 #include "robot/gimbal/gimbal_dual_yaw.hpp"
 
 // 惯性测量单元与姿态解算
@@ -30,15 +29,17 @@ inline Attitude attitude(imu, {.orientation = euler_to_quaternion({.yaw = -90 * 
 // #define pitch_angle_pid angle_pid
 // #define pitch motor
 
-// 大yaw电机
+// 大yaw电机：由 MF9025 换为 DM4310，CAN ID、PID 与安装方向待实车整定
+// GimbalDualYaw 的 yaw_output 同时作用于大小 yaw，大 yaw 为 DM4310、小 yaw 为 GM6020，输出类型待调整
 inline Pid::Config yaw1_pid = {
     .kp = (9) / (1.8 * deg),
     .kd = (9) / (18 * deg_s),
     .max_out = 9,
     .fc = 10,
 };
-inline MF9025 yaw1({
-    .bus = {.can = Can(1), .tx_id = 0x141, .rx_id = 0x141},
+inline DM4310 yaw1({
+    .bus = {.can = Can(1), .tx_id = 0x12, .rx_id = 0x13},
+    .drive = {.max_torque = DM4310::MAX_TORQUE, .kt = DM4310::KT, .reduction = DM4310::REDUCTION},
     .install = {.is_invert = false},
 });
 

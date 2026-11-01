@@ -8,7 +8,7 @@
 #include "bsp/storage.hpp"
 #include "minipc/aim.hpp"
 #include "minipc/nav.hpp"
-#include "misc/melody.hpp"
+#include "melody/melody.hpp"
 #include "rc/fsi6x.hpp"
 #include "rc/vt13.hpp"
 #include "referee/referee.hpp"
