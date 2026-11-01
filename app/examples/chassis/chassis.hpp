@@ -51,11 +51,9 @@ inline M3508 w4({
 });
 
 // 底盘
-inline ChassisOmni chassis({
-                               .chassis_radius = CHASSIS_RADIUS,
-                               .wheel_radius = WHEEL_RADIUS,
-                               .vxyz_pid_config = &vxyz_pid,
-                               .follow_pid_config = &follow_pid,
-                               .steer_pid_config = &vxyz_pid,
-                           },
-                           {w1, w2, w3, w4});
+inline ChassisOmniTorque chassis({
+                                     .chassis_radius = CHASSIS_RADIUS,
+                                     .wheel_radius = WHEEL_RADIUS,
+                                     .follow_pid_config = &follow_pid,
+                                 },
+                                 &vxyz_pid, {&w1, &w2, &w3, &w4});

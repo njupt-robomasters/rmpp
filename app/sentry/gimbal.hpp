@@ -55,10 +55,11 @@ inline Pid::Config yaw2_angle_pid = {
     .max_out = 720 * deg_s,
 };
 inline GM6020 yaw2({
-    .bus = {.can = Can(1), .rx_id = 0x205},
-    .drive = {.max_current = GM6020::MAX_CURRENT, .kt = GM6020::KT, .reduction = GM6020::REDUCTION},
-    .install = {.offset = 0 * deg},
-});
+                       .bus = {.can = Can(1), .rx_id = 0x205},
+                       .drive = {.max_current = GM6020::MAX_CURRENT, .kt = GM6020::KT, .reduction = GM6020::REDUCTION},
+                       .install = {.offset = 0 * deg},
+                   },
+                   {.gain = 1.0f}); // 电压帧完整反电动势前馈
 
 // pitch电机
 inline Pid::Config pitch_speed_pid = {

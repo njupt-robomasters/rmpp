@@ -6,17 +6,24 @@
 static void send_can_cmd() {
     // CAN1
 
-    CanFrame chassis_frame{.id = 0x200, .size = 8};
-    w1.write_can_frame(chassis_frame);
-    w2.write_can_frame(chassis_frame);
-    Can(1).send(chassis_frame);
+    CanFrame wheel_frame{.id = 0x200, .size = 8};
+    w1.write_can_frame(wheel_frame);
+    w2.write_can_frame(wheel_frame);
+    w3.write_can_frame(wheel_frame);
+    w4.write_can_frame(wheel_frame);
+    Can(1).send(wheel_frame);
 
-    CanFrame gimbal_frame{.id = 0x1FF, .size = 8};
-    yaw2.write_can_frame(gimbal_frame);
-    shoot.write_can_frame(gimbal_frame);
-    s1.write_can_frame(gimbal_frame);
-    s2.write_can_frame(gimbal_frame);
-    Can(1).send(gimbal_frame);
+    CanFrame frame_1ff{.id = 0x1FF, .size = 8};
+    yaw2.write_can_frame(frame_1ff);
+    shoot.write_can_frame(frame_1ff);
+    s1.write_can_frame(frame_1ff);
+    s2.write_can_frame(frame_1ff);
+    Can(1).send(frame_1ff);
+
+    CanFrame frame_2ff{.id = 0x2FF, .size = 8};
+    s3.write_can_frame(frame_2ff);
+    s4.write_can_frame(frame_2ff);
+    Can(1).send(frame_2ff);
 
     yaw1.send();
 
@@ -46,9 +53,9 @@ static void update_ui() {
     ui.shoot = shooter.shoot_current; // 拨弹电机电流
 
     // 机器人状态
-    chassis.update_ui(ui);                                          // 底盘
-    gimbal.update_ui(ui);                                           // 云台
-    shooter.update_ui(ui);                                          // 发射机构
+    chassis.update_ui(ui);                                                    // 底盘
+    gimbal.update_ui(ui);                                                     // 云台
+    shooter.update_ui(ui);                                                    // 发射机构
     ui.robot.referee = referee.is_connected ? RobotUi::GREEN : RobotUi::PINK; // 裁判系统
     ui.robot.aim = aim.is_connect_vision ? RobotUi::GREEN : RobotUi::PINK;    // 自瞄
 

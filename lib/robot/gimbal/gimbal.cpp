@@ -10,14 +10,7 @@ void Gimbal::set_enable(const bool is_enable) {
         return;
     this->is_enable = is_enable;
 
-    if (!is_enable) {
-        yaw_speed_pid_.clear();
-        yaw_position_pid_.clear();
-        pitch_speed_pid_.clear();
-        pitch_position_pid_.clear();
-    }
-
-    // 这里设置电机
+    set_motors_enable(is_enable);
 }
 
 void Gimbal::set_mode(const Mode mode) {
@@ -46,6 +39,7 @@ void Gimbal::set_chassis_wr(float chassis_wr) {
 
 void Gimbal::update() {
     attitude.update();
+    update_motors();
 
     // 更新云台转动
     handle_motion();
@@ -53,8 +47,37 @@ void Gimbal::update() {
     // 角度正逆解
     forward();
     backward();
+}
 
-    // 这里更新电机
+bool Gimbal::check_yaw(const bool is_connect) {
+    if (is_enable && is_connect && is_yaw_ready_)
+        return true;
+
+    yaw.ecd.ref = yaw.ecd.measure;
+    yaw.imu.ref = yaw.imu.measure;
+    yaw_speed_pid_.clear();
+    yaw_position_pid_.clear();
+    is_yaw_ready_ = is_enable && is_connect;
+    return is_yaw_ready_;
+}
+
+bool Gimbal::check_pitch(const bool is_connect) {
+    if (is_enable && is_connect && is_pitch_ready_)
+        return true;
+
+    pitch.ecd.ref = pitch.ecd.measure;
+    pitch.imu.ref = pitch.imu.measure;
+    pitch_speed_pid_.clear();
+    pitch_position_pid_.clear();
+    is_pitch_ready_ = is_enable && is_connect;
+    return is_pitch_ready_;
+}
+
+void Gimbal::set_output(Motor& motor, const PidOutput type, const float output) {
+    if (type == CURRENT_OUTPUT)
+        motor.set_current(output);
+    else
+        motor.set_torque(output);
 }
 
 void Gimbal::handle_motion() {

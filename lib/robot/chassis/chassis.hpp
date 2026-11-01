@@ -2,32 +2,36 @@
 
 #include "math/angle.hpp"
 #include "math/unit.hpp"
+#include "motor/motor.hpp"
 #include "pid/pid.hpp"
 #include "referee/ui.hpp"
+#include <array>
+#include <cstddef>
+#include <tuple>
 
+// 四轮底盘公共部分：模式与跟随、云台系换算、轮电机在线管理、功率输入与估计
+// 控制方式由 ChassisSpeed、ChassisTorque 实现，构型由其子类实现
+// 国际单位制：半径 m，速度 m/s，角速度 rad/s，力 N，功率 W，能量 J
 class Chassis {
   public:
-    // 国际单位制：半径 m，速度 m/s，角速度 rad/s，力 N，功率 W，能量 J
-    // 底盘配置
     struct Config {
-        float chassis_radius{};                         // 底盘半径
+        float chassis_radius{};                         // 底盘中心到轮的距离
         float wheel_radius{};                           // 轮子半径
-        float reserve_wr = 60 * rpm;                    // 功率限制下，优先衰减旋转速度到保留值
-        const Pid::Config* vxyz_pid_config;   // 底盘运动PID参数
-        const Pid::Config* follow_pid_config; // 底盘跟随PID参数
-        const Pid::Config* steer_pid_config;  // 舵向位置PID参数
-    } config;
-
-    bool is_enable = false; // 底盘使能标志
+        float wheel_resistance{};                       // 轮电机线间电阻，Ω，用于功率估计与控制
+        float reserve_wr = 60 * rpm;                    // 功率受限时优先衰减旋转，保留的角速度
+        const Pid::Config* follow_pid_config = nullptr; // 跟随 PID，误差 rad，输出 rad/s；为空时跟随模式不旋转
+    };
 
     // 底盘模式
     enum Mode {
-        DETACH_MODE, // 底盘分离模式
-        FOLLOW_MODE, // 底盘跟随模式
-    } mode = DETACH_MODE;
+        DETACH_MODE, // 分离模式
+        FOLLOW_MODE, // 跟随模式
+    };
 
-    // 移动速度
-    // vx-前正后负，vy-左正右负
+    bool is_enable = false;
+    Mode mode = DETACH_MODE;
+
+    // 移动速度，云台系，vx 前正后负，vy 左正右负
     struct {
         float ref{}, measure{};
     } vx, vy;
@@ -37,72 +41,81 @@ class Chassis {
         float ref{}, measure{};
     } vz;
 
-    // 旋转角速度，逆时针为正
+    // 旋转角速度，逆时针为正；input 为用户输入，ref 叠加跟随后得到
     struct {
         float ref{}, measure{}, input{};
     } wr;
 
-    // 移动牵引力
-    // fx-前正后负，fy-左正右负
+    // 功率
     struct {
-        float ref{}, measure{};
-    } fx, fy;
-
-    // 旋转牵引力，逆时针为正
-    struct {
-        float ref{}, measure{};
-    } fz;
-
-    // 用于功率控制
-    struct {
-        float limit = 120;                                     // 功率限制
-        float buffer_energy = 60;                              // 缓冲能量
-        float gain{}, gain_x{}, gain_y{}, gain_xy{}, gain_z{}; // 力矩衰减系数
-        float estimate{}, estimate_xy{}, estimate_z{};         // 功率估计
+        float limit = 120;        // 功率限制，65535 表示不限
+        float buffer_energy = 60; // 缓冲能量
+        float estimate{};         // 估计功率：轮电机机械功率与铜耗，不含舵电机
     } power;
 
-    Chassis(const Config& config);
+    const Config& config() const;
 
-    // 设置底盘使能/失能
-    virtual void set_enable(bool is_enable);
+    // 使能/失能，切换时回到分离模式，防止车突然转动
+    void set_enable(bool is_enable);
 
-    // 设置底盘分离/跟随模式
+    // 设置分离/跟随模式
     void set_mode(Mode mode);
 
-    // 设置底盘速度
+    // 设置云台系平移速度与旋转角速度
     void set_speed(float vx, float vy, float wr);
 
-    // 设置底盘前进正方向（云台yaw角度）
+    // 设置前进正方向（云台相对底盘的 yaw）
     void set_gimbal_yaw(Angle gimbal_yaw);
 
-    // 设置底盘功率限制，65535表示不限功率
+    // 设置功率限制，65535 表示不限功率
     void set_power_limit(float power_limit);
 
-    // 设置底盘缓冲能量
+    // 设置缓冲能量
     void set_buffer_energy(float buffer_energy);
 
-    // 在自定义UI上显示电机连接状态
-    virtual void update_ui(RobotUi& ui) = 0;
+    // 在自定义 UI 上显示电机连接状态
+    virtual void update_ui(RobotUi& ui);
 
-    // 需要在循环中调用
-    virtual void update();
+    // 每个控制周期调用
+    void update();
 
   protected:
-    Angle gimbal_yaw_; // 前进正方向（云台相对于底盘的yaw）
+    const Config config_;
+    const std::array<Motor*, 4> wheel_; // 轮电机：左前、左后、右后、右前
+    Angle gimbal_yaw_;
 
-    // 计算PID
-    void calc_pid();
+    Chassis(const Config& config, const std::array<Motor*, 4>& wheel);
 
-    // 功率控制，必须放在【逆解之前】
-    void power_control();
+    virtual void set_motors_enable(bool is_enable);
 
-    // 速度和力学正解
+    // 离线检测
+    virtual void update_motors();
+
+    // 轮 i 能否驱动，不能驱动的轮由控制层清空 PID 并输出零
+    virtual bool can_drive(size_t i) const;
+
+    // 失能时每周期清空 PID
+    virtual void clear_pid();
+
+    // 轮 i 线速度与牵引力，离线时为零
+    float wheel_speed(size_t i) const;
+    float wheel_force(size_t i) const;
+
+    // 单个轮电机铜耗，current 为 iq
+    float copper_loss(float current) const;
+
+    // 云台系速度目标换算到底盘系 (vx, vy, vz)
+    std::tuple<float, float, float> speed_ref() const;
+
+    // 底盘系速度测量换算到云台系
+    void set_speed_measure(float vx, float vy, float vz);
+
+    // 正解：电机反馈 → 底盘测量
     virtual void forward() = 0;
 
-    // 速度和力学逆解
-    virtual void backward() = 0;
+    // 控制：底盘目标 → 电机输出
+    virtual void control() = 0;
 
   private:
-    Pid vx_pid_, vy_pid_, vz_pid_; // 底盘运动PID控制器
-    Pid follow_pid_;               // 底盘跟随PID
+    Pid follow_pid_;
 };

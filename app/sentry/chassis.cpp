@@ -72,7 +72,7 @@ void chassis_loop() {
         }
         std::tie(vx, vy) = rotate(nav.chassis_speed.vx, nav.chassis_speed.vy, yaw2.position);
         const float speed = std::hypotf(vx, vy);
-        wr = map(speed, 0.0f, VXY_MAX, WR_MAX, chassis.config.reserve_wr);
+        wr = map(speed, 0.0f, VXY_MAX, WR_MAX, chassis.config().reserve_wr);
     } else {
         chassis_state = GO_CENTER;
         nav.target_position = {};

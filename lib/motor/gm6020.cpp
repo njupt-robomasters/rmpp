@@ -1,8 +1,12 @@
 #include "gm6020.hpp"
 #include "math/unit.hpp"
+#include <algorithm>
 
 GM6020::GM6020(const Config& config)
-    : Motor(config) {
+    : GM6020(config, BackEmf{}) {}
+
+GM6020::GM6020(const Config& config, const BackEmf& back_emf)
+    : Motor(config), back_emf_(back_emf) {
     config.bus.can.add_rx_callback([this](const CanFrame& frame) { can_callback(frame); });
 }
 
@@ -23,17 +27,19 @@ bool GM6020::write_can_frame(CanFrame& frame) const {
         return false;
     const uint8_t offset = static_cast<uint8_t>(config.bus.rx_id - first_id) * 2;
 
-    // 计算can命令
-    float current = 0;
-    if (is_connect && is_enable)
-        current = config.install.is_invert ? -current_ref : current_ref;
-    int16_t command;
+    // 计算can命令，先在安装方向修正后的坐标系计算，再换回电机方向
+    const float dir = config.install.is_invert ? -1.0f : 1.0f;
+    int16_t command = 0;
     if (frame.id == 0x1ff || frame.id == 0x2ff) { // 电压模式
-        command = static_cast<int16_t>(current / MAX_CURRENT * 25000.0f);
-    } else if (frame.id == 0x1fe || frame.id == 0x2fe) { // 电流模式
-        command = static_cast<int16_t>(current / MAX_CURRENT * 16384.0f);
-    } else {
-        return false;
+        float voltage = 0;
+        if (is_connect && is_enable)
+            voltage = std::clamp(current_ref / MAX_CURRENT * MAX_VOLTAGE + back_emf_.gain * back_emf_.ke * speed, -MAX_VOLTAGE, MAX_VOLTAGE);
+        command = static_cast<int16_t>(dir * voltage / MAX_VOLTAGE * 25000.0f);
+    } else { // 电流模式
+        float current = 0;
+        if (is_connect && is_enable)
+            current = current_ref;
+        command = static_cast<int16_t>(dir * current / MAX_CURRENT * 16384.0f);
     }
 
     // 构造can报文

@@ -1,10 +1,12 @@
 #pragma once
 
 #include "math/unit.hpp"
+#include "motor/motor.hpp"
 #include "pid/pid.hpp"
 #include "referee/ui.hpp"
 #include <stdint.h>
 
+// 发射机构公共部分；摩擦轮与拨弹电机各自处理掉线，互不耦合，便于调试
 class Shooter {
   public:
     enum PidOutput { CURRENT_OUTPUT,
@@ -45,7 +47,7 @@ class Shooter {
     Shooter(const Config& config);
 
     // 设置发射结构使能/失能
-    virtual void set_enable(bool is_enable);
+    void set_enable(bool is_enable);
 
     // 设置弹速参考值，m/s，保持到下次设置
     void set_bullet_speed(float bullet_speed);
@@ -66,13 +68,23 @@ class Shooter {
     virtual void update_ui(RobotUi& ui) = 0;
 
     // 需要在循环中调用
-    virtual void update();
+    void update();
 
   protected:
-    Pid rub_pid_;
     Pid shoot_pid_;
     bool is_block_ = false; // 堵转标志
     Timer timer_block_;     // 堵转计时器
+
+    virtual void set_motors_enable(bool is_enable) = 0;
+
+    // 离线检测
+    virtual void update_motors() = 0;
+
+    // 摩擦轮速度闭环；离线或关闭时清空 PID 并输出零，关闭且低速时释放
+    void control_rub(Motor& motor, Pid& pid, float speed_ref, float speed_measure);
+
+    // 按配置的输出类型设置电流或力矩
+    static void set_output(Motor& motor, PidOutput type, float output);
 
     // 正解：电机速度 -> 弹速、弹频
     virtual void forward() = 0;
