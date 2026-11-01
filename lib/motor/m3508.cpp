@@ -44,8 +44,9 @@ void M3508::can_callback(const CanFrame& frame) {
     // 解析can报文
     const auto* data = frame.data;
     raw.position = static_cast<float>((data[0] << 8) | data[1]) / 8192.0f * rev;
-    raw.speed = static_cast<float>((data[2] << 8) | data[3]) * rpm;
-    raw.current = static_cast<float>((data[4] << 8) | data[5]) / 16384.0f * MAX_CURRENT;
+    // 转速、电流为有符号 16 位，先转 int16_t 保留反转符号
+    raw.speed = static_cast<int16_t>((data[2] << 8) | data[3]) * rpm;
+    raw.current = static_cast<int16_t>((data[4] << 8) | data[5]) / 16384.0f * MAX_CURRENT;
     motor_temperature = static_cast<int8_t>(data[6]);
     raw.torque = raw.current * config.drive.kt;
 
