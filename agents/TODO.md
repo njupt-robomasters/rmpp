@@ -72,10 +72,9 @@
 
 ## 轮腿底盘迁移
 
-状态：分析完成，未改代码。极性结论与待确认项见 `tasks/04-leg_chassis/README.md`
+状态：代码完成，`leg` 编译通过，待用户审计与上车。worktree `../rmpp-leg-chassis`，分支 `leg_chassis`；结论与上车核对项见 `tasks/04-leg_chassis/README.md`
 
-- 已确认：姿态由外部传入，本轮只接通用姿态；欧拉角按标准定义，低头 pitch 增大
-- 待用户确认：板卡安装是否与外部车一致、代码形态与位置、车型、roll PID 的 OLS 微分、跟随是否启用
+- 待做：虚拟 IMU（云台 IMU + 关节角）；云台跟随
 
 ## 后续任务
 
