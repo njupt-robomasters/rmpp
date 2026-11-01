@@ -8,14 +8,6 @@
             "binaryDir": "${sourceDir}/build/${presetName}"
         },
         {
-            "name": "examples-melody",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "examples/melody",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
             "name": "examples-cdc",
             "inherits": "default",
             "cacheVariables": {
@@ -52,6 +44,14 @@
             "inherits": "default",
             "cacheVariables": {
                 "RMPP_APP": "examples/kv_store",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "examples-melody",
+            "inherits": "default",
+            "cacheVariables": {
+                "RMPP_APP": "examples/melody",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
@@ -100,6 +100,14 @@
             "inherits": "default",
             "cacheVariables": {
                 "RMPP_APP": "infantry",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "leg",
+            "inherits": "default",
+            "cacheVariables": {
+                "RMPP_APP": "leg",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
