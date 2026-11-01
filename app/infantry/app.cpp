@@ -54,9 +54,9 @@ static void update_ui() {
 }
 
 extern "C" void app_main() {
-    // gimbal.imu.start_calibration();
+    // gimbal.attitude.start_calibration();
     gimbal.load_yaw_offset(storage);
-    buzzer.play(C5D5G5);
+    melody.play(C5D5G5);
 
     [[maybe_unused]] static float cpu_usage{};
     Timer timer;
@@ -64,11 +64,11 @@ extern "C" void app_main() {
         if (timer.elapsed() > 1 * ms) {
             timer.restart();
             misc_loop();
-            buzzer.update();
+            melody.update();
             vt13.update();
             fsi6x.update();
             referee.update();
-            aim.imu = {.yaw = gimbal.imu.yaw, .pitch = gimbal.imu.pitch, .roll = gimbal.imu.roll};
+            aim.imu = {.yaw = gimbal.attitude.yaw, .pitch = gimbal.attitude.pitch, .roll = gimbal.attitude.roll};
             aim.referee = {
                 .is_red = referee.robot_status.robot_id < 100,
                 .game_progress = static_cast<Referee::GameProgress>(referee.game_status.game_progress),

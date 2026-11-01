@@ -40,6 +40,14 @@
             }
         },
         {
+            "name": "examples-mc02",
+            "inherits": "default",
+            "cacheVariables": {
+                "RMPP_APP": "examples/mc02",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
             "name": "examples-motor",
             "inherits": "default",
             "cacheVariables": {
@@ -80,14 +88,6 @@
             }
         },
         {
-            "name": "hero",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "hero",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
             "name": "infantry",
             "inherits": "default",
             "cacheVariables": {
@@ -100,6 +100,14 @@
             "inherits": "default",
             "cacheVariables": {
                 "RMPP_APP": "sentry",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "test-buzzer_duo",
+            "inherits": "default",
+            "cacheVariables": {
+                "RMPP_APP": "test/buzzer_duo",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         }

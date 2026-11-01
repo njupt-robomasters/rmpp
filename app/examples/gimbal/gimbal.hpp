@@ -3,18 +3,16 @@
 #include "pid/pid.hpp"
 
 #include "bsp/can.hpp"
-#include "bsp/pwm.hpp"
-#include "bsp/spi.hpp"
+#include "bsp/imu.hpp"
 
+#include "attitude/attitude.hpp"
 #include "motor/dji/gm6020.hpp"
 #include "motor/dm/dm4310.hpp"
 #include "robot/gimbal/gimbal_classic.hpp"
 
-// 惯性测量单元
-inline Imu imu({
-    .hardware = {.sensor = Bmi088({.accel = Spi(1, 1), .gyro = Spi(1, 2)}), .heater = Pwm(10, 1)},
-    .adjust = {.gyro_offset = Vector3(0.00316276052f, -0.00411193585f, -0.00242328411f), .gravity = 9.79961872f},
-});
+// 惯性测量单元与姿态解算
+inline Imu imu;
+inline Attitude attitude(imu, {.gyro_offset = Vector3(0.00316276052f, -0.00411193585f, -0.00242328411f), .gravity = 9.79961872f});
 
 // yaw电机
 inline Pid::Config yaw_speed_pid = {
@@ -50,7 +48,7 @@ inline DM4310 pitch({
 });
 
 // 云台
-inline GimbalClassic gimbal(imu,
+inline GimbalClassic gimbal(attitude,
                             {.yaw_speed_pid_config = &yaw_speed_pid,
                              .yaw_position_pid_config = &yaw_angle_pid,
                              .pitch_speed_pid_config = &pitch_speed_pid,

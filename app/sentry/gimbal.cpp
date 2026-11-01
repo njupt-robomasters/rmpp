@@ -40,7 +40,7 @@ void gimbal_loop() {
     if (calib && !last_calib) {
         gimbal.set_yaw_zero();
         gimbal.save_yaw_offset(storage);
-        buzzer.play(G5G5G5);
+        melody.play(G5G5G5);
     }
     last_calib = calib;
 

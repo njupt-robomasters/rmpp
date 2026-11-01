@@ -26,6 +26,4 @@ class Pid {
     float out_no_filter_{}, p_out_{}, i_out_{}, d_out_{};
     float err_{}, last_err_{};
     Timer timer_{0.0001f, 0.01f};
-
-    static float lowpass_filter(float pre, float next, float fc, float dt);
 };

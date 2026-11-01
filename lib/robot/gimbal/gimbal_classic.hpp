@@ -10,7 +10,7 @@ class GimbalClassic : public Gimbal {
         Motor &yaw, &pitch;
     } motor;
 
-    GimbalClassic(Imu& imu, const Config& config, const Motors& motor);
+    GimbalClassic(Attitude& attitude, const Config& config, const Motors& motor);
 
     // 云台使能/失能
     void set_enable(bool is_enable) override;

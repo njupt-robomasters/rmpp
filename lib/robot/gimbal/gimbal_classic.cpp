@@ -1,8 +1,8 @@
 #include "gimbal_classic.hpp"
 #include <algorithm>
 
-GimbalClassic::GimbalClassic(Imu& imu, const Config& config, const Motors& motor)
-    : Gimbal(imu, config), motor(motor) {}
+GimbalClassic::GimbalClassic(Attitude& attitude, const Config& config, const Motors& motor)
+    : Gimbal(attitude, config), motor(motor) {}
 
 void GimbalClassic::set_enable(const bool is_enable) {
     if (this->is_enable == is_enable)
@@ -49,8 +49,8 @@ void GimbalClassic::forward() {
     pitch.ecd.measure = motor.pitch.position;
 
     // 读取imu
-    yaw.imu.measure = imu.yaw;
-    pitch.imu.measure = imu.pitch;
+    yaw.imu.measure = attitude.yaw;
+    pitch.imu.measure = attitude.pitch;
 }
 
 void GimbalClassic::backward() {

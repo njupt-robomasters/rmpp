@@ -1,0 +1,16 @@
+extern void timer_init();
+extern void can_init();
+extern void uart_init();
+extern void cdc_init();
+extern void buzzer_init();
+extern void imu_init();
+
+// 由 main.c USER CODE 2 在 CubeMX 外设初始化后调用
+extern "C" void bsp_init() {
+    timer_init();
+    can_init();
+    uart_init();
+    cdc_init();
+    buzzer_init();
+    imu_init();
+}

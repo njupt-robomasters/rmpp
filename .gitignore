@@ -1,1 +1,8 @@
 build
+
+# AI 任务中间产物
+agents/tasks/**/out/
+agents/tasks/**/*.log
+agents/tasks/**/*.bin
+agents/tasks/**/*.elf
+agents/tasks/**/*.csv

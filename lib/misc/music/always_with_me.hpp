@@ -1,6 +1,6 @@
 #pragma once
 
-#include "misc/buzzer.hpp"
+#include "misc/melody.hpp"
 
 inline constexpr Note ALWAYS_WITH_ME[] = {
     {65, 53},

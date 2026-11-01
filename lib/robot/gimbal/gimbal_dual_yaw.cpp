@@ -1,8 +1,8 @@
 #include "gimbal_dual_yaw.hpp"
 #include <algorithm>
 
-GimbalDualYaw::GimbalDualYaw(Imu& imu, const Config& config, const Motors& motor)
-    : Gimbal(imu, config), motor(motor) {}
+GimbalDualYaw::GimbalDualYaw(Attitude& attitude, const Config& config, const Motors& motor)
+    : Gimbal(attitude, config), motor(motor) {}
 
 void GimbalDualYaw::set_enable(const bool is_enable) {
     if (this->is_enable == is_enable)
@@ -55,8 +55,8 @@ void GimbalDualYaw::forward() {
     yaw.ecd.measure = yaw1.measure + yaw2.measure;
 
     // 读取imu
-    yaw.imu.measure = imu.yaw;
-    pitch.imu.measure = imu.pitch;
+    yaw.imu.measure = attitude.yaw;
+    pitch.imu.measure = attitude.pitch;
 }
 
 void GimbalDualYaw::backward() {

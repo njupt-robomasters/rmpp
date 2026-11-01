@@ -4,17 +4,21 @@
 #include <cstdint>
 #include <functional>
 
+// USB CDC 虚拟串口；C 板只有 Cdc(1)，mc02 有 Cdc(1)、Cdc(2)
 class Cdc {
   public:
     // 接收数据仅在回调期间有效
     using RxCallback = std::function<void(const uint8_t*, std::size_t)>;
 
-    explicit Cdc(int id);
+    // 编号不存在时各操作静默返回
+    constexpr explicit Cdc(const int id) : id_(id) {}
 
-    // 成功时复制到 STM32 CDC 发送缓冲区；size 不超过 APP_TX_DATA_SIZE
+    // 成功时复制到端口发送缓冲区；size 为 1–2048，未枚举或上次发送未完成时返回 false
     bool send(const uint8_t* data, std::size_t size) const;
+
+    // 回调在 USB 中断内依序执行
     void add_rx_callback(RxCallback callback) const;
 
-    struct Context;
-    Context* context_ = nullptr;
+  private:
+    int id_;
 };

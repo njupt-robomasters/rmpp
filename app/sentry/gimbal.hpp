@@ -3,23 +3,20 @@
 #include "pid/pid.hpp"
 
 #include "bsp/can.hpp"
-#include "bsp/pwm.hpp"
-#include "bsp/spi.hpp"
+#include "bsp/imu.hpp"
 
-#include "imu/imu.hpp"
+#include "attitude/attitude.hpp"
 #include "math/unit.hpp"
 #include "motor/dji/gm6020.hpp"
 #include "motor/dm/dm4310.hpp"
 #include "motor/lk/mf9025.hpp"
 #include "robot/gimbal/gimbal_dual_yaw.hpp"
 
-// 惯性测量单元
-inline Imu imu({
-    .hardware = {.sensor = Bmi088({.accel = Spi(1, 1), .gyro = Spi(1, 2)}), .heater = Pwm(10, 1)},
-    .adjust = {.orientation = Imu::euler_to_quaternion({.yaw = -90 * deg}),
-               .gyro_offset = Vector3(-0.000674135052f, 0.00137436262f, 0.00146490871f),
-               .gravity = 9.54711819f},
-});
+// 惯性测量单元与姿态解算
+inline Imu imu;
+inline Attitude attitude(imu, {.orientation = euler_to_quaternion({.yaw = -90 * deg}),
+                               .gyro_offset = Vector3(-0.000674135052f, 0.00137436262f, 0.00146490871f),
+                               .gravity = 9.54711819f});
 
 // 用于Ozone调参
 // #define yaw1_pid angle_pid
@@ -79,7 +76,7 @@ inline DM4310 pitch({
 });
 
 // 云台
-inline GimbalDualYaw gimbal(imu,
+inline GimbalDualYaw gimbal(attitude,
                             {.yaw_speed_pid_config = &yaw2_speed_pid,
                              .yaw_position_pid_config = &yaw2_angle_pid,
                              .pitch_speed_pid_config = &pitch_speed_pid,

@@ -1,8 +1,8 @@
 #include "gimbal.hpp"
 #include "math/angle.hpp"
 
-Gimbal::Gimbal(Imu& imu, const Config& config)
-    : imu(imu), config_(config), yaw_speed_pid_(config.yaw_speed_pid_config), yaw_position_pid_(config.yaw_position_pid_config),
+Gimbal::Gimbal(Attitude& attitude, const Config& config)
+    : attitude(attitude), config_(config), yaw_speed_pid_(config.yaw_speed_pid_config), yaw_position_pid_(config.yaw_position_pid_config),
       pitch_speed_pid_(config.pitch_speed_pid_config), pitch_position_pid_(config.pitch_position_pid_config) {}
 
 void Gimbal::set_enable(const bool is_enable) {
@@ -45,7 +45,7 @@ void Gimbal::set_chassis_wr(float chassis_wr) {
 }
 
 void Gimbal::update() {
-    imu.update();
+    attitude.update();
 
     // 更新云台转动
     handle_motion();

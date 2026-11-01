@@ -31,8 +31,9 @@ add_subdirectory("app/${RMPP_APP}" app)
 add_subdirectory(lib)
 add_subdirectory("boards/${RMPP_BOARD}/bsp" bsp)
 
-# 声明依赖
+# 声明依赖；app 可引用板卡专用接口 board/*.hpp，板卡未提供时编译报错
 target_link_libraries(rmpp_app PRIVATE rmpp_lib)
+target_include_directories(rmpp_app PRIVATE "boards/${RMPP_BOARD}/bsp/include")
 target_link_libraries(rmpp_bsp PRIVATE rmpp_lib)
 
 # 组装 app lib bsp

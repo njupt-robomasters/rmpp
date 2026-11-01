@@ -1,6 +1,6 @@
 #pragma once
 
-#include "misc/buzzer.hpp"
+#include "misc/melody.hpp"
 
 inline constexpr Note YOU[] = {
     {72, 38},

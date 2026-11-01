@@ -1,6 +1,6 @@
 #pragma once
 
-#include "misc/buzzer.hpp"
+#include "misc/melody.hpp"
 
 inline constexpr Note G5G5G5[] = {
     {79, 20},

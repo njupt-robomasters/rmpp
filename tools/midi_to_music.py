@@ -176,7 +176,7 @@ def main():
     body = "".join(f"    {{{midi}, {length}}},\n" for midi, length in notes)
     output.mkdir(parents=True, exist_ok=True)
     file.write_text(
-        f'#pragma once\n\n#include "misc/buzzer.hpp"\n\ninline constexpr Note {name.upper()}[] = {{\n{body}}};\n',
+        f'#pragma once\n\n#include "misc/melody.hpp"\n\ninline constexpr Note {name.upper()}[] = {{\n{body}}};\n',
         encoding="utf-8",
         newline="\n",
     )

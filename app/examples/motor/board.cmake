@@ -1,1 +1,1 @@
-set(RMPP_BOARD stm32f407_igh6)
+set(RMPP_BOARD c_board)

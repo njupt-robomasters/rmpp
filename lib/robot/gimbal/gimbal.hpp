@@ -1,14 +1,15 @@
 #pragma once
 
+#include "attitude/attitude.hpp"
 #include "bsp/storage.hpp"
-#include "imu/imu.hpp"
 #include "math/angle.hpp"
 #include "pid/pid.hpp"
 #include "referee/ui.hpp"
 
 class Gimbal {
   public:
-    enum PidOutput { CURRENT_OUTPUT, TORQUE_OUTPUT };
+    enum PidOutput { CURRENT_OUTPUT,
+                     TORQUE_OUTPUT };
 
     struct Config {
         const Pid::Config* yaw_speed_pid_config;
@@ -21,7 +22,8 @@ class Gimbal {
         float pitch_max = 0;
         bool is_pitch_limit = false;
     };
-    Imu& imu; // 对陀螺仪的引用，用于云台IMU闭环模式
+
+    Attitude& attitude; // 姿态解算，用于云台 IMU 闭环模式
 
     bool is_enable = false; // 云台使能标志
 
@@ -42,7 +44,7 @@ class Gimbal {
 
     float yaw_speed{}, pitch_speed{}; // 云台速度
 
-    Gimbal(Imu& imu, const Config& config);
+    Gimbal(Attitude& attitude, const Config& config);
 
     // 云台使能/失能
     virtual void set_enable(bool is_enable);
