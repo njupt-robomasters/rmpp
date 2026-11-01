@@ -65,10 +65,7 @@
 
 ## 四舵轮底盘
 
-状态：规划中，未改代码。方案与待确认项见 `tasks/03-quad_steer/README.md`
-
-- 已确认：类名 `ChassisSteer`；沿用参考 125 Hz/40 ms，不动 CAN；底盘/云台/发射库都要处理电机掉线
-- 待用户确认：轮控制链路、GM6020 补偿位置、掉线处理范围、PID 配置归属、follow PID
+状态：代码完成并合入 master，编译通过，待用户审计与上车。结论与上车核对项见 `tasks/03-quad_steer/README.md`
 
 ## 轮腿底盘迁移
 
