@@ -1,3 +1,6 @@
+#include "bsp/irq_lock.hpp"
+#include "stm32h7xx_hal.h"
+
 extern void timer_init();
 extern void can_init();
 extern void uart_init();
@@ -13,4 +16,14 @@ extern "C" void bsp_init() {
     cdc_init();
     buzzer_init();
     imu_init();
+}
+
+// 关中断作用域：保存并恢复 PRIMASK，嵌套时只有最外层重新开中断
+IrqLock::IrqLock()
+    : primask_(__get_PRIMASK()) {
+    __disable_irq();
+}
+
+IrqLock::~IrqLock() {
+    __set_PRIMASK(primask_);
 }

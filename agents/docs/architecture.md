@@ -8,7 +8,7 @@
 app/<应用>/                 app_main()、硬件绑定、车辆参数、应用 CMake
 app/examples/<示例>/        rgb、rc、imu、buzzer、motor、referee、chassis、gimbal、shooter、mc02
 lib/bsp/                   无 HAL 依赖的公共外设声明（Can、Uart、Cdc、Rgb、Buzzer、Imu、KvStore、Timer、Monitor）
-lib/attitude/              姿态解算：Attitude 与算法类 QuaternionEkf
+lib/attitude/              姿态解算：抽象父类 Attitude 与算法子类 QuaternionEkf
 lib/math/                  单位、角度、低通滤波、Eigen 类型与姿态转换
 lib/melody/                  Melody 与曲目
 lib/third_party/           纯软件第三方库：Eigen
@@ -60,8 +60,8 @@ VT13 vt13({.uart = Uart(6)});
 Aim aim({.cdc = Cdc(1)});
 Rgb rgb;
 Melody melody;
-Imu imu;
-Attitude attitude(imu, {.gyro_offset = Vector3(0.003f, -0.004f, -0.002f), .gravity = 9.80f});
+Imu imu({.gyro_offset = Vector3(0.003f, -0.004f, -0.002f), .gravity = 9.80f});
+QuaternionEkf attitude(imu);
 KvStore kv_store("infantry");
 ```
 
@@ -69,7 +69,7 @@ KvStore kv_store("infantry");
 
 DJI 最终型号注册 CAN 回调，私有 can_callback 先校验报文并解析型号特有字段，再直接调用 Motor::can_callback 完成方向修正、多圈累计和在线计时。其他协议子类直接注册并解析 raw。update 每周期先判断反馈超时，再计算闭环；set_current、set_torque 在赋值时处理非有限值、限幅和单位换算。DJI 同组命令由 app 创建零初始化组帧，各电机通过 write_can_frame 按控制帧 ID 和反馈 ID 写入对应槽位，再由 app 统一发送。DM 电机按配置频率定时发送使能帧，该周期不发送 MIT 帧；VESC 不要求在线反馈，只支持开环速度发送。
 
-BSP `Imu` 只负责 BMI088 读取和恒温加热，输出传感器系原始量；`Attitude` 接收 `Imu&`，负责安装方向、零偏校准、姿态算法和欧拉角。云台持有 `Attitude& attitude`。转换约定和调参见 [IMU](imu.md)。
+BSP `Imu` 负责 BMI088 读取、恒温加热、零偏校准和安装方向修正，输出机体系量，可单独使用；`Attitude` 是接收 `Imu&` 的抽象父类，输出 q、欧拉角和累计 yaw，算法由子类（如 `QuaternionEkf`）实现。云台持有 `Attitude& attitude`。转换约定和调参见 [IMU](imu.md)。
 
 `Rgb` 提供 `set(red, green, blue)` 和 `set_hsv`，范围 [0, 1]；周期变色由各车 `misc.cpp` 的 `misc_loop()` 执行。`Melody` 在板载 `Buzzer` 上播放曲目，见 [蜂鸣器曲目](music.md)。
 

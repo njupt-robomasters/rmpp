@@ -4,6 +4,7 @@
  */
 
 #include "bsp/timer.hpp"
+#include "bsp/irq_lock.hpp"
 #include "stm32f4xx_hal.h"
 #include <algorithm>
 
@@ -21,22 +22,17 @@ extern "C" void HAL_IncTick() {
 
 // 当前周期数，中断内可调用
 static uint64_t read_cycles() {
-    const uint32_t primask = __get_PRIMASK();
-    __disable_irq();
-    const uint64_t result = cycles + (DWT->CYCCNT - last_cyccnt);
-    __set_PRIMASK(primask);
-    return result;
+    const IrqLock lock;
+    return cycles + (DWT->CYCCNT - last_cyccnt);
 }
 
 void timer_init() {
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
 
-    const uint32_t primask = __get_PRIMASK();
-    __disable_irq();
+    const IrqLock lock;
     DWT->CYCCNT = 0;
     last_cyccnt = 0;
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
-    __set_PRIMASK(primask);
 }
 
 void Timer::delay(const float seconds) {

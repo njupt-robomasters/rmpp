@@ -2,30 +2,31 @@
 
 需要理解 EKF 并审阅实现，先读 [IMU EKF：从公式到代码审阅](imu-principles.md)。
 
-IMU 分为两层：BSP `Imu` 负责硬件，`lib/attitude` 负责姿态解算。算法类按算法命名，后续可与 `QuaternionEkf` 并列增加其他算法。
+IMU 分为两层：BSP `Imu` 负责硬件读取、零偏校准和安装方向修正，可单独使用；`lib/attitude` 是可选的姿态解算。`Attitude` 为抽象父类，调用 `Imu::update()` 并由 q 统一输出欧拉角和累计 yaw；子类按算法命名，只实现 `solve(gyro, accel)` 更新 q，目前有 `QuaternionEkf`。
 
 数学类型统一使用随项目固定的 Eigen 3.4.0。`Vector2/3/4`、`Quaternion`、`Matrix3/6`
 均为定长 `float` 类型，定义在 `math/eigen_types.hpp`；解算不使用动态矩阵、堆分配或 Eigen 向量化。
 
 | 文件 | 职责与审阅重点 |
 | --- | --- |
-| `lib/bsp/imu.hpp`、`boards/*/bsp/imu.cpp` | BMI088 初始化时序、寄存器事务、原始量解码、恒温加热；各板只有 SPI、片选和加热定时器不同 |
-| `lib/attitude/attitude.hpp/.cpp` | 安装旋转、零偏与重力模长修正、校准、欧拉角和累计 yaw |
-| `lib/attitude/quaternion_ekf.hpp/.cpp` | 四元数和 X/Y 剩余零偏组成的六状态 EKF |
+| `lib/bsp/imu.hpp/.cpp` | 接口、配置与两板共用的零偏校准 |
+| `boards/*/bsp/imu.cpp` | 板卡实现 `Imu::update()`：BMI088 初始化时序、寄存器事务、原始量解码、恒温加热，再调用共用校准与修正；各板只有 SPI、片选和加热定时器不同 |
+| `lib/attitude/attitude.hpp/.cpp` | 抽象父类：读取 Imu、欧拉角和累计 yaw |
+| `lib/attitude/quaternion_ekf.hpp/.cpp` | 子类：四元数和 X/Y 剩余零偏组成的六状态 EKF |
 | `lib/math/eigen_types.hpp` | Eigen 类型别名、`EulerAngles`、`euler_to_quaternion`、`quaternion_to_euler` |
 
-`Imu::update()` 首次调用时初始化传感器，失败后下次重试；读取成功后执行一步加热闭环并返回 true，读取失败关闭加热并返回 false。初始化保留两次 80 ms 复位等待。`Imu` 输出传感器系 `gyro`（rad/s）、`accel`（m/s²）、`temperature`（°C），目标温度与温控 PID 为实例默认配置，可在构造时覆盖。
+`Imu::update()` 首次调用时初始化传感器，失败后下次重试；读取成功后依次执行一步加热闭环、推进校准、零偏/重力模长/安装方向修正；读取失败关闭加热，输出保持上次值。`update()` 无返回值。初始化保留两次 80 ms 复位等待。`Imu` 输出已修正的机体系 `gyro`（rad/s）、`accel`（m/s²）和 `temperature`（°C）。
 
-`Attitude::update()` 先调用 `Imu::update()`，失败时保持上次输出；成功后依次推进校准、修正采样、安装旋转、EKF、姿态输出。应用只需填写与默认值不同的项目：
+`Attitude::update()` 先调用 `Imu::update()`，再调用子类 `solve()` 更新 q，再输出欧拉角和累计 yaw。应用只需填写与默认值不同的项目：
 
 ```cpp
-inline Imu imu;
-inline Attitude attitude(imu, {.orientation = euler_to_quaternion({.yaw = -90 * deg}),
-                               .gyro_offset = Vector3(-0.00067f, 0.00137f, 0.00146f),
-                               .gravity = 9.547f});
+inline Imu imu({.orientation = euler_to_quaternion({.yaw = -90 * deg}),
+                .gyro_offset = Vector3(-0.00067f, 0.00137f, 0.00146f),
+                .gravity = 9.547f});
+inline QuaternionEkf attitude(imu); // 可选；第二参数覆盖 QuaternionEkf::Config
 ```
 
-配置按值保存，通过 `config()` 只读访问。`Imu` 的温控 PID 借用内部配置，不应复制或移动；`Attitude` 保存 `Imu&`，`Imu` 须在其生命周期内有效。
+配置按值保存，通过 `config()` 只读访问。`Imu` 的温控 PID 借用内部配置，不应复制或移动；`Attitude` 保存 `Imu&`，`Imu` 须在其生命周期内有效。使用姿态解算时只调用 `attitude.update()`，不再单独调用 `imu.update()`。
 
 ## 坐标与公开转换
 
@@ -50,21 +51,21 @@ inline Attitude attitude(imu, {.orientation = euler_to_quaternion({.yaw = -90 * 
 
 ## 参数：全部有默认值
 
-硬件由板卡 BSP 固定，不再由 app 绑定。`Imu::Config` 包含温控参数，`Attitude::Config` 包含安装、标定和 EKF 参数。
+硬件由板卡 BSP 固定，不再由 app 绑定。`Imu::Config` 包含安装、标定和温控参数，`QuaternionEkf::Config` 包含 EKF 参数。
 
 | 位置 | 项目数 | 默认值与作用 |
 | --- | ---: | --- |
-| `Attitude::Config::orientation` | 1 | 单位四元数；传感器到机体安装旋转，可用 `euler_to_quaternion()` 从欧拉角构造 |
-| `Attitude::Config::gyro_offset` | 3 | `Vector3`，0 rad/s；传感器坐标系静态零偏 |
-| `Attitude::Config::gravity` | 1 | 9.81 m/s²；静止原始加速度模长，必须大于 0，修正比例为 9.81/gravity |
+| `Imu::Config::orientation` | 1 | 单位四元数；传感器到机体安装旋转，可用 `euler_to_quaternion()` 从欧拉角构造 |
+| `Imu::Config::gyro_offset` | 3 | `Vector3`，0 rad/s；传感器坐标系静态零偏 |
+| `Imu::Config::gravity` | 1 | 9.81 m/s²；静止原始加速度模长，必须大于 0，修正比例为 9.81/gravity |
 | `Imu::Config::temperature` | 1 | 45°C |
-| `Imu::Config::temperature_pid` | 7 | kp=1、ki=0.01、kd=0、ff=0、max_i=0.4、max_out=1、fc=0；输出限制为 [0,1] 加热占空比 |
-| `Attitude::Config::ekf.quaternion_noise` | 1 | 10；四元数过程噪声强度，非负，每周期乘 dt |
-| `Attitude::Config::ekf.bias_noise` | 1 | 0.001；零偏过程噪声强度，非负，每周期乘 dt |
-| `Attitude::Config::ekf.accel_noise` | 1 | 1e7；单位重力方向的观测方差，正数，增大后更信任陀螺仪 |
-| `Attitude::Config::ekf.bias_fading` | 1 | 1；每周期零偏协方差保留系数，范围 (0,1]，减小后遗忘更快 |
-| `Attitude::Config::ekf.accel_filter_fc` | 1 | 0 Hz；加速度一阶 RC 低通截止频率，非负，0 禁用；由旧时间常数换算为 fc = 1/(2π·τ) |
-| `Attitude::Config::ekf.innovation_threshold` | 1 | 1e-8；归一化残差门限，正数，增大后容许更大的观测偏差 |
+| `Imu::Config::temperature_pid` | 7 | kp=1、ki=0.01、kd=0、ff=0、max_i=0.4、max_out=1、fc=0；输出限制为 [0,1] 加热占空比；mc02 加热电阻接 12~24 V 电源输入，BSP 再乘 0.05 衰减（参考官方例程 CCR 上限 500/10000），防止烧毁 PCB；C 板不衰减 |
+| `QuaternionEkf::Config::quaternion_noise` | 1 | 10；四元数过程噪声强度，非负，每周期乘 dt |
+| `QuaternionEkf::Config::bias_noise` | 1 | 0.001；零偏过程噪声强度，非负，每周期乘 dt |
+| `QuaternionEkf::Config::accel_noise` | 1 | 1e7；单位重力方向的观测方差，正数，增大后更信任陀螺仪 |
+| `QuaternionEkf::Config::bias_fading` | 1 | 1；每周期零偏协方差保留系数，范围 (0,1]，减小后遗忘更快 |
+| `QuaternionEkf::Config::accel_filter_fc` | 1 | 0 Hz；加速度一阶 RC 低通截止频率，非负，0 禁用；由旧时间常数换算为 fc = 1/(2π·τ) |
+| `QuaternionEkf::Config::innovation_threshold` | 1 | 1e-8；归一化残差门限，正数，增大后容许更大的观测偏差 |
 
 `accel_noise`、`innovation_threshold` 应结合调节，前者改变残差检验的尺度。默认值延续原调参量级，不应把 1e7 当作真实加速度方差；量测已归一化。`bias_fading` 按周期生效，改变循环频率时需重新审视。
 
@@ -85,9 +86,9 @@ inline Attitude attitude(imu, {.orientation = euler_to_quaternion({.yaw = -90 * 
 
 ## 校准与解算行为
 
-`start_calibration()` 请求开始新窗口，下一次 `update()` 初始化计时和样本计数后开始采样；调用方负责温稳和静止时机。以 1 kHz 调用时约 6 秒收满，运动干扰清空窗口但不重置总超时。校准状态和样本数为内部状态，不对外开放。
+`Imu::start_calibration()` 请求开始新窗口，下一次 `update()` 初始化计时和样本计数后开始采样；调用方负责温稳和静止时机。以 1 kHz 调用时约 6 秒收满，运动干扰清空窗口但不重置总超时。校准状态和样本数为内部状态，不对外开放。
 
-成功时一次提交三个零偏与重力模长，通过 `attitude.config()` 读取；不会自动写 Flash。超时保留旧标定。采样过程中温控与旧标定解算继续运行；提交时清除 EKF 剩余零偏、重建协方差，保留 q 和累计 yaw。BMI088 读取失败时关闭加热，本周期不推进校准和姿态解算。
+成功时一次提交三个零偏与重力模长，通过 `imu.config()` 读取；不会自动写 Flash。超时保留旧标定。采样过程中温控与旧标定解算继续运行。校准归 `Imu`，提交时不再自动清除 EKF 剩余零偏；需要立即重建时由调用方在校准完成后调用 `QuaternionEkf::reset_bias()`（保留 q 和累计 yaw），否则由 EKF 逐渐收敛。BMI088 读取失败时关闭加热，本周期不推进校准和姿态解算。
 
 解算从首个有效加速度建立倾角，初始 yaw=0。它只观测重力方向，没有磁力计或绝对航向源，Z 零偏仍无法估计，yaw 仍会漂移。
 

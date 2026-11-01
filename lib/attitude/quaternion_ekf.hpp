@@ -1,10 +1,11 @@
 #pragma once
 
+#include "attitude.hpp"
 #include "bsp/timer.hpp"
 #include "math/eigen_types.hpp"
 
-// 固定六状态：机体到世界的四元数，以及机体 X/Y 陀螺仪剩余零偏
-class QuaternionEkf {
+// 固定六状态 EKF：机体到世界的四元数，以及机体 X/Y 陀螺仪剩余零偏
+class QuaternionEkf : public Attitude {
   public:
     struct Config {
         float quaternion_noise = 10.0f;       // 四元数过程噪声强度，>= 0
@@ -15,16 +16,23 @@ class QuaternionEkf {
         float innovation_threshold = 1.0e-8f; // 归一化残差门限，> 0
     };
 
-    Quaternion q = Quaternion::Identity(); // 机体到世界的单位四元数
-    Vector2 bias = Vector2::Zero();        // rad/s；不估计 Z 零偏
+    Vector2 bias = Vector2::Zero(); // rad/s；不估计 Z 零偏
 
-    explicit QuaternionEkf(const Config& config);
-    void update(const Vector3& gyro, const Vector3& accel);
-    // 校准提交后清除剩余零偏并重建协方差，保留当前姿态
+    explicit QuaternionEkf(Imu& imu);
+    QuaternionEkf(Imu& imu, const Config& config);
+
+    // 清除剩余零偏并重建协方差，保留当前姿态
     void reset_bias();
 
     // 假定周期内角速度恒定；无效输入不改变 q，dt 单位 s
     static Quaternion integrate(const Quaternion& q, const Vector3& gyro, float dt);
+
+    const Config& config() const {
+        return config_;
+    }
+
+  protected:
+    void solve(const Vector3& gyro, const Vector3& accel) override;
 
   private:
     Config config_;

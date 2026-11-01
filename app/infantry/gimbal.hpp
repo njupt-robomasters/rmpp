@@ -5,15 +5,15 @@
 #include "bsp/can.hpp"
 #include "bsp/imu.hpp"
 
-#include "attitude/attitude.hpp"
+#include "attitude/quaternion_ekf.hpp"
 #include "math/unit.hpp"
 #include "motor/gm6020.hpp"
 #include "motor/dm4310.hpp"
 #include "robot/gimbal/gimbal_classic.hpp"
 
 // 惯性测量单元与姿态解算
-inline Imu imu;
-inline Attitude attitude(imu, {.gyro_offset = Vector3(0.00316276052f, -0.00411193585f, -0.00242328411f), .gravity = 9.79961872f});
+inline Imu imu({.gyro_offset = Vector3(0.00316276052f, -0.00411193585f, -0.00242328411f), .gravity = 9.79961872f});
+inline QuaternionEkf attitude(imu);
 
 // 用于Ozone调参
 // #define yaw_speed_pid speed_pid

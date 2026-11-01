@@ -32,4 +32,6 @@ agents/
 ## 任务索引
 
 - `01-mc02_bsp/`：mc02 BSP 适配、C 板外设类重构、CherryUSB、`lib/attitude`；复现构建与待上板验证项
-- `02-buzzer_timbre/`：蜂鸣器双声部 PWM-DAC 音色探索；Python 模拟、中间上板测试归档在 `firmware/`，最终版在 `app/test/buzzer_duo`
+- `02-buzzer_timbre/`：蜂鸣器复音 PWM-DAC 音色探索与样机归档；正式实现在 `lib/melody`
+- `03-quad_steer/`：双舵底盘改四舵，移植参考仓库实现；差异对比、方案与待确认项
+- `04-leg_chassis/`：轮腿底盘从 SOLDIER_LEG_4 迁移；IMU 极性核查、电机映射与虚拟 IMU 方案

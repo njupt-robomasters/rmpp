@@ -14,8 +14,9 @@ class Monitor {
     }
 
     void end() {
-        const float busy_time = timer_.restart();
-        const float period = idle_time_ + busy_time;
+        // 周期为相邻两次 end 的间隔，begin 前为空闲
+        const float period = timer_.restart();
+        const float busy_time = period - idle_time_;
 
         freq = 1 / period;
         freq_lpf = lowpass<float>(freq_lpf, freq, CUTOFF_HZ, period);

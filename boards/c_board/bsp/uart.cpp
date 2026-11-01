@@ -46,6 +46,7 @@
  */
 
 #include "bsp/uart.hpp"
+#include "bsp/irq_lock.hpp"
 #include "bsp/monitor.hpp"
 #include "usart.h"
 #include <cstring>
@@ -110,10 +111,8 @@ void Uart::add_rx_callback(RxCallback callback) const {
     if (!context)
         return;
 
-    const auto primask = __get_PRIMASK();
-    __disable_irq();
+    const IrqLock lock;
     context->callbacks.push_back(std::move(callback));
-    __set_PRIMASK(primask);
 }
 
 extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, const uint16_t size) {

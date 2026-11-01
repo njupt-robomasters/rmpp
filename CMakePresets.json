@@ -8,10 +8,18 @@
             "binaryDir": "${sourceDir}/build/${presetName}"
         },
         {
-            "name": "examples-buzzer",
+            "name": "examples-melody",
             "inherits": "default",
             "cacheVariables": {
-                "RMPP_APP": "examples/buzzer",
+                "RMPP_APP": "examples/melody",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "examples-cdc",
+            "inherits": "default",
+            "cacheVariables": {
+                "RMPP_APP": "examples/cdc",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
@@ -100,14 +108,6 @@
             "inherits": "default",
             "cacheVariables": {
                 "RMPP_APP": "sentry",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "test-buzzer_duo",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "test/buzzer_duo",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         }

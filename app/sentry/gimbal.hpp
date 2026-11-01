@@ -5,17 +5,17 @@
 #include "bsp/can.hpp"
 #include "bsp/imu.hpp"
 
-#include "attitude/attitude.hpp"
+#include "attitude/quaternion_ekf.hpp"
 #include "math/unit.hpp"
 #include "motor/dm4310.hpp"
 #include "motor/gm6020.hpp"
 #include "robot/gimbal/gimbal_dual_yaw.hpp"
 
 // 惯性测量单元与姿态解算
-inline Imu imu;
-inline Attitude attitude(imu, {.orientation = euler_to_quaternion({.yaw = -90 * deg}),
-                               .gyro_offset = Vector3(-0.000674135052f, 0.00137436262f, 0.00146490871f),
-                               .gravity = 9.54711819f});
+inline Imu imu({.orientation = euler_to_quaternion({.yaw = -90 * deg}),
+                 .gyro_offset = Vector3(-0.000674135052f, 0.00137436262f, 0.00146490871f),
+                 .gravity = 9.54711819f});
+inline QuaternionEkf attitude(imu);
 
 // 用于Ozone调参
 // #define yaw1_pid angle_pid

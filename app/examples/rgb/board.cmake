@@ -1,1 +1,1 @@
-set(RMPP_BOARD c_board)
+set(RMPP_BOARD mc02)

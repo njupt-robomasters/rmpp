@@ -15,7 +15,7 @@ CLion 自带工具未加入 PATH 时：
 ```sh
 C='/d/JetBrains/CLion 2026.2.2/bin'
 export PATH="$C/cmake/win/x64/bin:$C/ninja/win/x64:$PATH"
-for p in examples-mc02 infantry examples-imu examples-gimbal examples-rgb examples-buzzer; do
+for p in examples-cdc infantry examples-imu examples-gimbal examples-rgb examples-melody; do
     cmake --preset $p && cmake --build build/$p
 done
 ```

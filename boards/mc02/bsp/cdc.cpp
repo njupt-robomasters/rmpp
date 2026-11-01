@@ -11,6 +11,7 @@
  */
 
 #include "bsp/cdc.hpp"
+#include "bsp/irq_lock.hpp"
 #include "bsp/monitor.hpp"
 #include "stm32h7xx_hal.h"
 #include "usbd_cdc_acm.h"
@@ -18,9 +19,9 @@
 #include <cstring>
 #include <vector>
 
-// 描述符常量：VID/PID 与字符串沿用 CubeMX 虚拟串口默认值，可按需修改
-static constexpr uint16_t VID = 0x0483;
-static constexpr uint16_t PID = 0x5740;
+// 描述符常量：VID/PID 为 pid.codes 测试 ID，仅限内部使用，避免被 ST VCP 驱动按 0483:5740 整机绑定；字符串沿用 CubeMX 虚拟串口默认值
+static constexpr uint16_t VID = 0x1209;
+static constexpr uint16_t PID = 0x0001;
 static constexpr uint16_t BCD_DEVICE = 0x0200;
 static constexpr const char* MANUFACTURER = "STMicroelectronics";
 static constexpr const char* PRODUCT = "STM32 Virtual ComPort";
@@ -168,10 +169,15 @@ bool Cdc::send(const uint8_t* data, const std::size_t size) const {
     auto* context = find(id_);
     if (!context)
         return false;
-    if (!usb_device_is_configured(BUS) || context->is_tx_busy)
-        return false;
 
-    context->is_tx_busy = true;
+    // 检查并占用发送缓冲，防止主循环与中断回调同时发送
+    {
+        const IrqLock lock;
+        if (!usb_device_is_configured(BUS) || context->is_tx_busy)
+            return false;
+        context->is_tx_busy = true;
+    }
+
     std::memcpy(context->tx_buf, data, size);
     if (usbd_ep_start_write(BUS, context->in_ep, context->tx_buf, size) != 0) {
         context->is_tx_busy = false;
@@ -185,8 +191,6 @@ void Cdc::add_rx_callback(RxCallback callback) const {
     if (!context)
         return;
 
-    const auto primask = __get_PRIMASK();
-    __disable_irq();
+    const IrqLock lock;
     context->callbacks.push_back(std::move(callback));
-    __set_PRIMASK(primask);
 }

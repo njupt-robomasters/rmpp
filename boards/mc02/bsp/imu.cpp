@@ -89,43 +89,33 @@ static bool init_sensor() {
            reset(GYRO, 0x14, 0x0F) && configure(GYRO, GYRO_REGISTERS, std::size(GYRO_REGISTERS));
 }
 
-static void set_heater(const float duty) {
-    const auto period = static_cast<float>(__HAL_TIM_GET_AUTORELOAD(&htim3) + 1);
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, static_cast<uint32_t>(period * duty));
-}
-
 void imu_init() {
     HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
 }
 
-Imu::Imu() : Imu(Config{}) {}
-
-Imu::Imu(const Config& config) : config_(config), temperature_pid_(&config_.temperature_pid) {}
-
-bool Imu::update() {
-    // 初始化传感器
+void Imu::update() {
+    // 初始化传感器，失败时下次重试
     if (!is_initialized_) {
         is_initialized_ = init_sensor();
         if (!is_initialized_)
-            return false;
+            return;
     }
 
-    // 读取加速度、角速度（含芯片 ID）和温度
+    // 读取加速度、角速度（含芯片 ID）和温度；失败时关闭加热并保持上次输出
     uint8_t accel_buf[6]{}, gyro_buf[8]{}, temp_buf[2]{};
     read_registers(ACCEL, 0x12, accel_buf, 6);
     read_registers(GYRO, 0x00, gyro_buf, 8);
     read_registers(ACCEL, 0x22, temp_buf, 2);
     if (gyro_buf[0] != 0x0F) {
-        set_heater(0);
-        return false;
+        __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, 0);
+        return;
     }
 
     // 换算到国际单位：±6 g 与 ±2000 °/s 量程
+    Vector3 raw_gyro, raw_accel;
     for (int i = 0; i < 3; i++) {
-        const auto raw_accel = static_cast<int16_t>(accel_buf[2 * i] | (accel_buf[2 * i + 1] << 8));
-        const auto raw_gyro = static_cast<int16_t>(gyro_buf[2 * i + 2] | (gyro_buf[2 * i + 3] << 8));
-        accel[i] = raw_accel * 0.00179443359375f;
-        gyro[i] = raw_gyro * 0.0010652644360316953f;
+        raw_accel[i] = static_cast<int16_t>(accel_buf[2 * i] | (accel_buf[2 * i + 1] << 8)) * 0.00179443359375f;
+        raw_gyro[i] = static_cast<int16_t>(gyro_buf[2 * i + 2] | (gyro_buf[2 * i + 3] << 8)) * 0.0010652644360316953f;
     }
 
     // 11 位补码，0.125 °C/LSB，零点 23 °C
@@ -134,7 +124,13 @@ bool Imu::update() {
         raw_temperature -= 2048;
     temperature = raw_temperature * 0.125f + 23.0f;
 
-    // 加热闭环
-    set_heater(std::clamp(temperature_pid_.calculate(config_.temperature - temperature), 0.0f, 1.0f));
-    return true;
+    // 加热闭环：[0, 1] 占空比换算为 PWM 比较值
+    // 加热电阻直接接电源输入（12~24 V），满占空比会烧毁 PCB；按官方例程上限 500/10000 衰减到 5%
+    const float duty = 0.05f * std::clamp(temperature_pid_.calculate(config_.temperature - temperature), 0.0f, 1.0f);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, static_cast<uint32_t>((__HAL_TIM_GET_AUTORELOAD(&htim3) + 1) * duty));
+
+    // 零偏校准，再修正零偏、重力模长与安装方向
+    update_calibration(raw_gyro, raw_accel);
+    gyro = config_.orientation * (raw_gyro - config_.gyro_offset);
+    accel = config_.orientation * (raw_accel * (9.81f / config_.gravity));
 }

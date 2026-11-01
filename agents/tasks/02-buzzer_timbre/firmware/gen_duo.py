@@ -1,4 +1,4 @@
-"""从 MIDI 生成双声部曲目头文件 app/test/buzzer_duo/songs.hpp
+"""（已归档，由 gen_poly.py 取代）从 MIDI 生成双声部曲目头文件 firmware/buzzer_duo/songs.hpp
 
 旋律：旋律通道内最高音抢占；伴奏：伴奏通道内最低音抢占并升八度；规则与 simulate.py 的 7 系列相同
 每个非休止条目是一次起音，时长单位 10 ms，切换时刻对齐到 10 ms 网格
@@ -9,10 +9,10 @@ from pathlib import Path
 
 import mido
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from simulate import ROOT, load_notes, mono_segments  # noqa: E402
 
-OUT = ROOT / "app/test/buzzer_duo/songs.hpp"
+OUT = Path(__file__).resolve().parent / "buzzer_duo/songs.hpp"
 UNIT = 0.01  # 时长单位 s
 BASS_SHIFT = 12  # 伴奏移调，半音
 

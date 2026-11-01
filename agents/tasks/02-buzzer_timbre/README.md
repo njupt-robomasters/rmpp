@@ -93,3 +93,36 @@ python -I agents/tasks/02-buzzer_timbre/simulate.py --start 30 --seconds 20 --mi
 - `app/test/buzzer_duo/`（preset `test-buzzer_duo`）：旋律方波 0.7（tau 0.7 s、余音底 0.6）+ 伴奏方波 0.3（tau 0.4 s、余音底 0.12），不低通；自动增益压缩比 4、下降 5 ms、上升 150 ms，旋律休止时保持
 - 单文件实现，去掉了中间版的波形枚举、低通、钢琴表、共振峰与分段播放
 - 曲目：`python -I agents/tasks/02-buzzer_timbre/gen_duo.py` 生成 `songs.hpp`，包含 `NI`（你_从第15小节，右手通道 0、左手通道 1）与 `ALWAYS_WITH_ME`；上电依次各播一遍后静音
+
+## 多声部复音（进行中）
+
+- 用户目标是尽量播放所有按下的音；always_with_me 同时发声时长：2 音 110 s、3 音 62 s、4 音 39 s、5 音以上 8 s
+- `gen_poly.py` 合并全部音轨离线分配声部：旋律单槽位（同 midi_to_music.py），其余音分到 1–3 个伴奏槽，低于 C3 的伴奏按八度升高；输出 `app/test/buzzer_poly/songs.hpp`
+- `app/test/buzzer_poly`：循环播放 155–175 s（三声部以上最密集），5 段对比 1/2/3 个伴奏声部、伴奏共享 0.3 或 0.4、纯自动增益等权；载波频率 `CARRIER_HZ` 可配，默认 80 kHz
+- 改为旋律组（右手通道）与伴奏组（左手通道）各 3 槽：槽 0 为主线（旋律最高音/伴奏最低音，单槽抢占规则），其余为内声部（满时替换最早开始的）；覆盖率旋律 90%、伴奏 98%
+- `buzzer_poly` 5 段：同 buzzer_duo、各 3 声部幅度和归一、平方和归一、内声部权重 0.5、内声部快衰减；两组份额 0.7 / 0.3 由组增益保持
+- 分组版反馈（always_with_me 155 s）：幅度和归一和弦清楚但和弦时音量突然变小；平方和归一听不出削顶；内声部 0.5 和弦更清楚；内声部快衰减似乎更好
+- 下一轮：去掉幅度和归一段，改测 你_从第15小节 160–180 s（全曲起音最多，右手 18 s 双音及以上；右手全曲 4 音约 35 s，左手 2–3 音约 131 s）
+- 你 160 s 反馈：内声部快衰减更好
+- 改为不限槽位：槽位按需新增（你：旋律 6、伴奏 4；always_with_me：4、4），被主线抢占的音转入内声部，覆盖率 100%；均衡靠平方和组增益与总 AGC
+- `buzzer_poly` 4 段对比槽位上限 1/3/4/不限，每段结束经 Cdc(1) 打印计算负载（DWT 计每采样周期数，平均/最大/超时次数）
+- 负载（Debug、80 kHz、你 160 s）：主线 8.9%/37.0%，3 声部 19.1%/32.6%，4 声部 22.9%/37.8%，不限 27.7%/42.5%（平均/最大），均无超时
+- 定为不限音数：`buzzer_poly` 改为完整播放两首，旋律组 0.7（主线 tau 0.7 s、余音底 0.6）、伴奏组 0.3（主线 tau 0.4 s、余音底 0.12），内声部 0.5 快衰减（tau 0.15 s、余音底 0.1），组内平方和归一；每首结束打印负载
+
+## 当前版本
+
+- 双声部版 `buzzer_duo` 与 `gen_duo.py` 已归档到 `firmware/`，由多声部版取代
+- `app/test/buzzer_poly/`：`app.cpp` 与 `songs.hpp` 共用，子目录 `ni`、`always_with_me` 各为一个工程，CMake 定义 `SONG` 选曲；preset `test-buzzer_poly-ni`、`test-buzzer_poly-always_with_me`
+- 曲目：`python -I agents/tasks/02-buzzer_timbre/gen_poly.py` 生成 `app/test/buzzer_poly/songs.hpp`，增加曲目时在 `SONGS` 加一行并新建同样的子目录
+- 新增 平凡之路：主旋律通道 0（钢琴）、伴奏通道 1（吉他）；不取主旋和音通道 2 与伴奏和音通道 4（与通道 1 重复）；preset `test-buzzer_poly-ping_fan_zhi_lu`
+- 总 AGC：旋律休止不超过 0.5 s 时增益保持，缺席更久（前奏、间奏）时按伴奏调节，前奏不再偏小
+- 同音重击：平凡之路有大量 note_off 与 note_on 同 tick 的重击（旋律 371 处），原来生成相邻同音条目，包络从余音底重新起音但无间断听起来连在一起；`to_entries` 改为从前一个音借 10 ms 作休止，与 midi_to_music.py 规则一致
+- 不区分旋律与伴奏对照：`*_equal` 工程（EQUAL_MIX=1），所有音等权、包络 tau 0.5 s 余音底 0.3，放入一组平方和归一，总 AGC 不做休止保持
+- 不区分版上板：沙沙声很明显，效果很差，放弃；快照归档到 `firmware/buzzer_poly_equal/`（依赖 `app/test/buzzer_poly/songs.hpp`），当前版恢复区分旋律与伴奏
+- 载波改为 40 kHz 待上板对比（mc02 占空比 6500 级，采样率 40 kHz）；可以则两板统一 40 kHz
+
+## 进 lib
+
+- 播放器在 `lib/melody`，接口与规则见 `agents/docs/music.md`；转换工具 `tools/midi_to_song.py` 取代 `midi_to_music.py`
+- 样机 `buzzer_poly` 与 `gen_poly.py` 归档到 `firmware/`；`app/test` 已删除
+- `gen_songs.py`：用工具规则批量生成 always_with_me、you、the_ordinary_road，并把旧单声部曲目包装为 Song；工具建议分组与人工确认一致

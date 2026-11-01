@@ -50,13 +50,32 @@
 ### 目录整理
 
 - `lib/motor` 展平：`dji/`、`dm/` 下文件移至 `lib/motor/`，git mv，迁移 include
-- `lib/misc` → `lib/melody`（`melody.hpp/.cpp`、`music/`）；`app/test` 与 `tasks/02-buzzer_timbre` 的引用是否一起改待确认
 
 ### 顺序
 
 1. 目录整理（motor、melody）与 sentry DM4310
 2. 第三方库搬到根 `third_party/`；FlashDB 2.2.0 原版重建 + C 板 KvStore
 3. mc02 OCTOSPI 配置完成后实现 W25Q64 驱动与 KvStore
+
+## 蜂鸣器复音播放器进 lib
+
+状态：代码与文档完成，三个目标编译通过，待用户审计与上板。结论见 `docs/music.md`
+
+- 待上板：mc02 `examples-melody`；C 板复音算力未实测（infantry/sentry 仍只用普通模式）
+
+## 四舵轮底盘
+
+状态：规划中，未改代码。方案与待确认项见 `tasks/03-quad_steer/README.md`
+
+- 已确认：类名 `ChassisSteer`；沿用参考 125 Hz/40 ms，不动 CAN；底盘/云台/发射库都要处理电机掉线
+- 待用户确认：轮控制链路、GM6020 补偿位置、掉线处理范围、PID 配置归属、follow PID
+
+## 轮腿底盘迁移
+
+状态：分析完成，未改代码。极性结论与待确认项见 `tasks/04-leg_chassis/README.md`
+
+- 已确认：姿态由外部传入，本轮只接通用姿态；欧拉角按标准定义，低头 pitch 增大
+- 待用户确认：板卡安装是否与外部车一致、代码形态与位置、车型、roll PID 的 OLS 微分、跟随是否启用
 
 ## 后续任务
 

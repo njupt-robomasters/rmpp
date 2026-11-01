@@ -22,6 +22,7 @@
  */
 
 #include "bsp/can.hpp"
+#include "bsp/irq_lock.hpp"
 #include "bsp/monitor.hpp"
 #include "can.h"
 #include <vector>
@@ -95,10 +96,8 @@ void Can::add_rx_callback(RxCallback callback) const {
     if (!context)
         return;
 
-    const auto primask = __get_PRIMASK();
-    __disable_irq();
+    const IrqLock lock;
     context->callbacks.push_back(std::move(callback));
-    __set_PRIMASK(primask);
 }
 
 static void can_receive(CAN_HandleTypeDef* hcan) {

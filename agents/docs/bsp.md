@@ -10,10 +10,11 @@
 | `Uart(id)` | 编号句柄 | 1、3（DBUS 只收）、6 | 1、5（DBUS 只收）、7、10 |
 | `Cdc(id)` | 编号句柄 | 1 | 1、2 |
 | `Rgb` | 板载唯一 | TIM5 PWM | WS2812（SPI6） |
-| `Buzzer` | 板载唯一 | TIM4 CH3 | TIM12 CH2 |
+| `Buzzer` | 板载唯一 | TIM4 CH3；采样流 DMA1 Stream6 Ch2（TIM4_UP） | TIM12 CH2；采样流 DMA2 Stream0（DMAMUX 请求发生器 TIM12_TRGO），缓冲在 `.dma_buffer` |
 | `Imu` | 板载唯一 | BMI088 SPI1，加热 TIM10 CH1 | BMI088 SPI2，加热 TIM3 CH4 |
 | `KvStore` | 共享数据库 | FlashDB，内部 Flash | FlashDB，W25Q64（OCTOSPI1） |
 | `Timer` | 实例计时 | 64 位周期计数 | 同左 |
+| `IrqLock` | 作用域关中断 | PRIMASK | 同左 |
 | `board/power.hpp` | 板卡专用 | 无（引用时编译报错） | `set_power(PowerOutput, bool)`，上电全关 |
 
 ## 构造与启动
@@ -47,7 +48,14 @@
 ## 回调
 
 - 每通道 vector 保存 `std::function`，在接收中断内依序通知；CAN 用 FIFO 中断，UART 用空闲中断，CDC 在 USB 中断内
-- 注册时保存、关闭、恢复 PRIMASK；回调保持短小、非阻塞，数据视图仅在回调期间有效
+- 注册时用 `IrqLock` 保护；回调保持短小、非阻塞，数据视图仅在回调期间有效
+
+## IrqLock
+
+- 声明在 `lib/bsp/irq_lock.hpp`，两板实现在各自 `bsp.cpp`
+- 构造保存 PRIMASK 并关中断，析构恢复；可嵌套、中断内可用，禁止复制
+- 关中断临界区统一写 `const IrqLock lock;`，不再手写 `__get_PRIMASK`、`__disable_irq`、`__set_PRIMASK`
+- 只包住必须原子的几行，必要时用内层 `{}` 缩小作用域；如 CDC `send` 只保护“检查并占用发送缓冲”，复制和启动传输在锁外
 
 ## Monitor
 
@@ -94,7 +102,7 @@
 - CubeMX：启用 USB_OTG_FS（C 板）或 USB_OTG_HS 内置 FS PHY（mc02）为 Device_Only；不启用 USB_DEVICE 中间件、不勾选 OTG 中断、不生成 `MX_USB_OTG_*_PCD_Init` 调用
 - 生成的 `HAL_PCD_MspInit` 提供 GPIO 与时钟，由 CherryUSB `usb_dc_low_level_init` 调用；OTG IRQHandler 由 `usb_glue_st.c` 定义，`cdc_init()` 设置并开启 NVIC
 - DWC2 工作在非 DMA 模式，CPU 读写 FIFO，H7 上的 CDC 缓冲也无需 D-Cache 维护
-- 描述符常量放在各板 `cdc.cpp` 顶部：VID/PID 默认 CubeMX `0x0483 / 0x5740`，厂商、产品字符串可改；序列号同 CubeMX `Get_SerialNum`，由芯片 UID 生成 12 位十六进制
+- 描述符常量放在各板 `cdc.cpp` 顶部：VID/PID 为 pid.codes 测试 ID `0x1209 / 0x0001`，仅限内部使用；不用 ST 默认 `0x0483 / 0x5740`，因为 ST VCP 驱动按该 ID 整机绑定，Windows 不拆分复合设备、批量端点无数据；厂商、产品字符串沿用 CubeMX 默认值，可改；序列号同 CubeMX `Get_SerialNum`，由芯片 UID 生成 12 位十六进制
 - C 板 OTG_FS 除 EP0 只有 3 个 IN 端点，只能容纳 1 个 CDC；mc02 为 IAD 复合设备，接口 0 为 `Cdc(1)`、接口 2 为 `Cdc(2)`
 - 批量 IN 长度为包长整数倍时补发零长包
 

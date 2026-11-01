@@ -63,12 +63,15 @@ static bool rotation_increment(const Vector3& gyro, const float dt, Quaternion& 
     return delta.coeffs().allFinite();
 }
 
-QuaternionEkf::QuaternionEkf(const Config& config)
-    : config_(config) {
+QuaternionEkf::QuaternionEkf(Imu& imu)
+    : QuaternionEkf(imu, Config{}) {}
+
+QuaternionEkf::QuaternionEkf(Imu& imu, const Config& config)
+    : Attitude(imu), config_(config) {
     reset_bias();
 }
 
-void QuaternionEkf::update(const Vector3& gyro, const Vector3& accel) {
+void QuaternionEkf::solve(const Vector3& gyro, const Vector3& accel) {
     const float dt = timer_.restart();
     const Vector3 rate{gyro.x() - bias.x(), gyro.y() - bias.y(), gyro.z()};
     Quaternion delta;
