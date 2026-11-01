@@ -40,10 +40,10 @@
             }
         },
         {
-            "name": "examples-mc02",
+            "name": "examples-kv_store",
             "inherits": "default",
             "cacheVariables": {
-                "RMPP_APP": "examples/mc02",
+                "RMPP_APP": "examples/kv_store",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },

@@ -20,7 +20,7 @@ boards/<板卡>/bsp/          外设实现、入口、手写 CMake、工具链�
 tools/                     presets、批量构建与格式化
 ```
 
-整车应用为 infantry、sentry，均使用 C 板。shooter 示例使用步兵 17 mm 双摩擦轮配置；mc02 示例覆盖 mc02 全部外设。
+整车应用为 infantry、sentry，均使用 C 板。shooter 示例使用步兵 17 mm 双摩擦轮配置；kv_store 示例两板通用，默认 C 板，`-DRMPP_BOARD=mc02` 配置到独立构建目录即为 mc02。
 
 ## 启动与句柄
 
