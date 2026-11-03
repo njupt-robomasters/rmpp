@@ -18,7 +18,6 @@ class QuaternionEkf : public Attitude {
 
     Vector2 bias = Vector2::Zero(); // rad/s；不估计 Z 零偏
 
-    explicit QuaternionEkf(Imu& imu);
     QuaternionEkf(Imu& imu, const Config& config);
 
     // 清除剩余零偏并重建协方差，保留当前姿态

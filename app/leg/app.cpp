@@ -2,7 +2,7 @@
 #include "bsp/timer.hpp"
 
 extern "C" void app_main() {
-    // 上电静止校准零偏与重力模长，约 6 s；外部工程同样每次上电校准
+    // 上电静止校准零偏与重力模长，固定 5 s；外部工程同样每次上电校准
     imu.start_calibration();
 
     Timer timer;

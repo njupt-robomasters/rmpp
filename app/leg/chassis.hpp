@@ -15,7 +15,7 @@
 // 由外部工程腿倾角与横滚补偿的闭环极性反推；上车前用手低头应见 attitude.pitch 增大、右侧压低应见 attitude.roll 增大
 // 零偏与重力模长在上电静止时校准，见 app_main
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = 180 * deg})});
-inline QuaternionEkf attitude(imu);
+inline QuaternionEkf attitude(imu, {});
 
 // 关节 DM8009：CAN2；面向输出轴逆时针为正，不反向
 // offset 取外部工程 pos = wrap(raw + c) 中 c 的相反数，使 position 零位对应 A 杆方位角 π、E 杆 0

@@ -18,8 +18,11 @@ class Can {
     // 编号不存在时各操作静默返回
     constexpr explicit Can(const int id) : id_(id) {}
 
-    // 返回发送请求是否进入硬件邮箱或发送队列
-    bool send(const CanFrame& frame) const;
+    // 硬件邮箱或发送队列有空位
+    bool can_send() const;
+
+    // 写入硬件邮箱或发送队列，无空位时丢弃
+    void send(const CanFrame& frame) const;
 
     // 回调在接收中断内依序执行
     void add_rx_callback(RxCallback callback) const;

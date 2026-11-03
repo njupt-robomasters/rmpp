@@ -10,5 +10,5 @@ extern const struct fal_flash_dev w25q64;
 
 #define FAL_FLASH_DEV_TABLE {&w25q64}
 
-// KvStore 分区：从 0 起 1 MiB，其余空间保留
-#define FAL_PART_TABLE {{FAL_PART_MAGIC_WORD, "fdb_kvdb1", "w25q64", 0, 1024 * 1024, 0}}
+// KvStore 分区：从 0 起 8 KB，其余空间保留
+#define FAL_PART_TABLE {{FAL_PART_MAGIC_WORD, "fdb_kvdb1", "w25q64", 0, 8 * 1024, 0}}

@@ -37,9 +37,6 @@ static float square(const float phase, const float dt) {
     return (phase < 0.5f ? 1.0f : -1.0f) + poly_blep(phase, dt) - poly_blep(half, dt);
 }
 
-Melody::Melody()
-    : Melody(Config{}) {}
-
 Melody::Melody(const Config& config)
     : config_(config), dt_(1 / config.carrier_hz),
       attack_step_(1 - std::exp(-dt_ * GAIN_EVERY / config.agc.attack)),

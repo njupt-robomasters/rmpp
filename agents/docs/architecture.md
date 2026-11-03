@@ -6,7 +6,7 @@
 
 ```text
 app/<应用>/                 app_main()、硬件绑定、车辆参数、应用 CMake
-app/examples/<示例>/        rgb、rc、imu、buzzer、motor、referee、chassis、gimbal、shooter、mc02
+app/examples/<示例>/        empty、rgb、rc、imu、attitude、melody、cdc、kv_store、motor、referee、chassis、gimbal、shooter
 lib/bsp/                   无 HAL 依赖的公共外设声明（Can、Uart、Cdc、Rgb、Buzzer、Imu、KvStore、Timer、Monitor）
 lib/attitude/              姿态解算：抽象父类 Attitude 与算法子类 QuaternionEkf
 lib/math/                  单位、角度、低通滤波、Eigen 类型与姿态转换
@@ -73,7 +73,7 @@ BSP `Imu` 负责 BMI088 读取、恒温加热、零偏校准和安装方向修�
 
 `Rgb` 提供 `set(red, green, blue)` 和 `set_hsv`，范围 [0, 1]；周期变色由各车 `misc.cpp` 的 `misc_loop()` 执行。`Melody` 在板载 `Buzzer` 上播放曲目，见 [蜂鸣器曲目](music.md)。
 
-KvStore 的 read/write 保存 float：缺失键读零，写入不返回结果。所有实例共享同一数据库，首次构造时初始化，所用名称决定应用标记，更换名称时格式化；名称字符串保持有效。C 板分区为内部 Flash 768 KiB 偏移、256 KiB 长度；mc02 为板载 W25Q64 从 0 起 1 MiB。
+KvStore 的 read/write 保存 float：缺失键读零，写入不返回结果。所有实例共享同一数据库，构造不访问 Flash、可早于 `bsp_init()`，首次读写时初始化，首个构造实例的名称决定应用标记，更换名称时格式化；名称字符串保持有效。C 板分区为内部 Flash 768 KiB 偏移、256 KiB 长度；mc02 为板载 W25Q64 从 0 起 1 MiB。
 
 ## 收发
 
@@ -88,8 +88,8 @@ CanFrame 为经典 CAN 报文，数据容量 8 字节，size 表示实际长度�
 
 - 每通道 vector 保存 std::function，支持 `[this]`，每帧在中断内依序通知全部订阅者。
 - 启动前后均可在普通上下文注册；回调保持短小、非阻塞，数据视图仅在回调期间有效。vector/std::function 可能在注册时分配内存。
-- C 板 CAN 直接调用一次 `HAL_CAN_AddTxMessage`，邮箱满时返回 false；mc02 写入 32 级 TX FIFO。
-- UART/CDC 发送先复制到 BSP 缓冲，忙时返回 false；size 不得超过缓冲容量（UART 512、CDC 2048 字节）。
+- C 板 CAN 直接调用一次 `HAL_CAN_AddTxMessage`，邮箱满时丢弃；mc02 写入 32 级 TX FIFO。
+- UART/CDC 发送先复制到 BSP 缓冲，忙时丢弃；size 不得超过缓冲容量（UART 512、CDC 2048 字节）。
 - 调试器可查看 BSP 文件内的 `contexts[i].monitor`（freq、cpu 及低通值）、CAN 的 `bus_off_count`、UART 的 `error_count`。
 
 ## 当前板卡资源

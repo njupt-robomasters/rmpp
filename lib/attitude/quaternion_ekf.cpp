@@ -63,9 +63,6 @@ static bool rotation_increment(const Vector3& gyro, const float dt, Quaternion& 
     return delta.coeffs().allFinite();
 }
 
-QuaternionEkf::QuaternionEkf(Imu& imu)
-    : QuaternionEkf(imu, Config{}) {}
-
 QuaternionEkf::QuaternionEkf(Imu& imu, const Config& config)
     : Attitude(imu), config_(config) {
     reset_bias();

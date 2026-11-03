@@ -29,6 +29,14 @@ done
 - mc02 示例：DTCM 14.1 KB、RAM_D1 4 KB（UART DMA 缓冲）、Flash 184 KB
 - 未烧录、未上板验证
 
+## WS2812 不亮（2026-11-02）
+
+- 现象：正常运行不亮，打断点闪亮一下后不再更新
+- 原因：Keep IO State 开启时 MOSI 始终推挽。发完、SPE 仍开时 MOSI 保持最后发出的位；HAL `SPI_CloseTransfer` 关闭 SPE 后，MOSI 变为 FIFO 中某个已发字节的首位。旧编码 0xC0/0xF8 首位为 1，线路常高，WS2812 无法锁存
+- 实测（`idle_level.tcl`、`idle_long.tcl`）：MSB first 时关 SPE 后取字节最高位，LSB first 时取最低位，即该字节首发位；1、2 字节帧取第 0 字节，24 字节帧取第 16 字节（正好倒数第 8 个，推测与 SPI6 的 8 字节 FIFO 有关，未核对手册）
+- 处理：保留 Keep IO State 推挽输出，编码右移一位为 0x60/0x7C，与达妙例程一致；待用户烧录确认
+- 脚本在 `out/`：`sample.tcl` 采样 PA7，`zero_byte.tcl`、`keepio_off.tcl`、`cpol_cpha.tcl`、`idle_level.tcl`、`idle_long.tcl` 会 halt 并改写 SPI6，运行前须经用户同意
+
 ## 实现中的坑
 
 - CherryUSB `usb_memcpy.h` 把 `memcpy` 定义为宏，C++ 的 `std::memcpy` 报错；`usb_config.h` 定义 `CONFIG_USB_MEMCPY_DISABLE`

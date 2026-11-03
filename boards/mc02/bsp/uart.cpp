@@ -68,17 +68,20 @@ void uart_init() {
         start_receive(context);
 }
 
-bool Uart::send(const uint8_t* data, const std::size_t size) const {
+bool Uart::can_send() const {
+    const auto* context = find(id_);
+    return context && context->huart->hdmatx && context->huart->gState == HAL_UART_STATE_READY;
+}
+
+void Uart::send(const uint8_t* data, const std::size_t size) const {
+    if (!can_send())
+        return;
     auto* context = find(id_);
-    if (!context)
-        return false;
-    if (!context->huart->hdmatx || context->huart->gState != HAL_UART_STATE_READY)
-        return false;
 
     // 写回数据后再启动 DMA 读取
     std::memcpy(context->buffer->tx, data, size);
     SCB_CleanDCache_by_Addr(reinterpret_cast<uint32_t*>(context->buffer->tx), static_cast<int32_t>(size));
-    return HAL_UART_Transmit_DMA(context->huart, context->buffer->tx, size) == HAL_OK;
+    HAL_UART_Transmit_DMA(context->huart, context->buffer->tx, size);
 }
 
 void Uart::add_rx_callback(RxCallback callback) const {

@@ -55,7 +55,6 @@ class Melody {
 
     Monitor monitor; // 复音合成中断的频率与占用
 
-    Melody();
     explicit Melody(const Config& config);
 
     const Config& config() const {

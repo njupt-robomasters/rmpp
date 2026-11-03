@@ -75,10 +75,15 @@ void can_init() {
     }
 }
 
-bool Can::send(const CanFrame& frame) const {
+bool Can::can_send() const {
+    const auto* context = find(id_);
+    return context && HAL_CAN_GetTxMailboxesFreeLevel(context->hcan) != 0;
+}
+
+void Can::send(const CanFrame& frame) const {
     const auto* context = find(id_);
     if (!context)
-        return false;
+        return;
 
     const CAN_TxHeaderTypeDef header{
         .StdId = frame.is_extend ? 0 : frame.id,
@@ -88,7 +93,7 @@ bool Can::send(const CanFrame& frame) const {
         .DLC = frame.size,
     };
     uint32_t mailbox;
-    return HAL_CAN_AddTxMessage(context->hcan, &header, frame.data, &mailbox) == HAL_OK;
+    HAL_CAN_AddTxMessage(context->hcan, &header, frame.data, &mailbox);
 }
 
 void Can::add_rx_callback(RxCallback callback) const {

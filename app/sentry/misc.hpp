@@ -15,7 +15,7 @@
 #include "referee/ui.hpp"
 
 inline Rgb rgb;
-inline Melody melody;
+inline Melody melody({});
 inline KvStore kv_store("sentry");
 inline VT13 vt13({.uart = Uart(6)});
 inline FSi6X fsi6x({.uart = Uart(3)});

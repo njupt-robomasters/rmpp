@@ -11,7 +11,7 @@
 #include "melody/music/always_with_me.hpp"
 #include "melody/music/the_ordinary_road.hpp"
 
-static Melody melody;
+static Melody melody({});
 
 extern "C" void app_main() {
     // melody.play(C5D5G5);

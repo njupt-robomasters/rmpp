@@ -3,19 +3,28 @@
 #include "bsp/timer.hpp"
 #include <cstdio>
 
-static constexpr Cdc cdc(1);
+static Cdc cdc1(1);
+static Cdc cdc2(2);
 
 extern "C" void app_main() {
-    cdc.add_rx_callback([](const uint8_t* data, const std::size_t size) { cdc.send(data, size); });
+    cdc1.add_rx_callback([](const uint8_t* data, const std::size_t size) { cdc1.send(data, size); });
+    cdc2.add_rx_callback([](const uint8_t* data, const std::size_t size) { cdc2.send(data, size); });
 
-    int count = 0;
-    Timer timer;
     while (true) {
-        if (timer.elapsed() > 1) {
-            timer.restart();
-            char text[32];
-            const int size = std::snprintf(text, sizeof(text), "tick %d\r\n", count++);
-            cdc.send(reinterpret_cast<const uint8_t*>(text), size);
-        }
+        // 1Hz 更新
+        static Timer timer;
+        if (timer.elapsed() < 1)
+            continue;
+        timer.restart();
+
+        // CDC 打印
+        static int cnt = 0;
+        char text[32];
+        // CDC1
+        const int size1 = std::snprintf(text, sizeof(text), "[cdc1] %d\n", cnt++);
+        cdc1.send(reinterpret_cast<const uint8_t*>(text), size1);
+        // CDC2
+        const int size2 = std::snprintf(text, sizeof(text), "[cdc2] %d\n", cnt++);
+        cdc2.send(reinterpret_cast<const uint8_t*>(text), size2);
     }
 }

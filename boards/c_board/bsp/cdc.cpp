@@ -168,25 +168,22 @@ void cdc_init() {
     HAL_NVIC_EnableIRQ(OTG_FS_IRQn);
 }
 
-bool Cdc::send(const uint8_t* data, const std::size_t size) const {
+void Cdc::send(const uint8_t* data, const std::size_t size) const {
     auto* context = find(id_);
     if (!context)
-        return false;
+        return;
 
     // 检查并占用发送缓冲，防止主循环与中断回调同时发送
     {
         const IrqLock lock;
         if (!usb_device_is_configured(BUS) || context->is_tx_busy)
-            return false;
+            return;
         context->is_tx_busy = true;
     }
 
     std::memcpy(context->tx_buf, data, size);
-    if (usbd_ep_start_write(BUS, context->in_ep, context->tx_buf, size) != 0) {
+    if (usbd_ep_start_write(BUS, context->in_ep, context->tx_buf, size) != 0)
         context->is_tx_busy = false;
-        return false;
-    }
-    return true;
 }
 
 void Cdc::add_rx_callback(RxCallback callback) const {

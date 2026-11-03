@@ -8,6 +8,14 @@
             "binaryDir": "${sourceDir}/build/${presetName}"
         },
         {
+            "name": "examples-attitude",
+            "inherits": "default",
+            "cacheVariables": {
+                "RMPP_APP": "examples/attitude",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
             "name": "examples-cdc",
             "inherits": "default",
             "cacheVariables": {
@@ -24,18 +32,18 @@
             }
         },
         {
-            "name": "examples-gimbal",
+            "name": "examples-empty",
             "inherits": "default",
             "cacheVariables": {
-                "RMPP_APP": "examples/gimbal",
+                "RMPP_APP": "examples/empty",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
-            "name": "examples-imu",
+            "name": "examples-gimbal",
             "inherits": "default",
             "cacheVariables": {
-                "RMPP_APP": "examples/imu",
+                "RMPP_APP": "examples/gimbal",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },

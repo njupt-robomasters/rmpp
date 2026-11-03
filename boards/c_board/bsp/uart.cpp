@@ -95,15 +95,18 @@ void uart_init() {
         start_receive(context);
 }
 
-bool Uart::send(const uint8_t* data, const std::size_t size) const {
+bool Uart::can_send() const {
+    const auto* context = find(id_);
+    return context && context->huart->hdmatx && context->huart->gState == HAL_UART_STATE_READY;
+}
+
+void Uart::send(const uint8_t* data, const std::size_t size) const {
+    if (!can_send())
+        return;
     auto* context = find(id_);
-    if (!context)
-        return false;
-    if (!context->huart->hdmatx || context->huart->gState != HAL_UART_STATE_READY)
-        return false;
 
     std::memcpy(context->tx_buf, data, size);
-    return HAL_UART_Transmit_DMA(context->huart, context->tx_buf, size) == HAL_OK;
+    HAL_UART_Transmit_DMA(context->huart, context->tx_buf, size);
 }
 
 void Uart::add_rx_callback(RxCallback callback) const {

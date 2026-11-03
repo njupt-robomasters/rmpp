@@ -27,13 +27,21 @@ void Referee::update() {
         is_connected = false;
     if (tx_size_ == 0)
         return;
+
+    // 链路忙时保留待发帧，下次重试
     if (const auto* can = std::get_if<Can>(&config_.bus)) {
+        if (!can->can_send())
+            return;
         const auto size = std::min<size_t>(8, tx_size_ - tx_pos_);
         CanFrame frame{.id = config_.tx_id, .size = static_cast<uint8_t>(size)};
         std::memcpy(frame.data, tx_buf_ + tx_pos_, size);
-        if (can->send(frame))
-            tx_pos_ += size;
-    } else if (std::get<Uart>(config_.bus).send(tx_buf_, tx_size_)) {
+        can->send(frame);
+        tx_pos_ += size;
+    } else {
+        const auto& uart = std::get<Uart>(config_.bus);
+        if (!uart.can_send())
+            return;
+        uart.send(tx_buf_, tx_size_);
         tx_pos_ = tx_size_;
     }
     if (tx_pos_ == tx_size_) {

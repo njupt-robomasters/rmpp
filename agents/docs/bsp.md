@@ -23,7 +23,8 @@
 - 运行数据放在各板外设 `.cpp` 的文件私有 static 表（`CanContext`、`UartContext`、`CdcContext`），头文件不暴露；操作时按编号查表，中断回调按 HAL 句柄查表
 - 不存在的编号各操作静默返回
 - `Rgb`、`Buzzer` 无状态，可任意构造；`Imu` 持有温控配置和 PID 状态，由 app 创建唯一实例
-- `KvStore` 所有实例共享同一数据库，首次构造时初始化
+- `KvStore` 所有实例共享同一数据库；构造只记录首个实例的名称、不访问 Flash，可早于 `bsp_init()`，首次 `read`/`write` 时初始化数据库并核对名称标记
+- mc02 SPI 均开启 Master Keep IO State，避免 SPE 开关间引脚浮空；BMI088（SPI2，模式 3）依赖它保持 SCK 空闲高。实测 H723 发完、SPE 仍开时 MOSI 保持最后发出的位；HAL 关闭 SPE 后 MOSI 变为 FIFO 中某个已发字节的首位（24 字节帧为第 16 字节）。WS2812（SPI6）因此让每个编码字节首尾位均为 0，使空闲低电平锁存
 - 硬件启动由板卡 `bsp_init()` 执行，在 CubeMX 外设初始化后、`app_main()` 前调用
 
 ## 初始化入口
@@ -39,9 +40,10 @@
 - Can、Uart、Cdc 必须显式指定编号，不提供默认空句柄
 - 型号默认参数不包含硬件句柄
 - 外设不提供 `operator bool()`
-- 发送接口返回请求是否被底层接受
+- 公开接口不用 bool 返回值报告操作成败；发送接口返回 void，底层忙时丢弃
+- 调用方确需避免丢弃时，先用 `can_send()` 查询；只为有实际调用的外设提供，目前为 CAN（邮箱或 TX FIFO 有空位）和 UART（上次 DMA 已完成）
 - 参数范围由调用方保证，不重复检查
-- 必要的运行状态判断留在实现中：UART 上次 DMA 未完成、CDC 未枚举或上次发送未完成时返回 false
+- 必要的运行状态判断留在实现中：UART 上次 DMA 未完成、CDC 未枚举或上次发送未完成时丢弃
 - 板卡独有的功能放在 `boards/<板卡>/bsp/include/board/*.hpp`，根 CMake 把该目录加入 `rmpp_app`；其他板卡没有该头文件，引用时编译报错
 - 调试统计通过 `monitor` 查看
 
@@ -91,7 +93,7 @@
 ### FDCAN（mc02）
 
 - 经典帧 1 Mbps；`HAL_FDCAN_ConfigGlobalFilter` 把标准帧和扩展帧都送入 RX FIFO0，远程帧拒收
-- 通知 `RX_FIFO0_NEW_MESSAGE | BUS_OFF`，IT0 中断由 CubeMX 开启；发送 `AddMessageToTxFifoQ`，队列满返回 false
+- 通知 `RX_FIFO0_NEW_MESSAGE | BUS_OFF`，IT0 中断由 CubeMX 开启；发送 `AddMessageToTxFifoQ`，队列满丢弃
 - 接收区按 64 字节准备：HAL 按 FD 长度表拷贝，经典帧 DLC 9–15 会拷贝超过 8 字节
 - bus-off 后硬件置位 `CCCR.INIT`；`HAL_FDCAN_ErrorStatusCallback` 计数并清除，经 129 × 11 个隐性位后自动重新入网
 

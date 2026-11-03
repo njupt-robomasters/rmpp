@@ -55,10 +55,15 @@ void can_init() {
     }
 }
 
-bool Can::send(const CanFrame& frame) const {
+bool Can::can_send() const {
+    const auto* context = find(id_);
+    return context && HAL_FDCAN_GetTxFifoFreeLevel(context->hfdcan) != 0;
+}
+
+void Can::send(const CanFrame& frame) const {
     const auto* context = find(id_);
     if (!context)
-        return false;
+        return;
 
     // 经典帧 DLC 0–8 与 FDCAN_DLC_BYTES_0–8 数值相同
     const FDCAN_TxHeaderTypeDef header{
@@ -72,7 +77,7 @@ bool Can::send(const CanFrame& frame) const {
         .TxEventFifoControl = FDCAN_NO_TX_EVENTS,
         .MessageMarker = 0,
     };
-    return HAL_FDCAN_AddMessageToTxFifoQ(context->hfdcan, &header, frame.data) == HAL_OK;
+    HAL_FDCAN_AddMessageToTxFifoQ(context->hfdcan, &header, frame.data);
 }
 
 void Can::add_rx_callback(RxCallback callback) const {

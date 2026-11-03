@@ -12,7 +12,7 @@ class Imu {
         Vector3 gyro_offset = Vector3::Zero();           // 传感器系零偏，rad/s；校准成功后更新
         float gravity = 9.81f;                           // 标定时原始加速度模长，m/s²；校准成功后更新
         float temperature = 45.0f;                       // 目标温度，°C
-        Pid::Config temperature_pid = {.kp = 1.0f, .ki = 0.01f, .max_i = 0.4f, .max_out = 1.0f};
+        Pid::Config temperature_pid = {.kp = 0.25f, .ki = 0.01f, .max_i = 0.4f, .max_out = 1.0f};
     };
 
     // 校准及安装修正后的机体系量；读取成功时刷新
@@ -20,14 +20,13 @@ class Imu {
     Vector3 accel = Vector3::Zero(); // m/s²
     float temperature = 0;           // °C
 
-    Imu();
     explicit Imu(const Config& config);
 
     // 板卡实现：首次调用初始化传感器，失败时下次重试；读取成功后执行一步加热闭环、推进校准并刷新输出
     // 读取失败时关闭加热，输出保持上次值
     void update();
 
-    // 下次 update 开始新的校准窗口；调用方负责热机和静止时机
+    // 下次 update 开始 5 s 校准，非静止时提前失败；调用方负责热机和静止时机
     void start_calibration();
 
     const Config& config() const {
@@ -49,9 +48,9 @@ class Imu {
     } calibration_ = Calibration::IDLE;
     Timer calibration_timer_;
     uint32_t calibration_samples_ = 0;
-    Vector4 calibration_mean_ = Vector4::Zero();
-    Vector4 calibration_min_ = Vector4::Zero();
-    Vector4 calibration_max_ = Vector4::Zero();
+    float calibration_mean_[4] = {}; // 陀螺仪 xyz（rad/s）与加速度模长（m/s²）
+    float calibration_min_[4] = {};
+    float calibration_max_[4] = {};
 
     // 用传感器系原始量推进校准，成功时更新 gyro_offset 与 gravity
     void update_calibration(const Vector3& gyro, const Vector3& accel);

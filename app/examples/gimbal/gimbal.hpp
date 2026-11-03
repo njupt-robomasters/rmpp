@@ -12,7 +12,7 @@
 
 // 惯性测量单元与姿态解算
 inline Imu imu({.gyro_offset = Vector3(0.00316276052f, -0.00411193585f, -0.00242328411f), .gravity = 9.79961872f});
-inline QuaternionEkf attitude(imu);
+inline QuaternionEkf attitude(imu, {});
 
 // yaw电机
 inline Pid::Config yaw_speed_pid = {
@@ -26,10 +26,11 @@ inline Pid::Config yaw_angle_pid = {
     .max_out = 720 * deg_s,
 };
 inline GM6020 yaw({
-    .bus = {.can = Can(1), .rx_id = 0x205},
-    .drive = {.max_current = GM6020::MAX_CURRENT, .kt = GM6020::KT, .reduction = GM6020::REDUCTION},
-    .install = {.is_invert = false},
-});
+                      .bus = {.can = Can(1), .rx_id = 0x205},
+                      .drive = {.max_current = GM6020::MAX_CURRENT, .kt = GM6020::KT, .reduction = GM6020::REDUCTION},
+                      .install = {.is_invert = false},
+                  },
+                  {});
 
 // pitch电机
 inline Pid::Config pitch_speed_pid = {

@@ -2,9 +2,6 @@
 #include "math/unit.hpp"
 #include <algorithm>
 
-GM6020::GM6020(const Config& config)
-    : GM6020(config, BackEmf{}) {}
-
 GM6020::GM6020(const Config& config, const BackEmf& back_emf)
     : Motor(config), back_emf_(back_emf) {
     config.bus.can.add_rx_callback([this](const CanFrame& frame) { can_callback(frame); });

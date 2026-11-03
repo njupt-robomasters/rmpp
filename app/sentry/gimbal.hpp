@@ -15,7 +15,7 @@
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = -90 * deg}),
                  .gyro_offset = Vector3(-0.000674135052f, 0.00137436262f, 0.00146490871f),
                  .gravity = 9.54711819f});
-inline QuaternionEkf attitude(imu);
+inline QuaternionEkf attitude(imu, {});
 
 // 用于Ozone调参
 // #define yaw1_pid angle_pid
