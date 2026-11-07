@@ -11,26 +11,26 @@
 using Matrix3x6 = Eigen::Matrix<float, 3, 6>;
 using Matrix6x3 = Eigen::Matrix<float, 6, 3>;
 
-static Matrix6 multiply(const Matrix6& a, const Matrix6& b) {
-    Matrix6 out;
+static Matrix6f multiply(const Matrix6f& a, const Matrix6f& b) {
+    Matrix6f out;
     out.noalias() = a * b;
     return out;
 }
 
-static Matrix6 multiply_transpose(const Matrix6& a, const Matrix6& b) {
-    Matrix6 out;
+static Matrix6f multiply_transpose(const Matrix6f& a, const Matrix6f& b) {
+    Matrix6f out;
     out.noalias() = a * b.transpose();
     return out;
 }
 
 // 已知 S = L Lᵀ，先前代再回代，避免显式求逆
-static bool solve_cholesky(const Matrix3& lower, const Vector3& rhs, Vector3& out) {
+static bool solve_cholesky(const Matrix3f& lower, const Vector3f& rhs, Vector3f& out) {
     out = lower.template triangularView<Eigen::Lower>().solve(rhs);
     out = lower.transpose().template triangularView<Eigen::Upper>().solve(out);
     return out.allFinite();
 }
 
-static bool symmetrize_covariance(Matrix6& covariance) {
+static bool symmetrize_covariance(Matrix6f& covariance) {
     if (!covariance.allFinite())
         return false;
     for (int i = 0; i < 6; ++i)
@@ -40,7 +40,7 @@ static bool symmetrize_covariance(Matrix6& covariance) {
     return covariance.allFinite();
 }
 
-static bool normalize_quaternion(Quaternion& q) {
+static bool normalize_quaternion(Quaternionf& q) {
     const float norm = q.norm();
     if (!std::isfinite(norm) || norm < 1.0e-6f)
         return false;
@@ -48,7 +48,7 @@ static bool normalize_quaternion(Quaternion& q) {
     return q.coeffs().allFinite();
 }
 
-static bool rotation_increment(const Vector3& gyro, const float dt, Quaternion& delta) {
+static bool rotation_increment(const Vector3f& gyro, const float dt, Quaternionf& delta) {
     if (!gyro.allFinite() || !std::isfinite(dt) || dt <= 0)
         return false;
     const float norm = gyro.norm();
@@ -58,7 +58,7 @@ static bool rotation_increment(const Vector3& gyro, const float dt, Quaternion& 
     float scale = 0.5f * dt;
     if (half_angle > 1.0e-6f)
         scale = std::sin(half_angle) / norm;
-    delta = Quaternion(std::cos(half_angle), scale * gyro.x(), scale * gyro.y(), scale * gyro.z());
+    delta = Quaternionf(std::cos(half_angle), scale * gyro.x(), scale * gyro.y(), scale * gyro.z());
     return delta.coeffs().allFinite();
 }
 
@@ -67,10 +67,10 @@ QuaternionEkf::QuaternionEkf(Imu& imu, const Config& config)
     reset_bias();
 }
 
-void QuaternionEkf::solve(const Vector3& gyro, const Vector3& accel) {
+void QuaternionEkf::solve(const Vector3f& gyro, const Vector3f& accel) {
     const float dt = timer_.restart();
-    const Vector3 rate{gyro.x() - bias.x(), gyro.y() - bias.y(), gyro.z()};
-    Quaternion delta;
+    const Vector3f rate{gyro.x() - bias.x(), gyro.y() - bias.y(), gyro.z()};
+    Quaternionf delta;
     if (!rotation_increment(rate, dt, delta))
         return;
     const float accel_norm = accel.norm();
@@ -84,18 +84,18 @@ void QuaternionEkf::solve(const Vector3& gyro, const Vector3& accel) {
         const float pitch = std::atan2(-accel.x(), std::hypot(accel.y(), accel.z()));
         const float cr = std::cos(roll * 0.5f), sr = std::sin(roll * 0.5f);
         const float cp = std::cos(pitch * 0.5f), sp = std::sin(pitch * 0.5f);
-        q = Quaternion(cr * cp, sr * cp, cr * sp, -sr * sp);
+        q = Quaternionf(cr * cp, sr * cp, cr * sp, -sr * sp);
         initialized_ = true;
         return;
     }
 
     // 预测：均值采用恒角速度的精确增量，零偏雅可比按周期一阶线性化
     const float w = q.w(), x = q.x(), y = q.y(), z = q.z();
-    Quaternion predicted_q = q * delta;
+    Quaternionf predicted_q = q * delta;
     if (!normalize_quaternion(predicted_q))
         return;
     const float half_dt = 0.5f * dt;
-    Matrix6 transition = Matrix6::Zero();
+    Matrix6f transition = Matrix6f::Zero();
     transition(0, 0) = delta.w();
     transition(0, 1) = -delta.x();
     transition(0, 2) = -delta.y();
@@ -123,10 +123,10 @@ void QuaternionEkf::solve(const Vector3& gyro, const Vector3& accel) {
     transition(4, 4) = 1;
     transition(5, 5) = 1;
 
-    Matrix6 prior = covariance_;
+    Matrix6f prior = covariance_;
     for (int i = 4; i < 6; ++i)
         prior(i, i) = std::min(prior(i, i) / config_.bias_fading, 10000.0f);
-    Matrix6 predicted_covariance = multiply(transition, prior);
+    Matrix6f predicted_covariance = multiply(transition, prior);
     predicted_covariance = multiply_transpose(predicted_covariance, transition);
     for (int i = 0; i < 6; ++i)
         predicted_covariance(i, i) += (i < 4 ? config_.quaternion_noise : config_.bias_noise) * dt;
@@ -141,9 +141,9 @@ void QuaternionEkf::solve(const Vector3& gyro, const Vector3& accel) {
 
     // h(q) = R(q)ᵀ [0, 0, 1]，观测为单位重力方向
     const float qw = q.w(), qx = q.x(), qy = q.y(), qz = q.z();
-    const Vector3 gravity{2 * (qx * qz - qw * qy),
-                          2 * (qw * qx + qy * qz),
-                          qw * qw - qx * qx - qy * qy + qz * qz};
+    const Vector3f gravity{2 * (qx * qz - qw * qy),
+                           2 * (qw * qx + qy * qz),
+                           qw * qw - qx * qx - qy * qy + qz * qz};
     Matrix3x6 observation = Matrix3x6::Zero();
     observation(0, 0) = -2 * qy;
     observation(0, 1) = 2 * qz;
@@ -157,18 +157,18 @@ void QuaternionEkf::solve(const Vector3& gyro, const Vector3& accel) {
     observation(2, 1) = -2 * qx;
     observation(2, 2) = -2 * qy;
     observation(2, 3) = 2 * qz;
-    const Vector3 residual = accel / accel_norm - gravity;
+    const Vector3f residual = accel / accel_norm - gravity;
     const Matrix6x3 cross_covariance = covariance_ * observation.transpose();
-    Matrix3 innovation = observation * cross_covariance;
+    Matrix3f innovation = observation * cross_covariance;
     innovation.diagonal().array() += config_.accel_noise;
 
     // 对称正定的 3×3 观测协方差，Cholesky 同时检查数值可解性
     innovation = 0.5f * (innovation + innovation.transpose());
-    Eigen::LLT<Matrix3> llt(innovation);
+    Eigen::LLT<Matrix3f> llt(innovation);
     if (llt.info() != Eigen::Success)
         return;
-    const Matrix3 lower = llt.matrixL();
-    Vector3 weighted_residual;
+    const Matrix3f lower = llt.matrixL();
+    Vector3f weighted_residual;
     if (!solve_cholesky(lower, residual, weighted_residual))
         return;
     const float distance = residual.dot(weighted_residual);
@@ -216,16 +216,16 @@ void QuaternionEkf::solve(const Vector3& gyro, const Vector3& accel) {
         if (!std::isfinite(correction[i]))
             return;
     }
-    Quaternion corrected_q(q.w() + correction[0], q.x() + correction[1], q.y() + correction[2],
-                           q.z() + correction[3]);
+    Quaternionf corrected_q(q.w() + correction[0], q.x() + correction[1], q.y() + correction[2],
+                            q.z() + correction[3]);
     if (!normalize_quaternion(corrected_q))
         return;
     if (!std::isfinite(bias.x() + correction[4]) || !std::isfinite(bias.y() + correction[5]))
         return;
 
     // Joseph 形式：P = (I-KH) P (I-KH)ᵀ + K R Kᵀ
-    const Eigen::Matrix<float, 6, 6> remaining = Eigen::Matrix<float, 6, 6>::Identity() - gain * observation;
-    Matrix6 posterior = remaining * covariance_ * remaining.transpose();
+    const Matrix6f remaining = Matrix6f::Identity() - gain * observation;
+    Matrix6f posterior = remaining * covariance_ * remaining.transpose();
     posterior.noalias() += gain * config_.accel_noise * gain.transpose();
     if (!symmetrize_covariance(posterior))
         return;
@@ -243,11 +243,11 @@ void QuaternionEkf::reset_bias() {
         covariance_(i, i) = i < 4 ? 100000.0f : 100.0f;
 }
 
-Quaternion QuaternionEkf::integrate(const Quaternion& q, const Vector3& gyro, const float dt) {
-    Quaternion delta;
+Quaternionf QuaternionEkf::integrate(const Quaternionf& q, const Vector3f& gyro, const float dt) {
+    Quaternionf delta;
     if (!rotation_increment(gyro, dt, delta))
         return q;
-    Quaternion next = q * delta;
+    Quaternionf next = q * delta;
     if (!normalize_quaternion(next))
         return q;
     return next;

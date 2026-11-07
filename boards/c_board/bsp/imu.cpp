@@ -122,7 +122,7 @@ void Imu::update() {
     }
 
     // 换算到国际单位：±6 g 与 ±2000 °/s 量程
-    Vector3 raw_gyro, raw_accel;
+    Vector3f raw_gyro, raw_accel;
     for (int i = 0; i < 3; i++) {
         raw_accel[i] = static_cast<int16_t>(accel_buf[2 * i] | (accel_buf[2 * i + 1] << 8)) * 0.00179443359375f;
         raw_gyro[i] = static_cast<int16_t>(gyro_buf[2 * i + 2] | (gyro_buf[2 * i + 3] << 8)) * 0.0010652644360316953f;

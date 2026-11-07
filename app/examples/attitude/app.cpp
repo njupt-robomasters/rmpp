@@ -6,7 +6,7 @@
 // 安装方向按实际修改；零偏与重力取 imu 示例校准结果
 // orientation：传感器到机体的安装旋转，Z-Y-X 欧拉角，按实际安装修改
 static Imu imu({.orientation = euler_to_quaternion({.yaw = 0 * deg, .pitch = 0 * deg, .roll = 0 * deg}),
-                .gyro_offset = Vector3(-0.00637f, 0.00098f, 0.00191f),
+                .gyro_offset = Vector3f(-0.00637f, 0.00098f, 0.00191f),
                 .gravity = 9.66301f,
                 .temperature = 45.0f});
 

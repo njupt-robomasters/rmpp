@@ -9,7 +9,7 @@ void Imu::start_calibration() {
     calibration_ = Calibration::STARTING;
 }
 
-void Imu::update_calibration(const Vector3& gyro, const Vector3& accel) {
+void Imu::update_calibration(const Vector3f& gyro, const Vector3f& accel) {
     // 开始：延迟到更新周期开始采样，确保计时和样本计数同步
     if (calibration_ == Calibration::STARTING) {
         calibration_samples_ = 0;

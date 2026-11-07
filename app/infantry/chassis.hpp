@@ -22,7 +22,7 @@ inline Pid::Config vxyz_pid = {
     .ki = MAX_F / (10 * cm),
     .max_i = MAX_F,
     .max_out = MAX_F,
-    .fc = 10,
+    .err_fc = 10,
 };
 inline Pid::Config follow_pid = {
     .kp = 5.0f,
@@ -53,11 +53,12 @@ inline M3508 w4({
 
 // 底盘
 inline ChassisMatrixTorque chassis({
+                                       .kinematics = ChassisMatrix::OMNI,
                                        .chassis_radius = CHASSIS_RADIUS,
                                        .wheel_radius = WHEEL_RADIUS,
+                                       .speed_pid_config = &vxyz_pid,
                                        .follow_pid_config = &follow_pid,
-                                       .power = {},
                                    },
-                                   OMNI, &vxyz_pid, {&w1, &w2, &w3, &w4});
+                                   {}, {&w1, &w2, &w3, &w4});
 
 void chassis_loop();

@@ -137,7 +137,7 @@ class ChassisLeg {
 
     // 每个控制周期调用：q 为底盘机体到世界，gyro 为底盘机体系角速度 rad/s
     // 计算并设置全部电机力矩，发送由调用方完成
-    void update(const Quaternion& q, const Vector3& gyro);
+    void update(const Quaternionf& q, const Vector3f& gyro);
 
     const Config& config() const {
         return config_;

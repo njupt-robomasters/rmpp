@@ -85,9 +85,9 @@ inline GM6020 s4({
 inline ChassisSteerSpeed chassis({
                                      .chassis_radius = CHASSIS_RADIUS,
                                      .wheel_radius = WHEEL_RADIUS,
+                                     .speed_pid_config = &wheel_pid,
                                      .steer_pid_config = &steer_pid,
-                                     .power = {.wheel_resistance = 0.194f},
                                  },
-                                 &wheel_pid, {&w1, &w2, &w3, &w4}, {&s1, &s2, &s3, &s4});
+                                 {.wheel_resistance = 0.194f}, {&w1, &w2, &w3, &w4}, {&s1, &s2, &s3, &s4});
 
 void chassis_loop();

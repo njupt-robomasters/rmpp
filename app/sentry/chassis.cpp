@@ -7,6 +7,7 @@
 // 操控参数
 static constexpr float VXY_MAX = 5.0f;     // 平移最大速度，100W下2.3m/s，不限功率3.2m/s
 static constexpr float WR_MAX = 120 * rpm; // 旋转最大角速度，100W下107rpm，不限功率155rpm
+static constexpr float WR_MIN = 60 * rpm;  // 导航满速平移时的小陀螺角速度
 static constexpr float AXY = 100.0f;       // 键盘平移加速度，m/s^2
 static constexpr float DXY = 100.0f;       // 键盘平移减速度，m/s^2
 static constexpr float AR = 1000 * rpm;    // 键盘旋转角加速度，rad/s^2
@@ -43,8 +44,7 @@ static float key_speed(const float speed, const bool positive, const bool negati
 void chassis_loop() {
     const float dt = timer_dt.restart();
     chassis.set_enable(sentry_enable());
-    if (rc_fn())
-        chassis.set_mode(ChassisSteer::FOLLOW_MODE);
+    chassis.set_mode(rc_fn() ? ChassisSteer::FOLLOW_MODE : ChassisSteer::DETACH_MODE);
 
     // 键盘：WASD 平移，Shift、Ctrl 旋转；断联时直接清零
     if (vt13.is_connect) {
@@ -72,7 +72,7 @@ void chassis_loop() {
         }
         std::tie(vx, vy) = rotate(nav.chassis_speed.vx, nav.chassis_speed.vy, yaw2.position);
         const float speed = std::hypotf(vx, vy);
-        wr = map(speed, 0.0f, VXY_MAX, WR_MAX, chassis.config().reserve_wr);
+        wr = map(speed, 0.0f, VXY_MAX, WR_MAX, WR_MIN);
     } else {
         chassis_state = GO_CENTER;
         nav.target_position = {};

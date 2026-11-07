@@ -11,11 +11,11 @@ const SuperCap::Config& SuperCap::config() const {
 }
 
 void SuperCap::set_mode(const Mode mode) {
-    this->mode = mode;
+    mode_ = mode;
 }
 
 void SuperCap::set_battery_power(const float battery_power) {
-    battery_power_ref = battery_power;
+    battery_power_ref_ = battery_power;
 }
 
 void SuperCap::update() {
@@ -32,16 +32,16 @@ void SuperCap::update() {
     // 生效模式：离线为 OFF，BOOST 电容欠压回退 CHARGE
     if (!is_connect)
         active_mode = OFF;
-    else if (mode == BOOST && is_cap_low_)
+    else if (mode_ == BOOST && is_cap_low_)
         active_mode = CHARGE;
     else
-        active_mode = mode;
+        active_mode = mode_;
 }
 
 void SuperCap::send() const {
     // data[0].bit0 使能 DCDC；data[1..2] 电池侧目标功率，0.01 W/LSB，大端
     const bool is_dcdc_enable = active_mode == CHARGE || active_mode == BOOST;
-    const auto command = static_cast<int16_t>(std::clamp(battery_power_ref, 0.0f, 327.67f) * 100.0f);
+    const auto command = static_cast<int16_t>(std::clamp(battery_power_ref_, 0.0f, 327.67f) * 100.0f);
     config_.can.send({
         .id = config_.tx_id,
         .size = 8,

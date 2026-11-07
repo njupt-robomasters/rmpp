@@ -41,8 +41,7 @@ void chassis_loop() {
     } else {
         is_fn = false;
     }
-    if (is_fn)
-        chassis.set_mode(ChassisMatrix::FOLLOW_MODE);
+    chassis.set_mode(is_fn ? ChassisMatrix::FOLLOW_MODE : ChassisMatrix::DETACH_MODE);
 
     // 键盘：WASD 平移，Shift、Ctrl 旋转；断联时直接清零
     if (vt13.is_connect) {

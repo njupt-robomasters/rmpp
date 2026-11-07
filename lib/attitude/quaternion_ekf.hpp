@@ -1,8 +1,6 @@
 #pragma once
 
 #include "attitude.hpp"
-#include "bsp/timer.hpp"
-#include "math/eigen_types.hpp"
 
 // 固定六状态 EKF：机体到世界的四元数，以及机体 X/Y 陀螺仪剩余零偏
 class QuaternionEkf : public Attitude {
@@ -16,7 +14,7 @@ class QuaternionEkf : public Attitude {
         float innovation_threshold = 1.0e-8f; // 归一化残差门限，> 0
     };
 
-    Vector2 bias = Vector2::Zero(); // rad/s；不估计 Z 零偏
+    Vector2f bias = Vector2f::Zero(); // rad/s；不估计 Z 零偏
 
     QuaternionEkf(Imu& imu, const Config& config);
 
@@ -24,16 +22,16 @@ class QuaternionEkf : public Attitude {
     void reset_bias();
 
     // 假定周期内角速度恒定；无效输入不改变 q，dt 单位 s
-    static Quaternion integrate(const Quaternion& q, const Vector3& gyro, float dt);
+    static Quaternionf integrate(const Quaternionf& q, const Vector3f& gyro, float dt);
 
   protected:
-    void solve(const Vector3& gyro, const Vector3& accel) override;
+    void solve(const Vector3f& gyro, const Vector3f& accel) override;
 
   private:
     Config config_;
     Timer timer_{0.0001f, 0.01f};
-    Matrix6 covariance_ = Matrix6::Zero();
-    Vector3 filtered_accel_ = Vector3::Zero();
+    Matrix6f covariance_ = Matrix6f::Zero();
+    Vector3f filtered_accel_ = Vector3f::Zero();
     bool initialized_ = false;
     bool converged_ = false;
     unsigned rejected_count_ = 0;

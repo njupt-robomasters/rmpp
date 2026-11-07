@@ -13,8 +13,8 @@
 
 // 惯性测量单元与姿态解算
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = -90 * deg}),
-                 .gyro_offset = Vector3(-0.000674135052f, 0.00137436262f, 0.00146490871f),
-                 .gravity = 9.54711819f});
+                .gyro_offset = Vector3f(-0.000674135052f, 0.00137436262f, 0.00146490871f),
+                .gravity = 9.54711819f});
 inline QuaternionEkf attitude(imu, {});
 
 // 用于Ozone调参
@@ -35,7 +35,7 @@ inline Pid::Config yaw1_pid = {
     .kp = (9) / (1.8 * deg),
     .kd = (9) / (18 * deg_s),
     .max_out = 9,
-    .fc = 10,
+    .err_fc = 10,
 };
 inline DM4310 yaw1({
     .bus = {.can = Can(1), .tx_id = 0x12, .rx_id = 0x13},
@@ -48,7 +48,7 @@ inline Pid::Config yaw2_speed_pid = {
     .kp = (3) / (300 * deg_s),
     .kd = (3) / (30000 * deg_ss),
     .max_out = 3,
-    .fc = 10,
+    .err_fc = 10,
 };
 inline Pid::Config yaw2_angle_pid = {
     .kp = 30.0f,
@@ -65,7 +65,7 @@ inline GM6020 yaw2({
 inline Pid::Config pitch_speed_pid = {
     .kp = (3) / (150 * deg_s),
     .max_out = 3,
-    .fc = 10,
+    .err_fc = 10,
 };
 inline Pid::Config pitch_angle_pid = {
     .kp = 20.0f,

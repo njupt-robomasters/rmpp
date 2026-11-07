@@ -27,9 +27,11 @@ void Motor::set_offset(const float offset) {
 }
 
 void Motor::update() {
-    // 断联检测
-    if (rx_timer_.elapsed() > config.bus.timeout)
+    // 断联检测：清零电流、力矩、速度反馈，保持位置
+    if (rx_timer_.elapsed() > config.bus.timeout) {
         is_connect = false;
+        current = torque = speed = 0;
+    }
 }
 
 Motor::Motor(const Config& config)

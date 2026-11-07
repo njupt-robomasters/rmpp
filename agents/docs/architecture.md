@@ -61,7 +61,7 @@ VT13 vt13({.uart = Uart(6)});
 Aim aim({.cdc = Cdc(1)});
 Rgb rgb;
 Melody melody;
-Imu imu({.gyro_offset = Vector3(0.003f, -0.004f, -0.002f), .gravity = 9.80f});
+Imu imu({.gyro_offset = Vector3f(0.003f, -0.004f, -0.002f), .gravity = 9.80f});
 QuaternionEkf attitude(imu);
 KvStore kv_store("infantry");
 ```

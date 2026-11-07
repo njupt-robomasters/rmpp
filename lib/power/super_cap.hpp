@@ -27,28 +27,26 @@ class SuperCap {
     };
 
     bool is_connect = false;
-    Mode mode = OFF;        // 设定模式
     Mode active_mode = OFF; // 生效模式：离线为 OFF，BOOST 电容欠压时为 CHARGE
-
-    float battery_power_ref{}; // 电池侧目标功率，W
 
     // 应答测量
     struct {
-        float out{}; // 底盘口（电池侧）电压，V
-        float cap{}; // 电容电压，V
+        float out = 0; // 底盘口（电池侧）电压，V
+        float cap = 0; // 电容电压，V
     } voltage;
 
     struct {
-        float out{}; // 底盘负载电流，A
-        float cap{}; // 电容电流，A，充电为正
+        float out = 0; // 底盘负载电流，A
+        float cap = 0; // 电容电流，A，充电为正
     } current;
 
     struct {
-        float out{}; // 底盘负载功率，W
+        float out = 0; // 底盘负载功率，W
     } power;
 
     explicit SuperCap(const Config& config);
 
+    // 底盘功率控制读取裕量与最大补偿电流
     const Config& config() const;
 
     // 设置模式，下次 update() 生效
@@ -65,7 +63,8 @@ class SuperCap {
 
   private:
     const Config config_;
-
+    Mode mode_ = OFF;             // 设定模式
+    float battery_power_ref_ = 0; // 电池侧目标功率，W
     Timer rx_timer_;
     bool is_cap_low_ = false; // 电容电压低于截止后未回升到恢复电压
 

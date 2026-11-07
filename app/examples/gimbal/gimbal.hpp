@@ -6,19 +6,19 @@
 #include "bsp/imu.hpp"
 
 #include "attitude/quaternion_ekf.hpp"
-#include "motor/gm6020.hpp"
 #include "motor/dm4310.hpp"
+#include "motor/gm6020.hpp"
 #include "robot/gimbal/gimbal_classic.hpp"
 
 // 惯性测量单元与姿态解算
-inline Imu imu({.gyro_offset = Vector3(0.00316276052f, -0.00411193585f, -0.00242328411f), .gravity = 9.79961872f});
+inline Imu imu({.gyro_offset = Vector3f(0.00316276052f, -0.00411193585f, -0.00242328411f), .gravity = 9.79961872f});
 inline QuaternionEkf attitude(imu, {});
 
 // yaw电机
 inline Pid::Config yaw_speed_pid = {
     .kp = (3) / (120 * deg_s),
     .max_out = 3,
-    .fc = 10,
+    .err_fc = 10,
 };
 inline Pid::Config yaw_angle_pid = {
     .kp = 20.0f,
@@ -36,7 +36,7 @@ inline GM6020 yaw({
 inline Pid::Config pitch_speed_pid = {
     .kp = (3) / (150 * deg_s),
     .max_out = 3,
-    .fc = 10,
+    .err_fc = 10,
 };
 inline Pid::Config pitch_angle_pid = {
     .kp = 20.0f,

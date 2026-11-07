@@ -4,7 +4,7 @@
 
 IMU 分为两层：BSP `Imu` 负责硬件读取、零偏校准和安装方向修正，可单独使用；`lib/attitude` 是可选的姿态解算。`Attitude` 为抽象父类，调用 `Imu::update()` 并由 q 统一输出欧拉角和累计 yaw；子类按算法命名，只实现 `solve(gyro, accel)` 更新 q，目前有 `QuaternionEkf`。
 
-数学类型统一使用随项目固定的 Eigen 3.4.0。`Vector2/3/4`、`Quaternion`、`Matrix3/6`
+数学类型统一使用随项目固定的 Eigen 3.4.0。`Vector2f/3f/4f`、`Quaternionf`、`Matrix3f/6f`
 均为定长 `float` 类型，定义在 `math/eigen_types.hpp`；解算不使用动态矩阵、堆分配或 Eigen 向量化。
 
 | 文件 | 职责与审阅重点 |
@@ -13,7 +13,8 @@ IMU 分为两层：BSP `Imu` 负责硬件读取、零偏校准和安装方向修
 | `boards/*/bsp/imu.cpp` | 板卡实现 `Imu::update()`：BMI088 初始化时序、寄存器事务、原始量解码、恒温加热，再调用共用校准与修正；各板只有 SPI、片选和加热定时器不同 |
 | `lib/attitude/attitude.hpp/.cpp` | 抽象父类：读取 Imu、欧拉角和累计 yaw |
 | `lib/attitude/quaternion_ekf.hpp/.cpp` | 子类：四元数和 X/Y 剩余零偏组成的六状态 EKF |
-| `lib/math/eigen_types.hpp` | Eigen 类型别名、`EulerAngles`、`euler_to_quaternion`、`quaternion_to_euler` |
+| `lib/math/eigen_types.hpp` | Eigen 定长类型 using 声明 |
+| `lib/math/angle.hpp` | `Angle`、`rotate`、`EulerAngles`、`euler_to_quaternion`、`quaternion_to_euler` |
 
 `Imu::update()` 首次调用时初始化传感器，失败后下次重试；读取成功后依次执行一步加热闭环、推进校准、零偏/重力模长/安装方向修正；读取失败关闭加热，输出保持上次值。`update()` 无返回值。初始化保留两次 80 ms 复位等待。`Imu` 输出已修正的机体系 `gyro`（rad/s）、`accel`（m/s²）和 `temperature`（°C）。
 
@@ -21,7 +22,7 @@ IMU 分为两层：BSP `Imu` 负责硬件读取、零偏校准和安装方向修
 
 ```cpp
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = -90 * deg}),
-                .gyro_offset = Vector3(-0.00067f, 0.00137f, 0.00146f),
+                .gyro_offset = Vector3f(-0.00067f, 0.00137f, 0.00146f),
                 .gravity = 9.547f});
 inline QuaternionEkf attitude(imu); // 可选；第二参数覆盖 QuaternionEkf::Config
 ```
@@ -43,7 +44,7 @@ inline QuaternionEkf attitude(imu); // 可选；第二参数覆盖 QuaternionEkf
 | `earth_frame_to_body_frame` | `q.conjugate() * world` |
 | `quaternion_update` | `QuaternionEkf::integrate`，恒角速度积分并归一化 |
 
-欧拉角转换为 `math/eigen_types.hpp` 自由函数；坐标系变换直接用 Eigen 四元数运算，不另设包装。q 应为单位四元数。
+欧拉角转换为 `math/angle.hpp` 自由函数；坐标系变换直接用 Eigen 四元数运算，不另设包装。q 应为单位四元数。
 
 原安装矩阵实际为 `Rz(-old_yaw) Rx(old_pitch) Ry(old_roll)`，不能对任意安装角简单交换字段。当前配置已按相同物理旋转迁移：hero 的旧 roll=180° 改为 pitch=180°，sentry 的旧 yaw=90° 改为 yaw=-90°，其余零安装角不变。
 
@@ -56,7 +57,7 @@ inline QuaternionEkf attitude(imu); // 可选；第二参数覆盖 QuaternionEkf
 | 位置 | 项目数 | 默认值与作用 |
 | --- | ---: | --- |
 | `Imu::Config::orientation` | 1 | 单位四元数；传感器到机体安装旋转，可用 `euler_to_quaternion()` 从欧拉角构造 |
-| `Imu::Config::gyro_offset` | 3 | `Vector3`，0 rad/s；传感器坐标系静态零偏 |
+| `Imu::Config::gyro_offset` | 3 | `Vector3f`，0 rad/s；传感器坐标系静态零偏 |
 | `Imu::Config::gravity` | 1 | 9.81 m/s²；静止原始加速度模长，必须大于 0，修正比例为 9.81/gravity |
 | `Imu::Config::temperature` | 1 | 45°C |
 | `Imu::Config::temperature_pid` | 7 | kp=1、ki=0.01、kd=0、ff=0、max_i=0.4、max_out=1、fc=0；输出限制为 [0,1] 加热占空比；mc02 加热电阻接 12~24 V 电源输入，BSP 再乘 0.05 衰减（参考官方例程 CCR 上限 500/10000），防止烧毁 PCB；C 板不衰减 |

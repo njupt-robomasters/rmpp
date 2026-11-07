@@ -6,10 +6,7 @@ Gimbal::Gimbal(Attitude& attitude, const Config& config)
       pitch_speed_pid_(config.pitch_speed_pid_config), pitch_position_pid_(config.pitch_position_pid_config) {}
 
 void Gimbal::set_enable(const bool is_enable) {
-    if (this->is_enable == is_enable)
-        return;
     this->is_enable = is_enable;
-
     set_motors_enable(is_enable);
 }
 
