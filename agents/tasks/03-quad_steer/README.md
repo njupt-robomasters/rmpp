@@ -41,3 +41,40 @@
 - 已格式化改动文件；合并后 sentry、infantry、leg、examples-chassis/gimbal/shooter 编译通过，无告警
 - 待上车：架空检查四舵零位与转向、平移/旋转/小陀螺方向、拔单个舵电机时对应轮停转、功率估计与裁判系统 `chassis_power` 对比（偏差大时补静态功耗或拟合铜耗系数）
 - infantry 全向轮功率铜耗系数由 3·R/2 变为 0.75·R，力控不使用铜耗，仅影响 `power.estimate` 显示
+
+## 第二轮：矩阵底盘、统一功率控制、PID 回算、UI 下放
+
+### 结果
+
+| 文件 | 内容 |
+| --- | --- |
+| `chassis_matrix` | `ChassisMatrix` 公共部分，`ChassisMatrixSpeed`、`ChassisMatrixTorque`；常量 `OMNI`、`MECANUM`（J，4×3） |
+| `chassis_steer` | `Steer`、`ChassisSteer` 公共部分，`ChassisSteerSpeed`、`ChassisSteerTorque`；不继承 `ChassisMatrix`，接口同名 |
+| `chassis_power` | `ChassisPower`：功率估计、超电、两组电流衰减求解；底盘公开成员 `power` |
+
+- 矩阵正逆解为纯函数：`forward/backward`（速度 J⁺/J）、`forward_force/backward_force`（Jᵀ/(J⁺)ᵀ）；J⁺ 构造时由 (JᵀJ)⁻¹Jᵀ 求得
+- 舵轮 `forward/forward_force` 为公开 const；`backward` 含舵向闭环，为 protected 非 const
+- 功率：各轮电流 I = gain_xy·I_xy + gain_z·I_z，预测 Σ(0.75·R·I² + kt·I·ω) + error；缓冲能量折算上限 max·clamp((E−30)/30)
+  - 力控：I_z 由 fz 单独逆解；矩阵速度控：F_z = (JᵀI)_z，I_z = (J⁺)ᵀ[0,0,F_z]；舵轮速度控整体衰减
+  - |wr| > reserve_wr 先解 gain_z（gain_xy = 1），gain_z = 0 仍超时解 gain_xy；否则同值
+- `Pid::track(actual)`：积分扣除 actual − out 且只向零收缩不过零，out = actual；`calculate` 的 max_out 限幅也走 track，删除原条件积分
+  - 接入：矩阵/舵轮轮速 PID、矩阵/舵轮 vxyz PID（实际 torque_ref 经力正解）、舵向 PID、云台速度环、双 yaw（取被截更多的在线一侧）、摩擦轮、拨弹、IMU 加热
+  - 不接入：跟随 PID、云台位置环（输出为目标）、轮腿（PD）
+- UI：chassis/gimbal/shooter 删除 `update_ui`；infantry/sentry `app.cpp` 直接读电机在线；shooter 公开 `rub_speed[]`（m/s）
+- ChassisMatrixTorque/ChassisSteerTorque 的 `fx/fy/fz.ref` 改为功率与限幅后的实际输出
+- 删除：`Chassis`、`ChassisSpeed`、`ChassisTorque`、`ChassisOmni*`、`ChassisMecanumTorque`（由矩阵类取代），底盘 `set_power_limit/set_buffer_energy`（改 `power.set_limit/set_buffer_energy`）
+
+### 验证
+
+- clang-format（CLion 同版本）：`pid`、`chassis_matrix`、`chassis_power`、`chassis_steer`
+- dummy、infantry、sentry、leg、examples-chassis/gimbal/shooter 完整构建通过，无告警
+- 顺带迁移 `Motor::Config::Install` 字段顺序（is_invert 在 offset 前）的 12 处指定初始化，数值不变
+- 复现：PATH 加 CLion cmake/ninja 与 Arm GNU，`cmake --preset <p> && cmake --build build/<p>`
+
+### 上车核对
+
+- 力控开始计入铜耗：infantry 未配 `power.wheel_resistance`，铜耗为零，行为与原来一致；配置后起步会更保守
+- 速度控（dummy）新增旋转优先：小陀螺 + 平移限功率时确认先降转速
+- 缓冲能量曲线改为折算上限，力控删除 45 J 特例
+- 回算后限功率解除不再冲出积分尖峰；云台、摩擦轮饱和后的响应手感需复核
+- 云台速度环 `fc` 低通时，饱和期间 out 被同步为限幅值

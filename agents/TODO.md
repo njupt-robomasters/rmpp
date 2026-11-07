@@ -73,6 +73,42 @@
 
 - 待做：虚拟 IMU（云台 IMU + 关节角）；云台跟随
 
+## 超级电容 SuperCap
+
+状态：代码完成，`rmpp_lib` 编译通过，待用户审计与上车。协议来源 njupt-robomasters/G474SuperCap master@587146a（私有仓库）
+
+### 协议
+
+- 主控→超电 0x061：`data[0].bit0` 使能 DCDC，`data[1..2]` 电池侧目标功率 int16 大端 0.01 W/LSB
+- 超电→主控 0x051：仅在收到 0x061 时应答；V_BAT、I_OUT、V_CAP、I_CAP，int16 大端 mV/mA
+- 固件 100 ms 未收到命令关 DCDC；DCDC 使能后稳定电池侧功率，负载超过目标即自动放电，无“只充”开关；电容 8 V 止放、8–9 V 斜坡
+- 不回传 I_BAT，可测为底盘口负载功率 V_BAT·I_OUT（含舵电机）
+
+### 已确认
+
+- 类 `SuperCap`，`lib/power/super_cap.{hpp,cpp}`；模式 OFF / MONITOR / CHARGE / BOOST，`mode` 为设定、`active_mode` 为生效；应答电压 `voltage.out/cap`
+- OFF：关 DCDC，按估计功率；超电离线同 OFF
+- MONITOR：关 DCDC，按实测功率，上限为裁判上限
+- CHARGE：开 DCDC，按实测功率，上限为裁判上限
+- BOOST：开 DCDC，上限为裁判上限 + 最大补偿电流·V_CAP；电容电压低于下阈值回退 CHARGE，高于上阈值恢复
+- 各模式均保留缓冲能量兜底；不限功率（65535）跳过功率控制，`P_BAT_SET` 发协议最大值
+- 实测用法：保留一步预测，叠加低通后的“实测 − 估计”偏差
+- 参数均入 Config 并带默认值（发送周期除外，由 app 控制，dummy 100 Hz）；放电截止 10 V、恢复 12 V；最大补偿电流 10 A；MONITOR/CHARGE 功率裕量
+- 先只适配 dummy；SWC UP=MONITOR、MID=CHARGE、DOWN=BOOST
+
+- `ChassisPower::Config` 持有 `SuperCap* super_cap = nullptr` 与偏差低通 `error_fc`（默认 5 Hz），经底盘 `Config::power` 传入
+- dummy：写死 60 W / 60 J，超电 CAN1，遥控断联 OFF
+
+### 待上车核对
+
+- 0x051 应答电压电流符号与量程；`power.measure` 与 `power.estimate` 对比，`power.error` 是否稳定
+- CHARGE 下电容是否只充不放（`current.cap` 不为负）；BOOST 在 10/12 V 的回退与恢复
+- infantry/sentry 未接入
+
+## 底盘深度重构、PID 回算、UI 下放
+
+状态：代码完成，受影响目标全部编译通过，待用户审计与上车。结论与上车核对项见 `tasks/03-quad_steer/README.md`
+
 ## 后续任务
 
 - VQF 姿态算法：原样引入官方 C++ 实现（确认单精度选项），封装 `Vqf` 与 `QuaternionEkf` 并列
