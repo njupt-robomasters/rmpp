@@ -51,16 +51,13 @@ inline M3508 w4({
     .install = {.is_invert = IS_INVERT},
 });
 
-// 功率限制
-inline PowerLimiter power_limiter(nullptr, {});
-
 // 底盘
-inline ChassisMatrixTorque chassis(power_limiter, {&w1, &w2, &w3, &w4}, {
-                                                                            .kinematics = ChassisMatrix::OMNI,
-                                                                            .chassis_radius = CHASSIS_RADIUS,
-                                                                            .wheel_radius = WHEEL_RADIUS,
-                                                                            .speed_pid_config = &vxyz_pid,
-                                                                            .follow_pid_config = &follow_pid,
-                                                                        });
+inline ChassisMatrixTorque chassis(nullptr, {&w1, &w2, &w3, &w4}, {
+                                                                      .kinematics = ChassisMatrix::OMNI,
+                                                                      .chassis_radius = CHASSIS_RADIUS,
+                                                                      .wheel_radius = WHEEL_RADIUS,
+                                                                      .speed_pid_config = &vxyz_pid,
+                                                                      .follow_pid_config = &follow_pid,
+                                                                  });
 
 void chassis_loop();

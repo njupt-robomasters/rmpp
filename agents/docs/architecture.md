@@ -10,7 +10,7 @@ app/examples/<示例>/        empty、rgb、rc、imu、attitude、melody、cdc�
 lib/bsp/                   无 HAL 依赖的公共外设声明（Can、Uart、Cdc、Rgb、Buzzer、Imu、KvStore、Timer、Monitor）
 lib/attitude/              姿态解算：抽象父类 Attitude 与算法子类 QuaternionEkf
 lib/math/                  单位、角度、低通滤波、Eigen 类型与姿态转换
-lib/power/                 超级电容 SuperCap（G474SuperCap CAN 协议）、功率限制 PowerLimiter；均由 app 持有，按 super_cap → power_limiter → chassis 依次传入
+lib/power/                 超级电容 SuperCap（G474SuperCap CAN 协议，app 持有并传给底盘）、功率限制 PowerLimiter（底盘按值持有，缓冲能量功率预算兼作超电目标）
 lib/melody/                  Melody 与曲目
 lib/third_party/           纯软件第三方库：Eigen
 third_party/               含硬件移植层、由板卡 BSP 编译的第三方库：CherryUSB v1.6.1、FlashDB 2.2.0

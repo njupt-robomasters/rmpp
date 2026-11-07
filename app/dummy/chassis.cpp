@@ -1,6 +1,7 @@
 #include "chassis.hpp"
 #include "app.hpp"
 #include "gimbal.hpp"
+#include <algorithm>
 
 // 操控参数
 static constexpr float VXY_MAX = 1.0f;     // 平移最大速度，m/s
@@ -10,6 +11,17 @@ static constexpr float SPIN_WR = 60 * rpm; // 小陀螺角速度
 // N630 HFI 静止附近有高频噪音：目标电流与实际轮速均低于阈值时发零电流
 static constexpr float LOW_CURRENT = 0.3f; // A
 static constexpr float LOW_SPEED = 5 * rpm;
+
+// 模拟裁判系统底盘功率检测：10 Hz 结算，缓冲能量按（上限 − 裁判功率）·周期增减，限幅 [0, 60] J
+// 裁判功率取超电实测电池侧功率（负载 + 电容充电，忽略 DCDC 损耗）乘偏差比例，比例 > 1 模拟我们测量偏小
+static constexpr float POWER_LIMIT = 60;   // 功率上限，W
+static constexpr float POWER_SCALE = 1.1f; // 裁判功率 / 超电实测
+static constexpr float BUFFER_MAX = 60;    // 缓冲能量上限，J
+static constexpr float REFEREE_DT = 0.1f;  // 结算周期，s
+
+// SWD 观察
+static float referee_power = 0;
+static float buffer_energy = BUFFER_MAX;
 
 void chassis_loop() {
     // SWA 下挡使能，断联时拨杆为 ERR；SWD 下挡小陀螺；SWB 中、下挡跟随云台
@@ -45,9 +57,15 @@ void chassis_loop() {
     else
         super_cap.set_mode(SuperCap::OFF);
 
-    // 靶车无裁判系统，写死功率上限与缓冲能量
-    power_limiter.set_limit(60);
-    power_limiter.set_buffer_energy(60);
+    // 靶车无裁判系统，用超电反馈模拟缓冲能量
+    static Timer referee_timer;
+    if (referee_timer.elapsed() >= REFEREE_DT) {
+        referee_timer.restart();
+        referee_power = (super_cap.power.out + super_cap.voltage.cap * super_cap.current.cap) * POWER_SCALE;
+        buffer_energy = std::clamp(buffer_energy + (POWER_LIMIT - referee_power) * REFEREE_DT, 0.0f, BUFFER_MAX);
+    }
+    chassis.set_power_limit(POWER_LIMIT);
+    chassis.set_buffer_energy(buffer_energy);
 
     chassis.update();
 

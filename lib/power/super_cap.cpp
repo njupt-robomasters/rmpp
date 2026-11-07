@@ -6,10 +6,6 @@ SuperCap::SuperCap(const Config& config)
     config.can.add_rx_callback([this](const CanFrame& frame) { can_callback(frame); });
 }
 
-const SuperCap::Config& SuperCap::config() const {
-    return config_;
-}
-
 void SuperCap::set_mode(const Mode mode) {
     mode_ = mode;
 }
@@ -36,6 +32,9 @@ void SuperCap::update() {
         active_mode = CHARGE;
     else
         active_mode = mode_;
+
+    // BOOST 可补偿功率
+    power.boost = active_mode == BOOST ? config_.max_discharge_current * voltage.cap : 0;
 }
 
 void SuperCap::send() const {

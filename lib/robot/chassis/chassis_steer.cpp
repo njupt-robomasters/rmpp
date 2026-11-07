@@ -74,6 +74,14 @@ void ChassisSteer::set_reserve_wr(const float reserve_wr) {
     reserve_wr_ = reserve_wr;
 }
 
+void ChassisSteer::set_power_limit(const float power_limit) {
+    power_.set_limit(power_limit);
+}
+
+void ChassisSteer::set_buffer_energy(const float buffer_energy) {
+    power_.set_buffer_energy(buffer_energy);
+}
+
 void ChassisSteer::set_gimbal_yaw(const Angle gimbal_yaw) {
     gimbal_yaw_ = gimbal_yaw;
 }
@@ -81,7 +89,7 @@ void ChassisSteer::set_gimbal_yaw(const Angle gimbal_yaw) {
 void ChassisSteer::update() {
     // 离线检测与速度正解，离线轮反馈已清零
     Vector4f v;
-    for (size_t i = 0; i < wheel_.size(); i++) {
+    for (int i = 0; i < 4; i++) {
         wheel_[i]->update();
         steer[i].update();
         v[i] = wheel_[i]->speed * config_.wheel_radius;
@@ -114,7 +122,7 @@ void ChassisSteer::update() {
 
 Vector3f ChassisSteer::forward_speed(const Vector4f& v) const {
     Vector3f out = Vector3f::Zero();
-    for (size_t i = 0; i < steer.size(); i++) {
+    for (int i = 0; i < 4; i++) {
         const float s = steer[i].measure;
         out += v[i] * Vector3f(std::cosf(s), std::sinf(s), std::cosf(s - TANGENT[i]));
     }
@@ -125,9 +133,9 @@ Vector3f ChassisSteer::forward_force(const Vector4f& f) const {
     return forward_speed(f) * 4.0f;
 }
 
-ChassisSteer::ChassisSteer(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)
+ChassisSteer::ChassisSteer(SuperCap* const super_cap, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)
     : steer{Steer(*steer[0], config.steer_pid_config), Steer(*steer[1], config.steer_pid_config), Steer(*steer[2], config.steer_pid_config), Steer(*steer[3], config.steer_pid_config)},
-      config_(config), wheel_(wheel), power_(power), follow_pid_(config.follow_pid_config) {}
+      config_(config), wheel_{wheel[0], wheel[1], wheel[2], wheel[3]}, power_(super_cap, config.power), follow_pid_(config.follow_pid_config) {}
 
 bool ChassisSteer::can_drive(const size_t i) const {
     return wheel_[i]->is_connect && steer[i].motor.is_connect;
@@ -135,7 +143,7 @@ bool ChassisSteer::can_drive(const size_t i) const {
 
 Vector4f ChassisSteer::backward_speed(const Vector3f& v) {
     Vector4f out;
-    for (size_t i = 0; i < steer.size(); i++)
+    for (int i = 0; i < 4; i++)
         out[i] = steer[i].control(v.x() + v.z() * std::cosf(TANGENT[i]), v.y() + v.z() * std::sinf(TANGENT[i]));
     return out;
 }
@@ -143,7 +151,7 @@ Vector4f ChassisSteer::backward_speed(const Vector3f& v) {
 Vector4f ChassisSteer::backward_force(const Vector3f& f) const {
     // 各轮平分期望力，投影到实测舵向；自然包含就近转舵反向和转舵未到位时的衰减
     Vector4f out;
-    for (size_t i = 0; i < steer.size(); i++) {
+    for (int i = 0; i < 4; i++) {
         const float fx = (f.x() + f.z() * std::cosf(TANGENT[i])) / 4.0f;
         const float fy = (f.y() + f.z() * std::sinf(TANGENT[i])) / 4.0f;
         const float s = steer[i].measure;
@@ -152,8 +160,8 @@ Vector4f ChassisSteer::backward_force(const Vector3f& f) const {
     return out;
 }
 
-ChassisSteerSpeed::ChassisSteerSpeed(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)
-    : ChassisSteer(power, wheel, steer, config),
+ChassisSteerSpeed::ChassisSteerSpeed(SuperCap* const super_cap, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)
+    : ChassisSteer(super_cap, wheel, steer, config),
       wheel_pid_{Pid(config.speed_pid_config), Pid(config.speed_pid_config), Pid(config.speed_pid_config), Pid(config.speed_pid_config)} {}
 
 void ChassisSteerSpeed::control() {
@@ -167,7 +175,7 @@ void ChassisSteerSpeed::control() {
     // 速度逆解（含舵向闭环）与轮速 PID，不能驱动的轮清空 PID 并输出零
     const Vector4f v = backward_speed(rotate({vx.ref, vy.ref, vz.ref}, gimbal_yaw_));
     Vector4f current;
-    for (size_t i = 0; i < wheel_.size(); i++) {
+    for (int i = 0; i < 4; i++) {
         if (can_drive(i)) {
             current[i] = wheel_pid_[i].calculate(v[i] / config_.wheel_radius - wheel_[i]->speed);
         } else {
@@ -180,20 +188,20 @@ void ChassisSteerSpeed::control() {
     power_.control(wheel_, current, Vector4f::Zero(), false);
 
     // 轮速 PID 跟踪功率衰减与电机限幅后的实际电流
-    for (size_t i = 0; i < wheel_.size(); i++) {
+    for (int i = 0; i < 4; i++) {
         if (can_drive(i))
             wheel_pid_[i].track(wheel_[i]->current_ref);
     }
 }
 
-ChassisSteerTorque::ChassisSteerTorque(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)
-    : ChassisSteer(power, wheel, steer, config),
+ChassisSteerTorque::ChassisSteerTorque(SuperCap* const super_cap, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)
+    : ChassisSteer(super_cap, wheel, steer, config),
       vx_pid_(config.speed_pid_config), vy_pid_(config.speed_pid_config), vz_pid_(config.speed_pid_config) {}
 
 void ChassisSteerTorque::control() {
     // 力学正解，离线轮反馈已清零
     Vector4f f;
-    for (size_t i = 0; i < wheel_.size(); i++)
+    for (int i = 0; i < 4; i++)
         f[i] = wheel_[i]->torque / config_.wheel_radius;
     const Vector3f measure = rotate(forward_force(f), -gimbal_yaw_);
     fx.measure = measure.x();
@@ -217,7 +225,7 @@ void ChassisSteerTorque::control() {
     const Vector4f f_xy = backward_force(force);
     const Vector4f f_z = backward_force({0, 0, vz_pid_.calculate(vz.ref - vz.measure)});
     Vector4f current_xy, current_z;
-    for (size_t i = 0; i < wheel_.size(); i++) {
+    for (int i = 0; i < 4; i++) {
         const float k = can_drive(i) ? config_.wheel_radius / wheel_[i]->config.drive.kt : 0.0f;
         current_xy[i] = f_xy[i] * k;
         current_z[i] = f_z[i] * k;
@@ -226,7 +234,7 @@ void ChassisSteerTorque::control() {
 
     // 实际输出力经力学正解换回云台系，速度 PID 跟踪
     Vector4f f_out;
-    for (size_t i = 0; i < wheel_.size(); i++)
+    for (int i = 0; i < 4; i++)
         f_out[i] = wheel_[i]->torque_ref / config_.wheel_radius;
     const Vector3f out = rotate(forward_force(f_out), -gimbal_yaw_);
     fx.ref = out.x();

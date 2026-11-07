@@ -21,6 +21,14 @@ void ChassisMatrix::set_reserve_wr(const float reserve_wr) {
     reserve_wr_ = reserve_wr;
 }
 
+void ChassisMatrix::set_power_limit(const float power_limit) {
+    power_.set_limit(power_limit);
+}
+
+void ChassisMatrix::set_buffer_energy(const float buffer_energy) {
+    power_.set_buffer_energy(buffer_energy);
+}
+
 void ChassisMatrix::set_gimbal_yaw(const Angle gimbal_yaw) {
     gimbal_yaw_ = gimbal_yaw;
 }
@@ -28,7 +36,7 @@ void ChassisMatrix::set_gimbal_yaw(const Angle gimbal_yaw) {
 void ChassisMatrix::update() {
     // 离线检测与速度正解，离线轮反馈已清零
     Vector4f v;
-    for (size_t i = 0; i < wheel_.size(); i++) {
+    for (int i = 0; i < 4; i++) {
         wheel_[i]->update();
         v[i] = wheel_[i]->speed * config_.wheel_radius;
     }
@@ -72,18 +80,14 @@ Vector4f ChassisMatrix::backward_force(const Vector3f& f) const {
     return j_pinv_.transpose() * f;
 }
 
-ChassisMatrix::ChassisMatrix(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const Config& config)
-    : config_(config), wheel_(wheel), power_(power), follow_pid_(config.follow_pid_config) {
-    for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 3; j++)
-            j_(i, j) = config.kinematics[i][j];
+ChassisMatrix::ChassisMatrix(SuperCap* const super_cap, const std::array<Motor*, 4>& wheel, const Config& config)
+    : config_(config), wheel_{wheel[0], wheel[1], wheel[2], wheel[3]}, power_(super_cap, config.power),
+      j_(Eigen::Map<const Eigen::Matrix<float, 4, 3, Eigen::RowMajor>>(config.kinematics[0])),
+      j_pinv_((j_.transpose() * j_).inverse() * j_.transpose()), // 列满秩，左伪逆 (JᵀJ)⁻¹Jᵀ
+      follow_pid_(config.follow_pid_config) {}
 
-    // 列满秩，左伪逆 (JᵀJ)⁻¹Jᵀ
-    j_pinv_ = (j_.transpose() * j_).inverse() * j_.transpose();
-}
-
-ChassisMatrixSpeed::ChassisMatrixSpeed(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const Config& config)
-    : ChassisMatrix(power, wheel, config),
+ChassisMatrixSpeed::ChassisMatrixSpeed(SuperCap* const super_cap, const std::array<Motor*, 4>& wheel, const Config& config)
+    : ChassisMatrix(super_cap, wheel, config),
       wheel_pid_{Pid(config.speed_pid_config), Pid(config.speed_pid_config), Pid(config.speed_pid_config), Pid(config.speed_pid_config)} {}
 
 void ChassisMatrixSpeed::control() {
@@ -97,7 +101,7 @@ void ChassisMatrixSpeed::control() {
     // 速度逆解与轮速 PID，离线轮清空 PID 并输出零
     const Vector4f v = backward_speed(rotate({vx.ref, vy.ref, vz.ref}, gimbal_yaw_));
     Vector4f current;
-    for (size_t i = 0; i < wheel_.size(); i++) {
+    for (int i = 0; i < 4; i++) {
         if (wheel_[i]->is_connect) {
             current[i] = wheel_pid_[i].calculate(v[i] / config_.wheel_radius - wheel_[i]->speed);
         } else {
@@ -108,27 +112,27 @@ void ChassisMatrixSpeed::control() {
 
     // 旋转分量：电流按力正解取 z，再单独力逆解；互相对抗的内力归平移
     Vector4f current_z = backward_force({0, 0, forward_force(current).z()});
-    for (size_t i = 0; i < wheel_.size(); i++) {
+    for (int i = 0; i < 4; i++) {
         if (!wheel_[i]->is_connect)
             current_z[i] = 0;
     }
     power_.control(wheel_, current - current_z, current_z, std::fabs(wr.measure) > reserve_wr_);
 
     // 轮速 PID 跟踪功率衰减与电机限幅后的实际电流
-    for (size_t i = 0; i < wheel_.size(); i++) {
+    for (int i = 0; i < 4; i++) {
         if (wheel_[i]->is_connect)
             wheel_pid_[i].track(wheel_[i]->current_ref);
     }
 }
 
-ChassisMatrixTorque::ChassisMatrixTorque(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const Config& config)
-    : ChassisMatrix(power, wheel, config),
+ChassisMatrixTorque::ChassisMatrixTorque(SuperCap* const super_cap, const std::array<Motor*, 4>& wheel, const Config& config)
+    : ChassisMatrix(super_cap, wheel, config),
       vx_pid_(config.speed_pid_config), vy_pid_(config.speed_pid_config), vz_pid_(config.speed_pid_config) {}
 
 void ChassisMatrixTorque::control() {
     // 力学正解，离线轮反馈已清零
     Vector4f f;
-    for (size_t i = 0; i < wheel_.size(); i++)
+    for (int i = 0; i < 4; i++)
         f[i] = wheel_[i]->torque / config_.wheel_radius;
     const Vector3f measure = rotate(forward_force(f), -gimbal_yaw_);
     fx.measure = measure.x();
@@ -149,7 +153,7 @@ void ChassisMatrixTorque::control() {
     const Vector4f f_xy = backward_force(force);
     const Vector4f f_z = backward_force({0, 0, vz_pid_.calculate(vz.ref - vz.measure)});
     Vector4f current_xy, current_z;
-    for (size_t i = 0; i < wheel_.size(); i++) {
+    for (int i = 0; i < 4; i++) {
         const float k = wheel_[i]->is_connect ? config_.wheel_radius / wheel_[i]->config.drive.kt : 0.0f;
         current_xy[i] = f_xy[i] * k;
         current_z[i] = f_z[i] * k;
@@ -158,7 +162,7 @@ void ChassisMatrixTorque::control() {
 
     // 实际输出力经力学正解换回云台系，速度 PID 跟踪
     Vector4f f_out;
-    for (size_t i = 0; i < wheel_.size(); i++)
+    for (int i = 0; i < 4; i++)
         f_out[i] = wheel_[i]->torque_ref / config_.wheel_radius;
     const Vector3f out = rotate(forward_force(f_out), -gimbal_yaw_);
     fx.ref = out.x();

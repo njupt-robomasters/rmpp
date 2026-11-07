@@ -3,6 +3,7 @@
 #include "math/angle.hpp"
 #include "pid/pid.hpp"
 #include "power/power_limiter.hpp"
+#include <array>
 
 // 矩阵四轮底盘公共部分：模式与跟随、云台系换算、轮电机在线管理、矩阵正逆解、功率
 // 速度逆解 J、正解 J⁺；力正解 Jᵀ、逆解 (J⁺)ᵀ
@@ -12,30 +13,29 @@ class ChassisMatrix {
   public:
     // 轮向固定的四轮运动学矩阵 J：每行一个轮，轮线速度 = 行 · (vx, vy, vz)，vz 为底盘半径处旋转线速度
     // 轮序：左前、左后、右后、右前；底盘系 x 前、y 左、逆时针为正
-    using Kinematics = std::array<std::array<float, 3>, 4>;
-
     // 全向轮，45° 布置
-    static constexpr Kinematics OMNI = {{
+    static constexpr float OMNI[4][3] = {
         {-std::sqrt(0.5f), +std::sqrt(0.5f), 1},
         {-std::sqrt(0.5f), -std::sqrt(0.5f), 1},
         {+std::sqrt(0.5f), -std::sqrt(0.5f), 1},
         {+std::sqrt(0.5f), +std::sqrt(0.5f), 1},
-    }};
+    };
 
     // 麦克纳姆轮
-    static constexpr Kinematics MECANUM = {{
+    static constexpr float MECANUM[4][3] = {
         {-1, +1, std::sqrt(2.0f)},
         {-1, -1, std::sqrt(2.0f)},
         {+1, -1, std::sqrt(2.0f)},
         {+1, +1, std::sqrt(2.0f)},
-    }};
+    };
 
     struct Config {
-        Kinematics kinematics = {};                     // 运动学矩阵，OMNI 或 MECANUM
+        const float (*kinematics)[3] = nullptr;         // 运动学矩阵 4×3，OMNI 或 MECANUM
         float chassis_radius = 0;                       // 底盘中心到轮的距离
         float wheel_radius = 0;                         // 轮子半径
         const Pid::Config* speed_pid_config = nullptr;  // 速度控制为轮速 PID（rad/s → A），力控制为底盘速度 PID（m/s → N）
         const Pid::Config* follow_pid_config = nullptr; // 跟随 PID，误差 rad，输出 rad/s；为空时跟随模式不旋转
+        PowerLimiter::Config power = {};                // 功率限制
     };
 
     // 底盘模式
@@ -71,6 +71,12 @@ class ChassisMatrix {
     // 设置功率受限时优先衰减旋转的角速度阈值，默认 60 rpm
     void set_reserve_wr(float reserve_wr);
 
+    // 设置裁判功率上限，65535 表示不限功率
+    void set_power_limit(float power_limit);
+
+    // 设置裁判缓冲能量，J
+    void set_buffer_energy(float buffer_energy);
+
     // 设置前进正方向（云台相对底盘的 yaw）
     void set_gimbal_yaw(Angle gimbal_yaw);
 
@@ -85,13 +91,13 @@ class ChassisMatrix {
 
   protected:
     const Config config_;
-    const std::array<Motor*, 4> wheel_; // 轮电机：左前、左后、右后、右前
-    PowerLimiter& power_;               // 功率限制，由 app 持有并设置裁判上限与缓冲能量
+    Motor* const wheel_[4]; // 轮电机：左前、左后、右后、右前
+    PowerLimiter power_;    // 功率限制，更新超电
     bool is_enable_ = false;
     float reserve_wr_ = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转
     Angle gimbal_yaw_;
 
-    ChassisMatrix(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const Config& config);
+    ChassisMatrix(SuperCap* super_cap, const std::array<Motor*, 4>& wheel, const Config& config);
 
     // 控制：底盘目标 → 电机输出；每周期调用，失能时清空 PID
     virtual void control() = 0;
@@ -107,10 +113,10 @@ class ChassisMatrix {
 // 电流按力正解拆出旋转分量做功率控制，假设四轮同型号
 class ChassisMatrixSpeed : public ChassisMatrix {
   public:
-    ChassisMatrixSpeed(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const Config& config);
+    ChassisMatrixSpeed(SuperCap* super_cap, const std::array<Motor*, 4>& wheel, const Config& config);
 
   private:
-    std::array<Pid, 4> wheel_pid_; // 轮转速误差 rad/s → 电流 A
+    Pid wheel_pid_[4]; // 轮转速误差 rad/s → 电流 A
 
     void control() override;
 };
@@ -123,7 +129,7 @@ class ChassisMatrixTorque : public ChassisMatrix {
         float ref = 0, measure = 0;
     } fx, fy, fz;
 
-    ChassisMatrixTorque(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const Config& config);
+    ChassisMatrixTorque(SuperCap* super_cap, const std::array<Motor*, 4>& wheel, const Config& config);
 
   private:
     Pid vx_pid_, vy_pid_, vz_pid_; // 速度误差 m/s → 牵引力 N

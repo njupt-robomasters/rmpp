@@ -81,15 +81,9 @@ inline GM6020 s4({
                  },
                  {.gain = 0.5f});
 
-// 功率限制，不含舵电机
-inline PowerLimiter power_limiter(nullptr, {.wheel_resistance = 0.194f});
-
 // 底盘；未配跟随 PID，跟随模式不旋转
-inline ChassisSteerSpeed chassis(power_limiter, {&w1, &w2, &w3, &w4}, {&s1, &s2, &s3, &s4}, {
-                                                                                                .chassis_radius = CHASSIS_RADIUS,
-                                                                                                .wheel_radius = WHEEL_RADIUS,
-                                                                                                .speed_pid_config = &wheel_pid,
-                                                                                                .steer_pid_config = &steer_pid,
-                                                                                            });
+inline ChassisSteerSpeed chassis(nullptr, {&w1, &w2, &w3, &w4}, {&s1, &s2, &s3, &s4}, {
+                                                                                          .chassis_radius = CHASSIS_RADIUS, .wheel_radius = WHEEL_RADIUS, .speed_pid_config = &wheel_pid, .steer_pid_config = &steer_pid, .power = {.wheel_resistance = 0.194f}, // 不含舵电机
+                                                                                      });
 
 void chassis_loop();

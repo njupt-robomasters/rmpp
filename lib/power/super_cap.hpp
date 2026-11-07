@@ -15,8 +15,7 @@ class SuperCap {
         float timeout = 0.1f;             // 应答超时，s
         float voltage_cutoff = 10;        // BOOST 放电截止电压，V，电容低于此值回退 CHARGE
         float voltage_resume = 12;        // BOOST 恢复电压，V
-        float max_discharge_current = 10; // 最大补偿电流，A，BOOST 功率上限叠加此值·电容电压
-        float power_margin = 5;           // 功率裕量，W：电池侧目标与实测控制上限取裁判上限减此值
+        float max_discharge_current = 10; // 最大补偿电流，A，BOOST 可补偿功率为此值·电容电压
     };
 
     enum Mode {
@@ -41,13 +40,11 @@ class SuperCap {
     } current;
 
     struct {
-        float out = 0; // 底盘负载功率，W
+        float out = 0;   // 底盘负载功率，W
+        float boost = 0; // BOOST 生效时电容可补偿功率，W，否则为零
     } power;
 
     explicit SuperCap(const Config& config);
-
-    // 底盘功率控制读取裕量与最大补偿电流
-    const Config& config() const;
 
     // 设置模式，下次 update() 生效
     void set_mode(Mode mode);
