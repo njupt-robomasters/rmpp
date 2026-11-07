@@ -78,3 +78,24 @@
 - 缓冲能量曲线改为折算上限，力控删除 45 J 特例
 - 回算后限功率解除不再冲出积分尖峰；云台、摩擦轮饱和后的响应手感需复核
 - 云台速度环 `fc` 低通时，饱和期间 out 被同步为限幅值
+
+## 第三轮：Config 整理与约定推广
+
+### 结果
+
+- 底盘构造 `(Config, PowerLimiter&, wheel[, steer])`；`kinematics`、`speed_pid_config` 并入 Config，`reserve_wr` 改 `set_reserve_wr()`
+- `ChassisPower` 改名 `PowerLimiter` 移至 `lib/power/`，由 app 持有：`super_cap` → `power_limiter` → `chassis`；裁判上限与缓冲能量用 `power_limiter.set_*` 设置
+- 运动学 `forward_speed/backward_speed/forward_force/backward_force`，云台系换算用 `rotate(Vector3f, angle)`
+- Motor 断联清零电流、力矩、速度；Pid 拆为 `err_fc` 与 `d_fc`
+- 约定推广：Gimbal、Shooter、Aim、Nav、FSi6X、VT13 的 `config`/`is_enable`/`mode` 私有化；Imu、Melody、Referee、ChassisLeg 删除 `config()`；Motor `is_enable_` 改 protected；EKF、Melody 文件私有辅助函数改 private static；标量 `{}` 改 `= 0`
+- 保留公开：`Motor::config`（功率限制、云台零点、卡弹判断读取）、`SuperCap::config()`（PowerLimiter 读裕量与补偿电流）
+
+### 验证
+
+- dummy、infantry、sentry、leg、examples-chassis/gimbal/shooter/attitude/melody/motor/rc/referee 编译通过；examples-motor 仅有原有未使用函数告警
+
+### 上车核对
+
+- PID 低通从输出移到误差输入，原 `fc = 10` 的云台、infantry 底盘手感需复核
+- infantry/sentry 每周期显式设置分离/跟随，使能切换不再隐含回到分离
+- 断联反馈清零影响全部机构
