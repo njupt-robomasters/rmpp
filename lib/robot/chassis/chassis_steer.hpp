@@ -97,7 +97,7 @@ class ChassisSteer {
     float reserve_wr_ = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转（力控制）
     Angle gimbal_yaw_;
 
-    ChassisSteer(const Config& config, PowerLimiter& power, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer);
+    ChassisSteer(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
 
     // 轮 i 能否驱动：舵电机离线时舵向不可控，对应轮停转
     bool can_drive(size_t i) const;
@@ -119,7 +119,7 @@ class ChassisSteer {
 // 四舵轮底盘，速度控制：轮速 PID 输出电流，功率整体衰减
 class ChassisSteerSpeed : public ChassisSteer {
   public:
-    ChassisSteerSpeed(const Config& config, PowerLimiter& power, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer);
+    ChassisSteerSpeed(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
 
   private:
     std::array<Pid, 4> wheel_pid_; // 轮转速误差 rad/s → 电流 A
@@ -135,7 +135,7 @@ class ChassisSteerTorque : public ChassisSteer {
         float ref = 0, measure = 0;
     } fx, fy, fz;
 
-    ChassisSteerTorque(const Config& config, PowerLimiter& power, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer);
+    ChassisSteerTorque(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
 
   private:
     Pid vx_pid_, vy_pid_, vz_pid_; // 速度误差 m/s → 牵引力 N

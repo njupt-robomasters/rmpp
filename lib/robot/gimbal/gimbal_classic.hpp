@@ -9,7 +9,7 @@ class GimbalClassic : public Gimbal {
         Motor &yaw, &pitch;
     } motor;
 
-    GimbalClassic(Attitude& attitude, const Config& config, const Motors& motor);
+    GimbalClassic(Attitude& attitude, const Motors& motor, const Config& config);
 
     void load_yaw_offset(KvStore& kv_store) override;
 

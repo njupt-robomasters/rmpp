@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <cmath>
 
-PowerLimiter::PowerLimiter(const Config& config)
-    : config_(config) {}
+PowerLimiter::PowerLimiter(SuperCap* const super_cap, const Config& config)
+    : super_cap_(super_cap), config_(config) {}
 
 void PowerLimiter::set_limit(const float limit) {
     limit_ = limit;
@@ -24,20 +24,19 @@ void PowerLimiter::update(const std::array<Motor*, 4>& wheel) {
         estimate += w->torque * w->speed + k * w->current * w->current;
 
     // 超电：电池侧目标取裁判上限减裕量
-    SuperCap* const super_cap = config_.super_cap;
-    if (super_cap != nullptr) {
-        super_cap->update();
-        super_cap->set_battery_power(limit_ - super_cap->config().power_margin);
+    if (super_cap_ != nullptr) {
+        super_cap_->update();
+        super_cap_->set_battery_power(limit_ - super_cap_->config().power_margin);
     }
 
     // 功率反馈与上限：超电生效时用实测修正估计偏差，BOOST 叠加最大补偿功率；否则按估计与裁判上限
-    if (super_cap != nullptr && super_cap->active_mode != SuperCap::OFF) {
-        const SuperCap::Config& cap_config = super_cap->config();
-        measure = super_cap->power.out;
+    if (super_cap_ != nullptr && super_cap_->active_mode != SuperCap::OFF) {
+        const SuperCap::Config& cap_config = super_cap_->config();
+        measure = super_cap_->power.out;
         error = lowpass(error, measure - estimate, config_.error_fc, dt);
         max = limit_ - cap_config.power_margin;
-        if (super_cap->active_mode == SuperCap::BOOST)
-            max += cap_config.max_discharge_current * super_cap->voltage.cap;
+        if (super_cap_->active_mode == SuperCap::BOOST)
+            max += cap_config.max_discharge_current * super_cap_->voltage.cap;
     } else {
         measure = 0;
         error = 0;

@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-ChassisLeg::ChassisLeg(const Config& config, const Motors& motor)
+ChassisLeg::ChassisLeg(const Motors& motor, const Config& config)
     : config_(config),
       motor_(motor),
       leg_ref_(config.leg_min),

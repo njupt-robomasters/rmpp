@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <cmath>
 
-GimbalDualYaw::GimbalDualYaw(Attitude& attitude, const Config& config, const Motors& motor)
+GimbalDualYaw::GimbalDualYaw(Attitude& attitude, const Motors& motor, const Config& config)
     : Gimbal(attitude, config), motor(motor) {}
 
 void GimbalDualYaw::load_yaw_offset(KvStore& kv_store) {

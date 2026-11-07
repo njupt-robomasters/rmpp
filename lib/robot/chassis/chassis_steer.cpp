@@ -125,7 +125,7 @@ Vector3f ChassisSteer::forward_force(const Vector4f& f) const {
     return forward_speed(f) * 4.0f;
 }
 
-ChassisSteer::ChassisSteer(const Config& config, PowerLimiter& power, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer)
+ChassisSteer::ChassisSteer(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)
     : steer{Steer(*steer[0], config.steer_pid_config), Steer(*steer[1], config.steer_pid_config), Steer(*steer[2], config.steer_pid_config), Steer(*steer[3], config.steer_pid_config)},
       config_(config), wheel_(wheel), power_(power), follow_pid_(config.follow_pid_config) {}
 
@@ -152,8 +152,8 @@ Vector4f ChassisSteer::backward_force(const Vector3f& f) const {
     return out;
 }
 
-ChassisSteerSpeed::ChassisSteerSpeed(const Config& config, PowerLimiter& power, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer)
-    : ChassisSteer(config, power, wheel, steer),
+ChassisSteerSpeed::ChassisSteerSpeed(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)
+    : ChassisSteer(power, wheel, steer, config),
       wheel_pid_{Pid(config.speed_pid_config), Pid(config.speed_pid_config), Pid(config.speed_pid_config), Pid(config.speed_pid_config)} {}
 
 void ChassisSteerSpeed::control() {
@@ -186,8 +186,8 @@ void ChassisSteerSpeed::control() {
     }
 }
 
-ChassisSteerTorque::ChassisSteerTorque(const Config& config, PowerLimiter& power, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer)
-    : ChassisSteer(config, power, wheel, steer),
+ChassisSteerTorque::ChassisSteerTorque(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)
+    : ChassisSteer(power, wheel, steer, config),
       vx_pid_(config.speed_pid_config), vy_pid_(config.speed_pid_config), vz_pid_(config.speed_pid_config) {}
 
 void ChassisSteerTorque::control() {

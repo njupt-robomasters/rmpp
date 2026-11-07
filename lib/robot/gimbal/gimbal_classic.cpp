@@ -1,7 +1,7 @@
 #include "gimbal_classic.hpp"
 #include <algorithm>
 
-GimbalClassic::GimbalClassic(Attitude& attitude, const Config& config, const Motors& motor)
+GimbalClassic::GimbalClassic(Attitude& attitude, const Motors& motor, const Config& config)
     : Gimbal(attitude, config), motor(motor) {}
 
 void GimbalClassic::load_yaw_offset(KvStore& kv_store) {

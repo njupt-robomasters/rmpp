@@ -44,7 +44,7 @@ class Shooter17mm {
     // 摩擦轮线速度，m/s
     float rub_speed[2]{};
 
-    Shooter17mm(const Config& config, const Motors& motor);
+    Shooter17mm(const Motors& motor, const Config& config);
 
     // 设置发射机构使能/失能
     void set_enable(bool is_enable);

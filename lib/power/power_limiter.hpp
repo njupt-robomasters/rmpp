@@ -12,9 +12,8 @@
 class PowerLimiter {
   public:
     struct Config {
-        SuperCap* super_cap = nullptr; // 超级电容，由底盘更新并设置电池侧目标功率；为空时按估计功率控制
-        float wheel_resistance = 0;    // 轮电机线间电阻，Ω；星形接法三相铜耗 1.5·(R/2)·iq² = 0.75·R·iq²
-        float error_fc = 5;            // 功率偏差（实测 − 估计）低通截止频率，Hz
+        float wheel_resistance = 0; // 轮电机线间电阻，Ω；星形接法三相铜耗 1.5·(R/2)·iq² = 0.75·R·iq²
+        float error_fc = 5;         // 功率偏差（实测 − 估计）低通截止频率，Hz
     };
 
     float estimate = 0; // 估计功率：轮电机机械功率与铜耗
@@ -24,7 +23,8 @@ class PowerLimiter {
     float gain_xy = 1;  // 平移电流衰减系数
     float gain_z = 1;   // 旋转电流衰减系数
 
-    explicit PowerLimiter(const Config& config);
+    // super_cap 由本类更新并设置电池侧目标功率；为空时按估计功率控制
+    PowerLimiter(SuperCap* super_cap, const Config& config);
 
     // 设置裁判功率上限，65535 表示不限功率
     void set_limit(float limit);
@@ -40,6 +40,7 @@ class PowerLimiter {
     void control(const std::array<Motor*, 4>& wheel, const Vector4f& current_xy, const Vector4f& current_z, bool is_spin);
 
   private:
+    SuperCap* const super_cap_; // 超级电容，可为空
     const Config config_;
     float limit_ = 120;        // 裁判功率上限，65535 表示不限
     float buffer_energy_ = 60; // 缓冲能量

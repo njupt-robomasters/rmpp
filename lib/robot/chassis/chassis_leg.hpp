@@ -118,7 +118,7 @@ class ChassisLeg {
 
     bool is_motor_ok = false; // 全部电机在线且关节已使能无报错；否则全部电机输出零
 
-    ChassisLeg(const Config& config, const Motors& motor);
+    ChassisLeg(const Motors& motor, const Config& config);
 
     // 使能或失能全部电机
     void set_enable(bool is_enable);

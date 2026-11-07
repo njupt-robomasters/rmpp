@@ -1,7 +1,7 @@
 #include "shooter_42mm.hpp"
 #include <cmath>
 
-Shooter42mm::Shooter42mm(const Config& config, const Motors& motor)
+Shooter42mm::Shooter42mm(const Motors& motor, const Config& config)
     : motor(motor), config_(config), shoot_pid_(config.shoot_pid_config) {}
 
 void Shooter42mm::set_enable(const bool is_enable) {

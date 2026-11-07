@@ -14,7 +14,7 @@ class GimbalDualYaw : public Gimbal {
         Angle ref, measure;
     } yaw1, yaw2; // yaw1-大yaw，yaw2-小yaw
 
-    GimbalDualYaw(Attitude& attitude, const Config& config, const Motors& motor);
+    GimbalDualYaw(Attitude& attitude, const Motors& motor, const Config& config);
 
     void load_yaw_offset(KvStore& kv_store) override;
 

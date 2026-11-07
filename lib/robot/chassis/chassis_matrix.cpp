@@ -72,7 +72,7 @@ Vector4f ChassisMatrix::backward_force(const Vector3f& f) const {
     return j_pinv_.transpose() * f;
 }
 
-ChassisMatrix::ChassisMatrix(const Config& config, PowerLimiter& power, const std::array<Motor*, 4>& wheel)
+ChassisMatrix::ChassisMatrix(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const Config& config)
     : config_(config), wheel_(wheel), power_(power), follow_pid_(config.follow_pid_config) {
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 3; j++)
@@ -82,8 +82,8 @@ ChassisMatrix::ChassisMatrix(const Config& config, PowerLimiter& power, const st
     j_pinv_ = (j_.transpose() * j_).inverse() * j_.transpose();
 }
 
-ChassisMatrixSpeed::ChassisMatrixSpeed(const Config& config, PowerLimiter& power, const std::array<Motor*, 4>& wheel)
-    : ChassisMatrix(config, power, wheel),
+ChassisMatrixSpeed::ChassisMatrixSpeed(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const Config& config)
+    : ChassisMatrix(power, wheel, config),
       wheel_pid_{Pid(config.speed_pid_config), Pid(config.speed_pid_config), Pid(config.speed_pid_config), Pid(config.speed_pid_config)} {}
 
 void ChassisMatrixSpeed::control() {
@@ -121,8 +121,8 @@ void ChassisMatrixSpeed::control() {
     }
 }
 
-ChassisMatrixTorque::ChassisMatrixTorque(const Config& config, PowerLimiter& power, const std::array<Motor*, 4>& wheel)
-    : ChassisMatrix(config, power, wheel),
+ChassisMatrixTorque::ChassisMatrixTorque(PowerLimiter& power, const std::array<Motor*, 4>& wheel, const Config& config)
+    : ChassisMatrix(power, wheel, config),
       vx_pid_(config.speed_pid_config), vy_pid_(config.speed_pid_config), vz_pid_(config.speed_pid_config) {}
 
 void ChassisMatrixTorque::control() {

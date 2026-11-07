@@ -49,13 +49,13 @@ inline DM4310 pitch({
 });
 
 // 云台
-inline GimbalClassic gimbal(attitude,
-                            {.yaw_speed_pid_config = &yaw_speed_pid,
-                             .yaw_position_pid_config = &yaw_angle_pid,
-                             .pitch_speed_pid_config = &pitch_speed_pid,
-                             .pitch_position_pid_config = &pitch_angle_pid,
-                             .pitch_output = Gimbal::TORQUE_OUTPUT,
-                             .pitch_min = -15 * deg,
-                             .pitch_max = 30 * deg,
-                             .is_pitch_limit = true},
-                            {yaw, pitch});
+inline GimbalClassic gimbal(attitude, {yaw, pitch}, {
+                                                        .yaw_speed_pid_config = &yaw_speed_pid,
+                                                        .yaw_position_pid_config = &yaw_angle_pid,
+                                                        .pitch_speed_pid_config = &pitch_speed_pid,
+                                                        .pitch_position_pid_config = &pitch_angle_pid,
+                                                        .pitch_output = Gimbal::TORQUE_OUTPUT,
+                                                        .pitch_min = -15 * deg,
+                                                        .pitch_max = 30 * deg,
+                                                        .is_pitch_limit = true,
+                                                    });
