@@ -15,7 +15,7 @@ void RMDL7025::send() {
 
     // 偶数次发送转矩闭环，电流 0.01 A/LSB；离线或未使能时发零电流，仍可取得应答
     float current = 0;
-    if (is_connect && is_enable)
+    if (is_connect && is_enable_)
         current = config.install.is_invert ? -current_ref : current_ref;
     const auto command = static_cast<int16_t>(current * 100.0f);
     config.bus.can.send({

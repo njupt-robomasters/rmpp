@@ -49,11 +49,11 @@ void GimbalClassic::backward() {
     yaw.imu_minus_ecd = yaw.imu.measure - yaw.ecd.measure;
     pitch.imu_minus_ecd = pitch.imu.measure - pitch.ecd.measure;
 
-    if (mode == ECD_MODE) {
+    if (mode_ == ECD_MODE) {
         // 换算到imu参考系
         yaw.imu.ref = yaw.ecd.ref + yaw.imu_minus_ecd;
         pitch.imu.ref = pitch.ecd.ref + pitch.imu_minus_ecd;
-    } else if (mode == IMU_MODE) {
+    } else if (mode_ == IMU_MODE) {
         // 换算到ecd参考系
         yaw.ecd.ref = yaw.imu.ref - yaw.imu_minus_ecd;
         pitch.ecd.ref = pitch.imu.ref - pitch.imu_minus_ecd;
@@ -67,7 +67,7 @@ void GimbalClassic::backward() {
 
     // yaw 串级 PID
     if (can_yaw) {
-        const float speed_ref = yaw_position_pid_.calculate(yaw.ecd.ref - yaw.ecd.measure) - chassis_wr_ + yaw_speed;
+        const float speed_ref = yaw_position_pid_.calculate(yaw.ecd.ref - yaw.ecd.measure) - chassis_wr_ + yaw_speed_;
         yaw_speed_pid_.track(set_output(motor.yaw, config_.yaw_output, yaw_speed_pid_.calculate(speed_ref - motor.yaw.speed)));
     } else {
         motor.yaw.set_current(0);
@@ -75,7 +75,7 @@ void GimbalClassic::backward() {
 
     // pitch 串级 PID
     if (can_pitch) {
-        const float speed_ref = pitch_position_pid_.calculate(pitch.ecd.ref - pitch.ecd.measure) + pitch_speed;
+        const float speed_ref = pitch_position_pid_.calculate(pitch.ecd.ref - pitch.ecd.measure) + pitch_speed_;
         pitch_speed_pid_.track(set_output(motor.pitch, config_.pitch_output, pitch_speed_pid_.calculate(speed_ref - motor.pitch.speed)));
     } else {
         motor.pitch.set_current(0);

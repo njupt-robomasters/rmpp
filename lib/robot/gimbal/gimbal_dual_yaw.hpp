@@ -1,8 +1,6 @@
 #pragma once
 
 #include "gimbal.hpp"
-#include "math/angle.hpp"
-#include "motor/motor.hpp"
 
 class GimbalDualYaw : public Gimbal {
   public:

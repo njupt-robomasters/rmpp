@@ -58,9 +58,9 @@ static void update_ui() {
 
     // 提示条
     // 弹速或弹频由 shooter_loop 写入
-    ui.cap = 0.0f;                    // 超级电容剩余能量比例
-    ui.wr = chassis.wr.measure;       // 底盘旋转速度
-    ui.shoot = shoot.current;         // 拨弹电机电流
+    ui.cap = 0.0f;              // 超级电容剩余能量比例
+    ui.wr = chassis.wr.measure; // 底盘旋转速度
+    ui.shoot = shoot.current;   // 拨弹电机电流
 
     // 机器人状态
     ui.robot.w1 = w1.is_connect ? RobotUi::GREEN : RobotUi::PINK; // 底盘
@@ -88,7 +88,7 @@ extern "C" void app_main() {
     gimbal.load_yaw_offset(kv_store);
     melody.play(C5D5G5);
 
-    [[maybe_unused]] static float cpu_usage{};
+    [[maybe_unused]] static float cpu_usage = 0;
     Timer timer;
     while (true) {
         if (timer.elapsed() > 1 * ms) {

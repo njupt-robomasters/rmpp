@@ -9,21 +9,22 @@ class Nav {
     struct Config {
         Cdc cdc;
         float timeout = 100 * ms;
-    } config;
+    };
 
     struct {
-        float x{};
-        float y{};
+        float x = 0;
+        float y = 0;
     } target_position;
 
     struct {
-        float vx{};
-        float vy{};
+        float vx = 0;
+        float vy = 0;
     } chassis_speed;
 
     explicit Nav(const Config& config);
     void update();
 
   private:
+    const Config config_;
     Timer timer_chassis_speed_;
 };

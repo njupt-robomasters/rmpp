@@ -59,9 +59,6 @@ class ChassisMatrix {
         float ref = 0, measure = 0, input = 0;
     } wr;
 
-    // 功率：由调用方设置裁判上限与缓冲能量
-    PowerLimiter power;
-
     // 使能/失能轮电机
     void set_enable(bool is_enable);
 
@@ -89,11 +86,12 @@ class ChassisMatrix {
   protected:
     const Config config_;
     const std::array<Motor*, 4> wheel_; // 轮电机：左前、左后、右后、右前
+    PowerLimiter& power_;               // 功率限制，由 app 持有并设置裁判上限与缓冲能量
     bool is_enable_ = false;
     float reserve_wr_ = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转
     Angle gimbal_yaw_;
 
-    ChassisMatrix(const Config& config, const PowerLimiter::Config& power_config, const std::array<Motor*, 4>& wheel);
+    ChassisMatrix(const Config& config, PowerLimiter& power, const std::array<Motor*, 4>& wheel);
 
     // 控制：底盘目标 → 电机输出；每周期调用，失能时清空 PID
     virtual void control() = 0;
@@ -109,7 +107,7 @@ class ChassisMatrix {
 // 电流按力正解拆出旋转分量做功率控制，假设四轮同型号
 class ChassisMatrixSpeed : public ChassisMatrix {
   public:
-    ChassisMatrixSpeed(const Config& config, const PowerLimiter::Config& power_config, const std::array<Motor*, 4>& wheel);
+    ChassisMatrixSpeed(const Config& config, PowerLimiter& power, const std::array<Motor*, 4>& wheel);
 
   private:
     std::array<Pid, 4> wheel_pid_; // 轮转速误差 rad/s → 电流 A
@@ -125,7 +123,7 @@ class ChassisMatrixTorque : public ChassisMatrix {
         float ref = 0, measure = 0;
     } fx, fy, fz;
 
-    ChassisMatrixTorque(const Config& config, const PowerLimiter::Config& power_config, const std::array<Motor*, 4>& wheel);
+    ChassisMatrixTorque(const Config& config, PowerLimiter& power, const std::array<Motor*, 4>& wheel);
 
   private:
     Pid vx_pid_, vy_pid_, vz_pid_; // 速度误差 m/s → 牵引力 N

@@ -3,15 +3,15 @@
 #include <cstring>
 
 FSi6X::FSi6X(const Config& config)
-    : config(config) {
+    : config_(config) {
     // 注册串口回调
     config.uart.add_rx_callback([this](const uint8_t* data, const size_t size) {
-        this->callback(data, size);
+        callback(data, size);
     });
 }
 
 void FSi6X::update() {
-    if (timer_connect_.elapsed() > config.timeout) {
+    if (timer_connect_.elapsed() > config_.timeout) {
         timer_connect_.restart();
         reset_data();
     }
@@ -65,7 +65,7 @@ void FSi6X::reset_data() {
 float FSi6X::get_joystick(const uint16_t value) const {
     float ret = (static_cast<float>(value) - 1024.0f) / 783.0f; // 240(-784) ~ 1024 ~ 1807(+783)
     ret = std::clamp(ret, -1.0f, 1.0f);
-    if (std::fabs(ret) < config.deadline)
+    if (std::fabs(ret) < config_.deadline)
         ret = 0.0f;
     return ret;
 }

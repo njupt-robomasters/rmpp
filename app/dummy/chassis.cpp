@@ -49,10 +49,10 @@ void chassis_loop() {
 
     // CAN1 0x200 组帧发送，低速低电流的轮发零电流
     CanFrame frame{.id = 0x200, .size = 8};
-    for (M3508& wheel : {std::ref(w1), std::ref(w2), std::ref(w3), std::ref(w4)}) {
-        if (std::fabs(wheel.current_ref) < LOW_CURRENT && std::fabs(wheel.speed) < LOW_SPEED)
-            wheel.set_current(0);
-        wheel.write_can_frame(frame);
+    for (M3508* wheel : {&w1, &w2, &w3, &w4}) {
+        if (std::fabs(wheel->current_ref) < LOW_CURRENT && std::fabs(wheel->speed) < LOW_SPEED)
+            wheel->set_current(0);
+        wheel->write_can_frame(frame);
     }
     Can(1).send(frame);
 

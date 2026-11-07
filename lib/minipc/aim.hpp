@@ -12,7 +12,7 @@ class Aim {
     struct Config {
         Cdc cdc;
         float timeout = 100 * ms;
-    } config;
+    };
 
     bool is_connect_vision = false;
 
@@ -25,8 +25,8 @@ class Aim {
     struct {
         bool is_red = true;
         Referee::GameProgress game_progress = Referee::NOT_STARTED;
-        float stage_remain_time{};
-        float bullet_speed{};
+        float stage_remain_time = 0;
+        float bullet_speed = 0;
     } referee;
 
     struct {
@@ -34,7 +34,7 @@ class Aim {
         Angle yaw;
         Angle pitch;
         bool is_fire = false;
-        float distance{};
+        float distance = 0;
     } vision;
 
     struct {
@@ -45,5 +45,6 @@ class Aim {
     void update();
 
   private:
+    const Config config_;
     Timer timer_vision_, timer_insta360_;
 };

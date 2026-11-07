@@ -3,7 +3,6 @@
 #include "bsp/timer.hpp"
 #include "math/angle.hpp"
 #include "math/unit.hpp"
-#include "motor/motor.hpp"
 #include "motor/vesc.hpp"
 #include "pid/pid.hpp"
 #include <cstdint>
@@ -24,7 +23,7 @@ class Shooter42mm {
         float block_time = 500 * ms;         // 卡弹检测时间
         float rub_radius = 3.0f * cm;        // 摩擦轮半径
         uint16_t heat_protect = 0;           // 剩余热量保护阈值
-    } config;
+    };
 
     // 发射机构电机
     struct Motors {
@@ -34,12 +33,9 @@ class Shooter42mm {
 
     static constexpr float RUB12_RATIO = 0.5f; // 摩擦轮 1、2 相对弹速的速度比
 
-    bool is_enable = false;       // 使能标志
-    bool is_heat_protect = false; // 热量保护状态
-
     // 弹速 (m/s)
     struct {
-        float ref{}, measure{};
+        float ref = 0, measure = 0;
     } bullet_speed;
 
     // 摩擦轮线速度，m/s
@@ -63,6 +59,9 @@ class Shooter42mm {
     void update();
 
   private:
+    const Config config_;
+    bool is_enable_ = false;
+    bool is_heat_protect_ = false;                     // 热量保护状态
     static constexpr float SHOOT_FINISH_RATIO = 0.95f; // 用于检查拨弹完成
     static constexpr float SHAKE_FREQ = 1;             // 抖动频率
     static constexpr float SHAKE_AMP = 1;              // 抖动幅度（一个弹 = 1）

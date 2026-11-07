@@ -14,7 +14,7 @@ uint16_t DmMotor<PMAX, VMAX, TMAX>::encode(const float value, const float maximu
 
 template <float PMAX, float VMAX, float TMAX>
 void DmMotor<PMAX, VMAX, TMAX>::send() {
-    if (!is_enable) {
+    if (!is_enable_) {
         send_disable();
         return;
     }
@@ -59,7 +59,7 @@ void DmMotor<PMAX, VMAX, TMAX>::can_callback(const CanFrame& frame) {
 template <float PMAX, float VMAX, float TMAX>
 void DmMotor<PMAX, VMAX, TMAX>::send_mit() const {
     const float dir = config.install.is_invert ? -1.0f : 1.0f;
-    const uint16_t command = encode(is_connect && is_enable ? dir * torque_ref : 0, TMAX, 12);
+    const uint16_t command = encode(is_connect && is_enable_ ? dir * torque_ref : 0, TMAX, 12);
 
     // 对称量程下 p、v 为零的量化编码固定，kp、kd 为零，仅使用转矩前馈
     config.bus.can.send({

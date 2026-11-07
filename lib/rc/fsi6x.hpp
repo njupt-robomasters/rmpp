@@ -9,7 +9,7 @@ class FSi6X {
         Uart uart;
         float timeout = 0.5f;   // 断联检测超时时间
         float deadline = 0.05f; // 摇杆死区，小于此值认为是0
-    } config;
+    };
 
     enum Switch {
         DOWN,
@@ -20,9 +20,9 @@ class FSi6X {
 
     bool is_connect = false; // 连接标志
 
-    float x{}, y{}, pitch{}, yaw{};                    // 摇杆
+    float x = 0, y = 0, pitch = 0, yaw = 0;            // 摇杆
     Switch swa = ERR, swb = ERR, swc = ERR, swd = ERR; // 拨杆
-    float vra{}, vrb{};                                // 旋钮
+    float vra = 0, vrb = 0;                            // 旋钮
 
     FSi6X(const Config& config);
 
@@ -30,6 +30,8 @@ class FSi6X {
     void update();
 
   private:
+    const Config config_;
+
     // 通道原始值
     struct __attribute__((packed)) {
         uint8_t header : 8; // 0x0F

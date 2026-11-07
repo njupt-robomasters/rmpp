@@ -26,15 +26,14 @@ class Motor {
     } config;
 
     bool is_connect = false;
-    bool is_enable = false;
 
-    float current{};
-    float current_ref{};
-    float torque{};
-    float torque_ref{};
-    float speed{};
-    float position{};
-    float position_multi{};
+    float current = 0;
+    float current_ref = 0;
+    float torque = 0;
+    float torque_ref = 0;
+    float speed = 0;
+    float position = 0;
+    float position_multi = 0;
 
     struct Raw {
         float current = 0, torque = 0, speed = 0, position = 0;
@@ -49,6 +48,8 @@ class Motor {
     void update();
 
   protected:
+    bool is_enable_ = false;
+
     explicit Motor(const Config& config);
 
     // 子类校验并解析 raw 后调用，负责修正反馈和刷新在线状态；基类不注册回调

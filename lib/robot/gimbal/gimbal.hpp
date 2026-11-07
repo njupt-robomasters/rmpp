@@ -25,13 +25,11 @@ class Gimbal {
 
     Attitude& attitude; // 姿态解算，用于云台 IMU 闭环模式
 
-    bool is_enable = false; // 云台使能标志
-
     // 云台模式
     enum Mode {
         ECD_MODE, // 编码器模式
         IMU_MODE, // 陀螺仪模式
-    } mode = IMU_MODE;
+    };
 
     // 云台角度
     struct {
@@ -41,8 +39,6 @@ class Gimbal {
 
         Angle imu_minus_ecd;
     } yaw, pitch;
-
-    float yaw_speed{}, pitch_speed{}; // 云台速度
 
     Gimbal(Attitude& attitude, const Config& config);
 
@@ -71,8 +67,10 @@ class Gimbal {
     void update();
 
   protected:
-    float chassis_wr_{}; // yaw速度前馈（小陀螺模式需要）
     const Config config_;
+    Mode mode_ = IMU_MODE;
+    float yaw_speed_ = 0, pitch_speed_ = 0; // 云台转动速度，rad/s
+    float chassis_wr_ = 0;                  // yaw速度前馈（小陀螺模式需要）
     Pid yaw_speed_pid_, yaw_position_pid_, pitch_speed_pid_, pitch_position_pid_;
 
     virtual void set_motors_enable(bool is_enable) = 0;
@@ -95,6 +93,7 @@ class Gimbal {
     virtual void backward() = 0;
 
   private:
+    bool is_enable_ = false;
     Timer timer_motion_; // 用于云台转动
     bool is_yaw_ready_ = false, is_pitch_ready_ = false;
 

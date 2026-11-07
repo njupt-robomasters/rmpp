@@ -11,57 +11,6 @@
 using Matrix3x6 = Eigen::Matrix<float, 3, 6>;
 using Matrix6x3 = Eigen::Matrix<float, 6, 3>;
 
-static Matrix6f multiply(const Matrix6f& a, const Matrix6f& b) {
-    Matrix6f out;
-    out.noalias() = a * b;
-    return out;
-}
-
-static Matrix6f multiply_transpose(const Matrix6f& a, const Matrix6f& b) {
-    Matrix6f out;
-    out.noalias() = a * b.transpose();
-    return out;
-}
-
-// 已知 S = L Lᵀ，先前代再回代，避免显式求逆
-static bool solve_cholesky(const Matrix3f& lower, const Vector3f& rhs, Vector3f& out) {
-    out = lower.template triangularView<Eigen::Lower>().solve(rhs);
-    out = lower.transpose().template triangularView<Eigen::Upper>().solve(out);
-    return out.allFinite();
-}
-
-static bool symmetrize_covariance(Matrix6f& covariance) {
-    if (!covariance.allFinite())
-        return false;
-    for (int i = 0; i < 6; ++i)
-        if (covariance(i, i) < 0)
-            return false;
-    covariance = 0.5f * (covariance + covariance.transpose());
-    return covariance.allFinite();
-}
-
-static bool normalize_quaternion(Quaternionf& q) {
-    const float norm = q.norm();
-    if (!std::isfinite(norm) || norm < 1.0e-6f)
-        return false;
-    q.normalize();
-    return q.coeffs().allFinite();
-}
-
-static bool rotation_increment(const Vector3f& gyro, const float dt, Quaternionf& delta) {
-    if (!gyro.allFinite() || !std::isfinite(dt) || dt <= 0)
-        return false;
-    const float norm = gyro.norm();
-    const float half_angle = 0.5f * dt * norm;
-    if (!std::isfinite(half_angle))
-        return false;
-    float scale = 0.5f * dt;
-    if (half_angle > 1.0e-6f)
-        scale = std::sin(half_angle) / norm;
-    delta = Quaternionf(std::cos(half_angle), scale * gyro.x(), scale * gyro.y(), scale * gyro.z());
-    return delta.coeffs().allFinite();
-}
-
 QuaternionEkf::QuaternionEkf(Imu& imu, const Config& config)
     : Attitude(imu), config_(config) {
     reset_bias();
@@ -251,4 +200,55 @@ Quaternionf QuaternionEkf::integrate(const Quaternionf& q, const Vector3f& gyro,
     if (!normalize_quaternion(next))
         return q;
     return next;
+}
+
+Matrix6f QuaternionEkf::multiply(const Matrix6f& a, const Matrix6f& b) {
+    Matrix6f out;
+    out.noalias() = a * b;
+    return out;
+}
+
+Matrix6f QuaternionEkf::multiply_transpose(const Matrix6f& a, const Matrix6f& b) {
+    Matrix6f out;
+    out.noalias() = a * b.transpose();
+    return out;
+}
+
+// 已知 S = L Lᵀ，先前代再回代，避免显式求逆
+bool QuaternionEkf::solve_cholesky(const Matrix3f& lower, const Vector3f& rhs, Vector3f& out) {
+    out = lower.template triangularView<Eigen::Lower>().solve(rhs);
+    out = lower.transpose().template triangularView<Eigen::Upper>().solve(out);
+    return out.allFinite();
+}
+
+bool QuaternionEkf::symmetrize_covariance(Matrix6f& covariance) {
+    if (!covariance.allFinite())
+        return false;
+    for (int i = 0; i < 6; ++i)
+        if (covariance(i, i) < 0)
+            return false;
+    covariance = 0.5f * (covariance + covariance.transpose());
+    return covariance.allFinite();
+}
+
+bool QuaternionEkf::normalize_quaternion(Quaternionf& q) {
+    const float norm = q.norm();
+    if (!std::isfinite(norm) || norm < 1.0e-6f)
+        return false;
+    q.normalize();
+    return q.coeffs().allFinite();
+}
+
+bool QuaternionEkf::rotation_increment(const Vector3f& gyro, const float dt, Quaternionf& delta) {
+    if (!gyro.allFinite() || !std::isfinite(dt) || dt <= 0)
+        return false;
+    const float norm = gyro.norm();
+    const float half_angle = 0.5f * dt * norm;
+    if (!std::isfinite(half_angle))
+        return false;
+    float scale = 0.5f * dt;
+    if (half_angle > 1.0e-6f)
+        scale = std::sin(half_angle) / norm;
+    delta = Quaternionf(std::cos(half_angle), scale * gyro.x(), scale * gyro.y(), scale * gyro.z());
+    return delta.coeffs().allFinite();
 }

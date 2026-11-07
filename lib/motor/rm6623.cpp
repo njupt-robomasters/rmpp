@@ -22,7 +22,7 @@ void RM6623::write_can_frame(CanFrame& frame) const {
 
     // 计算can命令
     float current = 0;
-    if (is_connect && is_enable)
+    if (is_connect && is_enable_)
         current = config.install.is_invert ? -current_ref : current_ref;
     const int16_t command = static_cast<int16_t>(current / MAX_CURRENT * 5000.0f);
 

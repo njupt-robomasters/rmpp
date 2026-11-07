@@ -36,6 +36,9 @@ inline M3508 w4({
 // 超级电容：CAN1，其余参数用默认值
 inline SuperCap super_cap({.can = Can(1)});
 
+// 功率限制：超电实测修正
+inline PowerLimiter power_limiter({.super_cap = &super_cap});
+
 // 全向轮速度控制
 inline ChassisMatrixSpeed chassis({
                                       .kinematics = ChassisMatrix::OMNI,
@@ -43,6 +46,6 @@ inline ChassisMatrixSpeed chassis({
                                       .wheel_radius = 60.0f * mm,
                                       .speed_pid_config = &wheel_pid,
                                   },
-                                  {.super_cap = &super_cap}, {&w1, &w2, &w3, &w4});
+                                  power_limiter, {&w1, &w2, &w3, &w4});
 
 void chassis_loop();

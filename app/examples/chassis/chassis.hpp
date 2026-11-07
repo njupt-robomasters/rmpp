@@ -50,6 +50,9 @@ inline M3508 w4({
     .install = {.is_invert = IS_INVERT},
 });
 
+// 功率限制
+inline PowerLimiter power_limiter({});
+
 // 底盘
 inline ChassisMatrixTorque chassis({
                                        .kinematics = ChassisMatrix::OMNI,
@@ -58,4 +61,4 @@ inline ChassisMatrixTorque chassis({
                                        .speed_pid_config = &vxyz_pid,
                                        .follow_pid_config = &follow_pid,
                                    },
-                                   {}, {&w1, &w2, &w3, &w4});
+                                   power_limiter, {&w1, &w2, &w3, &w4});

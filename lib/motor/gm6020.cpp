@@ -29,12 +29,12 @@ void GM6020::write_can_frame(CanFrame& frame) const {
     int16_t command = 0;
     if (frame.id == 0x1ff || frame.id == 0x2ff) { // 电压模式
         float voltage = 0;
-        if (is_connect && is_enable)
+        if (is_connect && is_enable_)
             voltage = std::clamp(current_ref / MAX_CURRENT * MAX_VOLTAGE + back_emf_.gain * back_emf_.ke * speed, -MAX_VOLTAGE, MAX_VOLTAGE);
         command = static_cast<int16_t>(dir * voltage / MAX_VOLTAGE * 25000.0f);
     } else { // 电流模式
         float current = 0;
-        if (is_connect && is_enable)
+        if (is_connect && is_enable_)
             current = current_ref;
         command = static_cast<int16_t>(dir * current / MAX_CURRENT * 16384.0f);
     }

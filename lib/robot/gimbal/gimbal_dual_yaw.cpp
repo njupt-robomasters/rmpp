@@ -56,11 +56,11 @@ void GimbalDualYaw::backward() {
     yaw.imu_minus_ecd = yaw.imu.measure - yaw.ecd.measure;
     pitch.imu_minus_ecd = pitch.imu.measure - pitch.ecd.measure;
 
-    if (mode == ECD_MODE) {
+    if (mode_ == ECD_MODE) {
         // 换算到imu参考系
         yaw.imu.ref = yaw.ecd.ref + yaw.imu_minus_ecd;
         pitch.imu.ref = pitch.ecd.ref + pitch.imu_minus_ecd;
-    } else if (mode == IMU_MODE) {
+    } else if (mode_ == IMU_MODE) {
         // 换算到ecd参考系
         yaw.ecd.ref = yaw.imu.ref - yaw.imu_minus_ecd;
         pitch.ecd.ref = pitch.imu.ref - pitch.imu_minus_ecd;
@@ -80,7 +80,7 @@ void GimbalDualYaw::backward() {
     // yaw 串级 PID，速度反馈取在线的大 yaw，否则取小 yaw；离线的一侧输出零，在线的一侧单独保持指向
     if (can_yaw) {
         const float speed = motor.yaw1.is_connect ? motor.yaw1.speed : motor.yaw2.speed;
-        const float speed_ref = yaw_position_pid_.calculate(yaw.ecd.ref - yaw.ecd.measure) - chassis_wr_ + yaw_speed;
+        const float speed_ref = yaw_position_pid_.calculate(yaw.ecd.ref - yaw.ecd.measure) - chassis_wr_ + yaw_speed_;
         const float output = yaw_speed_pid_.calculate(speed_ref - speed);
         const float output1 = set_output(motor.yaw1, config_.yaw_output, motor.yaw1.is_connect ? output : 0.0f);
         const float output2 = set_output(motor.yaw2, config_.yaw_output, motor.yaw2.is_connect ? output : 0.0f);
@@ -99,7 +99,7 @@ void GimbalDualYaw::backward() {
 
     // pitch 串级 PID
     if (can_pitch) {
-        const float speed_ref = pitch_position_pid_.calculate(pitch.ecd.ref - pitch.ecd.measure) + pitch_speed;
+        const float speed_ref = pitch_position_pid_.calculate(pitch.ecd.ref - pitch.ecd.measure) + pitch_speed_;
         pitch_speed_pid_.track(set_output(motor.pitch, config_.pitch_output, pitch_speed_pid_.calculate(speed_ref - motor.pitch.speed)));
     } else {
         motor.pitch.set_current(0);

@@ -14,13 +14,13 @@ class ChassisLeg {
   public:
     struct Config {
         // 质量与几何
-        float mass{};               // 整车质量，kg
-        float spring_force{};       // 气弹簧标称推力，N
-        float wheel_radius{};       // m
-        float wheel_distance{};     // 左右轮距，m
-        float active_link{};        // 主动杆长 AB=ED，m
-        float passive_link{};       // 从动杆长 BC=DC，m
-        float leg_min{}, leg_max{}; // 目标腿长范围，m；leg_min 也是自救站起腿长
+        float mass = 0;                 // 整车质量，kg
+        float spring_force = 0;         // 气弹簧标称推力，N
+        float wheel_radius = 0;         // m
+        float wheel_distance = 0;       // 左右轮距，m
+        float active_link = 0;          // 主动杆长 AB=ED，m
+        float passive_link = 0;         // 从动杆长 BC=DC，m
+        float leg_min = 0, leg_max = 0; // 目标腿长范围，m；leg_min 也是自救站起腿长
 
         // 控制器，误差均为“目标减反馈”
         const Pid::Config* leg_length_pid; // 腿长 PD：m → 轴向力 N，伸腿为正
@@ -58,38 +58,38 @@ class ChassisLeg {
 
     // 车体姿态：由传入 q 换算的标准 Z-Y-X 欧拉角，角速度取机体系 gyro
     struct {
-        float pitch{}, d_pitch{}; // rad、rad/s；低头为正（绕机体 +Y）；与外部工程 imu_pitch 同号
-        float roll{}, d_roll{};   // rad、rad/s；右侧低为正（绕机体 +X）；与外部工程 imu_roll 相反
-        float d_yaw{};            // rad/s；俯视逆时针为正（绕机体 +Z）；与外部工程 imu_d_yaw 同号
+        float pitch = 0, d_pitch = 0; // rad、rad/s；低头为正（绕机体 +Y）；与外部工程 imu_pitch 同号
+        float roll = 0, d_roll = 0;   // rad、rad/s；右侧低为正（绕机体 +X）；与外部工程 imu_roll 相反
+        float d_yaw = 0;              // rad/s；俯视逆时针为正（绕机体 +Z）；与外部工程 imu_d_yaw 同号
     } body;
 
     // 轮腿运动学
     struct {
-        float x{};     // 前向位移积分，m，前进为正；有速度指令或动作期间清零
-        float d_x{};   // 前向速度，m/s，前进为正
-        float d_yaw{}; // 航向角速度，rad/s，右侧前向速度较大（逆时针）为正
+        float x = 0;     // 前向位移积分，m，前进为正；有速度指令或动作期间清零
+        float d_x = 0;   // 前向速度，m/s，前进为正
+        float d_yaw = 0; // 航向角速度，rad/s，右侧前向速度较大（逆时针）为正
     } kin;
 
     // 单腿状态与输出；杆方位角从局部 +x 向 +y 为正，左右腿各自面向电机输出轴观察
     struct Leg {
-        float phi1{}, d_phi1{};   // 主动杆 AB（关节 A）方位角，rad、rad/s
-        float phi4{}, d_phi4{};   // 主动杆 ED（关节 E）方位角，rad、rad/s
-        float phi2{}, phi3{};     // 从动杆 BC、DC 方位角，rad
-        float phi0{}, d_phi0{};   // 虚拟腿 AC 方位角，rad、rad/s，车体正下方为 π/2
-        float L{}, d_L{};         // 虚拟腿长 m；伸缩速度 m/s，伸腿为正
-        float knee{};             // 膝内角 ABC，rad，[0, π]
-        float spread{};           // 主动杆有符号角差 phi1 - phi4，rad
-        float rel_theta{};        // 相对底盘腿角，rad，车体正下方为零、后摆为正
-        float theta{}, d_theta{}; // 相对竖直腿倾角 = rel_theta + pitch，rad、rad/s，后摆为正
-        float v_wheel{};          // 车轮线速度，m/s，前进为正
-        float v_swing{};          // 腿摆动引起的前向速度补偿，m/s
-        float Fg{};               // 单腿重力沿腿分量，N，非负
-        float Fs{};               // 气弹簧等效伸腿力，N，非负
+        float phi1 = 0, d_phi1 = 0;   // 主动杆 AB（关节 A）方位角，rad、rad/s
+        float phi4 = 0, d_phi4 = 0;   // 主动杆 ED（关节 E）方位角，rad、rad/s
+        float phi2 = 0, phi3 = 0;     // 从动杆 BC、DC 方位角，rad
+        float phi0 = 0, d_phi0 = 0;   // 虚拟腿 AC 方位角，rad、rad/s，车体正下方为 π/2
+        float L = 0, d_L = 0;         // 虚拟腿长 m；伸缩速度 m/s，伸腿为正
+        float knee = 0;               // 膝内角 ABC，rad，[0, π]
+        float spread = 0;             // 主动杆有符号角差 phi1 - phi4，rad
+        float rel_theta = 0;          // 相对底盘腿角，rad，车体正下方为零、后摆为正
+        float theta = 0, d_theta = 0; // 相对竖直腿倾角 = rel_theta + pitch，rad、rad/s，后摆为正
+        float v_wheel = 0;            // 车轮线速度，m/s，前进为正
+        float v_swing = 0;            // 腿摆动引起的前向速度补偿，m/s
+        float Fg = 0;                 // 单腿重力沿腿分量，N，非负
+        float Fs = 0;                 // 气弹簧等效伸腿力，N，非负
 
-        float Fn{};         // 虚拟腿轴向力，N，伸腿为正
-        float Tt{};         // 虚拟腿摆动力矩，N·m，后摆为正
-        float Tw{};         // 轮端力矩，N·m，前进为正
-        float T_A{}, T_E{}; // 关节力矩，N·m，电机正转为正，与 phi1、phi4 增大方向相反
+        float Fn = 0;           // 虚拟腿轴向力，N，伸腿为正
+        float Tt = 0;           // 虚拟腿摆动力矩，N·m，后摆为正
+        float Tw = 0;           // 轮端力矩，N·m，前进为正
+        float T_A = 0, T_E = 0; // 关节力矩，N·m，电机正转为正，与 phi1、phi4 增大方向相反
     } leg[2];
 
     // 倒地与自救
@@ -139,12 +139,8 @@ class ChassisLeg {
     // 计算并设置全部电机力矩，发送由调用方完成
     void update(const Quaternionf& q, const Vector3f& gyro);
 
-    const Config& config() const {
-        return config_;
-    }
-
   private:
-    Config config_;
+    const Config config_;
     Motors motor_;
 
     // 指令

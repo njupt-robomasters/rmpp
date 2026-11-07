@@ -3,7 +3,7 @@
 #include <algorithm>
 
 void Motor::set_enable(const bool is_enable) {
-    this->is_enable = is_enable;
+    is_enable_ = is_enable;
 }
 
 void Motor::set_current(float current) {

@@ -29,10 +29,6 @@ class Imu {
     // 下次 update 开始 5 s 校准，非静止时提前失败；调用方负责热机和静止时机
     void start_calibration();
 
-    const Config& config() const {
-        return config_;
-    }
-
   private:
     Config config_;
     Pid temperature_pid_;

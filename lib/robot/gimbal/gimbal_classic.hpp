@@ -1,7 +1,6 @@
 #pragma once
 
 #include "gimbal.hpp"
-#include "motor/motor.hpp"
 
 class GimbalClassic : public Gimbal {
   public:

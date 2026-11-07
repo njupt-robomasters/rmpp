@@ -2,7 +2,6 @@
 
 #include "bsp/timer.hpp"
 #include "math/unit.hpp"
-#include "motor/motor.hpp"
 #include "motor/vesc.hpp"
 #include "pid/pid.hpp"
 #include <cstdint>
@@ -24,7 +23,7 @@ class Shooter17mm {
         float reverse_time = 250 * ms;       // 卡弹倒转时间
         float rub_radius = 3.0f * cm;        // 摩擦轮半径
         uint16_t heat_protect = 0;           // 剩余热量保护阈值
-    } config;
+    };
 
     // 发射机构电机
     struct Motors {
@@ -32,17 +31,14 @@ class Shooter17mm {
         Motor& shoot;      // 拨弹电机
     } motor;
 
-    bool is_enable = false;       // 使能标志
-    bool is_heat_protect = false; // 热量保护状态
-
     // 弹速 (m/s)
     struct {
-        float ref{}, measure{};
+        float ref = 0, measure = 0;
     } bullet_speed;
 
     // 弹频 (shots/s)
     struct {
-        float ref{}, measure{};
+        float ref = 0, measure = 0;
     } bullet_freq;
 
     // 摩擦轮线速度，m/s
@@ -66,6 +62,9 @@ class Shooter17mm {
     void update();
 
   private:
+    const Config config_;
+    bool is_enable_ = false;
+    bool is_heat_protect_ = false; // 热量保护状态
     Pid shoot_pid_;
     bool is_block_ = false; // 卡弹标志
     Timer timer_block_;     // 卡弹计时器

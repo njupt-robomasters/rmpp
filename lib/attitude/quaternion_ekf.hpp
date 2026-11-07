@@ -28,11 +28,21 @@ class QuaternionEkf : public Attitude {
     void solve(const Vector3f& gyro, const Vector3f& accel) override;
 
   private:
-    Config config_;
+    const Config config_;
     Timer timer_{0.0001f, 0.01f};
     Matrix6f covariance_ = Matrix6f::Zero();
     Vector3f filtered_accel_ = Vector3f::Zero();
     bool initialized_ = false;
     bool converged_ = false;
     unsigned rejected_count_ = 0;
+
+    static Matrix6f multiply(const Matrix6f& a, const Matrix6f& b);
+    static Matrix6f multiply_transpose(const Matrix6f& a, const Matrix6f& b);
+
+    // 已知 S = L Lᵀ，先前代再回代，避免显式求逆
+    static bool solve_cholesky(const Matrix3f& lower, const Vector3f& rhs, Vector3f& out);
+
+    static bool symmetrize_covariance(Matrix6f& covariance);
+    static bool normalize_quaternion(Quaternionf& q);
+    static bool rotation_increment(const Vector3f& gyro, float dt, Quaternionf& delta);
 };

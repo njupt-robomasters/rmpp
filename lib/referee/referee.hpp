@@ -75,10 +75,6 @@ class Referee {
     Referee(const Referee&) = delete;
     Referee& operator=(const Referee&) = delete;
 
-    const Config& config() const {
-        return config_;
-    }
-
     void add_0311_callback(RxCallback callback);
     void update();
 
@@ -91,7 +87,7 @@ class Referee {
     }
 
   private:
-    Config config_;
+    const Config config_;
     std::vector<RxCallback> callbacks_0311_;
     Timer timer_connect_, timer_rx_, timer_interaction_;
     uint8_t rx_buf_[309]{};

@@ -57,10 +57,6 @@ class Melody {
 
     explicit Melody(const Config& config);
 
-    const Config& config() const {
-        return config_;
-    }
-
     // 从头播放，打断当前播放；曲目须在播放期间保持有效
     void play(const Song& song);
     void play_poly(const Song& song);
@@ -152,4 +148,15 @@ class Melody {
 
     void fill(std::span<float> duty);
     float next_sample();
+
+    static float midi_to_hz(uint8_t midi);
+
+    // 增益平滑跟随：下降快、上升慢
+    static void follow(float& gain, float target, float attack_step, float release_step);
+
+    // PolyBLEP 跳变校正：t 为距跳变的相位 [0, 1)，dt 为每采样相位增量
+    static float poly_blep(float t, float dt);
+
+    // 限带方波 ±1，相位 [0, 0.5) 为 1；抑制折回到可听频段的杂音
+    static float square(float phase, float dt);
 };

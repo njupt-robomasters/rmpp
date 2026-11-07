@@ -10,7 +10,7 @@ class VT13 {
         float timeout = 0.5f;     // 断联检测超时时间
         float deadline = 0.05f;   // 摇杆死区，小于此值认为是0
         uint16_t mouse_max = 500; // 鼠标xy最大速度
-    } config;
+    };
 
     enum Mode {
         C,
@@ -21,14 +21,14 @@ class VT13 {
 
     bool is_connect = false; // 连接标志
 
-    float x{}, y{}, pitch{}, yaw{};                                 // 摇杆
-    float wheel{};                                                  // 左上角拨轮
+    float x = 0, y = 0, pitch = 0, yaw = 0;                         // 摇杆
+    float wheel = 0;                                                // 左上角拨轮
     Mode mode = ERR;                                                // 模式切换开关
     bool pause = false, trigger = false, fn = false, photo = false; // 按钮
 
     // 鼠标
     struct Mouse {
-        float yaw{}, pitch{};
+        float yaw = 0, pitch = 0;
         int16_t wheel = 0;
         bool left = false, right = false, middle = false;
     } mouse;
@@ -47,6 +47,8 @@ class VT13 {
     void update();
 
   private:
+    const Config config_;
+
     // 通道原始值
     struct __attribute__((packed)) {
         uint8_t sof_1 : 8;   // 0xA9

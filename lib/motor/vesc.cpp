@@ -85,7 +85,7 @@ void Vesc::send() const {
     uint8_t size = command_size_;
     uint8_t data[8] = {command_data_[0], command_data_[1], command_data_[2], command_data_[3],
                        command_data_[4], command_data_[5], command_data_[6], command_data_[7]};
-    if (!is_enable) {
+    if (!is_enable_) {
         command = CAN_PACKET_SET_CURRENT;
         size = 4;
         const int32_t current = 0;

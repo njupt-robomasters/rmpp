@@ -9,34 +9,6 @@ static constexpr float TAU_MIN = 0.3f;       // 按音高缩放后的衰减时�
 static constexpr float TAU_MAX = 2.0f;       // 上限 s
 static constexpr uint32_t GAIN_EVERY = 8;    // 增益每 8 个采样更新一次，包络变化慢
 
-static float midi_to_hz(const uint8_t midi) {
-    return 440.0f * std::exp2((static_cast<float>(midi) - 69.0f) / 12.0f);
-}
-
-// 增益平滑跟随：下降快、上升慢
-static void follow(float& gain, const float target, const float attack_step, const float release_step) {
-    gain += (target < gain ? attack_step : release_step) * (target - gain);
-}
-
-// PolyBLEP 跳变校正：t 为距跳变的相位 [0, 1)，dt 为每采样相位增量
-static float poly_blep(float t, const float dt) {
-    if (t < dt) {
-        t /= dt;
-        return t + t - t * t - 1;
-    }
-    if (t > 1 - dt) {
-        t = (t - 1) / dt;
-        return t * t + t + t + 1;
-    }
-    return 0;
-}
-
-// 限带方波 ±1，相位 [0, 0.5) 为 1；抑制折回到可听频段的杂音
-static float square(const float phase, const float dt) {
-    const float half = phase < 0.5f ? phase + 0.5f : phase - 0.5f;
-    return (phase < 0.5f ? 1.0f : -1.0f) + poly_blep(phase, dt) - poly_blep(half, dt);
-}
-
 Melody::Melody(const Config& config)
     : config_(config), dt_(1 / config.carrier_hz),
       attack_step_(1 - std::exp(-dt_ * GAIN_EVERY / config.agc.attack)),
@@ -257,4 +229,32 @@ float Melody::PartSynth::update(const bool should_update_gain, const float attac
 
 bool Melody::PartSynth::is_done() const {
     return std::all_of(voices_, voices_ + count_, [](const VoiceSynth& voice) { return voice.is_done(); });
+}
+
+float Melody::midi_to_hz(const uint8_t midi) {
+    return 440.0f * std::exp2((static_cast<float>(midi) - 69.0f) / 12.0f);
+}
+
+// 增益平滑跟随：下降快、上升慢
+void Melody::follow(float& gain, const float target, const float attack_step, const float release_step) {
+    gain += (target < gain ? attack_step : release_step) * (target - gain);
+}
+
+// PolyBLEP 跳变校正：t 为距跳变的相位 [0, 1)，dt 为每采样相位增量
+float Melody::poly_blep(float t, const float dt) {
+    if (t < dt) {
+        t /= dt;
+        return t + t - t * t - 1;
+    }
+    if (t > 1 - dt) {
+        t = (t - 1) / dt;
+        return t * t + t + t + 1;
+    }
+    return 0;
+}
+
+// 限带方波 ±1，相位 [0, 0.5) 为 1；抑制折回到可听频段的杂音
+float Melody::square(const float phase, const float dt) {
+    const float half = phase < 0.5f ? phase + 0.5f : phase - 0.5f;
+    return (phase < 0.5f ? 1.0f : -1.0f) + poly_blep(phase, dt) - poly_blep(half, dt);
 }
