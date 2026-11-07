@@ -1,5 +1,7 @@
 #include "super_cap.hpp"
+#include "math/filter.hpp"
 #include <algorithm>
+#include <limits>
 
 SuperCap::SuperCap(const Config& config)
     : config_(config) {
@@ -10,37 +12,56 @@ void SuperCap::set_mode(const Mode mode) {
     mode_ = mode;
 }
 
-void SuperCap::set_battery_power(const float battery_power) {
-    battery_power_ref_ = battery_power;
+void SuperCap::set_battery_limit(const float battery_limit) {
+    battery_limit_ = battery_limit;
+}
+
+void SuperCap::set_buffer_energy(const float buffer_energy) {
+    buffer_energy_ = buffer_energy;
+}
+
+void SuperCap::set_estimate(const float estimate) {
+    power.estimate = estimate;
 }
 
 void SuperCap::update() {
+    const float dt = timer_.restart();
+
     // 应答超时
     if (rx_timer_.elapsed() > config_.timeout)
         is_connect = false;
 
-    // 电容欠压回差
-    if (voltage.cap < config_.voltage_cutoff)
-        is_cap_low_ = true;
-    else if (voltage.cap > config_.voltage_resume)
-        is_cap_low_ = false;
+    // 功率预算：缓冲能量 30 J 为零、60 J 为 buffer_gain_max 倍电池侧上限，其间线性
+    // 测量偏小时缓冲能量下降、预算随之降低，稳定在预算等于真实上限处
+    const float buffer_ratio = std::clamp((buffer_energy_ - BUFFER_CUTOFF) / (BUFFER_FULL - BUFFER_CUTOFF), 0.0f, 1.0f);
+    power.budget = battery_limit_ * config_.buffer_gain_max * buffer_ratio;
 
-    // 生效模式：离线为 OFF，BOOST 电容欠压回退 CHARGE
-    if (!is_connect)
-        active_mode = OFF;
-    else if (mode_ == BOOST && is_cap_low_)
-        active_mode = CHARGE;
+    // 偏差：在线且非 OFF 时用实测修正估计
+    if (is_connect && mode_ != OFF)
+        power.error = lowpass(power.error, power.out - power.estimate, config_.error_fc, dt);
     else
-        active_mode = mode_;
+        power.error = 0;
 
-    // BOOST 可补偿功率
-    power.boost = active_mode == BOOST ? config_.max_discharge_current * voltage.cap : 0;
+    // BOOST 补偿：电容电压在截止与满额之间线性
+    if (is_connect && mode_ == BOOST) {
+        const float cap_ratio = std::clamp((voltage.cap - config_.voltage_cutoff) / (config_.voltage_full - config_.voltage_cutoff), 0.0f, 1.0f);
+        power.boost = config_.max_discharge_current * voltage.cap * cap_ratio;
+    } else {
+        power.boost = 0;
+    }
+
+    // 功率控制目标；裁判不限功率时缓冲能量也异常，不限制
+    if (battery_limit_ == UNLIMITED)
+        power.ref = std::numeric_limits<float>::infinity();
+    else
+        power.ref = power.budget + power.boost - power.error;
 }
 
 void SuperCap::send() const {
-    // data[0].bit0 使能 DCDC；data[1..2] 电池侧目标功率，0.01 W/LSB，大端
-    const bool is_dcdc_enable = active_mode == CHARGE || active_mode == BOOST;
-    const auto command = static_cast<int16_t>(std::clamp(battery_power_ref_, 0.0f, 327.67f) * 100.0f);
+    // data[0].bit0 使能 DCDC；data[1..2] 电池侧目标功率，0.01 W/LSB，大端；不限功率时发协议最大值
+    const bool is_dcdc_enable = is_connect && (mode_ == CHARGE || mode_ == BOOST);
+    const float battery_power = battery_limit_ == UNLIMITED ? UNLIMITED : power.budget;
+    const auto command = static_cast<int16_t>(std::clamp(battery_power, 0.0f, 327.67f) * 100.0f);
     config_.can.send({
         .id = config_.tx_id,
         .size = 8,
@@ -53,14 +74,18 @@ void SuperCap::can_callback(const CanFrame& frame) {
     if (frame.id != config_.rx_id || frame.size != 8)
         return;
 
-    // V_BAT、I_OUT、V_CAP、I_CAP，1 mV/LSB、1 mA/LSB，大端
+    // V_BAT、I_OUT、V_CAP、I_CAP，1 mV/LSB、1 mA/LSB，大端；电流按应答间隔低通
     const auto* data = frame.data;
+    const float dt = rx_timer_.restart();
     voltage.out = static_cast<int16_t>((data[0] << 8) | data[1]) * 1.0e-3f;
-    current.out = static_cast<int16_t>((data[2] << 8) | data[3]) * 1.0e-3f;
+    current.out = lowpass(current.out, static_cast<int16_t>((data[2] << 8) | data[3]) * 1.0e-3f, config_.current_fc, dt);
     voltage.cap = static_cast<int16_t>((data[4] << 8) | data[5]) * 1.0e-3f;
-    current.cap = static_cast<int16_t>((data[6] << 8) | data[7]) * 1.0e-3f;
+    current.cap = lowpass(current.cap, static_cast<int16_t>((data[6] << 8) | data[7]) * 1.0e-3f, config_.current_fc, dt);
+
+    // 功率：电容电流充电为正，输出功率放电为正；battery + cap = out
     power.out = voltage.out * current.out;
+    power.cap = -voltage.cap * current.cap;
+    power.battery = power.out - power.cap;
 
     is_connect = true;
-    rx_timer_.restart();
 }

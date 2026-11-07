@@ -2,6 +2,7 @@
 #include "chassis.hpp"
 #include "gimbal.hpp"
 #include "melody/music/c5d5g5.hpp"
+#include "referee.hpp"
 
 extern "C" void app_main() {
     melody.play(C5D5G5);
@@ -16,6 +17,7 @@ extern "C" void app_main() {
         melody.update();
         fsi6x.update();
 
+        referee_loop();
         chassis_loop();
         // gimbal_loop();
     }

@@ -30,8 +30,8 @@ void send_can_cmd() {
 extern "C" void app_main() {
     chassis.set_mode(ChassisMatrix::DETACH_MODE);
     chassis.set_gimbal_yaw(0 * deg);
-    chassis.set_power_limit(120);
-    chassis.set_buffer_energy(60);
+    super_cap.set_battery_limit(120);
+    super_cap.set_buffer_energy(60);
 
     Timer timer;
     while (true) {

@@ -50,11 +50,14 @@ inline M3508 w4({
     .install = {.is_invert = IS_INVERT},
 });
 
+// 超级电容：未装，不调用 send()，离线时按估计功率控制
+inline SuperCap super_cap({.can = Can(1)});
+
 // 底盘
-inline ChassisMatrixTorque chassis(nullptr, {&w1, &w2, &w3, &w4}, {
-                                                                      .kinematics = ChassisMatrix::OMNI,
-                                                                      .chassis_radius = CHASSIS_RADIUS,
-                                                                      .wheel_radius = WHEEL_RADIUS,
-                                                                      .speed_pid_config = &vxyz_pid,
-                                                                      .follow_pid_config = &follow_pid,
-                                                                  });
+inline ChassisMatrixTorque chassis(super_cap, {&w1, &w2, &w3, &w4}, {
+                                                                        .kinematics = ChassisMatrix::OMNI,
+                                                                        .chassis_radius = CHASSIS_RADIUS,
+                                                                        .wheel_radius = WHEEL_RADIUS,
+                                                                        .speed_pid_config = &vxyz_pid,
+                                                                        .follow_pid_config = &follow_pid,
+                                                                    });

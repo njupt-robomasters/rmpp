@@ -4,7 +4,7 @@
 #include "robot/chassis/chassis_matrix.hpp"
 
 // 轮速 PID，误差 rad/s → 电流 A；四轮共用
-inline Pid::Config wheel_pid = {
+inline Pid::Config wheel_pid_config = {
     .kp = 1,
     .ki = 0,
     .max_i = M3508::MAX_CURRENT,
@@ -33,15 +33,15 @@ inline M3508 w4({
     .install = {.is_invert = false},
 });
 
-// 超级电容：CAN1，其余参数用默认值
+// 超级电容：CAN1；靶车无裁判系统，电池侧功率上限与缓冲能量由 referee_loop 模拟
 inline SuperCap super_cap({.can = Can(1)});
 
 // 全向轮速度控制
-inline ChassisMatrixSpeed chassis(&super_cap, {&w1, &w2, &w3, &w4}, {
-                                                                        .kinematics = ChassisMatrix::OMNI,
-                                                                        .chassis_radius = 230.0f * mm,
-                                                                        .wheel_radius = 60.0f * mm,
-                                                                        .speed_pid_config = &wheel_pid,
-                                                                    });
+inline ChassisMatrixSpeed chassis(super_cap, {&w1, &w2, &w3, &w4}, {
+                                                                       .kinematics = ChassisMatrix::OMNI,
+                                                                       .chassis_radius = 230.0f * mm,
+                                                                       .wheel_radius = 60.0f * mm,
+                                                                       .speed_pid_config = &wheel_pid_config,
+                                                                   });
 
 void chassis_loop();

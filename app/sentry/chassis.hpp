@@ -21,7 +21,7 @@ static constexpr float CHASSIS_RADIUS = 180.0f * 1.41421356f * mm;
 static constexpr float WHEEL_RADIUS = 60.0f * mm;
 
 // 轮电机 PID：转速误差 rad/s → 电流 A
-inline Pid::Config wheel_pid = {
+inline Pid::Config wheel_pid_config = {
     .kp = (20) / (360 * rpm),
     .ki = (20) / (15 * deg),
     .max_out = 20,
@@ -81,9 +81,16 @@ inline GM6020 s4({
                  },
                  {.gain = 0.5f});
 
+// 超级电容：未装，不调用 send()，离线时按估计功率控制
+inline SuperCap super_cap({.can = Can(1)});
+
 // 底盘；未配跟随 PID，跟随模式不旋转
-inline ChassisSteerSpeed chassis(nullptr, {&w1, &w2, &w3, &w4}, {&s1, &s2, &s3, &s4}, {
-                                                                                          .chassis_radius = CHASSIS_RADIUS, .wheel_radius = WHEEL_RADIUS, .speed_pid_config = &wheel_pid, .steer_pid_config = &steer_pid, .power = {.wheel_resistance = 0.194f}, // 不含舵电机
-                                                                                      });
+inline ChassisSteerSpeed chassis(super_cap, {&w1, &w2, &w3, &w4}, {&s1, &s2, &s3, &s4}, {
+                                                                                            .chassis_radius = CHASSIS_RADIUS,
+                                                                                            .wheel_radius = WHEEL_RADIUS,
+                                                                                            .wheel_resistance = 0.194f, // 不含舵电机
+                                                                                            .speed_pid_config = &wheel_pid_config,
+                                                                                            .steer_pid_config = &steer_pid,
+                                                                                        });
 
 void chassis_loop();

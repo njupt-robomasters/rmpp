@@ -2,7 +2,8 @@
 
 #include "math/angle.hpp"
 #include "pid/pid.hpp"
-#include "power/power_limiter.hpp"
+#include "power/motor_power.hpp"
+#include "power/super_cap.hpp"
 #include <array>
 
 // 单个舵向：舵电机、舵向 PID 与目标
@@ -40,10 +41,10 @@ class ChassisSteer {
     struct Config {
         float chassis_radius = 0;                       // 底盘中心到轮的距离
         float wheel_radius = 0;                         // 轮子半径
+        float wheel_resistance = 0;                     // 轮电机线间电阻，Ω，用于功率估计
         const Pid::Config* speed_pid_config = nullptr;  // 速度控制为轮速 PID（rad/s → A），力控制为底盘速度 PID（m/s → N）
         const Pid::Config* steer_pid_config = nullptr;  // 舵向 PID，误差 rad，输出电流 A
         const Pid::Config* follow_pid_config = nullptr; // 跟随 PID，误差 rad，输出 rad/s；为空时跟随模式不旋转
-        PowerLimiter::Config power = {};                // 功率限制
     };
 
     // 底盘模式
@@ -67,6 +68,12 @@ class ChassisSteer {
         float ref = 0, measure = 0, input = 0;
     } wr;
 
+    // 功率：轮电机模型估计与本周期平移、旋转电流衰减系数；功率控制目标由超电给出
+    struct {
+        float estimate = 0;
+        MotorPower::Gain gain;
+    } power;
+
     Steer steer[4];
 
     // 使能/失能轮与舵电机
@@ -81,12 +88,6 @@ class ChassisSteer {
     // 设置功率受限时优先衰减旋转的角速度阈值（力控制），默认 60 rpm
     void set_reserve_wr(float reserve_wr);
 
-    // 设置裁判功率上限，65535 表示不限功率
-    void set_power_limit(float power_limit);
-
-    // 设置裁判缓冲能量，J
-    void set_buffer_energy(float buffer_energy);
-
     // 设置前进正方向（云台相对底盘的 yaw）
     void set_gimbal_yaw(Angle gimbal_yaw);
 
@@ -100,12 +101,12 @@ class ChassisSteer {
   protected:
     const Config config_;
     Motor* const wheel_[4]; // 轮电机
-    PowerLimiter power_;    // 功率限制，更新超电
+    SuperCap& super_cap_;   // 由底盘更新，提供功率控制目标
     bool is_enable_ = false;
     float reserve_wr_ = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转（力控制）
     Angle gimbal_yaw_;
 
-    ChassisSteer(SuperCap* super_cap, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
+    ChassisSteer(SuperCap& super_cap, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
 
     // 轮 i 能否驱动：舵电机离线时舵向不可控，对应轮停转
     bool can_drive(size_t i) const;
@@ -127,7 +128,7 @@ class ChassisSteer {
 // 四舵轮底盘，速度控制：轮速 PID 输出电流，功率整体衰减
 class ChassisSteerSpeed : public ChassisSteer {
   public:
-    ChassisSteerSpeed(SuperCap* super_cap, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
+    ChassisSteerSpeed(SuperCap& super_cap, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
 
   private:
     Pid wheel_pid_[4]; // 轮转速误差 rad/s → 电流 A
@@ -143,7 +144,7 @@ class ChassisSteerTorque : public ChassisSteer {
         float ref = 0, measure = 0;
     } fx, fy, fz;
 
-    ChassisSteerTorque(SuperCap* super_cap, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
+    ChassisSteerTorque(SuperCap& super_cap, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
 
   private:
     Pid vx_pid_, vy_pid_, vz_pid_; // 速度误差 m/s → 牵引力 N
