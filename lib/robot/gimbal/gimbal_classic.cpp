@@ -20,12 +20,6 @@ void GimbalClassic::set_yaw_zero() {
     motor.yaw.set_offset(config.install.offset + dir * motor.yaw.position_multi * config.drive.reduction);
 }
 
-void GimbalClassic::update_ui(RobotUi& ui) {
-    ui.robot.yaw1 = motor.yaw.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-    ui.robot.yaw2 = motor.yaw.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-    ui.robot.pitch = motor.pitch.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-}
-
 void GimbalClassic::set_motors_enable(const bool is_enable) {
     motor.yaw.set_enable(is_enable);
     motor.pitch.set_enable(is_enable);
@@ -74,7 +68,7 @@ void GimbalClassic::backward() {
     // yaw 串级 PID
     if (can_yaw) {
         const float speed_ref = yaw_position_pid_.calculate(yaw.ecd.ref - yaw.ecd.measure) - chassis_wr_ + yaw_speed;
-        set_output(motor.yaw, config_.yaw_output, yaw_speed_pid_.calculate(speed_ref - motor.yaw.speed));
+        yaw_speed_pid_.track(set_output(motor.yaw, config_.yaw_output, yaw_speed_pid_.calculate(speed_ref - motor.yaw.speed)));
     } else {
         motor.yaw.set_current(0);
     }
@@ -82,7 +76,7 @@ void GimbalClassic::backward() {
     // pitch 串级 PID
     if (can_pitch) {
         const float speed_ref = pitch_position_pid_.calculate(pitch.ecd.ref - pitch.ecd.measure) + pitch_speed;
-        set_output(motor.pitch, config_.pitch_output, pitch_speed_pid_.calculate(speed_ref - motor.pitch.speed));
+        pitch_speed_pid_.track(set_output(motor.pitch, config_.pitch_output, pitch_speed_pid_.calculate(speed_ref - motor.pitch.speed)));
     } else {
         motor.pitch.set_current(0);
     }

@@ -13,7 +13,7 @@ class M3508 : public Motor {
     float motor_temperature = 0; // 电机温度，℃
 
     explicit M3508(const Config& config);
-    bool write_can_frame(CanFrame& frame) const;
+    void write_can_frame(CanFrame& frame) const;
     void send_quick_set_id() const;
 
   private:

@@ -2,54 +2,47 @@
 #include <cmath>
 
 Shooter17mm::Shooter17mm(const Config& config, const Motors& motor)
-    : Shooter(config), motor(motor), rub1_pid_(config.rub_pid_config), rub2_pid_(config.rub_pid_config) {}
+    : config(config), motor(motor), shoot_pid_(config.shoot_pid_config) {}
 
-void Shooter17mm::update_ui(RobotUi& ui) {
-    if (motor.rub1.is_connect == false) {
-        ui.robot.rub1 = RobotUi::PINK;
-        ui.robot.rub3 = RobotUi::PINK;
-    } else if (std::fabsf(bullet_speed.ref - rub1_measure_) > 1) {
-        ui.robot.rub1 = RobotUi::ORANGE;
-        ui.robot.rub3 = RobotUi::ORANGE;
-    } else {
-        ui.robot.rub1 = RobotUi::GREEN;
-        ui.robot.rub3 = RobotUi::GREEN;
-    }
-
-    if (motor.rub2.is_connect == false) {
-        ui.robot.rub2 = RobotUi::PINK;
-        ui.robot.rub4 = RobotUi::PINK;
-    } else if (std::fabsf(bullet_speed.ref - rub2_measure_) > 1) {
-        ui.robot.rub2 = RobotUi::ORANGE;
-        ui.robot.rub4 = RobotUi::ORANGE;
-    } else {
-        ui.robot.rub2 = RobotUi::GREEN;
-        ui.robot.rub4 = RobotUi::GREEN;
-    }
-
-    ui.robot.shoot = motor.shoot.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-}
-
-void Shooter17mm::set_motors_enable(const bool is_enable) {
+void Shooter17mm::set_enable(const bool is_enable) {
+    this->is_enable = is_enable;
     motor.rub1.set_enable(is_enable);
     motor.rub2.set_enable(is_enable);
     motor.shoot.set_enable(is_enable);
 }
 
-void Shooter17mm::update_motors() {
+void Shooter17mm::set_bullet_speed(const float bullet_speed) {
+    this->bullet_speed.ref = bullet_speed;
+}
+
+void Shooter17mm::set_bullet_freq(const float bullet_freq) {
+    this->bullet_freq.ref = bullet_freq;
+}
+
+void Shooter17mm::set_heat_remain(const int32_t heat_remain) {
+    is_heat_protect = heat_remain < config.heat_protect;
+}
+
+void Shooter17mm::update() {
+    // 离线检测
     motor.rub1.update();
     motor.rub2.update();
     motor.shoot.update();
-}
 
-void Shooter17mm::backward() {
-    // 摩擦轮，各自处理离线
-    const float speed = bullet_speed.ref / config.rub_radius;
-    control_rub(motor.rub1, rub1_pid_, speed, motor.rub1.speed);
-    control_rub(motor.rub2, rub2_pid_, speed, motor.rub2.speed);
+    // 正解：电机速度 -> 弹速、弹频
+    rub_speed[0] = motor.rub1.speed * config.rub_radius;
+    rub_speed[1] = motor.rub2.speed * config.rub_radius;
+    bullet_speed.measure = (rub_speed[0] + rub_speed[1]) / 2.0f;
+    bullet_freq.measure = motor.shoot.speed * config.bullet_per_angle;
 
-    // 拨弹电机：摩擦轮开启、未热量保护、有发射信号且在线；不检查摩擦轮是否在线，便于单独调试
-    if (!is_rub || is_heat_protect || !is_shoot || !motor.shoot.is_connect) {
+    // 摩擦轮：VESC 速度模式，关闭时目标为零制动；低速释放由 app 处理
+    const bool is_rub = is_enable && bullet_speed.ref > 0;
+    const float rub_speed_ref = is_rub ? bullet_speed.ref / config.rub_radius : 0.0f;
+    motor.rub1.set_speed(rub_speed_ref);
+    motor.rub2.set_speed(rub_speed_ref);
+
+    // 拨弹电机：摩擦轮开启、未热量保护、弹频非零且在线；不检查摩擦轮是否在线，便于单独调试
+    if (!is_rub || is_heat_protect || bullet_freq.ref == 0 || !motor.shoot.is_connect) {
         is_block_ = false;
         timer_block_.restart();
         shoot_pid_.clear();
@@ -57,14 +50,21 @@ void Shooter17mm::backward() {
         return;
     }
 
-    // 未卡弹正转，卡弹反转
+    // 未卡弹按弹频转动，卡弹反转
     const float shoot_speed = bullet_freq.ref / config.bullet_per_angle;
     const float shoot_speed_ref = is_block_ ? -shoot_speed : shoot_speed;
-    set_output(motor.shoot, config.shoot_output, shoot_pid_.calculate(shoot_speed_ref - motor.shoot.speed));
+    const float shoot_output = shoot_pid_.calculate(shoot_speed_ref - motor.shoot.speed);
+    if (config.shoot_output == CURRENT_OUTPUT) {
+        motor.shoot.set_current(shoot_output);
+        shoot_pid_.track(motor.shoot.current_ref);
+    } else {
+        motor.shoot.set_torque(shoot_output);
+        shoot_pid_.track(motor.shoot.torque_ref);
+    }
 
     if (!is_block_) {
-        // 达到电流限幅并持续 block_time 判为卡弹
-        if (motor.shoot.current_ref < motor.shoot.config.drive.max_current) {
+        // 达到电流限幅并持续 block_time 判为卡弹；取绝对值兼顾负弹频反转
+        if (std::fabs(motor.shoot.current_ref) < motor.shoot.config.drive.max_current) {
             timer_block_.restart();
         } else if (timer_block_.elapsed() > config.block_time) {
             timer_block_.restart();
@@ -74,17 +74,4 @@ void Shooter17mm::backward() {
         timer_block_.restart();
         is_block_ = false;
     }
-}
-
-void Shooter17mm::forward() {
-    // 摩擦轮
-    rub1_measure_ = motor.rub1.speed * config.rub_radius;
-    rub2_measure_ = motor.rub2.speed * config.rub_radius;
-    bullet_speed.measure = (rub1_measure_ + rub2_measure_) / 2.0f;
-
-    // 拨弹电机
-    bullet_freq.measure = motor.shoot.speed * config.bullet_per_angle;
-
-    // 拨弹电机电流
-    shoot_current = motor.shoot.current;
 }

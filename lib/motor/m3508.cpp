@@ -6,7 +6,7 @@ M3508::M3508(const Config& config)
     config.bus.can.add_rx_callback([this](const CanFrame& frame) { can_callback(frame); });
 }
 
-bool M3508::write_can_frame(CanFrame& frame) const {
+void M3508::write_can_frame(CanFrame& frame) const {
     // 计算can偏移量
     uint32_t first_id;
     if (frame.id == 0x200)
@@ -14,9 +14,9 @@ bool M3508::write_can_frame(CanFrame& frame) const {
     else if (frame.id == 0x1ff)
         first_id = 0x205;
     else
-        return false;
+        return;
     if (frame.size != 8 || config.bus.rx_id < first_id || config.bus.rx_id >= first_id + 4)
-        return false;
+        return;
     const uint8_t offset = static_cast<uint8_t>(config.bus.rx_id - first_id) * 2;
 
     // 计算can命令
@@ -28,8 +28,6 @@ bool M3508::write_can_frame(CanFrame& frame) const {
     // 构造can报文
     frame.data[offset] = static_cast<uint8_t>(command >> 8);
     frame.data[offset + 1] = static_cast<uint8_t>(command);
-
-    return true;
 }
 
 void M3508::send_quick_set_id() const {

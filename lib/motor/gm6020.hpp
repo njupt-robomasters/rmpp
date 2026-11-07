@@ -24,7 +24,7 @@ class GM6020 : public Motor {
     GM6020(const Config& config, const BackEmf& back_emf);
 
     // 电压帧 0x1FF/0x2FF 把 current_ref 按 3 A ↔ 25 V 换算为电压并叠加前馈，电流帧 0x1FE/0x2FE 直接发电流
-    bool write_can_frame(CanFrame& frame) const;
+    void write_can_frame(CanFrame& frame) const;
 
   private:
     const BackEmf back_emf_;

@@ -20,8 +20,8 @@ class Motor {
         } drive;
 
         struct Install {
-            float offset = 0;
             bool is_invert = false;
+            float offset = 0;
         } install;
     } config;
 

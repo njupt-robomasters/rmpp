@@ -4,7 +4,7 @@
 
 #include "math/unit.hpp"
 #include "motor/m3508.hpp"
-#include "robot/chassis/chassis_omni.hpp"
+#include "robot/chassis/chassis_matrix.hpp"
 
 // 电机参数
 static constexpr float REDUCTION = 268.0f / 17.0f;
@@ -52,11 +52,12 @@ inline M3508 w4({
 });
 
 // 底盘
-inline ChassisOmniTorque chassis({
-                                     .chassis_radius = CHASSIS_RADIUS,
-                                     .wheel_radius = WHEEL_RADIUS,
-                                     .follow_pid_config = &follow_pid,
-                                 },
-                                 &vxyz_pid, {&w1, &w2, &w3, &w4});
+inline ChassisMatrixTorque chassis({
+                                       .chassis_radius = CHASSIS_RADIUS,
+                                       .wheel_radius = WHEEL_RADIUS,
+                                       .follow_pid_config = &follow_pid,
+                                       .power = {},
+                                   },
+                                   OMNI, &vxyz_pid, {&w1, &w2, &w3, &w4});
 
 void chassis_loop();

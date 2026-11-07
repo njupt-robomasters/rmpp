@@ -2,6 +2,7 @@
 #include "bsp/can.hpp"
 #include "bsp/timer.hpp"
 #include "melody/music/c5d5g5.hpp"
+#include <cmath>
 
 static void send_can_cmd() {
     // CAN1
@@ -33,6 +34,15 @@ static void send_can_cmd() {
     rub2.send();
 }
 
+// 摩擦轮状态：离线粉色，偏离目标弹速超过 1 m/s 橙色
+static RobotUi::Color rub_color(const Motor& motor, const float speed) {
+    if (!motor.is_connect)
+        return RobotUi::PINK;
+    if (std::fabs(shooter.bullet_speed.ref - speed) > 1)
+        return RobotUi::ORANGE;
+    return RobotUi::GREEN;
+}
+
 static void update_ui() {
     // 云台角度
     ui.yaw_ecd = gimbal.yaw.ecd.measure; // 云台相对底盘角度
@@ -50,12 +60,23 @@ static void update_ui() {
     // 弹速或弹频由 shooter_loop 写入
     ui.cap = 0.0f;                    // 超级电容剩余能量比例
     ui.wr = chassis.wr.measure;       // 底盘旋转速度
-    ui.shoot = shooter.shoot_current; // 拨弹电机电流
+    ui.shoot = shoot.current;         // 拨弹电机电流
 
     // 机器人状态
-    chassis.update_ui(ui);                                                    // 底盘
-    gimbal.update_ui(ui);                                                     // 云台
-    shooter.update_ui(ui);                                                    // 发射机构
+    ui.robot.w1 = w1.is_connect ? RobotUi::GREEN : RobotUi::PINK; // 底盘
+    ui.robot.w2 = w2.is_connect ? RobotUi::GREEN : RobotUi::PINK;
+    ui.robot.w3 = w3.is_connect ? RobotUi::GREEN : RobotUi::PINK;
+    ui.robot.w4 = w4.is_connect ? RobotUi::GREEN : RobotUi::PINK;
+    ui.robot.s1 = s1.is_connect ? RobotUi::GREEN : RobotUi::PINK;
+    ui.robot.s2 = s2.is_connect ? RobotUi::GREEN : RobotUi::PINK;
+    ui.robot.s3 = s3.is_connect ? RobotUi::GREEN : RobotUi::PINK;
+    ui.robot.s4 = s4.is_connect ? RobotUi::GREEN : RobotUi::PINK;
+    ui.robot.yaw1 = yaw1.is_connect ? RobotUi::GREEN : RobotUi::PINK; // 云台
+    ui.robot.yaw2 = yaw2.is_connect ? RobotUi::GREEN : RobotUi::PINK;
+    ui.robot.pitch = pitch.is_connect ? RobotUi::GREEN : RobotUi::PINK;
+    ui.robot.rub1 = ui.robot.rub3 = rub_color(rub1, shooter.rub_speed[0]); // 发射机构
+    ui.robot.rub2 = ui.robot.rub4 = rub_color(rub2, shooter.rub_speed[1]);
+    ui.robot.shoot = shoot.is_connect ? RobotUi::GREEN : RobotUi::PINK;
     ui.robot.referee = referee.is_connected ? RobotUi::GREEN : RobotUi::PINK; // 裁判系统
     ui.robot.aim = aim.is_connect_vision ? RobotUi::GREEN : RobotUi::PINK;    // 自瞄
 

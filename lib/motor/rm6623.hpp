@@ -11,7 +11,7 @@ class RM6623 : public Motor {
     static constexpr float REDUCTION = 1;
 
     explicit RM6623(const Config& config);
-    bool write_can_frame(CanFrame& frame) const;
+    void write_can_frame(CanFrame& frame) const;
     void send_calibrate_cmd() const;
 
   private:

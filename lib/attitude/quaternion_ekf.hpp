@@ -9,7 +9,7 @@ class QuaternionEkf : public Attitude {
   public:
     struct Config {
         float quaternion_noise = 10.0f;       // 四元数过程噪声强度，>= 0
-        float bias_noise = 0.001f;            // 零偏过程噪声强度，>= 0
+        float bias_noise = 1.0e-3f;           // 零偏过程噪声强度，>= 0
         float accel_noise = 1.0e7f;           // 单位重力方向的观测方差，> 0
         float bias_fading = 1.0f;             // 每周期零偏协方差保留系数，(0, 1]
         float accel_filter_fc = 0.0f;         // 加速度低通截止频率，Hz，0 禁用
@@ -25,10 +25,6 @@ class QuaternionEkf : public Attitude {
 
     // 假定周期内角速度恒定；无效输入不改变 q，dt 单位 s
     static Quaternion integrate(const Quaternion& q, const Vector3& gyro, float dt);
-
-    const Config& config() const {
-        return config_;
-    }
 
   protected:
     void solve(const Vector3& gyro, const Vector3& accel) override;

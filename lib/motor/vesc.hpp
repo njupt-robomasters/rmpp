@@ -6,7 +6,7 @@
 
 class Vesc : public Motor {
   public:
-    static constexpr float MAX_CURRENT = 60;
+    static constexpr float MAX_CURRENT = 20;
     static constexpr float KT = 1;
     static constexpr float REDUCTION = 7;
 
@@ -32,7 +32,8 @@ class Vesc : public Motor {
     void set_torque(float torque) override;
     void set_duty(float duty);
     void set_current_brake(float current);
-    void set_rpm(float rpm);
+    // 输出轴速度，rad/s；VESC 按 ERPM 闭环，reduction 含极对数
+    void set_speed(float speed);
     void set_position(float position);
     void set_current_relative(float current);
     void set_current_brake_relative(float current);

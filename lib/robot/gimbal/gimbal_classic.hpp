@@ -18,9 +18,6 @@ class GimbalClassic : public Gimbal {
 
     void set_yaw_zero() override;
 
-    // 在自定义UI上显示电机连接状态
-    void update_ui(RobotUi& ui) override;
-
   private:
     void set_motors_enable(bool is_enable) override;
 

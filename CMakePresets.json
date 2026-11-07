@@ -8,6 +8,14 @@
             "binaryDir": "${sourceDir}/build/${presetName}"
         },
         {
+            "name": "dummy",
+            "inherits": "default",
+            "cacheVariables": {
+                "RMPP_APP": "dummy",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
             "name": "examples-attitude",
             "inherits": "default",
             "cacheVariables": {

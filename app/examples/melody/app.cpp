@@ -5,26 +5,25 @@
 
 #include "bsp/timer.hpp"
 #include "melody/melody.hpp"
+#include "melody/music/always_with_me.hpp"
 #include "melody/music/c5d5g5.hpp"
 #include "melody/music/g5g5g5.hpp"
-#include "melody/music/you.hpp"
-#include "melody/music/always_with_me.hpp"
 #include "melody/music/the_ordinary_road.hpp"
+#include "melody/music/you.hpp"
 
 static Melody melody({});
 
 extern "C" void app_main() {
-    // melody.play(C5D5G5);
-    melody.play_poly(YOU);
-
-    Timer timer;
-    while (melody.is_playing()) {
-        if (timer.elapsed() > 0.001f) {
-            timer.restart();
-            melody.update();
-        }
-    }
+    melody.play(C5D5G5);
+    // melody.play_poly(YOU);
 
     while (true) {
+        // 1 kHz 更新
+        static Timer timer;
+        if (timer.elapsed() < 0.001f)
+            continue;
+        timer.restart();
+
+        melody.update();
     }
 }

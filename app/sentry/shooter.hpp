@@ -15,11 +15,13 @@
 
 // 摩擦轮
 inline Vesc rub1({
-    .bus = {.can = Can(2), .tx_id = 0x21, .rx_id = 0x21}, .drive = {.max_current = Vesc::MAX_CURRENT, .kt = Vesc::KT, .reduction = Vesc::REDUCTION},
+    .bus = {.can = Can(2), .tx_id = 0x21, .rx_id = 0x21},
+    .drive = {.max_current = Vesc::MAX_CURRENT, .kt = Vesc::KT, .reduction = Vesc::REDUCTION},
 });
 
 inline Vesc rub2({
-    .bus = {.can = Can(2), .tx_id = 0x22, .rx_id = 0x22}, .drive = {.max_current = Vesc::MAX_CURRENT, .kt = Vesc::KT, .reduction = Vesc::REDUCTION},
+    .bus = {.can = Can(2), .tx_id = 0x22, .rx_id = 0x22},
+    .drive = {.max_current = Vesc::MAX_CURRENT, .kt = Vesc::KT, .reduction = Vesc::REDUCTION},
 });
 
 // 拨弹电机
@@ -29,13 +31,15 @@ inline Pid::Config shoot_pid = {
 };
 inline M3508 shoot({
     .bus = {.can = Can(1), .rx_id = 0x206},
-    .drive = {.kt = M3508::KT / M3508::REDUCTION * (268.0f / 17.0f), .reduction = 268.0f / 17.0f},
+    .drive = {.max_current = M3508::MAX_CURRENT,
+              .max_torque = M3508::MAX_CURRENT * M3508::KT / M3508::REDUCTION * (268.0f / 17.0f),
+              .kt = M3508::KT / M3508::REDUCTION * (268.0f / 17.0f),
+              .reduction = 268.0f / 17.0f},
     .install = {.is_invert = false},
 });
 
 // 发射机构
 inline Shooter17mm shooter({
-                               .rub_pid_config = &shoot_pid,
                                .shoot_pid_config = &shoot_pid,
                                .bullet_per_angle = 9.0f * (41.0f / 50.0f) * (1.0f / rev),
                                .heat_protect = 80,
@@ -43,4 +47,3 @@ inline Shooter17mm shooter({
                            {rub1, rub2, shoot});
 
 void shooter_loop();
-

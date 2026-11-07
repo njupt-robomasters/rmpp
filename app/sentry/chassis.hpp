@@ -59,25 +59,25 @@ inline M3508 w4({
 inline GM6020 s1({
                      .bus = {.can = Can(1), .rx_id = 0x207, .timeout = TIMEOUT},
                      .drive = {.max_current = GM6020::MAX_CURRENT, .kt = GM6020::KT, .reduction = GM6020::REDUCTION},
-                     .install = {.offset = -133.5f * deg, .is_invert = IS_SERVO_INVERT},
+                     .install = {.is_invert = IS_SERVO_INVERT, .offset = -133.5f * deg},
                  },
                  {.gain = 0.5f});
 inline GM6020 s2({
                      .bus = {.can = Can(1), .rx_id = 0x208, .timeout = TIMEOUT},
                      .drive = {.max_current = GM6020::MAX_CURRENT, .kt = GM6020::KT, .reduction = GM6020::REDUCTION},
-                     .install = {.offset = 105.7f * deg, .is_invert = IS_SERVO_INVERT},
+                     .install = {.is_invert = IS_SERVO_INVERT, .offset = 105.7f * deg},
                  },
                  {.gain = 0.5f});
 inline GM6020 s3({
                      .bus = {.can = Can(1), .rx_id = 0x209, .timeout = TIMEOUT},
                      .drive = {.max_current = GM6020::MAX_CURRENT, .kt = GM6020::KT, .reduction = GM6020::REDUCTION},
-                     .install = {.offset = -168.5f * deg, .is_invert = IS_SERVO_INVERT}, // 含 180° 修正轮子驱动方向
+                     .install = {.is_invert = IS_SERVO_INVERT, .offset = -168.5f * deg}, // 含 180° 修正轮子驱动方向
                  },
                  {.gain = 0.5f});
 inline GM6020 s4({
                      .bus = {.can = Can(1), .rx_id = 0x20A, .timeout = TIMEOUT},
                      .drive = {.max_current = GM6020::MAX_CURRENT, .kt = GM6020::KT, .reduction = GM6020::REDUCTION},
-                     .install = {.offset = -18.4f * deg, .is_invert = IS_SERVO_INVERT},
+                     .install = {.is_invert = IS_SERVO_INVERT, .offset = -18.4f * deg},
                  },
                  {.gain = 0.5f});
 
@@ -85,8 +85,9 @@ inline GM6020 s4({
 inline ChassisSteerSpeed chassis({
                                      .chassis_radius = CHASSIS_RADIUS,
                                      .wheel_radius = WHEEL_RADIUS,
-                                     .wheel_resistance = 0.194f,
+                                     .steer_pid_config = &steer_pid,
+                                     .power = {.wheel_resistance = 0.194f},
                                  },
-                                 &wheel_pid, &steer_pid, {&w1, &w2, &w3, &w4}, {&s1, &s2, &s3, &s4});
+                                 &wheel_pid, {&w1, &w2, &w3, &w4}, {&s1, &s2, &s3, &s4});
 
 void chassis_loop();

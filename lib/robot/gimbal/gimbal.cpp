@@ -73,11 +73,13 @@ bool Gimbal::check_pitch(const bool is_connect) {
     return is_pitch_ready_;
 }
 
-void Gimbal::set_output(Motor& motor, const PidOutput type, const float output) {
-    if (type == CURRENT_OUTPUT)
+float Gimbal::set_output(Motor& motor, const PidOutput type, const float output) {
+    if (type == CURRENT_OUTPUT) {
         motor.set_current(output);
-    else
-        motor.set_torque(output);
+        return motor.current_ref;
+    }
+    motor.set_torque(output);
+    return motor.torque_ref;
 }
 
 void Gimbal::handle_motion() {

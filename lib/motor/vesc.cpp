@@ -46,9 +46,9 @@ void Vesc::set_current_brake(const float current) {
     set_int32(CAN_PACKET_SET_CURRENT_BRAKE, encode32(current, 1000));
 }
 
-void Vesc::set_rpm(const float rpm) {
+void Vesc::set_speed(const float speed) {
     const float direction = config.install.is_invert ? -1.0f : 1.0f;
-    set_int32(CAN_PACKET_SET_RPM, encode32(direction * rpm * config.drive.reduction, 1));
+    set_int32(CAN_PACKET_SET_RPM, encode32(direction * speed / rpm * config.drive.reduction, 1));
 }
 
 void Vesc::set_position(const float position) {

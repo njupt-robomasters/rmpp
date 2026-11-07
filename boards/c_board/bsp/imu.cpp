@@ -136,6 +136,7 @@ void Imu::update() {
 
     // 加热闭环：[0, 1] 占空比换算为 PWM 比较值
     const float duty = std::clamp(temperature_pid_.calculate(config_.temperature - temperature), 0.0f, 1.0f);
+    temperature_pid_.track(duty);
     __HAL_TIM_SET_COMPARE(&htim10, TIM_CHANNEL_1, static_cast<uint32_t>((__HAL_TIM_GET_AUTORELOAD(&htim10) + 1) * duty));
 
     // 零偏校准，再修正零偏、重力模长与安装方向

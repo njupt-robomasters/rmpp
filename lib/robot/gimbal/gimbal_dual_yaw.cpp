@@ -1,5 +1,6 @@
 #include "gimbal_dual_yaw.hpp"
 #include <algorithm>
+#include <cmath>
 
 GimbalDualYaw::GimbalDualYaw(Attitude& attitude, const Config& config, const Motors& motor)
     : Gimbal(attitude, config), motor(motor) {}
@@ -18,12 +19,6 @@ void GimbalDualYaw::set_yaw_zero() {
     const auto& config = motor.yaw1.config;
     const float dir = config.install.is_invert ? -1.0f : 1.0f;
     motor.yaw1.set_offset(config.install.offset + dir * motor.yaw1.position_multi * config.drive.reduction);
-}
-
-void GimbalDualYaw::update_ui(RobotUi& ui) {
-    ui.robot.yaw1 = motor.yaw1.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-    ui.robot.yaw2 = motor.yaw2.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-    ui.robot.pitch = motor.pitch.is_connect ? RobotUi::GREEN : RobotUi::PINK;
 }
 
 void GimbalDualYaw::set_motors_enable(const bool is_enable) {
@@ -87,8 +82,16 @@ void GimbalDualYaw::backward() {
         const float speed = motor.yaw1.is_connect ? motor.yaw1.speed : motor.yaw2.speed;
         const float speed_ref = yaw_position_pid_.calculate(yaw.ecd.ref - yaw.ecd.measure) - chassis_wr_ + yaw_speed;
         const float output = yaw_speed_pid_.calculate(speed_ref - speed);
-        set_output(motor.yaw1, config_.yaw_output, motor.yaw1.is_connect ? output : 0.0f);
-        set_output(motor.yaw2, config_.yaw_output, motor.yaw2.is_connect ? output : 0.0f);
+        const float output1 = set_output(motor.yaw1, config_.yaw_output, motor.yaw1.is_connect ? output : 0.0f);
+        const float output2 = set_output(motor.yaw2, config_.yaw_output, motor.yaw2.is_connect ? output : 0.0f);
+
+        // PID 跟踪在线电机中被限幅更多的实际输出
+        if (!motor.yaw1.is_connect)
+            yaw_speed_pid_.track(output2);
+        else if (!motor.yaw2.is_connect || std::fabs(output1) < std::fabs(output2))
+            yaw_speed_pid_.track(output1);
+        else
+            yaw_speed_pid_.track(output2);
     } else {
         motor.yaw1.set_current(0);
         motor.yaw2.set_current(0);
@@ -97,7 +100,7 @@ void GimbalDualYaw::backward() {
     // pitch 串级 PID
     if (can_pitch) {
         const float speed_ref = pitch_position_pid_.calculate(pitch.ecd.ref - pitch.ecd.measure) + pitch_speed;
-        set_output(motor.pitch, config_.pitch_output, pitch_speed_pid_.calculate(speed_ref - motor.pitch.speed));
+        pitch_speed_pid_.track(set_output(motor.pitch, config_.pitch_output, pitch_speed_pid_.calculate(speed_ref - motor.pitch.speed)));
     } else {
         motor.pitch.set_current(0);
     }

@@ -5,7 +5,6 @@
 #include "math/angle.hpp"
 #include "motor/motor.hpp"
 #include "pid/pid.hpp"
-#include "referee/ui.hpp"
 
 class Gimbal {
   public:
@@ -68,9 +67,6 @@ class Gimbal {
 
     virtual void set_yaw_zero() = 0;
 
-    // 在自定义UI上显示电机连接状态
-    virtual void update_ui(RobotUi& ui) = 0;
-
     // 需要在循环中调用
     void update();
 
@@ -89,8 +85,8 @@ class Gimbal {
     bool check_yaw(bool is_connect);
     bool check_pitch(bool is_connect);
 
-    // 按配置的输出类型设置电流或力矩
-    static void set_output(Motor& motor, PidOutput type, float output);
+    // 按配置的输出类型设置电流或力矩，返回电机限幅后的实际输出，供 PID 跟踪
+    static float set_output(Motor& motor, PidOutput type, float output);
 
     // 角度正解：电机角度 -> 云台姿态
     virtual void forward() = 0;

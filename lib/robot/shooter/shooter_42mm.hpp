@@ -1,35 +1,78 @@
 #pragma once
 
+#include "bsp/timer.hpp"
 #include "math/angle.hpp"
+#include "math/unit.hpp"
 #include "motor/motor.hpp"
-#include "shooter.hpp"
+#include "motor/vesc.hpp"
+#include "pid/pid.hpp"
+#include <cstdint>
 
-class Shooter42mm : public Shooter {
+// 42mm 发射机构：四 VESC 摩擦轮速度模式，拨弹电机位置闭环，发射信号上升沿拨一发，空闲时抖动下弹
+class Shooter42mm {
   public:
+    enum PidOutput {
+        CURRENT_OUTPUT,
+        TORQUE_OUTPUT
+    };
+
+    // 发射机构配置
+    struct Config {
+        const Pid::Config* shoot_pid_config;
+        PidOutput shoot_output = CURRENT_OUTPUT;
+        float bullet_per_angle = 1.0f / rev; // 每弧度发射弹数，默认每转一发
+        float block_time = 500 * ms;         // 卡弹检测时间
+        float rub_radius = 3.0f * cm;        // 摩擦轮半径
+        uint16_t heat_protect = 0;           // 剩余热量保护阈值
+    } config;
+
     // 发射机构电机
     struct Motors {
-        Motor &rub1, &rub2, &rub3, &rub4; // 摩擦轮
-        Motor& shoot;                     // 拨弹电机
+        Vesc &rub1, &rub2, &rub3, &rub4; // 摩擦轮
+        Motor& shoot;                    // 拨弹电机
     } motor;
+
+    static constexpr float RUB12_RATIO = 0.5f; // 摩擦轮 1、2 相对弹速的速度比
+
+    bool is_enable = false;       // 使能标志
+    bool is_heat_protect = false; // 热量保护状态
+
+    // 弹速 (m/s)
+    struct {
+        float ref{}, measure{};
+    } bullet_speed;
+
+    // 摩擦轮线速度，m/s
+    float rub_speed[4]{};
 
     Shooter42mm(const Config& config, const Motors& motor);
 
-    // 在自定义UI上显示电机连接状态
-    void update_ui(RobotUi& ui) override;
+    // 设置发射机构使能/失能
+    void set_enable(bool is_enable);
+
+    // 设置弹速参考值，m/s；0 关闭摩擦轮，保持到下次设置
+    void set_bullet_speed(float bullet_speed);
+
+    // 设置发射信号，上升沿拨一发
+    void set_shoot(bool is_shoot);
+
+    // 传入裁判剩余热量，允许过热时的负值；未传入时不限制
+    void set_heat_remain(int32_t heat_remain);
+
+    // 需要在循环中调用
+    void update();
 
   private:
-    static constexpr float RUB12_RATIO = 0.5f;
-    static constexpr float SHOOT_FINISH_RATIO = 0.95; // 用于检查拨弹完成
-    static constexpr float SHAKE_FREQ = 1;            // 抖动频率
-    static constexpr float SHANE_AMP = 1;             // 抖动幅度（一个弹 = 1）
+    static constexpr float SHOOT_FINISH_RATIO = 0.95f; // 用于检查拨弹完成
+    static constexpr float SHAKE_FREQ = 1;             // 抖动频率
+    static constexpr float SHAKE_AMP = 1;              // 抖动幅度（一个弹 = 1）
 
-    Pid rub1_pid_, rub2_pid_, rub3_pid_, rub4_pid_;
+    Pid shoot_pid_;
+    Timer timer_block_; // 卡弹计时器
 
-    // 摩擦轮线速度
-    float rub1_measure_{}, rub2_measure_{}, rub3_measure_{}, rub4_measure_{};
-
-    // 用于检测发送信号上升沿
-    bool is_shoot_last_ = false;
+    // 发射信号及上周期值，用于检测上升沿
+    bool is_shoot_ = false;
+    bool last_shoot_ = false;
 
     // 用于抖动下弹
     Angle shake_upper_;
@@ -41,13 +84,6 @@ class Shooter42mm : public Shooter {
         SHAKE,
     } state_ = FREE;
 
-    void set_motors_enable(bool is_enable) override;
-
-    void update_motors() override;
-
-    // 正解：电机速度 -> 弹速、弹频
-    void forward() override;
-
-    // 逆解：弹速、弹频 -> 电机速度
-    void backward() override;
+    // 按配置输出类型设置拨弹电机电流或力矩，并用限幅后实际输出跟踪 PID
+    void set_shoot_output(float output);
 };

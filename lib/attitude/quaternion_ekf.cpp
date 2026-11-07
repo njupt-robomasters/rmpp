@@ -4,7 +4,6 @@
  */
 #include "quaternion_ekf.hpp"
 
-#include "math/filter.hpp"
 #include <Eigen/Cholesky>
 #include <algorithm>
 #include <cmath>
@@ -86,7 +85,6 @@ void QuaternionEkf::solve(const Vector3& gyro, const Vector3& accel) {
         const float cr = std::cos(roll * 0.5f), sr = std::sin(roll * 0.5f);
         const float cp = std::cos(pitch * 0.5f), sp = std::sin(pitch * 0.5f);
         q = Quaternion(cr * cp, sr * cp, cr * sp, -sr * sp);
-        filtered_accel_ = accel;
         initialized_ = true;
         return;
     }
@@ -137,12 +135,8 @@ void QuaternionEkf::solve(const Vector3& gyro, const Vector3& accel) {
     q = predicted_q;
     covariance_ = predicted_covariance;
 
-    // 以下任一失败均保留有效预测；无重力观测时不使用残留低通数据
+    // 以下任一失败均保留有效预测
     if (!valid_accel)
-        return;
-    filtered_accel_ = lowpass(filtered_accel_, accel, config_.accel_filter_fc, dt);
-    const float norm = filtered_accel_.norm();
-    if (!std::isfinite(norm) || norm < 1.0e-6f)
         return;
 
     // h(q) = R(q)ᵀ [0, 0, 1]，观测为单位重力方向
@@ -163,7 +157,7 @@ void QuaternionEkf::solve(const Vector3& gyro, const Vector3& accel) {
     observation(2, 1) = -2 * qx;
     observation(2, 2) = -2 * qy;
     observation(2, 3) = 2 * qz;
-    const Vector3 residual = filtered_accel_ / norm - gravity;
+    const Vector3 residual = accel / accel_norm - gravity;
     const Matrix6x3 cross_covariance = covariance_ * observation.transpose();
     Matrix3 innovation = observation * cross_covariance;
     innovation.diagonal().array() += config_.accel_noise;
@@ -184,7 +178,7 @@ void QuaternionEkf::solve(const Vector3& gyro, const Vector3& accel) {
     if (distance < 0.5f * threshold)
         converged_ = true;
     if (converged_ && distance > threshold) {
-        const bool stable = rate.norm() < 0.3f && std::abs(norm - 9.81f) < 0.5f;
+        const bool stable = rate.norm() < 0.3f && std::abs(accel_norm - 9.81f) < 0.5f;
         if (stable)
             ++rejected_count_;
         else

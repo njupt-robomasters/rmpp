@@ -22,22 +22,22 @@ inline QuaternionEkf attitude(imu, {});
 inline DM8009 left_e({
     .bus = {.can = Can(2), .tx_id = 0x11, .rx_id = 0x21},
     .drive = {.max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
-    .install = {.offset = -2.754f, .is_invert = false},
+    .install = {.is_invert = false, .offset = -2.754f},
 });
 inline DM8009 left_a({
     .bus = {.can = Can(2), .tx_id = 0x12, .rx_id = 0x22},
     .drive = {.max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
-    .install = {.offset = -0.798f, .is_invert = false},
+    .install = {.is_invert = false, .offset = -0.798f},
 });
 inline DM8009 right_e({
     .bus = {.can = Can(2), .tx_id = 0x13, .rx_id = 0x23},
     .drive = {.max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
-    .install = {.offset = -1.115f, .is_invert = false},
+    .install = {.is_invert = false, .offset = -1.115f},
 });
 inline DM8009 right_a({
     .bus = {.can = Can(2), .tx_id = 0x14, .rx_id = 0x24},
     .drive = {.max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
-    .install = {.offset = 1.259f, .is_invert = false},
+    .install = {.is_invert = false, .offset = 1.259f},
 });
 
 // 轮 M3508：CAN2；左轮电机正转为后退，反向后转速与力矩均以前进为正

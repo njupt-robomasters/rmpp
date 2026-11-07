@@ -1,14 +1,16 @@
 #include "app.hpp"
 #include "bsp/timer.hpp"
 #include <algorithm>
+#include <cmath>
 
 // 操控参数
-static constexpr float BULLET_SPEED = 20.0f;         // 弹速，m/s
-static constexpr float BULLET_FREQ_INIT = 20.0f;     // 初始基础弹频，发/秒
-static constexpr float BULLET_FREQ_STEP = 5.0f;      // C、Z 键每次增减的基础弹频，发/秒
-static constexpr float BULLET_FREQ_MIN = 5.0f;       // 基础弹频下限，发/秒
-static constexpr float BULLET_FREQ_MAX = 25.0f;      // 基础弹频上限，发/秒
-static constexpr float DOUBLE_CLICK_TIME = 250 * ms; // 双击左键判定时间
+static constexpr float BULLET_SPEED = 20.0f;          // 弹速，m/s
+static constexpr float BULLET_FREQ_INIT = 20.0f;      // 初始基础弹频，发/秒
+static constexpr float BULLET_FREQ_STEP = 5.0f;       // C、Z 键每次增减的基础弹频，发/秒
+static constexpr float BULLET_FREQ_MIN = 5.0f;        // 基础弹频下限，发/秒
+static constexpr float BULLET_FREQ_MAX = 25.0f;       // 基础弹频上限，发/秒
+static constexpr float DOUBLE_CLICK_TIME = 250 * ms;  // 双击左键判定时间
+static constexpr float RUB_RELEASE_SPEED = 120 * rpm; // 摩擦轮关闭后低于此转速释放
 
 // 跨周期状态
 static float bullet_freq = BULLET_FREQ_INIT;
@@ -52,19 +54,14 @@ void shooter_loop() {
     last_left = mouse.left;
 
     // 遥控器优先并按 pitch 倍率射击，键鼠次之，最后为自主模式视觉开火，后两者按基础弹频
-    // 人工自瞄时需视觉开火许可，右键双击强制开火除外
-    bool is_shoot = false;
+    // 人工自瞄时需视觉开火许可，右键双击强制开火除外；不射击时倍率为 0，负倍率反转拨弹
     float rate = 0;
-    if (radio_shoot && (!radio_auto_aim || aim.vision.is_fire)) {
-        is_shoot = true;
+    if (radio_shoot && (!radio_auto_aim || aim.vision.is_fire))
         rate = radio_rate;
-    } else if (mouse.left && (!mouse.right || is_force_shoot || aim.vision.is_fire)) {
-        is_shoot = true;
+    else if (mouse.left && (!mouse.right || is_force_shoot || aim.vision.is_fire))
         rate = 1;
-    } else if (sentry_active() && aim.vision.is_fire) {
-        is_shoot = true;
+    else if (sentry_active() && aim.vision.is_fire)
         rate = 1;
-    }
 
     // 裁判系统识别为步兵时，C、Z 键按下一次增减基础弹频
     const int step = static_cast<int>(vt13.key.c && !last_c) - static_cast<int>(vt13.key.z && !last_z);
@@ -73,13 +70,19 @@ void shooter_loop() {
     bullet_freq = std::clamp(bullet_freq + step * BULLET_FREQ_STEP, BULLET_FREQ_MIN, BULLET_FREQ_MAX);
 
     // 比赛中自主模式常开摩擦轮
-    shooter.set_rub(radio_rub || (sentry_active() && sentry_in_game()));
-    shooter.set_shoot(is_shoot);
-    shooter.set_bullet_speed(BULLET_SPEED);
+    const bool is_rub = radio_rub || (sentry_active() && sentry_in_game());
+    shooter.set_bullet_speed(is_rub ? BULLET_SPEED : 0.0f);
     shooter.set_bullet_freq(bullet_freq * rate);
     shooter.set_heat_remain(static_cast<int32_t>(referee.robot_status.shooter_barrel_heat_limit) -
                             referee.power_heat_data.shooter_17mm_barrel_heat);
     shooter.update();
+
+    // 摩擦轮关闭且低速时发零电流释放，避免 VESC 速度环在零速附近保持抖动
+    if (!is_rub) {
+        for (Vesc* rub : {&rub1, &rub2})
+            if (std::fabs(rub->speed) < RUB_RELEASE_SPEED)
+                rub->set_current(0);
+    }
 
     // UI 显示基础弹频
     ui.bullet = bullet_freq;

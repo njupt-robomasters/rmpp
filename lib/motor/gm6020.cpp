@@ -7,7 +7,7 @@ GM6020::GM6020(const Config& config, const BackEmf& back_emf)
     config.bus.can.add_rx_callback([this](const CanFrame& frame) { can_callback(frame); });
 }
 
-bool GM6020::write_can_frame(CanFrame& frame) const {
+void GM6020::write_can_frame(CanFrame& frame) const {
     // 计算can偏移量
     uint32_t first_id;
     uint8_t motor_count;
@@ -18,10 +18,10 @@ bool GM6020::write_can_frame(CanFrame& frame) const {
         first_id = 0x209;
         motor_count = 3;
     } else {
-        return false;
+        return;
     }
     if (frame.size != 8 || config.bus.rx_id < first_id || config.bus.rx_id >= first_id + motor_count)
-        return false;
+        return;
     const uint8_t offset = static_cast<uint8_t>(config.bus.rx_id - first_id) * 2;
 
     // 计算can命令，先在安装方向修正后的坐标系计算，再换回电机方向
@@ -42,8 +42,6 @@ bool GM6020::write_can_frame(CanFrame& frame) const {
     // 构造can报文
     frame.data[offset] = static_cast<uint8_t>(command >> 8);
     frame.data[offset + 1] = static_cast<uint8_t>(command);
-
-    return true;
 }
 
 void GM6020::can_callback(const CanFrame& frame) {

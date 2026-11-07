@@ -18,7 +18,12 @@ class Pid {
     Pid() = default;
     explicit Pid(const Config* config);
 
+    // 输出超过 max_out 时限幅并按 track() 回算积分
     float calculate(float err, std::optional<float> derr = std::nullopt);
+
+    // 执行器实际采用 actual 后调用（功率衰减、电机限幅等）：积分扣除输出差额，只向零收缩不过零；输出同步为 actual
+    void track(float actual);
+
     void clear();
 
   private:

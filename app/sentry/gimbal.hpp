@@ -74,7 +74,7 @@ inline Pid::Config pitch_angle_pid = {
 inline DM4310 pitch({
     .bus = {.can = Can(2), .tx_id = 0x11, .rx_id = 0x10},
     .drive = {.max_torque = DM4310::MAX_TORQUE, .kt = DM4310::KT, .reduction = DM4310::REDUCTION},
-    .install = {.offset = -72 * deg, .is_invert = true},
+    .install = {.is_invert = true, .offset = -72 * deg},
 });
 
 // 云台

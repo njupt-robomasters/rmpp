@@ -64,7 +64,6 @@ inline QuaternionEkf attitude(imu); // 可选；第二参数覆盖 QuaternionEkf
 | `QuaternionEkf::Config::bias_noise` | 1 | 0.001；零偏过程噪声强度，非负，每周期乘 dt |
 | `QuaternionEkf::Config::accel_noise` | 1 | 1e7；单位重力方向的观测方差，正数，增大后更信任陀螺仪 |
 | `QuaternionEkf::Config::bias_fading` | 1 | 1；每周期零偏协方差保留系数，范围 (0,1]，减小后遗忘更快 |
-| `QuaternionEkf::Config::accel_filter_fc` | 1 | 0 Hz；加速度一阶 RC 低通截止频率，非负，0 禁用；由旧时间常数换算为 fc = 1/(2π·τ) |
 | `QuaternionEkf::Config::innovation_threshold` | 1 | 1e-8；归一化残差门限，正数，增大后容许更大的观测偏差 |
 
 `accel_noise`、`innovation_threshold` 应结合调节，前者改变残差检验的尺度。默认值延续原调参量级，不应把 1e7 当作真实加速度方差；量测已归一化。`bias_fading` 按周期生效，改变循环频率时需重新审视。
@@ -98,7 +97,7 @@ EKF 的预测、观测、残差门控、增益、修正与 Joseph 协方差更�
 
 ## 软件验证记录（2026-10-01）
 
-以下记录在 IMU 拆分为 BSP `Imu` 与 `Attitude` 之前完成，文中的文件与测试脚本路径为当时状态；算法源码未变，只是加速度低通改用共用 `lowpass`（默认 0 禁用，行为一致）
+以下记录在 IMU 拆分为 BSP `Imu` 与 `Attitude` 之前完成，文中的文件与测试脚本路径为当时状态；算法源码未变，只是删除了默认禁用的加速度低通 `accel_filter_fc`（与默认行为一致）
 
 运行主机测试需要 Python、NumPy 和支持 C++23 的 MinGW g++：
 
