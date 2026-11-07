@@ -6,10 +6,6 @@
 extern "C" void app_main() {
     melody.play(C5D5G5);
 
-    // 靶车无裁判系统，写死功率上限与缓冲能量
-    power_limiter.set_limit(60);
-    power_limiter.set_buffer_energy(60);
-
     while (true) {
         // 1 kHz 更新
         static Timer timer;

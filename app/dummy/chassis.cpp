@@ -45,6 +45,10 @@ void chassis_loop() {
     else
         super_cap.set_mode(SuperCap::OFF);
 
+    // 靶车无裁判系统，写死功率上限与缓冲能量
+    power_limiter.set_limit(60);
+    power_limiter.set_buffer_energy(60);
+
     chassis.update();
 
     // CAN1 0x200 组帧发送，低速低电流的轮发零电流
