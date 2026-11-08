@@ -36,3 +36,4 @@ agents/
 - `03-quad_steer/`：底盘重构（四舵移植、矩阵底盘、统一功率控制）、PID 回算、UI 下放、机构库掉线处理；已确认决定与上车核对项
 - `04-leg_chassis/`：轮腿底盘从 SOLDIER_LEG_4 迁移；IMU 极性核查、电机映射与虚拟 IMU 方案
 - `05-dummy_target/`：PR #3 靶车移植到 `app/dummy`；映射、删减与上车核对项
+- `06-super_cap_capacitance/`：超电在线容量/ESR 辨识（RLS）；主机仿真与上车核对项
