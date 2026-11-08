@@ -13,6 +13,6 @@ void referee_loop() {
     if (timer.elapsed() >= REFEREE_DT) {
         timer.restart();
         referee_power = super_cap.power.battery * POWER_SCALE;
-        buffer_energy = std::clamp(buffer_energy + (BATTERY_LIMIT - referee_power) * REFEREE_DT, 0.0f, BUFFER_MAX);
+        referee_energy = std::clamp(referee_energy + (REFEREE_LIMIT - referee_power) * REFEREE_DT, 0.0f, BUFFER_MAX);
     }
 }

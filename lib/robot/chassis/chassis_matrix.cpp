@@ -38,9 +38,8 @@ void ChassisMatrix::update() {
     vz.measure = measure.z();
     wr.measure = vz.measure / config_.chassis_radius;
 
-    // 轮电机功率估计交给超电，更新底盘功率上限
+    // 轮电机功率估计供 SWD 与超电实测对照；超电更新底盘功率目标
     power.estimate = MotorPower::estimate(wheel_, config_.wheel_resistance);
-    super_cap_.set_estimate(power.estimate);
     super_cap_.update();
 
     // 旋转：用户输入优先，否则按模式分离或跟随；失能时清空跟随 PID
@@ -111,7 +110,7 @@ void ChassisMatrixSpeed::control() {
         if (!wheel_[i]->is_connect)
             current_z[i] = 0;
     }
-    power.gain = MotorPower::limit_current(wheel_, config_.wheel_resistance, current - current_z, current_z, std::fabs(wr.measure) > reserve_wr_, super_cap_.power.chassis_limit);
+    power.gain = MotorPower::limit_current(wheel_, config_.wheel_resistance, current - current_z, current_z, std::fabs(wr.measure) > reserve_wr_, super_cap_.power.chassis_ref);
 
     // 轮速 PID 跟踪功率衰减与电机限幅后的实际电流
     for (int i = 0; i < 4; i++) {
@@ -153,7 +152,7 @@ void ChassisMatrixTorque::control() {
         current_xy[i] = f_xy[i] * k;
         current_z[i] = f_z[i] * k;
     }
-    power.gain = MotorPower::limit_current(wheel_, config_.wheel_resistance, current_xy, current_z, std::fabs(wr.measure) > reserve_wr_, super_cap_.power.chassis_limit);
+    power.gain = MotorPower::limit_current(wheel_, config_.wheel_resistance, current_xy, current_z, std::fabs(wr.measure) > reserve_wr_, super_cap_.power.chassis_ref);
 
     // 实际输出力经力学正解换回云台系，速度 PID 跟踪
     Vector4f f_out;

@@ -14,12 +14,12 @@ class ChassisMatrix {
   public:
     // 轮向固定的四轮运动学矩阵 J：每行一个轮，轮线速度 = 行 · (vx, vy, vz)，vz 为底盘半径处旋转线速度
     // 轮序：左前、左后、右后、右前；底盘系 x 前、y 左、逆时针为正
-    // 全向轮，45° 布置
+    // 全向轮，45° 布置；旋转列为 −1，使 vz > 0 时底盘逆时针转
     static constexpr float OMNI[4][3] = {
-        {-std::sqrt(0.5f), +std::sqrt(0.5f), 1},
-        {-std::sqrt(0.5f), -std::sqrt(0.5f), 1},
-        {+std::sqrt(0.5f), -std::sqrt(0.5f), 1},
-        {+std::sqrt(0.5f), +std::sqrt(0.5f), 1},
+        {-std::sqrt(0.5f), +std::sqrt(0.5f), -1},
+        {-std::sqrt(0.5f), -std::sqrt(0.5f), -1},
+        {+std::sqrt(0.5f), -std::sqrt(0.5f), -1},
+        {+std::sqrt(0.5f), +std::sqrt(0.5f), -1},
     };
 
     // 麦克纳姆轮
@@ -60,7 +60,7 @@ class ChassisMatrix {
         float ref = 0, measure = 0, input = 0;
     } wr;
 
-    // 功率：轮电机模型估计与本周期平移、旋转电流衰减系数；底盘功率上限由超电给出
+    // 功率：轮电机模型估计与本周期平移、旋转电流衰减系数；底盘功率目标由超电给出
     struct {
         float estimate = 0;
         MotorPower::Gain gain;
@@ -93,7 +93,7 @@ class ChassisMatrix {
   protected:
     const Config config_;
     Motor* const wheel_[4]; // 轮电机：左前、左后、右后、右前
-    SuperCap& super_cap_;   // 由底盘更新，提供底盘功率上限
+    SuperCap& super_cap_;   // 由底盘更新，提供底盘功率目标
     bool is_enable_ = false;
     float reserve_wr_ = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转
     Angle gimbal_yaw_;

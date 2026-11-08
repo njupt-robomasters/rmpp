@@ -86,24 +86,20 @@
 
 ### 已确认
 
-- 类 `SuperCap`，`lib/power/super_cap.{hpp,cpp}`；模式 OFF / MONITOR / CHARGE / BOOST，`mode` 为设定、`active_mode` 为生效；应答电压 `voltage.chassis/cap`
-- OFF：关 DCDC，按估计功率；超电离线同 OFF
-- MONITOR：关 DCDC，按实测功率，上限为裁判上限
-- CHARGE：开 DCDC，按实测功率，上限为裁判上限
-- BOOST：开 DCDC，上限为裁判上限 + 最大补偿电流·V_CAP；电容电压低于下阈值回退 CHARGE，高于上阈值恢复
-- 各模式均保留缓冲能量兜底；不限功率（65535）跳过功率控制，`P_BAT_SET` 发协议最大值
-- 实测用法：保留一步预测，叠加低通后的“实测 − 估计”偏差
-- 参数均入 Config 并带默认值（发送周期除外，由 app 控制，dummy 100 Hz）；放电截止 10 V、恢复 12 V；最大补偿电流 10 A；MONITOR/CHARGE 功率裕量
-- 先只适配 dummy；SWC UP=MONITOR、MID=CHARGE、DOWN=BOOST
-
-- `ChassisPower::Config` 持有 `SuperCap* super_cap = nullptr` 与偏差低通 `error_fc`（默认 5 Hz），经底盘 `Config::power` 传入
-- dummy：写死 60 W / 60 J，超电 CAN1，遥控断联 OFF
+- 类 `SuperCap`，`lib/power/super_cap.{hpp,cpp}`；模式 OFF / CHARGE / BOOST；应答 `voltage`、`current`、`power` 的 chassis/cap
+- 裁判输入 `set_referee_limit()`、`set_referee_energy()`；电池侧目标 `power.battery_ref` = 裁判上限·g(裁判缓冲能量)，所有模式下发
+- 底盘功率目标 `power.chassis_ref` = 供给·g(所用缓冲能量)；g 为 30 J 零、60 J 1.1 倍线性
+- OFF、离线、不限功率：供给为裁判上限，用 `energy.referee`，`energy.local` 跟随
+- CHARGE / BOOST：供给为 battery_ref（+ boost_max），`energy.local += (供给 − power.chassis)·dt`，限幅 [0, 60] J；电容额外放电与电容放空后的电池超用都扣除
+- 已删 MONITOR、`set_estimate()`、估计偏差修正；底盘保留 `power.estimate` 供 SWD 对照
+- dummy：SWC 上 OFF、中 CHARGE、下 BOOST，遥控断联 OFF；referee_loop 模拟裁判，超电 CAN1
 
 ### 待上车核对
 
-- 0x051 应答电压电流符号与量程；`power.measure` 与 `power.estimate` 对比，`power.error` 是否稳定
-- CHARGE 下电容是否只充不放（`current.cap` 不为负）；BOOST 在 10/12 V 的回退与恢复
-- infantry/sentry 未接入
+- 0x051 应答电压电流符号与量程；底盘 `power.estimate` 与 `super_cap.power.chassis` 对比
+- CHARGE 稳态 `power.cap` 不为负；若因 DCDC 损耗偏负再考虑充电余量；BOOST 在 10/12 V 的补偿衰减
+- infantry/sentry 未装超电（不调用 send，按 OFF）
+- 全向轮 OMNI 旋转列已取反：确认 wr > 0 时逆时针，infantry 与 examples/chassis 同用 OMNI，需一并复核
 
 ## 底盘深度重构、PID 回算、UI 下放
 

@@ -37,3 +37,18 @@ g++ -std=c++23 -O2 -Wall -Wextra -I../../../lib -I../../../lib/math sim.cpp ../.
 - `I_CAP` 正负与 `V_CAP` 变化方向一致（充电时电压上升），否则 `capacitance` 始终为零
 - CHARGE 恒功率充电时 ΔI 小，ESR 收敛慢；BOOST 放电脉冲后观察是否稳定
 - DCDC 损耗不影响辨识（只用电容侧 V、I）；应答量程 int16 mA 上限 32 A
+
+## 虚拟缓冲能量功率控制
+
+`power_sim.cpp`：底盘固定需求、按 `chassis_ref` 限幅（可设模型低估），超电 DCDC 把电池侧稳在 `battery_ref`，电容 8 V 止放、满电停充，裁判 10 Hz 结算
+
+```sh
+g++ -std=c++23 -O2 -I../../../lib -I../../../lib/math power_sim.cpp ../../../lib/power/super_cap.cpp -o out/power_sim.exe && ./out/power_sim.exe
+```
+
+结论（60 W 裁判上限，需求 200 W，OFF → CHARGE → BOOST → CHARGE → OFF）：
+
+- CHARGE 稳态底盘 60 W、电容功率 0，不放电；电池 60 W，裁判缓冲能量稳在 57.3 J
+- 模型低估 20%：CHARGE 稳态 `energy.local` 降到 51.8 J，底盘真实功率仍为 60 W、电容功率约 0；偏差由积分吃掉
+- BOOST 满额补偿约 140 W，电压降到 12 V 以下后补偿线性衰减；电容将空时 chassis_ref 平滑回落到 60 W
+- 切换无能量跳变；`chassis_ref` 的大跳变只在切入切出 BOOST 时，来自 boost_max 本身

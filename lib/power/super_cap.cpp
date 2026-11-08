@@ -13,16 +13,12 @@ void SuperCap::set_mode(const Mode mode) {
     mode_ = mode;
 }
 
-void SuperCap::set_battery_limit(const float battery_limit) {
-    battery_limit_ = battery_limit;
+void SuperCap::set_referee_limit(const float referee_limit) {
+    referee_limit_ = referee_limit;
 }
 
-void SuperCap::set_buffer_energy(const float buffer_energy) {
-    buffer_energy_ = buffer_energy;
-}
-
-void SuperCap::set_estimate(const float estimate) {
-    power.estimate = estimate;
+void SuperCap::set_referee_energy(const float referee_energy) {
+    energy.referee = referee_energy;
 }
 
 void SuperCap::update() {
@@ -32,17 +28,6 @@ void SuperCap::update() {
     if (callback_timer_.elapsed() > config_.timeout)
         is_connect = false;
 
-    // 电池侧功率上限：缓冲能量 buffer.cutoff 为零、60 J 为 buffer.gain_max 倍裁判上限，其间线性
-    // 测量偏小时缓冲能量下降、上限随之降低，稳定在上限等于真实裁判上限处
-    const float buffer_ratio = std::clamp((buffer_energy_ - config_.buffer.cutoff) / (BUFFER_FULL - config_.buffer.cutoff), 0.0f, 1.0f);
-    power.battery_limit = battery_limit_ * config_.buffer.gain_max * buffer_ratio;
-
-    // 偏差：在线且非 OFF 时用实测修正估计
-    if (is_connect && mode_ != OFF)
-        power.error = lowpass(power.error, power.chassis - power.estimate, config_.error_fc, dt);
-    else
-        power.error = 0;
-
     // BOOST 补偿：电容电压在截止与满额之间线性
     if (is_connect && mode_ == BOOST) {
         const float cap_ratio = std::clamp((voltage.cap - config_.boost.voltage_cutoff) / (config_.boost.voltage_full - config_.boost.voltage_cutoff), 0.0f, 1.0f);
@@ -51,23 +36,47 @@ void SuperCap::update() {
         power.boost_max = 0;
     }
 
-    // 底盘功率上限；裁判不限功率时缓冲能量也异常，不限制
-    if (battery_limit_ == UNLIMITED)
-        power.chassis_limit = std::numeric_limits<float>::infinity();
-    else
-        power.chassis_limit = power.battery_limit + power.boost_max - power.error;
+    // 裁判不限功率时缓冲能量也异常，不限制
+    if (referee_limit_ == UNLIMITED) {
+        power.battery_ref = power.chassis_ref = std::numeric_limits<float>::infinity();
+        energy.local = energy.referee;
+        return;
+    }
+
+    // 电池侧目标：裁判上限按裁判缓冲能量折算；实测偏小时裁判缓冲能量下降、目标随之降低
+    power.battery_ref = referee_limit_ * buffer_gain(energy.referee);
+
+    // 底盘供给与虚拟缓冲能量
+    // DCDC 使能：供给为电池侧目标加电容补偿；底盘超出供给（电容额外放电或电池超用）时扣除，低于时增加
+    // 否则：供给为裁判上限，虚拟缓冲能量跟随裁判值，切入 DCDC 时不跳变
+    float supply = referee_limit_;
+    if (is_dcdc_enable()) {
+        supply = power.battery_ref + power.boost_max;
+        energy.local = std::clamp(energy.local + (supply - power.chassis) * dt, 0.0f, BUFFER_FULL);
+    } else {
+        energy.local = energy.referee;
+    }
+
+    // 底盘功率目标；DCDC 未使能时等于电池侧目标
+    power.chassis_ref = supply * buffer_gain(energy.local);
 }
 
 void SuperCap::send() const {
-    // data[0].bit0 使能 DCDC；data[1..2] 电池侧目标功率，0.01 W/LSB，大端；不限功率时发协议最大值
-    const bool is_dcdc_enable = is_connect && (mode_ == CHARGE || mode_ == BOOST);
-    const float battery_power = battery_limit_ == UNLIMITED ? UNLIMITED : power.battery_limit;
-    const auto command = static_cast<int16_t>(std::clamp(battery_power, 0.0f, 327.67f) * 100.0f);
+    // data[0].bit0 使能 DCDC；data[1..2] 电池侧目标功率，0.01 W/LSB，大端；不限功率时限幅到协议最大值
+    const auto command = static_cast<int16_t>(std::clamp(power.battery_ref, 0.0f, 327.67f) * 100.0f);
     config_.can.send({
         .id = config_.tx_id,
         .size = 8,
-        .data = {is_dcdc_enable, static_cast<uint8_t>(command >> 8), static_cast<uint8_t>(command)},
+        .data = {is_dcdc_enable(), static_cast<uint8_t>(command >> 8), static_cast<uint8_t>(command)},
     });
+}
+
+bool SuperCap::is_dcdc_enable() const {
+    return is_connect && (mode_ == CHARGE || mode_ == BOOST);
+}
+
+float SuperCap::buffer_gain(const float energy) const {
+    return config_.buffer.gain_max * std::clamp((energy - config_.buffer.cutoff) / (BUFFER_FULL - config_.buffer.cutoff), 0.0f, 1.0f);
 }
 
 void SuperCap::can_callback(const CanFrame& frame) {
