@@ -38,7 +38,7 @@ void ChassisMatrix::update() {
     vz.measure = measure.z();
     wr.measure = vz.measure / config_.chassis_radius;
 
-    // 轮电机功率估计交给超电，更新功率预算与控制目标
+    // 轮电机功率估计交给超电，更新电池侧功率上限与控制目标
     power.estimate = MotorPower::estimate(wheel_, config_.wheel_resistance);
     super_cap_.set_estimate(power.estimate);
     super_cap_.update();

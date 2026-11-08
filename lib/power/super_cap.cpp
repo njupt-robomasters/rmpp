@@ -31,10 +31,10 @@ void SuperCap::update() {
     if (rx_timer_.elapsed() > config_.timeout)
         is_connect = false;
 
-    // 功率预算：缓冲能量 30 J 为零、60 J 为 buffer_gain_max 倍电池侧上限，其间线性
-    // 测量偏小时缓冲能量下降、预算随之降低，稳定在预算等于真实上限处
+    // 电池侧功率上限：缓冲能量 30 J 为零、60 J 为 buffer_gain_max 倍裁判上限，其间线性
+    // 测量偏小时缓冲能量下降、上限随之降低，稳定在上限等于真实裁判上限处
     const float buffer_ratio = std::clamp((buffer_energy_ - BUFFER_CUTOFF) / (BUFFER_FULL - BUFFER_CUTOFF), 0.0f, 1.0f);
-    power.budget = battery_limit_ * config_.buffer_gain_max * buffer_ratio;
+    power.battery_limit = battery_limit_ * config_.buffer_gain_max * buffer_ratio;
 
     // 偏差：在线且非 OFF 时用实测修正估计
     if (is_connect && mode_ != OFF)
@@ -54,13 +54,13 @@ void SuperCap::update() {
     if (battery_limit_ == UNLIMITED)
         power.ref = std::numeric_limits<float>::infinity();
     else
-        power.ref = power.budget + power.boost - power.error;
+        power.ref = power.battery_limit + power.boost - power.error;
 }
 
 void SuperCap::send() const {
     // data[0].bit0 使能 DCDC；data[1..2] 电池侧目标功率，0.01 W/LSB，大端；不限功率时发协议最大值
     const bool is_dcdc_enable = is_connect && (mode_ == CHARGE || mode_ == BOOST);
-    const float battery_power = battery_limit_ == UNLIMITED ? UNLIMITED : power.budget;
+    const float battery_power = battery_limit_ == UNLIMITED ? UNLIMITED : power.battery_limit;
     const auto command = static_cast<int16_t>(std::clamp(battery_power, 0.0f, 327.67f) * 100.0f);
     config_.can.send({
         .id = config_.tx_id,
@@ -82,10 +82,10 @@ void SuperCap::can_callback(const CanFrame& frame) {
     voltage.cap = static_cast<int16_t>((data[4] << 8) | data[5]) * 1.0e-3f;
     current.cap = lowpass(current.cap, static_cast<int16_t>((data[6] << 8) | data[7]) * 1.0e-3f, config_.current_fc, dt);
 
-    // 功率：电容电流充电为正，输出功率放电为正；battery + cap = out
+    // 功率：电容充电为正、放电为负；battery = out + cap
     power.out = voltage.out * current.out;
-    power.cap = -voltage.cap * current.cap;
-    power.battery = power.out - power.cap;
+    power.cap = voltage.cap * current.cap;
+    power.battery = power.out + power.cap;
 
     is_connect = true;
 }
