@@ -1,7 +1,7 @@
 #pragma once
 
 // 靶车无裁判系统，用超电反馈模拟底盘功率检测与缓冲能量；SWD 观察
-inline constexpr float REFEREE_LIMIT = 20; // 裁判电池侧功率上限，W
+inline constexpr float REFEREE_LIMIT = 50; // 裁判电池侧功率上限，W
 inline float referee_power = 0;            // 模拟裁判功率，W
 inline float referee_energy = 60;          // 模拟裁判缓冲能量，J
 
