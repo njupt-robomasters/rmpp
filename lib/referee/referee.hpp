@@ -68,7 +68,7 @@ class Referee {
 
     // 每次有效伤害报文递增，避免依赖字段变化判断新事件
     uint32_t hurt_sequence = 0;
-    Timer hurt_received;
+    Timer hurt_timer;
 
     // 实例及其绑定对象在 BSP 回调有效期间不得销毁或移动
     explicit Referee(const Config& config);
@@ -89,7 +89,7 @@ class Referee {
   private:
     const Config config_;
     std::vector<RxCallback> callbacks_0311_;
-    Timer timer_connect_, timer_rx_, timer_interaction_;
+    Timer frame_timer_, receive_timer_, interaction_timer_;
     uint8_t rx_buf_[309]{};
     size_t rx_size_ = 0;
     uint8_t tx_buf_[309]{};

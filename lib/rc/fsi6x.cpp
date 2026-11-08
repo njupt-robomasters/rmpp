@@ -11,8 +11,8 @@ FSi6X::FSi6X(const Config& config)
 }
 
 void FSi6X::update() {
-    if (timer_connect_.elapsed() > config_.timeout) {
-        timer_connect_.restart();
+    if (callback_timer_.elapsed() > config_.timeout) {
+        callback_timer_.restart();
         reset_data();
     }
 }
@@ -35,7 +35,7 @@ void FSi6X::callback(const uint8_t data[], const uint16_t size) {
     } else {
         // 复位断联检测
         is_connect = true;
-        timer_connect_.restart();
+        callback_timer_.restart();
 
         // 解析摇杆和拨杆
         y = -get_joystick(raw_.ch0);    // 右手水平

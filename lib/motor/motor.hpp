@@ -56,7 +56,7 @@ class Motor {
     void can_callback();
 
   private:
-    Timer rx_timer_;
+    Timer callback_timer_;
     float raw_position_multi_ = 0;
     float raw_position_last_ = 0;
 };

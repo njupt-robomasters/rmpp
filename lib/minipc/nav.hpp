@@ -26,5 +26,5 @@ class Nav {
 
   private:
     const Config config_;
-    Timer timer_chassis_speed_;
+    Timer chassis_speed_timer_;
 };

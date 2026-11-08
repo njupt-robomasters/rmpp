@@ -28,7 +28,7 @@ void Motor::set_offset(const float offset) {
 
 void Motor::update() {
     // 断联检测：清零电流、力矩、速度反馈，保持位置
-    if (rx_timer_.elapsed() > config.bus.timeout) {
+    if (callback_timer_.elapsed() > config.bus.timeout) {
         is_connect = false;
         current = torque = speed = 0;
     }
@@ -41,7 +41,7 @@ Motor::Motor(const Config& config)
 void Motor::can_callback() {
     // 用于断联检测
     is_connect = true;
-    rx_timer_.restart();
+    callback_timer_.restart();
 
     // 用于多圈计数
     raw_position_multi_ += Angle(raw_position_last_ - raw.position);

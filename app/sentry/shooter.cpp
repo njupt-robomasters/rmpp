@@ -14,7 +14,7 @@ static constexpr float RUB_RELEASE_SPEED = 120 * rpm; // 摩擦轮关闭后低�
 
 // 跨周期状态
 static float bullet_freq = BULLET_FREQ_INIT;
-static Timer timer_click;
+static Timer click_timer;
 static bool has_click = false, is_force_shoot = false;
 static bool last_left = false, last_z = false, last_c = false;
 
@@ -36,16 +36,16 @@ void shooter_loop() {
     // 按住右键时 DOUBLE_CLICK_TIME 内两次按下左键进入强制开火，松开左键或右键退出
     // 每周期让点击记录过期，避免长按右键跨过计数器回绕后误判双击
     const auto& mouse = vt13.mouse;
-    if (has_click && timer_click.elapsed() >= DOUBLE_CLICK_TIME) {
-        timer_click.restart();
+    if (has_click && click_timer.elapsed() >= DOUBLE_CLICK_TIME) {
+        click_timer.restart();
         has_click = false;
     }
     if (!mouse.right) {
         is_force_shoot = has_click = false;
     } else {
         if (mouse.left && !last_left) {
-            is_force_shoot = has_click && timer_click.elapsed() < DOUBLE_CLICK_TIME;
-            timer_click.restart();
+            is_force_shoot = has_click && click_timer.elapsed() < DOUBLE_CLICK_TIME;
+            click_timer.restart();
             has_click = true;
         }
         if (!mouse.left)

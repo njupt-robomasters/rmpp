@@ -26,12 +26,12 @@ static GimbalState gimbal_state = SCAN;
 static Timer timer_lock_lost, timer_insta360_check, timer_insta360_punish;
 static Angle target_yaw, target_pitch;
 static bool scan_up = false;
-static Timer timer_dt;
+static Timer loop_timer;
 static float mouse_wyaw = 0, mouse_wpitch = 0;
 static bool last_calib = false, last_r = false;
 
 void gimbal_loop() {
-    const float dt = timer_dt.restart();
+    const float dt = loop_timer.restart();
     gimbal.set_enable(sentry_enable());
 
     // yaw 零点校准：VT13 C 挡按住 fn 和 photo，或 FSi6X SWC 上、SWA 下、SWD 下，按下时触发一次

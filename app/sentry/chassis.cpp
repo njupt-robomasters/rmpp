@@ -27,7 +27,7 @@ enum ChassisState { GO_CENTER,
 
 // 跨周期状态
 static ChassisState chassis_state = GO_CENTER;
-static Timer timer_dt;
+static Timer loop_timer;
 static float key_vx = 0, key_vy = 0, key_wr = 0;
 
 // 按住正向或反向键时加速，松开时减速到 0
@@ -42,7 +42,7 @@ static float key_speed(const float speed, const bool positive, const bool negati
 }
 
 void chassis_loop() {
-    const float dt = timer_dt.restart();
+    const float dt = loop_timer.restart();
     chassis.set_enable(sentry_enable());
     chassis.set_mode(rc_fn() ? ChassisSteer::FOLLOW_MODE : ChassisSteer::DETACH_MODE);
 

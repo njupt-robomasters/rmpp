@@ -79,7 +79,7 @@ float Gimbal::set_output(Motor& motor, const PidOutput type, const float output)
 }
 
 void Gimbal::handle_motion() {
-    const float dt = timer_motion_.restart();
+    const float dt = motion_timer_.restart();
     if (is_enable_) {
         const Angle yaw_delta = yaw_speed_ * dt;
         const Angle pitch_delta = pitch_speed_ * dt;

@@ -60,7 +60,7 @@ void Melody::update() {
         return;
 
     // 普通：逐音符计时，首个音符立即开始
-    if (index_ > 0 && timer_.elapsed() < static_cast<float>(direct_[index_ - 1].len) * UNIT)
+    if (index_ > 0 && note_timer_.elapsed() < static_cast<float>(direct_[index_ - 1].len) * UNIT)
         return;
     if (index_ >= direct_.size()) {
         stop();
@@ -76,7 +76,7 @@ void Melody::update() {
             buzzer_.set_tone(midi_to_hz(midi));
     }
     index_++;
-    timer_.restart();
+    note_timer_.restart();
 }
 
 // 采样流回调，在 DMA 中断内执行

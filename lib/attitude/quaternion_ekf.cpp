@@ -17,7 +17,7 @@ QuaternionEkf::QuaternionEkf(Imu& imu, const Config& config)
 }
 
 void QuaternionEkf::solve(const Vector3f& gyro, const Vector3f& accel) {
-    const float dt = timer_.restart();
+    const float dt = solve_timer_.restart();
     const Vector3f rate{gyro.x() - bias.x(), gyro.y() - bias.y(), gyro.z()};
     Quaternionf delta;
     if (!rotation_increment(rate, dt, delta))

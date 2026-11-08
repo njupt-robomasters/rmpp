@@ -29,7 +29,7 @@ class QuaternionEkf : public Attitude {
 
   private:
     const Config config_;
-    Timer timer_{0.0001f, 0.01f};
+    Timer solve_timer_{0.0001f, 0.01f};
     Matrix6f covariance_ = Matrix6f::Zero();
     Vector3f filtered_accel_ = Vector3f::Zero();
     bool initialized_ = false;

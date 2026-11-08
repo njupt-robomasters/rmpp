@@ -13,8 +13,8 @@ VT13::VT13(const Config& config)
 
 void VT13::update() {
     // 断联检测
-    if (timer_connect_.elapsed() > config_.timeout) {
-        timer_connect_.restart();
+    if (callback_timer_.elapsed() > config_.timeout) {
+        callback_timer_.restart();
         reset_data();
     }
 }
@@ -40,7 +40,7 @@ void VT13::callback(const uint8_t data[], const size_t size) {
             }
 
             is_connect = true;
-            timer_connect_.restart();
+            callback_timer_.restart();
             std::memcpy(&raw_, rx_buf_, sizeof(raw_));
             std::memmove(rx_buf_, rx_buf_ + sizeof(raw_), rx_size_ - sizeof(raw_));
             rx_size_ -= sizeof(raw_);

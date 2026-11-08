@@ -94,7 +94,7 @@ class Gimbal {
 
   private:
     bool is_enable_ = false;
-    Timer timer_motion_; // 用于云台转动
+    Timer motion_timer_; // 用于云台转动
     bool is_yaw_ready_ = false, is_pitch_ready_ = false;
 
     // 处理云台转动，通过dt不断计算角度增量

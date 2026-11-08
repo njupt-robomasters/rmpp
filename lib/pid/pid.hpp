@@ -32,5 +32,5 @@ class Pid {
     const Config* config_ = nullptr;
     float err_ = 0, last_err_ = 0;
     float p_out_ = 0, i_out_ = 0, d_out_ = 0;
-    Timer timer_{0.0001f, 0.01f};
+    Timer calculate_timer_{0.0001f, 0.01f};
 };

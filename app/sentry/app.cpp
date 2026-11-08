@@ -50,7 +50,7 @@ static void update_ui() {
     ui.pitch = gimbal.pitch.imu.measure;
 
     // 伤害方向
-    ui.is_hurt = referee.hurt_received.elapsed() < 0.2f;
+    ui.is_hurt = referee.hurt_timer.elapsed() < 0.2f;
     ui.hurt_dir = 0 * deg;
 
     // 自瞄识别

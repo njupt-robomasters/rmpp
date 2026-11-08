@@ -67,5 +67,5 @@ class Shooter17mm {
     bool is_heat_protect_ = false; // 热量保护状态
     Pid shoot_pid_;
     bool is_block_ = false; // 卡弹标志
-    Timer timer_block_;     // 卡弹计时器
+    Timer block_timer_;     // 卡弹计时器
 };

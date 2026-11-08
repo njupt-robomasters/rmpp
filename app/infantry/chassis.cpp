@@ -11,7 +11,7 @@ static constexpr float AR = 1000 * rpm;    // 键盘旋转角加速度，rad/s^2
 static constexpr float DR = 1000 * rpm;    // 键盘旋转角减速度，rad/s^2
 
 // 跨周期状态
-static Timer timer_dt;
+static Timer loop_timer;
 static bool is_fn = false;
 static float key_vx = 0, key_vy = 0, key_wr = 0;
 
@@ -27,7 +27,7 @@ static float key_speed(const float speed, const bool positive, const bool negati
 }
 
 void chassis_loop() {
-    const float dt = timer_dt.restart();
+    const float dt = loop_timer.restart();
     chassis.set_enable(rc_enable());
 
     // fn 跟随模式：FSi6X 优先取 SWA 下；VT13 在 N、S 挡时 fn 键置位、pause 键清除

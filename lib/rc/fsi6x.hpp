@@ -60,7 +60,7 @@ class FSi6X {
         uint8_t tail : 8; // 0x00
     } raw_{};
 
-    Timer timer_connect_; // 用于断联检测
+    Timer callback_timer_; // 用于断联检测
 
     // 串口接收回调
     void callback(const uint8_t data[], uint16_t size);

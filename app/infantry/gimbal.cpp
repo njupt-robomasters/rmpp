@@ -10,12 +10,12 @@ static constexpr float AYAW = 3600 * deg_s;      // 鼠标 yaw 最大角加速�
 static constexpr float APITCH = 3600 * deg_s;    // 鼠标 pitch 最大角加速度，rad/s^2
 
 // 跨周期状态
-static Timer timer_dt;
+static Timer loop_timer;
 static float mouse_wyaw = 0, mouse_wpitch = 0;
 static bool last_calib = false, last_r = false;
 
 void gimbal_loop() {
-    const float dt = timer_dt.restart();
+    const float dt = loop_timer.restart();
     gimbal.set_enable(rc_enable());
 
     // yaw 零点校准：VT13 C 挡按住 fn 和 photo，或 FSi6X SWC 上、SWA 下、SWD 下，按下时触发一次

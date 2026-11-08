@@ -113,6 +113,7 @@ RMPP 是 STM32 机器人控制项目，入门见 `README.md`
 - 避免含混的 `handle` 或近似的 `State/Stats`
 - 布尔状态和判断优先使用 `is_*`、`has_*`、`can_*`、`should_*`
 - 配置开关、协议字段和 `last_*` 历史状态不机械添加 `is_`
+- 计时器命名 `<用途>_timer`：取重新开始计时的位置（`update_timer_`、`callback_timer_`）或所计对象（`block_timer_`、`note_timer_`），不用裸 `timer_` 或 `timer_xxx` 前缀
 
 ## 代码结构
 

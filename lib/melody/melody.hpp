@@ -129,10 +129,10 @@ class Melody {
     Buzzer buzzer_;
     volatile Stage stage_ = Stage::IDLE; // 复音阶段由中断推进
 
-    // 普通模式进度：index_ 指向下一个音符，timer_ 对当前音符计时
+    // 普通模式进度：index_ 指向下一个音符，note_timer_ 对当前音符计时
     Voice direct_;
     std::size_t index_ = 0;
-    Timer timer_;
+    Timer note_timer_;
 
     // 复音模式状态，采样流开启后只在中断内修改
     PartSynth melody_, chords_;

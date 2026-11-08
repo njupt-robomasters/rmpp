@@ -39,7 +39,7 @@ void ChassisLeg::set_jump(const bool should_jump) {
 }
 
 void ChassisLeg::update(const Quaternionf& q, const Vector3f& gyro) {
-    const float dt = timer_.restart();
+    const float dt = update_timer_.restart();
 
     // 电机在线检测；任一电机掉线或关节未处于使能态（含报错）时本周期全部输出零
     motor_.left_a.update();

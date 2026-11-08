@@ -61,7 +61,7 @@ void Shooter42mm::update() {
 
         if (is_rub && motor.shoot.is_connect) { // 开摩擦轮
             state_ = SHAKE;
-            timer_shake_.restart();
+            shake_timer_.restart();
             shake_upper_ = motor.shoot.position;
         }
     } break;
@@ -69,20 +69,20 @@ void Shooter42mm::update() {
     case SHAKE: {
         const float a = angle_per_bullet * SHAKE_AMP / 2;
         const float offset = shake_upper_ - a;
-        const float t = timer_shake_.elapsed();
+        const float t = shake_timer_.elapsed();
         const Angle angle = a * std::cos(2 * pi * SHAKE_FREQ * t) + offset;
         set_shoot_output(shoot_pid_.calculate(angle - motor.shoot.position));
 
         // 防止计时器溢出
         if (SHAKE_FREQ * t > 1)
-            timer_shake_.restart();
+            shake_timer_.restart();
 
         // 发射信号上升沿且未热量保护时拨一发，目标对齐到整发相位
         if (is_shoot_ && !last_shoot_ && !is_heat_protect_) {
             const float index = std::round((shake_upper_ + angle_per_bullet) / angle_per_bullet);
             shake_upper_ = index * angle_per_bullet - angle_per_bullet;
             state_ = SHOOT;
-            timer_block_.restart();
+            block_timer_.restart();
         }
     } break;
 
@@ -93,17 +93,17 @@ void Shooter42mm::update() {
         // 到位后回到抖动
         if (std::fabs(target_angle - motor.shoot.position) < (1.0f - SHOOT_FINISH_RATIO) * angle_per_bullet) {
             state_ = SHAKE;
-            timer_shake_.restart();
+            shake_timer_.restart();
             shake_upper_ = target_angle;
         }
 
         // 达到力矩限幅并持续 block_time 判为卡弹，从当前角度重新抖动
         if (std::fabs(motor.shoot.torque_ref) < motor.shoot.config.drive.max_torque) {
-            timer_block_.restart();
-        } else if (timer_block_.elapsed() > config_.block_time) {
-            timer_block_.restart();
+            block_timer_.restart();
+        } else if (block_timer_.elapsed() > config_.block_time) {
+            block_timer_.restart();
             state_ = SHAKE;
-            timer_shake_.restart();
+            shake_timer_.restart();
             shake_upper_ = motor.shoot.position;
         }
     } break;

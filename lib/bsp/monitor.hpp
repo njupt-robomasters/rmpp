@@ -10,12 +10,12 @@ class Monitor {
     volatile float cpu = 0, cpu_lpf = 0;   // 任务耗时占周期比例，[0, 1]
 
     void begin() {
-        idle_time_ = timer_.elapsed();
+        idle_time_ = period_timer_.elapsed();
     }
 
     void end() {
         // 周期为相邻两次 end 的间隔，begin 前为空闲
-        const float period = timer_.restart();
+        const float period = period_timer_.restart();
         const float busy_time = period - idle_time_;
 
         freq = 1 / period;
@@ -28,6 +28,6 @@ class Monitor {
   private:
     static constexpr float CUTOFF_HZ = 0.2f; // 低通截止频率，时间常数约 0.8 s
 
-    Timer timer_;
+    Timer period_timer_;
     float idle_time_ = 0;
 };

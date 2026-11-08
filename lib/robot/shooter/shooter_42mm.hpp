@@ -67,7 +67,7 @@ class Shooter42mm {
     static constexpr float SHAKE_AMP = 1;              // 抖动幅度（一个弹 = 1）
 
     Pid shoot_pid_;
-    Timer timer_block_; // 卡弹计时器
+    Timer block_timer_; // 卡弹计时器
 
     // 发射信号及上周期值，用于检测上升沿
     bool is_shoot_ = false;
@@ -75,7 +75,7 @@ class Shooter42mm {
 
     // 用于抖动下弹
     Angle shake_upper_;
-    Timer timer_shake_;
+    Timer shake_timer_;
 
     enum {
         FREE,

@@ -11,7 +11,7 @@ float Pid::calculate(const float err, const std::optional<float> derr) {
         return 0;
 
     const auto& [kp, ki, kd, ff, max_i, max_out, err_fc, d_fc] = *config_;
-    const float dt = timer_.restart();
+    const float dt = calculate_timer_.restart();
 
     // 输入低通
     err_ = lowpass(err_, err, err_fc, dt);
@@ -44,5 +44,5 @@ void Pid::track(const float actual) {
 void Pid::clear() {
     err_ = last_err_ = 0;
     out = p_out_ = i_out_ = d_out_ = 0;
-    timer_.restart();
+    calculate_timer_.restart();
 }

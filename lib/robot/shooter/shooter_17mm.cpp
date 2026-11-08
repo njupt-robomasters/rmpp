@@ -44,7 +44,7 @@ void Shooter17mm::update() {
     // 拨弹电机：摩擦轮开启、未热量保护、弹频非零且在线；不检查摩擦轮是否在线，便于单独调试
     if (!is_rub || is_heat_protect_ || bullet_freq.ref == 0 || !motor.shoot.is_connect) {
         is_block_ = false;
-        timer_block_.restart();
+        block_timer_.restart();
         shoot_pid_.clear();
         motor.shoot.set_current(0);
         return;
@@ -65,13 +65,13 @@ void Shooter17mm::update() {
     if (!is_block_) {
         // 达到电流限幅并持续 block_time 判为卡弹；取绝对值兼顾负弹频反转
         if (std::fabs(motor.shoot.current_ref) < motor.shoot.config.drive.max_current) {
-            timer_block_.restart();
-        } else if (timer_block_.elapsed() > config_.block_time) {
-            timer_block_.restart();
+            block_timer_.restart();
+        } else if (block_timer_.elapsed() > config_.block_time) {
+            block_timer_.restart();
             is_block_ = true;
         }
-    } else if (timer_block_.elapsed() > config_.reverse_time) {
-        timer_block_.restart();
+    } else if (block_timer_.elapsed() > config_.reverse_time) {
+        block_timer_.restart();
         is_block_ = false;
     }
 }

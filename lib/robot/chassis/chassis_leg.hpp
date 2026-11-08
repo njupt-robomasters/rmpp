@@ -153,7 +153,7 @@ class ChassisLeg {
     // 控制器与跨周期状态
     Pid leg_length_pid_[2], leg_angle_pid_[2], roll_pid_;
     bool is_position_ = false; // 速度降到阈值内后开始位移积分
-    Timer timer_{0.0001f, 0.01f};
+    Timer update_timer_{0.0001f, 0.01f};
 
     // 五连杆正运动学：由 phi1、phi4 及角速度更新虚拟腿几何与速度
     void solve_leg(Leg& leg) const;

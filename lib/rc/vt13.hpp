@@ -79,7 +79,7 @@ class VT13 {
         uint16_t crc16 : 16; // CRC校验，CRC-16/CCITT-FALSE多项式 P(x) = x^16 + x^12 + x^5 + 1（对应0x1021），初始值0xFFFF，无输入输出反转，无异或
     } raw_{};
 
-    Timer timer_connect_; // 用于断联检测
+    Timer callback_timer_; // 用于断联检测
     uint8_t rx_buf_[64]{};
     uint8_t rx_size_ = 0;
 
