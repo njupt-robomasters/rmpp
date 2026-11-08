@@ -60,7 +60,7 @@ class ChassisMatrix {
         float ref = 0, measure = 0, input = 0;
     } wr;
 
-    // 功率：轮电机模型估计与本周期平移、旋转电流衰减系数；功率控制目标由超电给出
+    // 功率：轮电机模型估计与本周期平移、旋转电流衰减系数；底盘功率上限由超电给出
     struct {
         float estimate = 0;
         MotorPower::Gain gain;
@@ -93,7 +93,7 @@ class ChassisMatrix {
   protected:
     const Config config_;
     Motor* const wheel_[4]; // 轮电机：左前、左后、右后、右前
-    SuperCap& super_cap_;   // 由底盘更新，提供功率控制目标
+    SuperCap& super_cap_;   // 由底盘更新，提供底盘功率上限
     bool is_enable_ = false;
     float reserve_wr_ = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转
     Angle gimbal_yaw_;

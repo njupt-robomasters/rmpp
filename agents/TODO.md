@@ -86,7 +86,7 @@
 
 ### 已确认
 
-- 类 `SuperCap`，`lib/power/super_cap.{hpp,cpp}`；模式 OFF / MONITOR / CHARGE / BOOST，`mode` 为设定、`active_mode` 为生效；应答电压 `voltage.out/cap`
+- 类 `SuperCap`，`lib/power/super_cap.{hpp,cpp}`；模式 OFF / MONITOR / CHARGE / BOOST，`mode` 为设定、`active_mode` 为生效；应答电压 `voltage.chassis/cap`
 - OFF：关 DCDC，按估计功率；超电离线同 OFF
 - MONITOR：关 DCDC，按实测功率，上限为裁判上限
 - CHARGE：开 DCDC，按实测功率，上限为裁判上限
