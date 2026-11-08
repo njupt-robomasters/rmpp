@@ -1,0 +1,1 @@
+set(RMPP_BOARD mc02)
