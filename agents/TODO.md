@@ -99,7 +99,6 @@
 - 0x051 应答电压电流符号与量程；底盘 `power.estimate` 与 `super_cap.power.chassis` 对比
 - CHARGE 稳态 `power.cap` 不为负；若因 DCDC 损耗偏负再考虑充电余量；BOOST 在 10/12 V 的补偿衰减
 - infantry/sentry 未装超电（不调用 send，按 OFF）
-- 全向轮 OMNI 旋转列已取反：确认 wr > 0 时逆时针，infantry 与 examples/chassis 同用 OMNI，需一并复核
 
 ## 底盘深度重构、PID 回算、UI 下放
 

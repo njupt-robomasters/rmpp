@@ -14,12 +14,12 @@ class ChassisMatrix {
   public:
     // 轮向固定的四轮运动学矩阵 J：每行一个轮，轮线速度 = 行 · (vx, vy, vz)，vz 为底盘半径处旋转线速度
     // 轮序：左前、左后、右后、右前；底盘系 x 前、y 左、逆时针为正
-    // 全向轮，45° 布置；旋转列为 −1，使 vz > 0 时底盘逆时针转
+    // 全向轮，45° 布置
     static constexpr float OMNI[4][3] = {
-        {-std::sqrt(0.5f), +std::sqrt(0.5f), -1},
-        {-std::sqrt(0.5f), -std::sqrt(0.5f), -1},
-        {+std::sqrt(0.5f), -std::sqrt(0.5f), -1},
-        {+std::sqrt(0.5f), +std::sqrt(0.5f), -1},
+        {-std::sqrt(0.5f), +std::sqrt(0.5f), 1},
+        {-std::sqrt(0.5f), -std::sqrt(0.5f), 1},
+        {+std::sqrt(0.5f), -std::sqrt(0.5f), 1},
+        {+std::sqrt(0.5f), +std::sqrt(0.5f), 1},
     };
 
     // 麦克纳姆轮
