@@ -47,7 +47,7 @@ $$
 q^-=q_{old}\otimes\delta q
 $$
 
-`rotation_increment()` 算 δq，`multiply_quaternions()` 算右乘。右乘对应**机体系角速度**；换乘法顺序会改变旋转含义。小角度时 sin(Ωdt/2)/Ω≈dt/2，所以 `scale` 默认取 `0.5*dt`，同时避免零角速度除零。
+`solve()` 开头算 δq，`q * delta` 算右乘。右乘对应**机体系角速度**；换乘法顺序会改变旋转含义。小角度时 sin(Ωdt/2)/Ω≈dt/2，所以 `scale` 默认取 `0.5*dt`，同时避免零角速度除零。
 
 首轮没有旧姿态可预测：第 112 行先从加速度求 `roll=atan2(ay,az)`、`pitch=atan2(−ax,hypot(ay,az))`，取 yaw=0，代入标准 Z-Y-X 欧拉角转四元数公式后返回。有效加速度不等于静止；初始姿态仍依赖启动时以重力为主要测量来源。
 
@@ -130,7 +130,7 @@ $$
 
 ## 4. 求解、拒绝与增益调整：本实现加了什么
 
-### 4.1 Cholesky 求解，对应第 187–209 行及 `solve_cholesky()`
+### 4.1 Cholesky 求解，对应第 187–209 行及 `Eigen::LLT`
 
 当 P 满足协方差要求且 R 正定时，S 应为对称正定矩阵，可以分解成 `S=L Lᵀ`，L 为下三角阵，从而避免直接求逆。双重循环依次计算：
 
@@ -141,7 +141,7 @@ $$
 
 代码先平均 S 的对称位置，以减轻浮点不对称；对角余量 t 太小（≤原对角的 1e−7 倍）或非有限，就放弃本轮融合。
 
-`solve_cholesky(L,rhs,out)` 先从上到下解 Ly=rhs，再从下到上解 Lᵀout=y，同一数组复用为 y/out。因此：
+`llt.solve(rhs)` 先从上到下解 Ly=rhs，再从下到上解 Lᵀout=y。因此：
 
 - 输入 r 得到 `weighted_residual=S⁻¹r`，内积得到 `distance=rᵀS⁻¹r`
 - 输入 C 的每一行，得到 K 的对应行；成立的原因是 S⁻¹ 对称
@@ -195,16 +195,14 @@ $$
 
 | 代码入口 | 审阅要点 |
 | --- | --- |
-| [矩阵乘法，第 12 行](../../lib/attitude/quaternion_ekf.cpp) | 普通乘法累加 a[i][k]b[k][j]；右转置乘法累加 a[i][k]b[j][k]；模板参数决定数组维度，输出不能覆盖输入 |
-| [三角求解，第 36 行](../../lib/attitude/quaternion_ekf.cpp) | 前代用已算出的较小行，回代用已算出的较大行 |
 | [数值检查，第 51 行](../../lib/attitude/quaternion_ekf.cpp) | P 对称化；q 的四项除模长；过小或非有限值返回失败 |
-| [旋转运算，第 74 行](../../lib/attitude/quaternion_ekf.cpp) | q⊗δq 的四行展开；小角度分支；无效 dt/角速度不推进 |
+| [旋转增量，`solve()` 开头](../../lib/attitude/quaternion_ekf.cpp) | 小角度分支；非有限角速度不推进 |
 | [构造与初始化，第 99 行](../../lib/attitude/quaternion_ekf.cpp) | 构造只保存配置、重建 P；首个有效测量确定倾角并返回 |
 | [预测，第 128 行](../../lib/attitude/quaternion_ekf.cpp) | A/B 的符号、旧 q 的使用、fading、Q 乘 dt、预测提交位置 |
 | [观测，第 158 行](../../lib/attitude/quaternion_ekf.cpp) | 零加速度只预测；当前样本直接归一化；h/H 使用预测 q；r 的符号 |
 | [分解与门控，第 187 行](../../lib/attitude/quaternion_ekf.cpp) | S 的三角分解、rᵀS⁻¹r、拒绝计数与恢复分支 |
 | [增益与修正，第 233 行](../../lib/attitude/quaternion_ekf.cpp) | 解 K 每行；全局缩放、方向权重、零偏限幅同时修改 K |
 | [后验提交，第 257 行](../../lib/attitude/quaternion_ekf.cpp) | 候选 q 归一化；Joseph 使用预测 P 和最终 K；检查后提交 |
-| [重置与纯积分，第 285 行](../../lib/attitude/quaternion_ekf.cpp) | `reset_bias()` 保留哪些成员；`integrate()` 只组合旋转并归一化，不融合加速度或更新 P |
+| [重置，第 285 行](../../lib/attitude/quaternion_ekf.cpp) | `reset_bias()` 保留哪些成员 |
 
 最后回到 [Attitude::update()](../../lib/attitude/attitude.cpp)：传感器坐标系扣固定零偏、修正尺度 → 安装旋转到机体系 → EKF 内再扣剩余零偏。输出 `gyro` 没有扣 EKF 的 bias；q 转为标准 roll-X/pitch-Y/yaw-Z，累计 yaw 通过归一化相邻角差跨过 ±π，但不消除漂移。

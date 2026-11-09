@@ -42,7 +42,6 @@ inline QuaternionEkf attitude(imu); // 可选；第二参数覆盖 QuaternionEkf
 | `quaternion_to_eular_angle` | `quaternion_to_euler`，返回 yaw、pitch、roll |
 | `body_frame_to_earth_frame` | `q * body`（Eigen 直接运算） |
 | `earth_frame_to_body_frame` | `q.conjugate() * world` |
-| `quaternion_update` | `QuaternionEkf::integrate`，恒角速度积分并归一化 |
 
 欧拉角转换为 `math/angle.hpp` 自由函数；坐标系变换直接用 Eigen 四元数运算，不另设包装。q 应为单位四元数。
 
@@ -60,7 +59,7 @@ inline QuaternionEkf attitude(imu); // 可选；第二参数覆盖 QuaternionEkf
 | `Imu::Config::gyro_offset` | 3 | `Vector3f`，0 rad/s；传感器坐标系静态零偏 |
 | `Imu::Config::gravity` | 1 | 9.81 m/s²；静止原始加速度模长，必须大于 0，修正比例为 9.81/gravity |
 | `Imu::Config::temperature` | 1 | 45°C |
-| `Imu::Config::temperature_pid` | 7 | kp=1、ki=0.01、kd=0、ff=0、max_i=0.4、max_out=1、fc=0；输出限制为 [0,1] 加热占空比；mc02 加热电阻接 12~24 V 电源输入，BSP 再乘 0.05 衰减（参考官方例程 CCR 上限 500/10000），防止烧毁 PCB；C 板不衰减 |
+| `Imu::Config::temperature_pid` | 7 | kp=0.25、ki=0.01、kd=0、ff=0、max_i=0.4、max_out=1、fc=0；输出限制为 [0,1] 加热占空比，BSP 按 `ARR × 占空比` 写 CCR（用 ARR+1 时 C 板 TIM10 满占空比会使 16 位 CCR 溢出为 0、加热停止）；mc02 加热电阻接 12~24 V 电源输入，BSP 再乘 0.05 衰减（参考官方例程 CCR 上限 500/10000），防止烧毁 PCB；C 板不衰减 |
 | `QuaternionEkf::Config::quaternion_noise` | 1 | 10；四元数过程噪声强度，非负，每周期乘 dt |
 | `QuaternionEkf::Config::bias_noise` | 1 | 0.001；零偏过程噪声强度，非负，每周期乘 dt |
 | `QuaternionEkf::Config::accel_noise` | 1 | 1e7；单位重力方向的观测方差，正数，增大后更信任陀螺仪 |

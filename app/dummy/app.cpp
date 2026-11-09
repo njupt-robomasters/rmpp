@@ -19,6 +19,6 @@ extern "C" void app_main() {
 
         referee_loop();
         chassis_loop();
-        // gimbal_loop();
+        gimbal_loop();
     }
 }

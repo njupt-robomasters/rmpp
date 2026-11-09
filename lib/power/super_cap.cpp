@@ -63,7 +63,7 @@ void SuperCap::update() {
 
 void SuperCap::send() const {
     // data[0].bit0 使能 DCDC；data[1..2] 电池侧目标功率，0.01 W/LSB，大端；不限功率时限幅到协议最大值
-    const auto command = static_cast<int16_t>(std::clamp(power.battery_ref, 0.0f, 327.67f) * 100.0f);
+    const auto command = static_cast<int16_t>(std::clamp(power.battery_ref, -327.68f, 327.67f) * 100.0f);
     config_.can.send({
         .id = config_.tx_id,
         .size = 8,
