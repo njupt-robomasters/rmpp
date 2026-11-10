@@ -1,5 +1,5 @@
 #include "bsp/can.hpp"
-#include "bsp/timer.hpp"
+#include "bsp/monitor.hpp"
 #include "bsp/uart.hpp"
 #include "gimbal.hpp"
 #include "rc/fsi6x.hpp"
@@ -26,23 +26,37 @@ void send_can_cmd() {
     pitch.send();
 }
 
-extern "C" void app_main() {
+static void setup() {
     gimbal.set_mode(Gimbal::IMU_MODE);
+}
 
-    Timer timer;
+static void loop() {
+    vt13.update();
+    fsi6x.update();
+
+    gimbal.set_enable(rc_enable());
+    const float yaw_speed = std::clamp((vt13.yaw + fsi6x.yaw) * WYAW_MAX, -WYAW_MAX, WYAW_MAX);
+    const float pitch_speed = std::clamp((vt13.pitch + fsi6x.pitch) * WPITCH_MAX, -WPITCH_MAX, WPITCH_MAX);
+    gimbal.set_speed(yaw_speed, pitch_speed);
+    gimbal.update();
+
+    send_can_cmd();
+}
+
+extern "C" void app_main() {
+    setup();
+
     while (true) {
-        if (timer.elapsed() > 1 * ms) {
-            timer.restart();
-            vt13.update();
-            fsi6x.update();
+        // 1 kHz 更新
+        static Timer app_timer;
+        if (app_timer.elapsed() < 0.001f)
+            continue;
+        app_timer.restart();
 
-            gimbal.set_enable(rc_enable());
-            const float yaw_speed = std::clamp((vt13.yaw + fsi6x.yaw) * WYAW_MAX, -WYAW_MAX, WYAW_MAX);
-            const float pitch_speed = std::clamp((vt13.pitch + fsi6x.pitch) * WPITCH_MAX, -WPITCH_MAX, WPITCH_MAX);
-            gimbal.set_speed(yaw_speed, pitch_speed);
-            gimbal.update();
-
-            send_can_cmd();
-        }
+        // 负载监控
+        static Monitor app_monitor;
+        app_monitor.begin();
+        loop();
+        app_monitor.end();
     }
 }

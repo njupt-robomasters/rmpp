@@ -9,9 +9,9 @@ static constexpr float BUFFER_MAX = 60;    // 缓冲能量上限，J
 static constexpr float REFEREE_DT = 0.1f;  // 结算周期，s
 
 void referee_loop() {
-    static Timer timer;
-    if (timer.elapsed() >= REFEREE_DT) {
-        timer.restart();
+    static Timer referee_timer;
+    if (referee_timer.elapsed() >= REFEREE_DT) {
+        referee_timer.restart();
         referee_power = super_cap.power.battery * POWER_SCALE;
         referee_energy = std::clamp(referee_energy + (REFEREE_LIMIT - referee_power) * REFEREE_DT, 0.0f, BUFFER_MAX);
     }

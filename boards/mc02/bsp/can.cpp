@@ -6,7 +6,8 @@
  * | FDCAN2 | PB5 / PB6   | 0x358    |
  * | FDCAN3 | PD12 / PD13 | 生成值   |
  *
- * 全局过滤把标准帧和扩展帧都送入 RX FIFO0；发送使用 32 级 TX FIFO；IT0 中断由 CubeMX 开启
+ * 全局过滤把标准帧和扩展帧都送入 RX FIFO0；IT0 中断由 CubeMX 开启
+ * 发送使用 32 级 TX FIFO（Tx Fifo Queue Mode = FIFO mode），按写入顺序发送；Auto Retransmission 开启
  * bus-off 后硬件置位 CCCR.INIT，这里计数并清除，经 129 × 11 个隐性位后自动重新入网
  */
 

@@ -13,7 +13,8 @@
 ## 启动与循环
 
 - CubeMX 初始化后依次执行 `bsp_init()`、`app_main()`
-- `app_main()` 依次轮询底盘、云台、发射
+- `app.cpp` 分为 `setup()`、`loop()`、`app_main()`：`setup()` 放一次性初始化；`loop()` 依次轮询各设备与模块；`app_main()` 先调用 `setup()`，再用 `static Timer app_timer` 按 1 kHz 调度 `loop()`，并用 `static Monitor app_monitor` 统计频率与占用（SWD 观察）
+- 低于 1 kHz 的任务在 `loop()` 内用 `static Timer <用途>_timer` 分频后提前返回，如 cdc 示例的 `print_timer`
 - 使用普通 loop，不引入操作系统或整车包装类
 
 ## 文件组织

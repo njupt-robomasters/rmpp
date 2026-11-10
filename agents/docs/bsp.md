@@ -94,6 +94,7 @@
 
 - 经典帧 1 Mbps；`HAL_FDCAN_ConfigGlobalFilter` 把标准帧和扩展帧都送入 RX FIFO0，远程帧拒收
 - 通知 `RX_FIFO0_NEW_MESSAGE | BUS_OFF`，IT0 中断由 CubeMX 开启；发送 `AddMessageToTxFifoQ`，队列满丢弃
+- 两板 CAN 均开启自动重发，按写入顺序发送（C 板 Transmit Fifo Priority = Enable，mc02 TX FIFO 模式）；仲裁失败和总线错误后重试。CAN ACK 由任一正常接收的节点回复，某个电机离线不会让帧积压；总线上没有其他节点时首帧一直重发、后续帧排队，满后新帧丢弃
 - 接收区按 64 字节准备：HAL 按 FD 长度表拷贝，经典帧 DLC 9–15 会拷贝超过 8 字节
 - bus-off 后硬件置位 `CCCR.INIT`；`HAL_FDCAN_ErrorStatusCallback` 计数并清除，经 129 × 11 个隐性位后自动重新入网
 

@@ -10,7 +10,8 @@
  * | Parameter Settings | Time Quanta in Bit Segment 1 / 2 | 10 Times / 3 Times |
  * | Parameter Settings | ReSynchronization Jump Width     | 1 Time             |
  * | Parameter Settings | Automatic Bus-Off Management     | Enable             |
- * | Parameter Settings | Automatic Retransmission         | Disable            |
+ * | Parameter Settings | Automatic Retransmission         | Enable             |
+ * | Parameter Settings | Transmit Fifo Priority           | Enable             |
  *
  * 引脚与 NVIC Settings
  * | 外设 | Pinout                       | 勾选中断           | Preemption / Sub Priority |
@@ -19,6 +20,7 @@
  * | CAN2 | PB5 = CAN2_RX，PB6 = CAN2_TX | CAN2 RX1、CAN2 SCE | 0 / 0                     |
  *
  * 过滤器及接收通知由 can_init() 设置，时钟、GPIO 和 IRQHandler 由 CubeMX 生成
+ * 发送使用 3 个邮箱，按请求顺序发送；自动重发开启
  */
 
 #include "bsp/can.hpp"

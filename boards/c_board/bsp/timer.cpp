@@ -43,8 +43,7 @@ void Timer::delay(const float seconds) {
 
 float Timer::elapsed() {
     const float seconds = static_cast<float>(read_cycles() - last_cycles_) / static_cast<float>(SystemCoreClock);
-    dt = std::clamp(seconds, min_dt_, max_dt_);
-    return dt;
+    return std::clamp(seconds, min_dt_, max_dt_);
 }
 
 float Timer::restart() {

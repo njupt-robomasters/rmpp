@@ -1,5 +1,5 @@
 #include "bsp/can.hpp"
-#include "bsp/timer.hpp"
+#include "bsp/monitor.hpp"
 #include "bsp/uart.hpp"
 #include "chassis.hpp"
 #include "rc/fsi6x.hpp"
@@ -27,27 +27,41 @@ void send_can_cmd() {
     Can(1).send(frame);
 }
 
-extern "C" void app_main() {
+static void setup() {
     chassis.set_mode(ChassisMatrix::DETACH_MODE);
     chassis.set_gimbal_yaw(0 * deg);
     super_cap.set_referee_limit(120);
     super_cap.set_referee_energy(60);
+}
 
-    Timer timer;
+static void loop() {
+    vt13.update();
+    fsi6x.update();
+
+    chassis.set_enable(rc_enable());
+    const float vx = std::clamp((vt13.x + fsi6x.x) * VXY_MAX, -VXY_MAX, VXY_MAX);
+    const float vy = std::clamp((vt13.y + fsi6x.y) * VXY_MAX, -VXY_MAX, VXY_MAX);
+    const float wr = vt13.wheel * WR_MAX;
+    chassis.set_speed(vx, vy, wr);
+    chassis.update();
+
+    send_can_cmd();
+}
+
+extern "C" void app_main() {
+    setup();
+
     while (true) {
-        if (timer.elapsed() > 1 * ms) {
-            timer.restart();
-            vt13.update();
-            fsi6x.update();
+        // 1 kHz 更新
+        static Timer app_timer;
+        if (app_timer.elapsed() < 0.001f)
+            continue;
+        app_timer.restart();
 
-            chassis.set_enable(rc_enable());
-            const float vx = std::clamp((vt13.x + fsi6x.x) * VXY_MAX, -VXY_MAX, VXY_MAX);
-            const float vy = std::clamp((vt13.y + fsi6x.y) * VXY_MAX, -VXY_MAX, VXY_MAX);
-            const float wr = vt13.wheel * WR_MAX;
-            chassis.set_speed(vx, vy, wr);
-            chassis.update();
-
-            send_can_cmd();
-        }
+        // 负载监控
+        static Monitor app_monitor;
+        app_monitor.begin();
+        loop();
+        app_monitor.end();
     }
 }
