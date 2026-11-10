@@ -4,7 +4,6 @@
  */
 #include "quaternion_ekf.hpp"
 
-#include <Eigen/Cholesky>
 #include <algorithm>
 #include <cmath>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "eigen_types.hpp"
+#include "eigen.hpp"
 #include "unit.hpp"
 #include <algorithm>
 #include <cmath>

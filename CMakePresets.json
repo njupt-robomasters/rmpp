@@ -134,6 +134,14 @@
                 "RMPP_APP": "sentry",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
+        },
+        {
+            "name": "test",
+            "inherits": "default",
+            "cacheVariables": {
+                "RMPP_APP": "test",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
         }
     ]
 }

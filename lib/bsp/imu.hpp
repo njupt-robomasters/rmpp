@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bsp/timer.hpp"
-#include "math/eigen_types.hpp"
+#include "math/eigen.hpp"
 #include "pid/pid.hpp"
 
 // 板载 BMI088：读取、零偏与安装方向修正、校准及恒温加热

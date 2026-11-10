@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math/eigen_types.hpp"
+#include "math/eigen.hpp"
 #include "motor/motor.hpp"
 
 // 电机功率模型：P = Σ(kt·I·ω + 0.75·R·I²)，R 为线间电阻（星形接法三相铜耗 1.5·(R/2)·I²）

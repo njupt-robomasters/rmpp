@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bsp/timer.hpp"
-#include "math/eigen_types.hpp"
+#include "math/eigen.hpp"
 #include "math/unit.hpp"
 #include "motor/dm8009.hpp"
 #include "motor/m3508.hpp"

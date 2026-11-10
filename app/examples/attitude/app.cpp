@@ -7,8 +7,7 @@
 // orientation：传感器到机体的安装旋转，Z-Y-X 欧拉角，按实际安装修改
 static Imu imu({.orientation = euler_to_quaternion({.yaw = 0 * deg, .pitch = 0 * deg, .roll = 0 * deg}),
                 .gyro_offset = Vector3f(0.0f, 0.0f, 0.0f),
-                .gravity = 9.81f,
-                .temperature = 45.0f});
+                .gravity = 9.81f});
 
 // 内部调用 imu.update()；SWD 观察 attitude.q / yaw / pitch / roll / yaw_total_angle
 static QuaternionEkf attitude(imu, {});

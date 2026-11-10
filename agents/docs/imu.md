@@ -5,7 +5,7 @@
 IMU 分为两层：BSP `Imu` 负责硬件读取、零偏校准和安装方向修正，可单独使用；`lib/attitude` 是可选的姿态解算。`Attitude` 为抽象父类，调用 `Imu::update()` 并由 q 统一输出欧拉角和累计 yaw；子类按算法命名，只实现 `solve(gyro, accel)` 更新 q，目前有 `QuaternionEkf`。
 
 数学类型统一使用随项目固定的 Eigen 3.4.0。`Vector2f/3f/4f`、`Quaternionf`、`Matrix3f/6f`
-均为定长 `float` 类型，定义在 `math/eigen_types.hpp`；解算不使用动态矩阵、堆分配或 Eigen 向量化。
+均为定长 `float` 类型，定义在 `math/eigen.hpp`；解算不使用动态矩阵、堆分配或 Eigen 向量化。
 
 | 文件 | 职责与审阅重点 |
 | --- | --- |
@@ -13,7 +13,7 @@ IMU 分为两层：BSP `Imu` 负责硬件读取、零偏校准和安装方向修
 | `boards/*/bsp/imu.cpp` | 板卡实现 `Imu::update()`：BMI088 初始化时序、寄存器事务、原始量解码、恒温加热，再调用共用校准与修正；各板只有 SPI、片选和加热定时器不同 |
 | `lib/attitude/attitude.hpp/.cpp` | 抽象父类：读取 Imu、欧拉角和累计 yaw |
 | `lib/attitude/quaternion_ekf.hpp/.cpp` | 子类：四元数和 X/Y 剩余零偏组成的六状态 EKF |
-| `lib/math/eigen_types.hpp` | Eigen 定长类型 using 声明 |
+| `lib/math/eigen.hpp` | 唯一 Eigen 入口：按 O2 包含 Eigen 模块，定长类型 using 声明 |
 | `lib/math/angle.hpp` | `Angle`、`rotate`、`EulerAngles`、`euler_to_quaternion`、`quaternion_to_euler` |
 
 `Imu::update()` 首次调用时初始化传感器，失败后下次重试；读取成功后依次执行一步加热闭环、推进校准、零偏/重力模长/安装方向修正；读取失败关闭加热，输出保持上次值。`update()` 无返回值。初始化保留两次 80 ms 复位等待。`Imu` 输出已修正的机体系 `gyro`（rad/s）、`accel`（m/s²）和 `temperature`（°C）。

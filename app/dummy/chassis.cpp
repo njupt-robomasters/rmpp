@@ -10,8 +10,8 @@ static constexpr float WR_MAX = 150 * rpm; // 手动旋转最大角速度
 static constexpr float SPIN_WR = 60 * rpm; // 小陀螺角速度
 
 // N630 HFI 静止附近有高频噪音：目标电流与实际轮速均低于阈值时发零电流
-static constexpr float LOW_CURRENT = 0.5f; // A
-static constexpr float LOW_SPEED = 5 * rpm;
+static constexpr float LOW_CURRENT = 1.0f; // A
+static constexpr float LOW_SPEED = 20 * rpm;
 
 void chassis_loop() {
     const bool is_enable = fsi6x.swa == FSi6X::DOWN; // SWA 下挡使能

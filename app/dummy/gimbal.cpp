@@ -28,13 +28,13 @@ void gimbal_loop() {
         // 跟随（SWB 下）或小陀螺（SWD 下）时左摇杆水平控制云台转速，否则保持世界系朝向
         if (fsi6x.swb == FSi6X::DOWN || fsi6x.swd == FSi6X::DOWN)
             yaw_ref += fsi6x.yaw * SPEED_MAX * dt;
-        yaw.set_current(yaw_pid.calculate(Angle(yaw_ref - yaw_measure)));
+        yaw.set_current(yaw_pid.calculate(Angle(yaw_ref - yaw_measure), -yaw.speed));
     }
     yaw.update();
 
     // RMDL7025 两种报文合计应答上限 500 Hz
     static Timer yaw_send_timer;
-    if (yaw_send_timer.elapsed() >= 0.002f) {
+    if (yaw_send_timer.elapsed() >= 0.005f) {
         yaw_send_timer.restart();
         yaw.send();
     }
