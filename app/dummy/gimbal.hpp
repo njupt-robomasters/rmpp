@@ -4,7 +4,7 @@
 #include "motor/rmdl7025.hpp"
 
 // 惯性测量单元与姿态解算，C 板装在底盘上，结合 yaw 电机角度换算云台朝向；静止漂移明显时重新校准
-static Imu imu({.orientation = euler_to_quaternion({.yaw = 0 * deg, .pitch = 0 * deg, .roll = 0 * deg}),
+static Imu imu({.orientation = euler_to_quaternion({.yaw = 0 * deg, .pitch = 0 * deg, .roll = 180 * deg}),
                 .gyro_offset = Vector3f(0.00153f, -0.00384f, -0.00022f),
                 .gravity = 9.71541f});
 inline QuaternionEkf attitude(imu, {});

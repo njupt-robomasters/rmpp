@@ -14,7 +14,7 @@ inline Pid::Config wheel_pid_config = {
 
 inline Pid::Config follow_pid_config = {
     .kp = 10.0f,
-    .kd = 2.0f,
+    .kd = 1.0f,
     .max_out = 60 * rpm,
 };
 

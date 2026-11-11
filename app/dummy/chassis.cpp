@@ -54,9 +54,8 @@ void chassis_loop() {
     Can(1).send(frame);
 
     // 超电 100 Hz 发送
-    static Timer super_cap_send_timer;
-    if (super_cap_send_timer.elapsed() >= 0.01f) {
-        super_cap_send_timer.restart();
+    static uint32_t super_cap_send_count = 0;
+    if (super_cap_send_count++ % 10 == 0) {
         super_cap.send();
     }
 }

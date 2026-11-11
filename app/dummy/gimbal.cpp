@@ -33,9 +33,8 @@ void gimbal_loop() {
     yaw.update();
 
     // RMDL7025 两种报文合计应答上限 500 Hz
-    static Timer yaw_send_timer;
-    if (yaw_send_timer.elapsed() >= 0.002f) {
-        yaw_send_timer.restart();
+    static uint32_t yaw_send_count = 0;
+    if (yaw_send_count++ % 2 == 0) {
         yaw.send();
     }
 }
