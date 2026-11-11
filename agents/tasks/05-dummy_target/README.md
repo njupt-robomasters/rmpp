@@ -12,8 +12,8 @@ cmake --build build/dummy --parallel 8
 
 ## 映射
 
-- 底盘：四个 N630（C620 协议）按 M3508 驱动，CAN1 0x201–0x204，0x200 组帧；直接用 `ChassisOmniSpeed`，跟随 PID 由库完成
-- HFI 噪音：组帧前对每轮判断，目标电流 < 0.3 A 且实际转速 < 5 rpm 时置零电流；不再用子类包装
+- 底盘：四个 N630（C620 协议）用 `X630` 驱动，CAN1 0x201–0x204，0x200 组帧；直接用 `ChassisOmniSpeed`，跟随 PID 由库完成
+- HFI 噪音：由 `X630` 滞回静音处理（见 `docs/motor.md`），dummy 用默认阈值
 - 已删：直线防偏航、航向零点、`rc_enable()`、`is_gimbal_mode()`
 - 云台：IMU（C 板）在底盘上，云台世界系朝向 = `attitude.yaw + yaw.position`，单级 P 闭位置环输出电流；未使能时目标跟随测量
 - 电机：RMD-L-7025 直连，`lib/motor/rmdl7025`，0x141/0x241；`gimbal_loop` 按 2 ms 限频调用 `send()`，两种报文合计 500 Hz
@@ -34,6 +34,6 @@ cmake --build build/dummy --parallel 8
 ## 待上车核对
 
 - yaw 电机零点 `install.offset`：使 `yaw.position` = 云台相对底盘前方角度，逆时针为正（与 `attitude.yaw` 同向）；不对时跟随、小陀螺平移方向和世界系闭环都会偏
-- `yaw_pid.kp`（1 A/10°）与 `follow_pid`（kp 5，限 360°/s）为占位值，跟随方向（符号）待实车确认；HFI 阈值 0.3 A/5 rpm 待实测
+- `yaw_pid.kp`（1 A/10°）与 `follow_pid`（kp 5，限 360°/s）为占位值，跟随方向（符号）待实车确认；HFI 阈值 1 A/2 A/10 rpm 待实测
 - 轮序与方向；7025 电机 ID、电流方向（正电流应使 `yaw.position` 增大）
 - 摇杆死区：库默认 5%，PR 自写解析也是 5%；FSi6X 拨杆按精确值 240/1024/1807 判定，PR 用区间

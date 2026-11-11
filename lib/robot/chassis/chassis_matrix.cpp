@@ -80,7 +80,7 @@ ChassisMatrix::ChassisMatrix(SuperCap& super_cap, const std::array<Motor*, 4>& w
       j_pinv_((j_.transpose() * j_).inverse() * j_.transpose()), // 列满秩，左伪逆 (JᵀJ)⁻¹Jᵀ
       follow_pid_(config.follow_pid_config) {}
 
-ChassisMatrixSpeed::ChassisMatrixSpeed(SuperCap& super_cap, const std::array<Motor*, 4>& wheel, const Config& config)
+ChassisMatrixSpeed::ChassisMatrixSpeed(const std::array<Motor*, 4>& wheel, SuperCap& super_cap, const Config& config)
     : ChassisMatrix(super_cap, wheel, config),
       wheel_pid_{Pid(config.speed_pid_config), Pid(config.speed_pid_config), Pid(config.speed_pid_config), Pid(config.speed_pid_config)} {}
 

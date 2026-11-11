@@ -53,3 +53,9 @@
 - `send()` 用内部计数器轮流发送转矩闭环 0xA1（应答温度、电流、转速）和读取单圈角度 0x94（应答角度）
 - 电机应答上限 500 Hz，单电机调用周期不小于 2 ms，各报文有效频率为调用频率的一半
 - 离线或未使能时 0xA1 发零电流，用应答维持在线检测
+
+## X630（N630/P630）
+
+- CAN 协议、刻度与组帧同 M3508（C620），物理常数暂按 M3508 取值；无 `send_quick_set_id()`
+- HFI 静音：构造第二参数 `Mute`，重写 `set_current/set_torque`，设置后滞回判断，静音时 `current_ref/torque_ref` 置零
+- 目标电流 < `enter_current`（1 A）且转速 < `enter_speed`（10 rpm）进入静音，目标电流 > `exit_current`（2 A）才退出

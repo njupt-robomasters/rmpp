@@ -114,7 +114,7 @@ class ChassisMatrix {
 // 电流按力正解拆出旋转分量做功率控制，假设四轮同型号
 class ChassisMatrixSpeed : public ChassisMatrix {
   public:
-    ChassisMatrixSpeed(SuperCap& super_cap, const std::array<Motor*, 4>& wheel, const Config& config);
+    ChassisMatrixSpeed(const std::array<Motor*, 4>& wheel, SuperCap& super_cap, const Config& config);
 
   private:
     Pid wheel_pid_[4]; // 轮转速误差 rad/s → 电流 A
