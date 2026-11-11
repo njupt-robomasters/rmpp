@@ -14,6 +14,7 @@ inline Pid::Config yaw_pid_config = {
     .kp = 2.0f,
     .kd = 0.1f,
     .max_out = RMDL7025::MAX_CURRENT,
+    .d_fc = 30.0f,
 };
 
 // 云台电机：RMD-L-7025 直连 CAN1，电机 ID 1；position 为云台相对底盘前方的角度，逆时针为正，零点待标定
