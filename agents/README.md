@@ -35,7 +35,7 @@ agents/
 - `02-buzzer_timbre/`：蜂鸣器复音 PWM-DAC 音色探索与样机归档；正式实现在 `lib/melody`
 - `03-quad_steer/`：底盘重构（四舵移植、矩阵底盘、统一功率控制）、PID 回算、UI 下放、机构库掉线处理；已确认决定与上车核对项
 - `04-leg_chassis/`：轮腿底盘从 SOLDIER_LEG_4 迁移；IMU 极性核查、电机映射与虚拟 IMU 方案
-- `05-dummy_target/`：PR #3 靶车移植到 `app/dummy`；映射、删减与上车核对项
+- `05-dummy_target/`：PR #3 靶车移植到 `app/dummy`；映射、删减与上车核对项；follow PID 微分尖峰只读采样与分析
 - `06-super_cap_capacitance/`：超电在线容量/ESR 辨识（RLS）与虚拟缓冲能量功率控制；主机仿真与上车核对项
 - `07-can_tx_latest/`：CAN 发送“同 ID 只留最新”方案（已撤销）；撤销延迟、FIFO 空洞等实测硬件知识与上板测试写法
 - `08-attitude_cpu/`：attitude 示例 -Og 下 Eigen 不内联导致 CPU 超时；编译变体统计与上板周期测量
