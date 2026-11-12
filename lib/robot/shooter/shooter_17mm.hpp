@@ -1,10 +1,8 @@
 #pragma once
 
-#include "bsp/timer.hpp"
 #include "math/unit.hpp"
 #include "motor/vesc.hpp"
 #include "pid/pid.hpp"
-#include <cstdint>
 
 // 17mm 发射机构：双 VESC 摩擦轮速度模式，拨弹电机速度闭环；摩擦轮与拨弹电机各自处理掉线
 class Shooter17mm {

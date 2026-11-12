@@ -1,3 +1,4 @@
 dt默认范围
 class变量排序
 明确持有方职责
+private public

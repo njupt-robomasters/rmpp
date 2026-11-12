@@ -1,7 +1,7 @@
 #pragma once
 
-#include "motor/x630.hpp"
 #include "motor/m3508.hpp"
+#include "motor/x630.hpp"
 #include "robot/chassis/chassis_matrix.hpp"
 
 // 轮速 PID，误差 rad/s → 电流 A；四轮共用
@@ -48,13 +48,14 @@ inline X630 w4({
 inline SuperCap super_cap({.can = Can(1)});
 
 // 全向轮速度控制
-inline ChassisMatrixSpeed chassis({&w1, &w2, &w3, &w4}, super_cap, {
-                                                                       .kinematics = ChassisMatrix::OMNI,
-                                                                       .chassis_radius = 0.23f,
-                                                                       .wheel_radius = 0.06f,
-                                                                       .wheel_resistance = 0.194f,
-                                                                       .speed_pid_config = &wheel_pid_config,
-                                                                       .follow_pid_config = &follow_pid_config,
-                                                                   });
+inline ChassisMatrixSpeed chassis({&w1, &w2, &w3, &w4}, super_cap,
+                                  {
+                                      .kinematics = ChassisMatrix::OMNI,
+                                      .chassis_radius = 0.23f,
+                                      .wheel_radius = 0.06f,
+                                      .wheel_resistance = 0.194f,
+                                      .speed_pid_config = &wheel_pid_config,
+                                      .follow_pid_config = &follow_pid_config,
+                                  });
 
 void chassis_loop();

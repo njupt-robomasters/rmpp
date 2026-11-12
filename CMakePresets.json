@@ -32,14 +32,6 @@
             }
         },
         {
-            "name": "examples-chassis",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "examples/chassis",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
             "name": "examples-empty",
             "inherits": "default",
             "cacheVariables": {
@@ -104,14 +96,6 @@
             }
         },
         {
-            "name": "examples-shooter",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "examples/shooter",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
             "name": "infantry",
             "inherits": "default",
             "cacheVariables": {
@@ -120,10 +104,18 @@
             }
         },
         {
-            "name": "leg",
+            "name": "leg_down",
             "inherits": "default",
             "cacheVariables": {
-                "RMPP_APP": "leg",
+                "RMPP_APP": "leg_down",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "leg_up",
+            "inherits": "default",
+            "cacheVariables": {
+                "RMPP_APP": "leg_up",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },

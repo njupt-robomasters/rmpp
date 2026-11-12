@@ -1,15 +1,9 @@
 #pragma once
 
-#include <cstdint>
-
 #include "motor.hpp"
 
 class Vesc : public Motor {
   public:
-    static constexpr float MAX_CURRENT = 20;
-    static constexpr float KT = 1;
-    static constexpr float REDUCTION = 7;
-
     float temp_fet = 0;
     float temp_motor = 0;
     float current_in = 0;
@@ -26,7 +20,7 @@ class Vesc : public Motor {
     float adc3 = 0;
     float ppm = 0;
 
-    explicit Vesc(const Motor::Config& config);
+    explicit Vesc(const Config& config);
 
     void set_current(float current) override;
     void set_torque(float torque) override;

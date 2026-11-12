@@ -1,5 +1,4 @@
 #include "shooter_17mm.hpp"
-#include <cmath>
 
 Shooter17mm::Shooter17mm(const Motors& motor, const Config& config)
     : motor(motor), config_(config), shoot_pid_(config.shoot_pid_config) {}

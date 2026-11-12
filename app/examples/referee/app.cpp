@@ -11,7 +11,6 @@ static void loop() {
 
 extern "C" void app_main() {
     setup();
-
     while (true) {
         // 1 kHz 更新
         static Timer app_timer;

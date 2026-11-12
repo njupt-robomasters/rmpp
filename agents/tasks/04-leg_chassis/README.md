@@ -9,7 +9,7 @@
 ## 已确认
 
 - 底盘 C 板与外部车安装一致：`orientation = yaw 180°`
-- 独立类 `lib/robot/chassis/chassis_leg.*`，姿态每周期由 `update(q, gyro)` 传入；应用 `app/leg`，C 板
+- 独立类 `lib/robot/chassis/chassis_leg.*`，姿态每周期由 `update(q, gyro)` 传入；应用 `../../../app/leg_down`，C 板
 - 自救步长按 dt 换算为 rad/s
 - roll PD 微分用 `-gyro.x`
 - 任一关节或轮掉线、关节未使能或报错：全部输出零

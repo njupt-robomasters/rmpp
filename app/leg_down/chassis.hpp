@@ -119,19 +119,20 @@ inline constexpr float LQR_FIT[4][10][6] = {
 };
 
 // 底盘：其余参数取 ChassisLeg::Config 默认值，与外部工程一致
-inline ChassisLeg chassis({left_front, left_back, right_back, right_front, left_wheel, right_wheel}, {
-                                                                                                         .mass = 22.75f,
-                                                                                                         .spring_force = 450.0f,
-                                                                                                         .wheel_radius = 0.06f,
-                                                                                                         .wheel_distance = 0.488f,
-                                                                                                         .active_link = 0.210f,
-                                                                                                         .passive_link = 0.248f,
-                                                                                                         .leg_min = 0.14f,
-                                                                                                         .leg_max = 0.33f,
-                                                                                                         .leg_length_pid = &leg_length_pid,
-                                                                                                         .leg_angle_pid = &leg_angle_pid,
-                                                                                                         .roll_pid = &roll_pid,
-                                                                                                         .lqr_fit = LQR_FIT,
-                                                                                                     });
+inline ChassisLeg chassis({left_front, left_back, right_back, right_front, left_wheel, right_wheel},
+                          {
+                              .mass = 22.75f,
+                              .spring_force = 450.0f,
+                              .wheel_radius = 0.06f,
+                              .wheel_distance = 0.488f,
+                              .active_link = 0.210f,
+                              .passive_link = 0.248f,
+                              .leg_min = 0.14f,
+                              .leg_max = 0.33f,
+                              .leg_length_pid = &leg_length_pid,
+                              .leg_angle_pid = &leg_angle_pid,
+                              .roll_pid = &roll_pid,
+                              .lqr_fit = LQR_FIT,
+                          });
 
 void chassis_loop();
