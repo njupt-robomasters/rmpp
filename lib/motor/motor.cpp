@@ -44,7 +44,7 @@ void Motor::can_callback() {
     callback_timer_.restart();
 
     // 用于多圈计数
-    raw_position_multi_ += Angle(raw_position_last_ - raw.position);
+    raw_position_multi_ += Angle(raw.position - raw_position_last_);
     raw_position_last_ = raw.position;
 
     // 安装方向修正

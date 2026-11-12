@@ -1,12 +1,8 @@
 #pragma once
 
 #include "attitude/quaternion_ekf.hpp"
-#include "bsp/can.hpp"
-#include "bsp/imu.hpp"
-#include "math/unit.hpp"
 #include "motor/dm8009.hpp"
 #include "motor/m3508.hpp"
-#include "pid/pid.hpp"
 #include "robot/chassis/chassis_leg.hpp"
 
 // 参数来自 SOLDIER_LEG_4/Chassis（已实车验证）；极性核查见 agents/tasks/04-leg_chassis
@@ -14,30 +10,32 @@
 // 底盘 C 板：传感器 +X 朝车后、+Y 朝车右、+Z 朝上，即相对机体系（X 前、Y 左、Z 上）绕 Z 转 180°
 // 由外部工程腿倾角与横滚补偿的闭环极性反推；上车前用手低头应见 attitude.pitch 增大、右侧压低应见 attitude.roll 增大
 // 零偏与重力模长在上电静止时校准，见 app_main
-inline Imu imu({.orientation = euler_to_quaternion({.yaw = 180 * deg})});
+inline Imu imu({.orientation = euler_to_quaternion({.yaw = 180 * deg, .pitch = 0 * deg, .roll = 0 * deg}),
+                .gyro_offset = Vector3f(-0.00069f, -0.00059f, 0.00114f),
+                .gravity = 9.5909f});
 inline QuaternionEkf attitude(imu, {});
 
 // 关节 DM8009：CAN2；面向输出轴逆时针为正，不反向
 // offset 取外部工程 pos = wrap(raw + c) 中 c 的相反数，使 position 零位对应 A 杆方位角 π、E 杆 0
-inline DM8009 left_e({
+inline DM8009 left_front({
     .bus = {.can = Can(2), .tx_id = 0x11, .rx_id = 0x21},
     .drive = {.max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
-    .install = {.is_invert = false, .offset = -2.754f},
+    .install = {.is_invert = false, .offset = -2.793f},
 });
-inline DM8009 left_a({
+inline DM8009 left_back({
     .bus = {.can = Can(2), .tx_id = 0x12, .rx_id = 0x22},
     .drive = {.max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
-    .install = {.is_invert = false, .offset = -0.798f},
+    .install = {.is_invert = false, .offset = -0.745f},
 });
-inline DM8009 right_e({
+inline DM8009 right_back({
     .bus = {.can = Can(2), .tx_id = 0x13, .rx_id = 0x23},
     .drive = {.max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
-    .install = {.is_invert = false, .offset = -1.115f},
+    .install = {.is_invert = false, .offset = -1.1478f},
 });
-inline DM8009 right_a({
+inline DM8009 right_front({
     .bus = {.can = Can(2), .tx_id = 0x14, .rx_id = 0x24},
     .drive = {.max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
-    .install = {.is_invert = false, .offset = 1.259f},
+    .install = {.is_invert = false, .offset = 1.225f},
 });
 
 // 轮 M3508：CAN2；左轮电机正转为后退，反向后转速与力矩均以前进为正
@@ -121,19 +119,19 @@ inline constexpr float LQR_FIT[4][10][6] = {
 };
 
 // 底盘：其余参数取 ChassisLeg::Config 默认值，与外部工程一致
-inline ChassisLeg chassis({left_a, left_e, right_a, right_e, left_wheel, right_wheel}, {
-                                                                                           .mass = 22.75f,
-                                                                                           .spring_force = 450.0f,
-                                                                                           .wheel_radius = 0.06f,
-                                                                                           .wheel_distance = 0.488f,
-                                                                                           .active_link = 0.210f,
-                                                                                           .passive_link = 0.248f,
-                                                                                           .leg_min = 0.14f,
-                                                                                           .leg_max = 0.33f,
-                                                                                           .leg_length_pid = &leg_length_pid,
-                                                                                           .leg_angle_pid = &leg_angle_pid,
-                                                                                           .roll_pid = &roll_pid,
-                                                                                           .lqr_fit = LQR_FIT,
-                                                                                       });
+inline ChassisLeg chassis({left_front, left_back, right_back, right_front, left_wheel, right_wheel}, {
+                                                                                                         .mass = 22.75f,
+                                                                                                         .spring_force = 450.0f,
+                                                                                                         .wheel_radius = 0.06f,
+                                                                                                         .wheel_distance = 0.488f,
+                                                                                                         .active_link = 0.210f,
+                                                                                                         .passive_link = 0.248f,
+                                                                                                         .leg_min = 0.14f,
+                                                                                                         .leg_max = 0.33f,
+                                                                                                         .leg_length_pid = &leg_length_pid,
+                                                                                                         .leg_angle_pid = &leg_angle_pid,
+                                                                                                         .roll_pid = &roll_pid,
+                                                                                                         .lqr_fit = LQR_FIT,
+                                                                                                     });
 
 void chassis_loop();

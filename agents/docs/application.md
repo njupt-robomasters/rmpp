@@ -15,7 +15,7 @@
 - CubeMX 初始化后依次执行 `bsp_init()`、`app_main()`
 - `app.cpp` 分为 `setup()`、`loop()`、`app_main()`：`setup()` 放一次性初始化；`loop()` 依次轮询各设备与模块；`app_main()` 先调用 `setup()`，再用 `static Timer app_timer` 按 1 kHz 调度 `loop()`，并用 `static Monitor app_monitor` 统计频率与占用（SWD 观察）
 - 低于 1 kHz 的任务在 `loop()` 内用 `static Timer <用途>_timer` 分频后提前返回，如 cdc 示例的 `print_timer`
-- dummy 用 `uint32_t` 计数递增、取余分频，无手动清零：yaw 每 2 次循环发送，超电每 10 次循环发送，模拟裁判每 100 次循环结算
+- dummy 和 leg 用 `uint32_t` 计数递增、取余分频，无手动清零：dummy 的 yaw 每 2 次循环发送，超电每 10 次循环发送，模拟裁判每 100 次循环结算；leg 左右关节交替发送，每个关节 500 Hz，底盘只在发送左腿的一拍计算（500 Hz），保证计算时两侧关节反馈都已刷新
 - 使用普通 loop，不引入操作系统或整车包装类
 
 ## 文件组织
