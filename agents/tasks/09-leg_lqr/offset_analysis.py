@@ -1,6 +1,6 @@
-"""机体重心水平偏移 d 下的稳态：按本工程实际用法（C 拟合增益、位移误差 ×10、位移限幅 x_max）
+"""机体重心水平偏移 d 下的稳态：按本工程实际用法（C 拟合增益、位移限幅 x_max）
 
-用法：python offset_analysis.py ../../../app/leg_down/chassis.hpp
+用法：python offset_analysis.py ../../../app/leg_down/lqr_fit.hpp
 """
 
 import sys
@@ -8,7 +8,7 @@ import numpy as np
 from lqr_model import model, lqr, fit_c, fit_eval
 
 L = 0.18
-X_MAX = 0.1  # chassis_leg.hpp x_max
+X_MAX = 0.3  # chassis_leg.hpp x_max
 A, B, E = model(L, L)
 Kc = fit_eval(fit_c(sys.argv[1]), L, L)
 
@@ -39,11 +39,6 @@ def report(name, K, x_max=X_MAX):
 
 
 np.set_printoptions(precision=3, suppress=True)
-K10 = Kc.copy(); K10[:, 0] *= 10   # 本工程：位移误差乘 10
-report("当前 C 增益（×10）", K10)
-K1 = Kc.copy()
-report("C 增益不乘 10", K1)
-K30 = Kc.copy(); K30[:, 0] *= 30
-report("C 增益 ×30", K30)
-eig = np.linalg.eigvals(A - B @ K10)
+report("C 增益", Kc)
+eig = np.linalg.eigvals(A - B @ Kc)
 print("当前闭环最慢极点", eig[np.argsort(abs(eig.real))][:2])

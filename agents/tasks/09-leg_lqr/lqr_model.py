@@ -24,7 +24,7 @@ LEG = np.array([
     [0.29, 0.2187, 0.01862845, 0.0713], [0.30, 0.2267, 0.01819599, 0.0733],
 ])
 
-Q = np.diag([60, 20, 12000, 80, 22000, 20, 22000, 20, 40000, 300]).astype(float)
+Q = np.diag([50000, 20, 12000, 80, 22000, 20, 22000, 20, 40000, 300]).astype(float)
 R = np.diag([60, 60, 6, 6]).astype(float)
 
 
@@ -85,7 +85,7 @@ def lqr(A, B, Q=Q, R=R):
 
 
 def fit_c(path):
-    """读取 app/leg_down/chassis.hpp 中的 LQR_FIT"""
+    """读取 C 头文件中的 LQR_FIT"""
     import re
     text = open(path, encoding="utf-8").read()
     body = text[text.index("LQR_FIT"):]
