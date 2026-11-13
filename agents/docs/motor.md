@@ -5,10 +5,14 @@
 ## 构造与配置
 
 - 各层构造函数只接收并传递 motor 唯一的 config 参数
-- 型号默认值由子类通过 Config 成员补齐
+- 型号默认值为子类 `MAX_CURRENT`、`MAX_TORQUE`、`REDUCTION` 常量，构造时传给 `Motor(config, model)`，补齐 `config.drive` 中为零的字段
+- VESC 不对应固定型号，传空 model，app 须给出全部 drive 字段（摩擦轮按 M3508 常量）
 - 不另设全局型号配置包装
 - 配置按 `bus/drive/install` 组织
-- `drive` 保存 kt、电流与转矩量程、减速比，`install` 保存零点和方向
+- `drive` 保存成对的电流与转矩满量程、减速比，`install` 保存零点和方向
+- 不保存 kt：电流与力矩按 `max_torque / max_current` 换算；限流交给 PID `max_out`，不单独改小 `max_current`
+- 减速比与型号不同时同时给出 `max_torque`
+- `config` 公开、外部只读；offset 由 `set_offset()`、`set_zero()` 运行时修改，故不加 const
 - 自行发送的协议使用 `tx_id/rx_id` 明确收发方向；DJI 组帧仅配置 `rx_id`
 
 ## 基类与子类
@@ -27,13 +31,11 @@
 
 ## 零值与限幅
 
-- 零值 `kt` 补为 1
-- 零值 `drive.reduction` 补为 1
-- `max_current/max_torque` 仅一项为零时，通过 kt 补齐
-- 两项全为零时保持零
+- `drive` 零值字段按型号常量补齐
 - `set_current()` 先将非有限值置零，再按 `max_current` 限幅并换算转矩
 - `set_torque()` 先将非有限值置零，再按 `max_torque` 限幅并换算电流
-- 对应最大值为零时，输出限制为零
+- 反馈解析中有符号的转速、电流先转 `int16_t` 保留反转符号
+- `raw.speed` 为电机侧转速，只由 `Motor::can_callback()` 除一次减速比
 
 ## DJI 组帧
 
@@ -44,8 +46,9 @@
 ## GM6020 电压帧
 
 - 电压帧 0x1FF/0x2FF 把 `current_ref` 按 3 A ↔ 25 V 换算为电压，电流帧 0x1FE/0x2FE 直接发电流
-- 反电动势前馈在电机定义时用 `BackEmf{gain, ke}` 给出，发送时叠加 `gain·ke·speed` 并限幅 ±25 V；`ke` 默认手册 1 V/13.33 rpm，`gain` 默认 0 不补偿
-- 只有一个构造，不补偿时调用方传 `{}`
+- 电流与力矩按 3 A ↔ 2.223 N·m 换算，与其他型号一致
+- 反电动势前馈系数为构造第二参数 `float ke = 0`，V/(rad/s)，发送时叠加 `ke·speed` 并限幅 ±25 V；0 不补偿，需要时传手册值 `GM6020::KE`（1 V/13.33 rpm）或按比例缩小，如 `0.5f * GM6020::KE`
+- 可选前馈系数是“配置不给默认实参”约定的例外
 
 ## RMD-L-7025
 

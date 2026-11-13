@@ -20,15 +20,18 @@ class DmMotor : public Motor {
         MOTOR_OTP = 0x0C,          // 电机线圈过温
         COMM_LOST = 0x0D,          // 通讯丢失
         OVERLOAD = 0x0E,           // 过载
-    } err_code = NONE;
+    };
 
-    float temp_mos = 0;
-    float temp_motor = 0;
-
+    // 按状态发送失能、清错、周期使能或 MIT 力矩帧
     void send();
 
   protected:
-    explicit DmMotor(const Config& config);
+    DmMotor(const Config& config, const Config::Drive& model);
+
+  public:
+    ErrCode err_code = NONE;
+    float temp_mos = 0;
+    float temp_motor = 0;
 
   private:
     static constexpr float ENABLE_FREQUENCY = 10; // 使能帧发送频率，Hz

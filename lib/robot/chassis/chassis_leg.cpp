@@ -39,13 +39,13 @@ void ChassisLeg::set_jump(const bool should_jump) {
 }
 
 void ChassisLeg::update(const Quaternionf& q, const Vector3f& gyro) {
-    const float dt = update_timer_.restart();
+    const float dt = std::clamp(update_timer_.restart(), DT_MIN, DT_MAX);
 
     update_feedback(q, gyro);
     update_kin(dt);
     update_rescue(dt);
     update_jump(dt);
-    calc_force();
+    calc_force(dt);
 
     // 力映射：右腿镜像安装，后摆力矩在机构中为反向
     map_force(leg_[0], leg_[0].Tt);
@@ -314,10 +314,16 @@ void ChassisLeg::update_jump(const float dt) {
     }
 }
 
-void ChassisLeg::calc_force() {
+void ChassisLeg::calc_force(const float dt) {
     // 虚拟力：先清零，再按状态计算
     for (auto& l : leg_)
         l.Fn = l.Tt = l.Tw = 0;
+
+    // 相对腿角 PID 只用于自救，其余时间清空，下次自救从零开始
+    if (!is_enable_ || !rescue_.is_fallen || !rescue_.is_running) {
+        for (Pid& pid : leg_angle_pid_)
+            pid.clear();
+    }
 
     if (!is_enable_) {
         // 失能时保持零输出
@@ -325,15 +331,15 @@ void ChassisLeg::calc_force() {
         // 倒地：轮端不输出；自救时摆动力矩跟踪目标相对腿角，仅站起收腿阶段输出轴向力
         if (rescue_.is_running) {
             for (int i = 0; i < 2; i++) {
-                leg_[i].Tt = leg_angle_pid_[i].calculate(Angle(rescue_.target_theta[i] - leg_[i].rel_theta));
+                leg_[i].Tt = leg_angle_pid_[i].calculate(dt, Angle(rescue_.target_theta[i] - leg_[i].rel_theta));
                 if (rescue_.stand_step[i] == 1)
-                    leg_[i].Fn = leg_length_pid_[i].calculate(config_.leg_min - leg_[i].L, 0 - leg_[i].d_L) + leg_[i].Fg - leg_[i].Fs;
+                    leg_[i].Fn = leg_length_pid_[i].calculate(dt, config_.leg_min - leg_[i].L, 0 - leg_[i].d_L) + leg_[i].Fg - leg_[i].Fs;
             }
         }
     } else {
         // 轴向力
         if (!jump_.is_active) {
-            balance_legs(leg_length_ref_);
+            balance_legs(dt, leg_length_ref_);
         } else if (jump_.step == 0) { // 起跳：跳跃力叠加重力补偿
             for (auto& l : leg_)
                 l.Fn = jump_.force + l.Fg - l.Fs;
@@ -342,9 +348,9 @@ void ChassisLeg::calc_force() {
                 l.Fn = jump_.force - l.Fs;
         } else if (jump_.step == 2) { // 收腿保持：腿长 PD，不补偿重力
             for (int i = 0; i < 2; i++)
-                leg_[i].Fn = leg_length_pid_[i].calculate(config_.leg_min - leg_[i].L, 0 - leg_[i].d_L) - leg_[i].Fs;
+                leg_[i].Fn = leg_length_pid_[i].calculate(dt, config_.leg_min - leg_[i].L, 0 - leg_[i].d_L) - leg_[i].Fs;
         } else { // 落地缓冲
-            balance_legs(config_.jump_buffer_length);
+            balance_legs(dt, config_.jump_buffer_length);
         }
 
         calc_lqr();
@@ -358,10 +364,10 @@ void ChassisLeg::calc_force() {
     }
 }
 
-void ChassisLeg::balance_legs(const float length) {
+void ChassisLeg::balance_legs(const float dt, const float length) {
     // 横滚补偿：右侧低（roll > 0）时输出为负，左腿缩短、右腿伸长
     // 外部工程 imu_roll 与 roll 反号，其写法为左 L - out、右 L + out；此处左 +、右 - 是同一物理方向
-    const float roll_out = roll_pid_.calculate(0 - body_.roll, 0 - body_.d_roll);
+    const float roll_out = roll_pid_.calculate(dt, 0 - body_.roll, 0 - body_.d_roll);
     const float length_ref[2] = {
         std::clamp(length + roll_out, config_.leg_min, config_.leg_max),
         std::clamp(length - roll_out, config_.leg_min, config_.leg_max),
@@ -369,7 +375,7 @@ void ChassisLeg::balance_legs(const float length) {
 
     // 腿长 PD 叠加重力补偿、扣除弹簧力；微分取伸缩速度，不含目标变化
     for (int i = 0; i < 2; i++)
-        leg_[i].Fn = leg_length_pid_[i].calculate(length_ref[i] - leg_[i].L, 0 - leg_[i].d_L) + leg_[i].Fg - leg_[i].Fs;
+        leg_[i].Fn = leg_length_pid_[i].calculate(dt, length_ref[i] - leg_[i].L, 0 - leg_[i].d_L) + leg_[i].Fg - leg_[i].Fs;
 }
 
 void ChassisLeg::calc_lqr() {

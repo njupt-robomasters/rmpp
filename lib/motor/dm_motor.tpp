@@ -34,8 +34,8 @@ void DmMotor<PMAX, VMAX, TMAX>::send() {
 }
 
 template <float PMAX, float VMAX, float TMAX>
-DmMotor<PMAX, VMAX, TMAX>::DmMotor(const Motor::Config& config)
-    : Motor(config) {
+DmMotor<PMAX, VMAX, TMAX>::DmMotor(const Config& config, const Config::Drive& model)
+    : Motor(config, model) {
     config.bus.can.add_rx_callback([this](const CanFrame& frame) { can_callback(frame); });
 }
 
@@ -50,8 +50,8 @@ void DmMotor<PMAX, VMAX, TMAX>::can_callback(const CanFrame& frame) {
     temp_motor = static_cast<int8_t>(data[7]);
 
     raw.torque = decode(((data[4] & 0x0f) << 8) | data[5], TMAX, 12);
-    raw.current = raw.torque / config.drive.kt;
-    raw.speed = decode((data[3] << 4) | (data[4] >> 4), VMAX, 12) / config.drive.reduction;
+    raw.current = raw.torque / config.drive.max_torque * config.drive.max_current;
+    raw.speed = decode((data[3] << 4) | (data[4] >> 4), VMAX, 12);
     raw.position = decode((data[1] << 8) | data[2], PMAX, 16);
     Motor::can_callback();
 }

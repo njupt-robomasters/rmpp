@@ -6,22 +6,26 @@
 Pid::Pid(const Config* config)
     : config_(config) {}
 
-float Pid::calculate(const float err, const std::optional<float> derr) {
+float Pid::calculate(const float dt, const float err, const std::optional<float> derr) {
     if (config_ == nullptr)
         return 0;
 
     const auto& [kp, ki, kd, ff, max_i, max_out, err_fc, d_fc] = *config_;
-    const float dt = calculate_timer_.restart();
 
     // 输入低通
     err_ = lowpass(err_, err, err_fc, dt);
 
-    // P、I、D，微分项单独低通
+    // P、I、D，微分项单独低通；首帧没有上次误差，不差分
     p_out_ = kp * err_;
     i_out_ = std::clamp(i_out_ + ki * err_ * dt, -max_i, max_i);
-    const float d = derr.has_value() ? kd * derr.value() : kd * (err_ - last_err_) / dt;
+    float d = 0;
+    if (derr.has_value())
+        d = kd * derr.value();
+    else if (has_last_err_)
+        d = kd * (err_ - last_err_) / dt;
     d_out_ = lowpass(d_out_, d, d_fc, dt);
     last_err_ = err_;
+    has_last_err_ = true;
 
     // 输出限幅与外部限幅同样回算积分
     out = p_out_ + i_out_ + d_out_ + ff;
@@ -43,6 +47,6 @@ void Pid::track(const float actual) {
 
 void Pid::clear() {
     err_ = last_err_ = 0;
+    has_last_err_ = false;
     out = p_out_ = i_out_ = d_out_ = 0;
-    calculate_timer_.restart();
 }

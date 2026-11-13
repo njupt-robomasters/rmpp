@@ -1,4 +1,6 @@
 #include "shooter_17mm.hpp"
+#include <algorithm>
+#include <cmath>
 
 Shooter17mm::Shooter17mm(const Motors& motor, const Config& config)
     : motor(motor), config_(config), shoot_pid_(config.shoot_pid_config) {}
@@ -23,6 +25,8 @@ void Shooter17mm::set_heat_remain(const int32_t heat_remain) {
 }
 
 void Shooter17mm::update() {
+    const float dt = std::clamp(update_timer_.restart(), DT_MIN, DT_MAX);
+
     // 离线检测
     motor.rub1.update();
     motor.rub2.update();
@@ -52,7 +56,7 @@ void Shooter17mm::update() {
     // 未卡弹按弹频转动，卡弹反转
     const float shoot_speed = bullet_freq.ref / config_.bullet_per_angle;
     const float shoot_speed_ref = is_block_ ? -shoot_speed : shoot_speed;
-    const float shoot_output = shoot_pid_.calculate(shoot_speed_ref - motor.shoot.speed);
+    const float shoot_output = shoot_pid_.calculate(dt, shoot_speed_ref - motor.shoot.speed);
     if (config_.shoot_output == CURRENT_OUTPUT) {
         motor.shoot.set_current(shoot_output);
         shoot_pid_.track(motor.shoot.current_ref);

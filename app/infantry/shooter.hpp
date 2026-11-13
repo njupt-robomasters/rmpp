@@ -6,6 +6,7 @@
 
 #include "math/unit.hpp"
 #include "motor/m2006.hpp"
+#include "motor/m3508.hpp"
 #include "motor/vesc.hpp"
 #include "robot/shooter/shooter_17mm.hpp"
 
@@ -16,11 +17,11 @@
 // 摩擦轮
 inline Vesc rub1({
     .bus = {.can = Can(2), .tx_id = 0x21, .rx_id = 0x21},
-    .drive = {.max_current = Vesc::MAX_CURRENT, .kt = Vesc::KT, .reduction = Vesc::REDUCTION},
+    .drive = {.max_current = M3508::MAX_CURRENT, .max_torque = M3508::MAX_TORQUE, .reduction = M3508::REDUCTION},
 });
 inline Vesc rub2({
     .bus = {.can = Can(2), .tx_id = 0x22, .rx_id = 0x22},
-    .drive = {.max_current = Vesc::MAX_CURRENT, .kt = Vesc::KT, .reduction = Vesc::REDUCTION},
+    .drive = {.max_current = M3508::MAX_CURRENT, .max_torque = M3508::MAX_TORQUE, .reduction = M3508::REDUCTION},
 });
 
 // 拨弹电机
@@ -30,7 +31,6 @@ inline Pid::Config shoot_pid = {
 };
 inline M2006 shoot({
     .bus = {.can = Can(1), .rx_id = 0x206},
-    .drive = {.max_current = M2006::MAX_CURRENT, .kt = M2006::KT, .reduction = M2006::REDUCTION},
     .install = {.is_invert = false},
 });
 

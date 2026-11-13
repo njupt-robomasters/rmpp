@@ -1,5 +1,6 @@
 #include "fsi6x.hpp"
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
 FSi6X::FSi6X(const Config& config)

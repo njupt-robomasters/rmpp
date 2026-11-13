@@ -2,7 +2,7 @@
 #include "math/unit.hpp"
 
 M3508::M3508(const Config& config)
-    : Motor(config) {
+    : Motor(config, {.max_current = MAX_CURRENT, .max_torque = MAX_TORQUE, .reduction = REDUCTION}) {
     config.bus.can.add_rx_callback([this](const CanFrame& frame) { can_callback(frame); });
 }
 
@@ -46,7 +46,7 @@ void M3508::can_callback(const CanFrame& frame) {
     raw.speed = static_cast<int16_t>((data[2] << 8) | data[3]) * rpm;
     raw.current = static_cast<int16_t>((data[4] << 8) | data[5]) / 16384.0f * MAX_CURRENT;
     motor_temperature = static_cast<int8_t>(data[6]);
-    raw.torque = raw.current * config.drive.kt;
+    raw.torque = raw.current / config.drive.max_current * config.drive.max_torque;
 
     // 调用上级回调
     Motor::can_callback();

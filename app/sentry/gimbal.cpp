@@ -23,7 +23,7 @@ enum GimbalState { SCAN,
 
 // 跨周期状态
 static GimbalState gimbal_state = SCAN;
-static Timer timer_lock_lost, timer_insta360_check, timer_insta360_punish;
+static Timer lock_lost_timer, insta360_check_timer, insta360_punish_timer;
 static Angle target_yaw, target_pitch;
 static bool scan_up = false;
 static Timer loop_timer;
@@ -83,16 +83,16 @@ void gimbal_loop() {
                 gimbal_state = LOCK;
                 target_yaw = aim.vision.yaw;
                 target_pitch = aim.vision.pitch;
-                timer_lock_lost.restart();
+                lock_lost_timer.restart();
             }
             if (!std::isnan(aim.insta360.a0) &&
-                timer_insta360_punish.elapsed() > INSTA360_PUNISH_TIME) {
-                timer_insta360_punish.restart();
+                insta360_punish_timer.elapsed() > INSTA360_PUNISH_TIME) {
+                insta360_punish_timer.restart();
                 target_yaw = aim.insta360.a0 + gimbal.yaw.imu_minus_ecd;
                 target_pitch = (PITCH_MIN + PITCH_MAX) / 2;
                 angle_mode = true;
                 gimbal_state = INSTA360_CHECK;
-                timer_insta360_check.restart();
+                insta360_check_timer.restart();
             }
             break;
         case INSTA360_CHECK:
@@ -101,13 +101,13 @@ void gimbal_loop() {
                 gimbal_state = LOCK;
                 target_yaw = aim.vision.yaw;
                 target_pitch = aim.vision.pitch;
-                timer_lock_lost.restart();
+                lock_lost_timer.restart();
             }
-            if (timer_insta360_check.elapsed() > INSTA360_CHECK_TIMEOUT) {
-                timer_insta360_check.restart();
+            if (insta360_check_timer.elapsed() > INSTA360_CHECK_TIMEOUT) {
+                insta360_check_timer.restart();
                 gimbal_state = SCAN;
                 angle_mode = false;
-                timer_insta360_punish.restart();
+                insta360_punish_timer.restart();
             }
             break;
         case LOCK:
@@ -118,9 +118,9 @@ void gimbal_loop() {
             } else if (aim.vision.is_detect && aim.vision.distance <= LOCK_DISTANCE) {
                 target_yaw = aim.vision.yaw;
                 target_pitch = aim.vision.pitch;
-                timer_lock_lost.restart();
-            } else if (timer_lock_lost.elapsed() > LOCK_TIMEOUT) {
-                timer_lock_lost.restart();
+                lock_lost_timer.restart();
+            } else if (lock_lost_timer.elapsed() > LOCK_TIMEOUT) {
+                lock_lost_timer.restart();
                 gimbal_state = SCAN;
                 angle_mode = false;
             }
@@ -146,5 +146,6 @@ void gimbal_loop() {
     else
         gimbal.set_speed(std::clamp(wyaw, -WYAW_MAX, WYAW_MAX), std::clamp(wpitch, -WPITCH_MAX, WPITCH_MAX));
     gimbal.set_chassis_wr(chassis.wr.measure);
-    gimbal.update();
+    attitude.update();
+    gimbal.update(attitude.yaw, attitude.pitch);
 }

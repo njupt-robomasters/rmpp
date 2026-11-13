@@ -19,22 +19,18 @@ inline QuaternionEkf attitude(imu, {});
 // offset 取外部工程 pos = wrap(raw + c) 中 c 的相反数，使 position 零位对应 A 杆方位角 π、E 杆 0
 inline DM8009 left_front({
     .bus = {.can = Can(2), .tx_id = 0x11, .rx_id = 0x21},
-    .drive = {.max_current = DM8009::MAX_CURRENT, .max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
     .install = {.is_invert = false, .offset = -2.793f},
 });
 inline DM8009 left_back({
     .bus = {.can = Can(2), .tx_id = 0x12, .rx_id = 0x22},
-    .drive = {.max_current = DM8009::MAX_CURRENT, .max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
     .install = {.is_invert = false, .offset = -0.745f},
 });
 inline DM8009 right_back({
     .bus = {.can = Can(2), .tx_id = 0x13, .rx_id = 0x23},
-    .drive = {.max_current = DM8009::MAX_CURRENT, .max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
     .install = {.is_invert = false, .offset = -1.1478f},
 });
 inline DM8009 right_front({
     .bus = {.can = Can(2), .tx_id = 0x14, .rx_id = 0x24},
-    .drive = {.max_current = DM8009::MAX_CURRENT, .max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
     .install = {.is_invert = false, .offset = 1.225f},
 });
 
@@ -43,12 +39,12 @@ static constexpr float WHEEL_REDUCTION = 16.875f;
 static constexpr float WHEEL_KT = 0.2545043441f; // 轮端等效转矩常数，N·m/A
 inline M3508 left_wheel({
     .bus = {.can = Can(2), .rx_id = 0x201},
-    .drive = {.max_current = M3508::MAX_CURRENT, .max_torque = M3508::MAX_CURRENT * WHEEL_KT, .kt = WHEEL_KT, .reduction = WHEEL_REDUCTION},
+    .drive = {.max_torque = M3508::MAX_CURRENT * WHEEL_KT, .reduction = WHEEL_REDUCTION},
     .install = {.is_invert = true},
 });
 inline M3508 right_wheel({
     .bus = {.can = Can(2), .rx_id = 0x202},
-    .drive = {.max_current = M3508::MAX_CURRENT, .max_torque = M3508::MAX_CURRENT * WHEEL_KT, .kt = WHEEL_KT, .reduction = WHEEL_REDUCTION},
+    .drive = {.max_torque = M3508::MAX_CURRENT * WHEEL_KT, .reduction = WHEEL_REDUCTION},
     .install = {.is_invert = false},
 });
 

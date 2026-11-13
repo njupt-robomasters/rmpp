@@ -5,6 +5,8 @@
 static constexpr float VX_MAX = 3.0f;        // 前向速度上限，m/s
 static constexpr float WR_MAX = 180 * deg_s; // 航向角速度上限，rad/s
 
+static uint32_t send_count = 0; // CAN2 分时发送计数
+
 void chassis_loop() {
     attitude.update();
 
@@ -28,7 +30,6 @@ void chassis_loop() {
     super_cap.update();
 
     // CAN2 左右关节交替发送，每个关节 500 Hz；每周期不超过 3 帧，匹配 3 个发送邮箱
-    static uint32_t send_count = 0;
     if (send_count++ % 10 == 0) { // 超电 100 Hz 发送
         super_cap.send();
     } else if (send_count % 2 == 0) {

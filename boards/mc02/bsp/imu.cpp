@@ -126,7 +126,7 @@ void Imu::update() {
 
     // 加热闭环：[0, 1] 占空比按 ARR 换算为 PWM 比较值，避免满占空比时 CCR 溢出
     // 加热电阻直接接电源输入（12~24 V），满占空比会烧毁 PCB；按官方例程上限 500/10000 衰减到 5%
-    const float output = std::clamp(temperature_pid_.calculate(config_.temperature - temperature), 0.0f, 1.0f);
+    const float output = std::clamp(temperature_pid_.calculate(std::clamp(update_timer_.restart(), DT_MIN, DT_MAX), config_.temperature - temperature), 0.0f, 1.0f);
     temperature_pid_.track(output);
     const float duty = 0.05f * output;
     __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, static_cast<uint32_t>(__HAL_TIM_GET_AUTORELOAD(&htim3) * duty));

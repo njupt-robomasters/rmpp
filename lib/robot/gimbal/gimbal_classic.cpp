@@ -1,8 +1,13 @@
 #include "gimbal_classic.hpp"
 #include <algorithm>
 
-GimbalClassic::GimbalClassic(Attitude& attitude, const Motors& motor, const Config& config)
-    : Gimbal(attitude, config), motor(motor) {}
+GimbalClassic::GimbalClassic(const Motors& motor, const Config& config)
+    : Gimbal(config), motor(motor) {}
+
+void GimbalClassic::set_yaw_zero() {
+    if (motor.yaw.is_connect)
+        motor.yaw.set_zero();
+}
 
 void GimbalClassic::load_yaw_offset(KvStore& kv_store) {
     motor.yaw.set_offset(kv_store.read("yaw_offset"));
@@ -10,14 +15,6 @@ void GimbalClassic::load_yaw_offset(KvStore& kv_store) {
 
 void GimbalClassic::save_yaw_offset(KvStore& kv_store) {
     kv_store.write("yaw_offset", motor.yaw.config.install.offset);
-}
-
-void GimbalClassic::set_yaw_zero() {
-    if (!motor.yaw.is_connect)
-        return;
-    const auto& config = motor.yaw.config;
-    const float dir = config.install.is_invert ? -1.0f : 1.0f;
-    motor.yaw.set_offset(config.install.offset + dir * motor.yaw.position_multi * config.drive.reduction);
 }
 
 void GimbalClassic::set_motors_enable(const bool is_enable) {
@@ -34,13 +31,9 @@ void GimbalClassic::forward() {
     // 从电机读取
     yaw.ecd.measure = motor.yaw.position;
     pitch.ecd.measure = motor.pitch.position;
-
-    // 读取imu
-    yaw.imu.measure = attitude.yaw;
-    pitch.imu.measure = attitude.pitch;
 }
 
-void GimbalClassic::backward() {
+void GimbalClassic::backward(const float dt) {
     // 失能或离线的轴目标跟随实测，yaw、pitch 互不影响
     const bool can_yaw = check_yaw(motor.yaw.is_connect);
     const bool can_pitch = check_pitch(motor.pitch.is_connect);
@@ -67,16 +60,16 @@ void GimbalClassic::backward() {
 
     // yaw 串级 PID
     if (can_yaw) {
-        const float speed_ref = yaw_position_pid_.calculate(yaw.ecd.ref - yaw.ecd.measure) - chassis_wr_ + yaw_speed_;
-        yaw_speed_pid_.track(set_output(motor.yaw, config_.yaw_output, yaw_speed_pid_.calculate(speed_ref - motor.yaw.speed)));
+        const float speed_ref = yaw_position_pid_.calculate(dt, yaw.ecd.ref - yaw.ecd.measure) - chassis_wr_ + yaw_speed_;
+        yaw_speed_pid_.track(set_output(motor.yaw, config_.yaw_output, yaw_speed_pid_.calculate(dt, speed_ref - motor.yaw.speed)));
     } else {
         motor.yaw.set_current(0);
     }
 
     // pitch 串级 PID
     if (can_pitch) {
-        const float speed_ref = pitch_position_pid_.calculate(pitch.ecd.ref - pitch.ecd.measure) + pitch_speed_;
-        pitch_speed_pid_.track(set_output(motor.pitch, config_.pitch_output, pitch_speed_pid_.calculate(speed_ref - motor.pitch.speed)));
+        const float speed_ref = pitch_position_pid_.calculate(dt, pitch.ecd.ref - pitch.ecd.measure) + pitch_speed_;
+        pitch_speed_pid_.track(set_output(motor.pitch, config_.pitch_output, pitch_speed_pid_.calculate(dt, speed_ref - motor.pitch.speed)));
     } else {
         motor.pitch.set_current(0);
     }

@@ -19,6 +19,12 @@ class VT13 {
         ERR,
     };
 
+    VT13(const Config& config);
+
+    // 断联检测，需要在循环中调用；断联时数据复位为默认值
+    void update();
+
+  public:
     bool is_connect = false; // 连接标志
 
     float x = 0, y = 0, pitch = 0, yaw = 0;                         // 摇杆
@@ -40,11 +46,6 @@ class VT13 {
         bool q = false, e = false, r = false, f = false, g = false;
         bool z = false, x = false, c = false, v = false, b = false;
     } key;
-
-    VT13(const Config& config);
-
-    // 断联检测，需要在循环中调用；断联时数据复位为默认值
-    void update();
 
   private:
     const Config config_;

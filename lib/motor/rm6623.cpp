@@ -3,7 +3,7 @@
 #include "math/unit.hpp"
 
 RM6623::RM6623(const Config& config)
-    : Motor(config) {
+    : Motor(config, {.max_current = MAX_CURRENT, .max_torque = MAX_TORQUE, .reduction = REDUCTION}) {
     config.bus.can.add_rx_callback([this](const CanFrame& frame) { can_callback(frame); });
 }
 
@@ -44,7 +44,7 @@ void RM6623::can_callback(const CanFrame& frame) {
     const auto* data = frame.data;
     // 解析电流和位置反馈，电流位于第 2、3 字节
     raw.current = static_cast<int16_t>((static_cast<uint16_t>(data[2]) << 8) | data[3]) / 5000.0f * MAX_CURRENT;
-    raw.torque = raw.current * config.drive.kt;
+    raw.torque = raw.current / config.drive.max_current * config.drive.max_torque;
     raw.position = static_cast<uint16_t>((static_cast<uint16_t>(data[0]) << 8) | data[1]) / 8192.0f * rev;
 
     const float dt = speed_timer_.restart();

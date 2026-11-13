@@ -29,17 +29,9 @@ class Shooter42mm {
     struct Motors {
         Vesc &rub1, &rub2, &rub3, &rub4; // 摩擦轮
         Motor& shoot;                    // 拨弹电机
-    } motor;
+    };
 
     static constexpr float RUB12_RATIO = 0.5f; // 摩擦轮 1、2 相对弹速的速度比
-
-    // 弹速 (m/s)
-    struct {
-        float ref = 0, measure = 0;
-    } bullet_speed;
-
-    // 摩擦轮线速度，m/s
-    float rub_speed[4]{};
 
     Shooter42mm(const Motors& motor, const Config& config);
 
@@ -52,36 +44,49 @@ class Shooter42mm {
     // 设置发射信号，上升沿拨一发
     void set_shoot(bool is_shoot);
 
-    // 传入裁判剩余热量，允许过热时的负值；未传入时不限制
+    // 设置裁判剩余热量，允许过热时的负值；未设置时不限制
     void set_heat_remain(int32_t heat_remain);
 
-    // 需要在循环中调用
+    // 每个控制周期调用
     void update();
 
+  public:
+    // 弹速 (m/s)
+    struct {
+        float ref = 0, measure = 0;
+    } bullet_speed;
+
+    // 摩擦轮线速度，m/s
+    float rub_speed[4]{};
+
+    Motors motor;
+
   private:
+    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
+    static constexpr float SHOOT_FINISH_RATIO = 0.95f;       // 用于检查拨弹完成
+    static constexpr float SHAKE_FREQ = 1;                   // 抖动频率
+    static constexpr float SHAKE_AMP = 1;                    // 抖动幅度（一个弹 = 1）
+
     const Config config_;
+
+    // 指令；发射信号保留上周期值用于检测上升沿
     bool is_enable_ = false;
-    bool is_heat_protect_ = false;                     // 热量保护状态
-    static constexpr float SHOOT_FINISH_RATIO = 0.95f; // 用于检查拨弹完成
-    static constexpr float SHAKE_FREQ = 1;             // 抖动频率
-    static constexpr float SHAKE_AMP = 1;              // 抖动幅度（一个弹 = 1）
-
-    Pid shoot_pid_;
-    Timer block_timer_; // 卡弹计时器
-
-    // 发射信号及上周期值，用于检测上升沿
+    bool is_heat_protect_ = false; // 热量保护状态
     bool is_shoot_ = false;
     bool last_shoot_ = false;
 
-    // 用于抖动下弹
-    Angle shake_upper_;
-    Timer shake_timer_;
-
+    // 拨弹状态机
     enum {
         FREE,
         SHOOT,
         SHAKE,
     } state_ = FREE;
+
+    Angle shake_upper_; // 抖动上沿角度
+    Pid shoot_pid_;
+    Timer shake_timer_;
+    Timer block_timer_; // 卡弹计时器
+    Timer update_timer_;
 
     // 按配置输出类型设置拨弹电机电流或力矩，并用限幅后实际输出跟踪 PID
     void set_shoot_output(float output);

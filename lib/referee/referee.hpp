@@ -29,6 +29,23 @@ class Referee {
         SETTLING
     };
 
+    // 实例及其绑定对象在 BSP 回调有效期间不得销毁或移动
+    explicit Referee(const Config& config);
+    Referee(const Referee&) = delete;
+    Referee& operator=(const Referee&) = delete;
+
+    void add_0311_callback(RxCallback callback);
+    void update();
+
+    // 拷贝完整载荷到待发帧；忙或非法长度返回 false，不部分接收
+    // 0x0301 的所有调用共用 30 Hz 限额；仅在主循环调用
+    bool send(uint16_t cmd_id, const uint8_t* data, size_t size);
+
+    bool is_sending() const {
+        return tx_size_ != 0;
+    }
+
+  public:
     bool is_connected = false;
     GameStatus game_status{};
     GameResult game_result{};
@@ -69,22 +86,6 @@ class Referee {
     // 每次有效伤害报文递增，避免依赖字段变化判断新事件
     uint32_t hurt_sequence = 0;
     Timer hurt_timer;
-
-    // 实例及其绑定对象在 BSP 回调有效期间不得销毁或移动
-    explicit Referee(const Config& config);
-    Referee(const Referee&) = delete;
-    Referee& operator=(const Referee&) = delete;
-
-    void add_0311_callback(RxCallback callback);
-    void update();
-
-    // 拷贝完整载荷到待发帧；忙或非法长度返回 false，不部分接收
-    // 0x0301 的所有调用共用 30 Hz 限额；仅在主循环调用
-    bool send(uint16_t cmd_id, const uint8_t* data, size_t size);
-
-    bool is_sending() const {
-        return tx_size_ != 0;
-    }
 
   private:
     const Config config_;

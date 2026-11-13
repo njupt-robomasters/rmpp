@@ -1,4 +1,5 @@
 #include "chassis_matrix.hpp"
+#include <algorithm>
 #include <cmath>
 
 void ChassisMatrix::set_enable(const bool is_enable) {
@@ -25,7 +26,13 @@ void ChassisMatrix::set_gimbal_yaw(const Angle gimbal_yaw) {
     gimbal_yaw_ = gimbal_yaw;
 }
 
+void ChassisMatrix::set_power_ref(const float power_ref) {
+    power_ref_ = power_ref;
+}
+
 void ChassisMatrix::update() {
+    const float dt = std::clamp(update_timer_.restart(), DT_MIN, DT_MAX);
+
     // 离线检测与速度正解，离线轮反馈已清零
     Vector4f v;
     for (int i = 0; i < 4; i++) {
@@ -38,24 +45,19 @@ void ChassisMatrix::update() {
     vz.measure = measure.z();
     wr.measure = vz.measure / config_.chassis_radius;
 
-    // 轮电机功率估计供 SWD 与超电实测对照；超电更新底盘功率目标
+    // 轮电机功率估计供 SWD 与超电实测对照
     power.estimate = MotorPower::estimate(wheel_, config_.wheel_resistance);
-    super_cap_.update();
 
-    // 旋转：用户输入优先，否则按模式分离或跟随；失能时清空跟随 PID
-    if (!is_enable_) {
-        follow_pid_.clear();
-        wr.ref = 0;
-    } else if (wr.input != 0) {
-        wr.ref = wr.input;
-    } else if (mode_ == FOLLOW_MODE) {
-        wr.ref = follow_pid_.calculate(gimbal_yaw_);
+    // 旋转：用户输入优先，否则按模式分离或跟随；不跟随时清空跟随 PID
+    if (is_enable_ && wr.input == 0 && mode_ == FOLLOW_MODE) {
+        wr.ref = follow_pid_.calculate(dt, gimbal_yaw_);
     } else {
-        wr.ref = 0;
+        follow_pid_.clear();
+        wr.ref = is_enable_ ? wr.input : 0;
     }
     vz.ref = wr.ref * config_.chassis_radius;
 
-    control();
+    control(dt);
 }
 
 Vector3f ChassisMatrix::forward_speed(const Vector4f& v) const {
@@ -74,17 +76,17 @@ Vector4f ChassisMatrix::backward_force(const Vector3f& f) const {
     return j_pinv_.transpose() * f;
 }
 
-ChassisMatrix::ChassisMatrix(SuperCap& super_cap, const std::array<Motor*, 4>& wheel, const Config& config)
-    : config_(config), wheel_{wheel[0], wheel[1], wheel[2], wheel[3]}, super_cap_(super_cap),
+ChassisMatrix::ChassisMatrix(const std::array<Motor*, 4>& wheel, const Config& config)
+    : config_(config), wheel_{wheel[0], wheel[1], wheel[2], wheel[3]},
       j_(Eigen::Map<const Eigen::Matrix<float, 4, 3, Eigen::RowMajor>>(config.kinematics[0])),
       j_pinv_((j_.transpose() * j_).inverse() * j_.transpose()), // 列满秩，左伪逆 (JᵀJ)⁻¹Jᵀ
       follow_pid_(config.follow_pid_config) {}
 
-ChassisMatrixSpeed::ChassisMatrixSpeed(const std::array<Motor*, 4>& wheel, SuperCap& super_cap, const Config& config)
-    : ChassisMatrix(super_cap, wheel, config),
+ChassisMatrixSpeed::ChassisMatrixSpeed(const std::array<Motor*, 4>& wheel, const Config& config)
+    : ChassisMatrix(wheel, config),
       wheel_pid_{Pid(config.speed_pid_config), Pid(config.speed_pid_config), Pid(config.speed_pid_config), Pid(config.speed_pid_config)} {}
 
-void ChassisMatrixSpeed::control() {
+void ChassisMatrixSpeed::control(const float dt) {
     // 失能时清空 PID，电机已失能
     if (!is_enable_) {
         for (Pid& pid : wheel_pid_)
@@ -97,7 +99,7 @@ void ChassisMatrixSpeed::control() {
     Vector4f current;
     for (int i = 0; i < 4; i++) {
         if (wheel_[i]->is_connect) {
-            current[i] = wheel_pid_[i].calculate(v[i] / config_.wheel_radius - wheel_[i]->speed);
+            current[i] = wheel_pid_[i].calculate(dt, v[i] / config_.wheel_radius - wheel_[i]->speed);
         } else {
             wheel_pid_[i].clear();
             current[i] = 0;
@@ -110,7 +112,7 @@ void ChassisMatrixSpeed::control() {
         if (!wheel_[i]->is_connect)
             current_z[i] = 0;
     }
-    power.gain = MotorPower::limit_current(wheel_, config_.wheel_resistance, current - current_z, current_z, std::fabs(wr.measure) > reserve_wr_, super_cap_.power.chassis_ref);
+    power.gain = MotorPower::limit_current(wheel_, config_.wheel_resistance, current - current_z, current_z, std::fabs(wr.measure) > reserve_wr_, power_ref_);
 
     // 轮速 PID 跟踪功率衰减与电机限幅后的实际电流
     for (int i = 0; i < 4; i++) {
@@ -119,11 +121,11 @@ void ChassisMatrixSpeed::control() {
     }
 }
 
-ChassisMatrixTorque::ChassisMatrixTorque(SuperCap& super_cap, const std::array<Motor*, 4>& wheel, const Config& config)
-    : ChassisMatrix(super_cap, wheel, config),
+ChassisMatrixTorque::ChassisMatrixTorque(const std::array<Motor*, 4>& wheel, const Config& config)
+    : ChassisMatrix(wheel, config),
       vx_pid_(config.speed_pid_config), vy_pid_(config.speed_pid_config), vz_pid_(config.speed_pid_config) {}
 
-void ChassisMatrixTorque::control() {
+void ChassisMatrixTorque::control(const float dt) {
     // 力学正解，离线轮反馈已清零
     Vector4f f;
     for (int i = 0; i < 4; i++)
@@ -143,16 +145,17 @@ void ChassisMatrixTorque::control() {
     }
 
     // 速度 PID 输出牵引力，平移与旋转分别力逆解为轮电流；离线轮输出零
-    const Vector3f force = rotate({vx_pid_.calculate(vx.ref - vx.measure), vy_pid_.calculate(vy.ref - vy.measure), 0}, gimbal_yaw_);
+    const Vector3f force = rotate({vx_pid_.calculate(dt, vx.ref - vx.measure), vy_pid_.calculate(dt, vy.ref - vy.measure), 0}, gimbal_yaw_);
     const Vector4f f_xy = backward_force(force);
-    const Vector4f f_z = backward_force({0, 0, vz_pid_.calculate(vz.ref - vz.measure)});
+    const Vector4f f_z = backward_force({0, 0, vz_pid_.calculate(dt, vz.ref - vz.measure)});
     Vector4f current_xy, current_z;
     for (int i = 0; i < 4; i++) {
-        const float k = wheel_[i]->is_connect ? config_.wheel_radius / wheel_[i]->config.drive.kt : 0.0f;
+        const auto& drive = wheel_[i]->config.drive;
+        const float k = wheel_[i]->is_connect ? config_.wheel_radius * drive.max_current / drive.max_torque : 0.0f;
         current_xy[i] = f_xy[i] * k;
         current_z[i] = f_z[i] * k;
     }
-    power.gain = MotorPower::limit_current(wheel_, config_.wheel_resistance, current_xy, current_z, std::fabs(wr.measure) > reserve_wr_, super_cap_.power.chassis_ref);
+    power.gain = MotorPower::limit_current(wheel_, config_.wheel_resistance, current_xy, current_z, std::fabs(wr.measure) > reserve_wr_, power_ref_);
 
     // 实际输出力经力学正解换回云台系，速度 PID 跟踪
     Vector4f f_out;

@@ -83,12 +83,13 @@ static void update_ui() {
     ui.update();
 }
 
+static float cpu_usage = 0; // 主循环占用，SWD 观察
+
 extern "C" void app_main() {
     // imu.start_calibration();
     gimbal.load_yaw_offset(kv_store);
     melody.play(C5D5G5);
 
-    [[maybe_unused]] static float cpu_usage = 0;
     Timer timer;
     while (true) {
         if (timer.elapsed() > 1 * ms) {
@@ -98,7 +99,7 @@ extern "C" void app_main() {
             referee.update();
             vt13.update();
             fsi6x.update();
-            aim.imu = {.yaw = gimbal.attitude.yaw, .pitch = gimbal.attitude.pitch, .roll = gimbal.attitude.roll};
+            aim.imu = {.yaw = attitude.yaw, .pitch = attitude.pitch, .roll = attitude.roll};
             aim.referee = {
                 .is_red = referee.robot_status.robot_id < 100,
                 .game_progress = static_cast<Referee::GameProgress>(referee.game_status.game_progress),

@@ -5,11 +5,12 @@
 #include "math/unit.hpp"
 #include "motor/gm6020.hpp"
 #include "motor/m3508.hpp"
+#include "power/super_cap.hpp"
 #include "robot/chassis/chassis_steer.hpp"
 
 // 电机参数
-static constexpr float REDUCTION = 14.0f; // 轮电机总减速比暂用 14:1
-static constexpr float KT = M3508::KT / M3508::REDUCTION * REDUCTION;
+static constexpr float REDUCTION = 14.0f;                                                   // 轮电机总减速比暂用 14:1
+static constexpr float WHEEL_MAX_TORQUE = M3508::MAX_TORQUE / M3508::REDUCTION * REDUCTION; // 按减速比换算的轮端满量程力矩
 static constexpr bool IS_WHEEL_INVERT = false;
 static constexpr bool IS_SERVO_INVERT = true;
 
@@ -36,61 +37,57 @@ inline Pid::Config steer_pid = {
 // 轮电机（左前、左后、右后、右前）
 inline M3508 w1({
     .bus = {.can = Can(1), .rx_id = 0x201, .timeout = TIMEOUT},
-    .drive = {.kt = KT, .reduction = REDUCTION},
+    .drive = {.max_torque = WHEEL_MAX_TORQUE, .reduction = REDUCTION},
     .install = {.is_invert = IS_WHEEL_INVERT},
 });
 inline M3508 w2({
     .bus = {.can = Can(1), .rx_id = 0x202, .timeout = TIMEOUT},
-    .drive = {.kt = KT, .reduction = REDUCTION},
+    .drive = {.max_torque = WHEEL_MAX_TORQUE, .reduction = REDUCTION},
     .install = {.is_invert = IS_WHEEL_INVERT},
 });
 inline M3508 w3({
     .bus = {.can = Can(1), .rx_id = 0x203, .timeout = TIMEOUT},
-    .drive = {.kt = KT, .reduction = REDUCTION},
+    .drive = {.max_torque = WHEEL_MAX_TORQUE, .reduction = REDUCTION},
     .install = {.is_invert = IS_WHEEL_INVERT},
 });
 inline M3508 w4({
     .bus = {.can = Can(1), .rx_id = 0x204, .timeout = TIMEOUT},
-    .drive = {.kt = KT, .reduction = REDUCTION},
+    .drive = {.max_torque = WHEEL_MAX_TORQUE, .reduction = REDUCTION},
     .install = {.is_invert = IS_WHEEL_INVERT},
 });
 
-// 舵电机（左前、左后、右后、右前），直驱；offset 为轮子朝前时的 raw 角度；电压帧反电动势前馈减半
+// 舵电机（左前、左后、右后、右前），直驱；offset 为轮子朝前时的 raw 角度；电压帧反电动势前馈取半
 inline GM6020 s1({
                      .bus = {.can = Can(1), .rx_id = 0x207, .timeout = TIMEOUT},
-                     .drive = {.max_current = GM6020::MAX_CURRENT, .kt = GM6020::KT, .reduction = GM6020::REDUCTION},
                      .install = {.is_invert = IS_SERVO_INVERT, .offset = -133.5f * deg},
                  },
-                 {.gain = 0.5f});
+                 0.5f * GM6020::KE);
 inline GM6020 s2({
                      .bus = {.can = Can(1), .rx_id = 0x208, .timeout = TIMEOUT},
-                     .drive = {.max_current = GM6020::MAX_CURRENT, .kt = GM6020::KT, .reduction = GM6020::REDUCTION},
                      .install = {.is_invert = IS_SERVO_INVERT, .offset = 105.7f * deg},
                  },
-                 {.gain = 0.5f});
+                 0.5f * GM6020::KE);
 inline GM6020 s3({
                      .bus = {.can = Can(1), .rx_id = 0x209, .timeout = TIMEOUT},
-                     .drive = {.max_current = GM6020::MAX_CURRENT, .kt = GM6020::KT, .reduction = GM6020::REDUCTION},
                      .install = {.is_invert = IS_SERVO_INVERT, .offset = -168.5f * deg}, // 含 180° 修正轮子驱动方向
                  },
-                 {.gain = 0.5f});
+                 0.5f * GM6020::KE);
 inline GM6020 s4({
                      .bus = {.can = Can(1), .rx_id = 0x20A, .timeout = TIMEOUT},
-                     .drive = {.max_current = GM6020::MAX_CURRENT, .kt = GM6020::KT, .reduction = GM6020::REDUCTION},
                      .install = {.is_invert = IS_SERVO_INVERT, .offset = -18.4f * deg},
                  },
-                 {.gain = 0.5f});
+                 0.5f * GM6020::KE);
 
 // 超级电容：未装，不调用 send()，离线时按估计功率控制
 inline SuperCap super_cap({.can = Can(1)});
 
 // 底盘；未配跟随 PID，跟随模式不旋转
-inline ChassisSteerSpeed chassis(super_cap, {&w1, &w2, &w3, &w4}, {&s1, &s2, &s3, &s4}, {
-                                                                                            .chassis_radius = CHASSIS_RADIUS,
-                                                                                            .wheel_radius = WHEEL_RADIUS,
-                                                                                            .wheel_resistance = 0.194f, // 不含舵电机
-                                                                                            .speed_pid_config = &wheel_pid_config,
-                                                                                            .steer_pid_config = &steer_pid,
-                                                                                        });
+inline ChassisSteerSpeed chassis({&w1, &w2, &w3, &w4}, {&s1, &s2, &s3, &s4}, {
+                                                                                 .chassis_radius = CHASSIS_RADIUS,
+                                                                                 .wheel_radius = WHEEL_RADIUS,
+                                                                                 .wheel_resistance = 0.194f, // 不含舵电机
+                                                                                 .speed_pid_config = &wheel_pid_config,
+                                                                                 .steer_pid_config = &steer_pid,
+                                                                             });
 
 void chassis_loop();

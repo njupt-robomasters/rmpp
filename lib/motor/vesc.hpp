@@ -4,22 +4,7 @@
 
 class Vesc : public Motor {
   public:
-    float temp_fet = 0;
-    float temp_motor = 0;
-    float current_in = 0;
-    float voltage_in = 0;
-    float duty_cycle = 0;
-    float amp_hours = 0;
-    float amp_hours_charged = 0;
-    float watt_hours = 0;
-    float watt_hours_charged = 0;
-    float pid_pos = 0;
-    float tachometer = 0;
-    float adc1 = 0;
-    float adc2 = 0;
-    float adc3 = 0;
-    float ppm = 0;
-
+    // VESC 不对应固定电机型号，没有默认驱动参数，config.drive 须全部给出；reduction 含极对数
     explicit Vesc(const Config& config);
 
     void set_current(float current) override;
@@ -59,6 +44,26 @@ class Vesc : public Motor {
         CAN_PACKET_STATUS_6 = 58,
     };
 
+  public:
+    // 状态帧反馈
+    float temp_fet = 0;
+    float temp_motor = 0;
+    float current_in = 0;
+    float voltage_in = 0;
+    float duty_cycle = 0;
+    float amp_hours = 0;
+    float amp_hours_charged = 0;
+    float watt_hours = 0;
+    float watt_hours_charged = 0;
+    float pid_pos = 0;
+    float tachometer = 0;
+    float adc1 = 0;
+    float adc2 = 0;
+    float adc3 = 0;
+    float ppm = 0;
+
+  private:
+    // 待发送的命令，由 set_* 写入、send() 发出
     Command command_ = CAN_PACKET_SET_CURRENT;
     uint8_t command_data_[8]{};
     uint8_t command_size_ = 4;

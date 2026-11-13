@@ -22,7 +22,7 @@ void SuperCap::set_referee_energy(const float referee_energy) {
 }
 
 void SuperCap::update() {
-    const float dt = update_timer_.restart();
+    const float dt = std::min(update_timer_.restart(), DT_MAX);
 
     // 断联检测
     if (callback_timer_.elapsed() > config_.timeout)

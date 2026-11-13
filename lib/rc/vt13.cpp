@@ -1,6 +1,7 @@
 #include "vt13.hpp"
 #include "referee/crc.hpp"
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
 VT13::VT13(const Config& config)

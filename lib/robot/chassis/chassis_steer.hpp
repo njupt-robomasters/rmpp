@@ -1,29 +1,30 @@
 #pragma once
 
+#include "bsp/timer.hpp"
 #include "math/angle.hpp"
 #include "pid/pid.hpp"
 #include "power/motor_power.hpp"
-#include "power/super_cap.hpp"
 #include <array>
 
 // 单个舵向：舵电机、舵向 PID 与目标
 class Steer {
   public:
-    Motor& motor;
-
-    // 舵向，0 朝前，逆时针为正
-    Angle ref, measure;
-
     Steer(Motor& motor, const Pid::Config* pid_config);
 
     // 离线检测并读取舵向
     void update();
 
-    // 按轮速度矢量设置目标舵向并闭环，返回投影到当前舵向的轮速，m/s；离线时返回零
-    float control(float vx, float vy);
+    // 按轮速度矢量设置目标舵向并闭环，返回投影到当前舵向的轮速，m/s；离线时返回零；dt 为控制周期，s
+    float control(float dt, float vx, float vy);
 
     // 清空 PID，下次控制从当前舵向开始
     void clear();
+
+  public:
+    Motor& motor;
+
+    // 舵向，0 朝前，逆时针为正
+    Angle ref, measure;
 
   private:
     static constexpr float MIN_V = 1 * cm; // 最小转舵速度，m/s
@@ -53,29 +54,6 @@ class ChassisSteer {
         FOLLOW_MODE, // 跟随模式
     };
 
-    // 移动速度，云台系，vx 前正后负，vy 左正右负
-    struct {
-        float ref = 0, measure = 0;
-    } vx, vy;
-
-    // 旋转线速度，逆时针为正
-    struct {
-        float ref = 0, measure = 0;
-    } vz;
-
-    // 旋转角速度，逆时针为正；input 为用户输入，ref 叠加跟随后得到
-    struct {
-        float ref = 0, measure = 0, input = 0;
-    } wr;
-
-    // 功率：轮电机模型估计与本周期平移、旋转电流衰减系数；底盘功率目标由超电给出
-    struct {
-        float estimate = 0;
-        MotorPower::Gain gain;
-    } power;
-
-    Steer steer[4];
-
     // 使能/失能轮与舵电机
     void set_enable(bool is_enable);
 
@@ -91,6 +69,9 @@ class ChassisSteer {
     // 设置前进正方向（云台相对底盘的 yaw）
     void set_gimbal_yaw(Angle gimbal_yaw);
 
+    // 设置底盘功率目标，W；通常取超电 power.chassis_ref，未设置时为零、电机不出力
+    void set_power_ref(float power_ref);
+
     // 每个控制周期调用；失能时也更新测量与功率
     void update();
 
@@ -99,55 +80,86 @@ class ChassisSteer {
     Vector3f forward_force(const Vector4f& f) const; // 轮牵引力 → 底盘牵引力
 
   protected:
-    const Config config_;
-    Motor* const wheel_[4]; // 轮电机
-    SuperCap& super_cap_;   // 由底盘更新，提供底盘功率目标
-    bool is_enable_ = false;
-    float reserve_wr_ = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转（力控制）
-    Angle gimbal_yaw_;
-
-    ChassisSteer(SuperCap& super_cap, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
+    ChassisSteer(const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
 
     // 轮 i 能否驱动：舵电机离线时舵向不可控，对应轮停转
     bool can_drive(size_t i) const;
 
     // 速度逆解：底盘系速度目标 → 各舵目标并闭环，返回投影到实测舵向的轮线速度
-    Vector4f backward_speed(const Vector3f& v);
+    Vector4f backward_speed(float dt, const Vector3f& v);
 
     // 力学逆解：底盘系牵引力平分到各轮并投影到实测舵向
     Vector4f backward_force(const Vector3f& f) const;
 
-    // 控制：底盘目标 → 电机输出；每周期调用，失能时清空 PID
-    virtual void control() = 0;
+    // 控制：底盘目标 → 电机输出；每周期调用，失能时清空 PID；dt 为控制周期，s
+    virtual void control(float dt) = 0;
+
+  public:
+    // 移动速度，云台系，vx 前正后负，vy 左正右负
+    struct {
+        float ref = 0, measure = 0;
+    } vx, vy;
+
+    // 旋转线速度，逆时针为正
+    struct {
+        float ref = 0, measure = 0;
+    } vz;
+
+    // 旋转角速度，逆时针为正；input 为用户输入，ref 叠加跟随后得到
+    struct {
+        float ref = 0, measure = 0, input = 0;
+    } wr;
+
+    // 功率：轮电机模型估计与本周期平移、旋转电流衰减系数
+    struct {
+        float estimate = 0;
+        MotorPower::Gain gain;
+    } power;
+
+    Steer steer[4];
+
+  protected:
+    const Config config_;
+    Motor* const wheel_[4]; // 轮电机
+
+    // 指令
+    bool is_enable_ = false;
+    Angle gimbal_yaw_;
+    float power_ref_ = 0;         // 底盘功率目标，W
+    float reserve_wr_ = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转（力控制）
 
   private:
+    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
+
     Mode mode_ = DETACH_MODE;
     Pid follow_pid_;
+    Timer update_timer_;
 };
 
 // 四舵轮底盘，速度控制：轮速 PID 输出电流，功率整体衰减
 class ChassisSteerSpeed : public ChassisSteer {
   public:
-    ChassisSteerSpeed(SuperCap& super_cap, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
+    ChassisSteerSpeed(const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
 
   private:
     Pid wheel_pid_[4]; // 轮转速误差 rad/s → 电流 A
 
-    void control() override;
+    void control(float dt) override;
 };
 
 // 四舵轮底盘，力控制：底盘速度 PID 输出牵引力，力学逆解到实测舵向
 class ChassisSteerTorque : public ChassisSteer {
+  public:
+    ChassisSteerTorque(const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
+
   public:
     // 牵引力，云台系，fx 前正后负，fy 左正右负，fz 逆时针为正；ref 为功率与限幅后的实际输出
     struct {
         float ref = 0, measure = 0;
     } fx, fy, fz;
 
-    ChassisSteerTorque(SuperCap& super_cap, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
-
   private:
     Pid vx_pid_, vy_pid_, vz_pid_; // 速度误差 m/s → 牵引力 N
 
-    void control() override;
+    void control(float dt) override;
 };

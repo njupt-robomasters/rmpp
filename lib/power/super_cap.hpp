@@ -49,6 +49,35 @@ class SuperCap {
         BOOST,  // 使能 DCDC，底盘供给叠加电容放电补偿
     };
 
+    explicit SuperCap(const Config& config);
+
+    // 设置模式
+    void set_mode(Mode mode);
+
+    // 设置裁判电池侧功率上限，65535 表示不限功率
+    void set_referee_limit(float referee_limit);
+
+    // 设置裁判缓冲能量，上限 60 J
+    void set_referee_energy(float referee_energy);
+
+    // 每个控制周期调用：断联检测、电池侧目标、虚拟缓冲能量与底盘功率目标；底盘失能时也调用
+    void update();
+
+    // 发送一帧命令；调用周期由调用方控制，须小于控制器 100 ms 心跳超时
+    void send() const;
+
+  private:
+    static constexpr float BUFFER_FULL = 60;  // 裁判缓冲能量上限，J
+    static constexpr float UNLIMITED = 65535; // 裁判不限功率时的上限读数
+    static constexpr float DT_MAX = 0.1f;     // update() 积分步长上限，s；避免首次调用的大间隔
+
+    const Config config_;
+
+    // 指令
+    Mode mode_ = OFF;
+    float referee_limit_ = 120; // 裁判电池侧功率上限原始读数，W
+
+  public:
     bool is_connect = false;
 
     // 应答电压
@@ -83,33 +112,7 @@ class SuperCap {
     float capacitance = 0; // 电容量，F
     float resistance = 0;  // 等效串联电阻，Ω
 
-    explicit SuperCap(const Config& config);
-
-    // 设置模式
-    void set_mode(Mode mode);
-
-    // 设置裁判电池侧功率上限，65535 表示不限功率
-    void set_referee_limit(float referee_limit);
-
-    // 设置裁判缓冲能量，上限 60 J
-    void set_referee_energy(float referee_energy);
-
-    // 每个控制周期调用：断联检测、电池侧目标、虚拟缓冲能量与底盘功率目标；底盘失能时也调用
-    void update();
-
-    // 发送一帧命令；调用周期由调用方控制，须小于控制器 100 ms 心跳超时
-    void send() const;
-
   private:
-    static constexpr float BUFFER_FULL = 60;  // 裁判缓冲能量上限，J
-    static constexpr float UNLIMITED = 65535; // 裁判不限功率时的上限读数
-
-    const Config config_;
-    Mode mode_ = OFF;
-    float referee_limit_ = 120;   // 裁判电池侧功率上限原始读数，W
-    Timer update_timer_{0, 0.1f}; // update() 间隔，用于虚拟缓冲能量积分；限幅避免首次调用的大间隔
-    Timer callback_timer_;        // can_callback() 间隔，用于断联检测、电流低通与容量辨识
-
     // 容量辨识状态：窗口起点与窗口内累计量，参数 θ = [1/C, ESR] 与协方差 P
     struct {
         float last_current = 0; // 上帧原始电容电流，A
@@ -120,6 +123,9 @@ class SuperCap {
         float theta[2] = {};
         float p[2][2] = {};
     } rls_;
+
+    Timer update_timer_;   // update() 间隔，用于虚拟缓冲能量积分
+    Timer callback_timer_; // can_callback() 间隔，用于断联检测、电流低通与容量辨识
 
     // DCDC 是否使能：在线且 CHARGE 或 BOOST
     bool is_dcdc_enable() const;

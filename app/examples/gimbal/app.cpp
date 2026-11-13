@@ -38,22 +38,24 @@ static void loop() {
     const float yaw_speed = std::clamp((vt13.yaw + fsi6x.yaw) * WYAW_MAX, -WYAW_MAX, WYAW_MAX);
     const float pitch_speed = std::clamp((vt13.pitch + fsi6x.pitch) * WPITCH_MAX, -WPITCH_MAX, WPITCH_MAX);
     gimbal.set_speed(yaw_speed, pitch_speed);
-    gimbal.update();
+    attitude.update();
+    gimbal.update(attitude.yaw, attitude.pitch);
 
     send_can_cmd();
 }
+
+static Timer app_timer;     // 主循环 1 kHz 分频
+static Monitor app_monitor; // 主循环负载监控
 
 extern "C" void app_main() {
     setup();
     while (true) {
         // 1 kHz 更新
-        static Timer app_timer;
         if (app_timer.elapsed() < 0.001f)
             continue;
         app_timer.restart();
 
         // 负载监控
-        static Monitor app_monitor;
         app_monitor.begin();
         loop();
         app_monitor.end();

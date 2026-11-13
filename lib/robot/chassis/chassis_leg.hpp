@@ -76,6 +76,8 @@ class ChassisLeg {
     void update(const Quaternionf& q, const Vector3f& gyro);
 
   private:
+    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
+
     const Config config_;
     Motors motor_;
 
@@ -187,7 +189,7 @@ class ChassisLeg {
     // 控制器与跨周期状态
     Pid leg_length_pid_[2], leg_angle_pid_[2], roll_pid_;
     bool is_position_ = false; // 速度降到阈值内后开始位移积分
-    Timer update_timer_{0.0001f, 0.01f};
+    Timer update_timer_;
 
     // 反馈：电机在线状态、车体姿态、双腿几何与前馈力、轮速
     void update_feedback(const Quaternionf& q, const Vector3f& gyro);
@@ -209,10 +211,10 @@ class ChassisLeg {
     void update_jump(float dt);
 
     // 按失能、倒地、跳跃状态计算双腿虚拟力 Fn、Tt 与轮端力矩 Tw
-    void calc_force();
+    void calc_force(float dt);
 
     // 按目标腿长和横滚补偿计算双腿轴向力，含重力与弹簧补偿
-    void balance_legs(float length);
+    void balance_legs(float dt, float length);
 
     // LQR 平衡：按腿长插值增益，计算轮端力矩 Tw 与摆动力矩 Tt
     void calc_lqr();

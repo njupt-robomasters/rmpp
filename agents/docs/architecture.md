@@ -10,7 +10,7 @@ app/examples/<示例>/        empty、rgb、rc、imu、attitude、melody、cdc�
 lib/bsp/                   无 HAL 依赖的公共外设声明（Can、Uart、Cdc、Rgb、Buzzer、Imu、KvStore、Timer、Monitor）
 lib/attitude/              姿态解算：抽象父类 Attitude 与算法子类 QuaternionEkf
 lib/math/                  单位、角度、低通滤波、Eigen 类型与姿态转换
-lib/power/                 超级电容 SuperCap（G474SuperCap CAN 协议与底盘功率管理：app 设置裁判上限与缓冲能量，下发电池侧目标，DCDC 使能时维护虚拟缓冲能量并给出底盘功率目标，底盘持有引用并更新；应答中在线辨识电容量与 ESR；未装超电时不调用 send()，离线按裁判缓冲能量）、电机功率模型 MotorPower（无状态，功率估计与两组电流衰减，各底盘共用）
+lib/power/                 超级电容 SuperCap（G474SuperCap CAN 协议与底盘功率管理：app 设置裁判上限与缓冲能量，下发电池侧目标，DCDC 使能时维护虚拟缓冲能量并给出底盘功率目标，app 更新后经 `chassis.set_power_ref()` 交给底盘；应答中在线辨识电容量与 ESR；未装超电时不调用 send()，离线按裁判缓冲能量）、电机功率模型 MotorPower（无状态，功率估计与两组电流衰减，各底盘共用）
 lib/melody/                  Melody 与曲目
 lib/third_party/           纯软件第三方库：Eigen
 third_party/               含硬件移植层、由板卡 BSP 编译的第三方库：CherryUSB v1.6.1、FlashDB 2.2.0
@@ -48,7 +48,7 @@ Timer timer;
 
 `Can`、`Uart`、`Cdc` 只保存编号，构造不访问硬件，可在全局创建；同编号句柄共享 BSP 内部的缓冲、回调和 monitor。编号允许不连续，不存在的编号各操作静默返回。`Rgb`、`Buzzer` 是板载唯一外设，无需参数。细节见 [BSP](bsp.md)。
 
-Timer 提供 `elapsed`、`restart`、`delay`，时间为秒，可在构造时限定 dt 范围；底层为 64 位 CPU 周期计数，不存在溢出间隔。
+Timer 提供 `elapsed`、`restart`、`delay`，时间为秒，不限幅；底层为 64 位 CPU 周期计数，不存在溢出间隔。用作积分或微分步长时，由持有方在 `update()` 开头计一次周期、按本类 `DT_MIN`/`DT_MAX` 限幅，再传给 PID 等组件（`Pid::calculate(dt, err)`）。
 
 ## 应用绑定硬件
 
@@ -66,11 +66,11 @@ QuaternionEkf attitude(imu);
 KvStore kv_store("infantry");
 ```
 
-电机各层构造函数只接收并传递唯一的 config。公共配置分为 bus（CAN 通道、命令与反馈 ID、超时）、drive（kt、电流与转矩量程、减速比）和 install（零点偏移、方向）；`Motor::config` 公开，供功率限制、云台零点存储和发射卡弹判断读取 drive 与 install，校准使用 set_offset。型号物理参数使用公开的 static constexpr 独立常量，不另设全局型号配置包装。速度和位置闭环由底盘、云台、发射机构持有，Motor 只提供电流和力矩设置。DmMotor 和 Vesc 的专用 Config 内含 motor 公共配置及专用参数，DM 型号配置额外提供使能帧发送频率。
+电机各层构造函数只接收并传递唯一的 config。公共配置分为 bus（CAN 通道、命令与反馈 ID、超时）、drive（成对的电流与转矩满量程、减速比；二者之比即转矩常数，不另存 kt）和 install（零点偏移、方向）；drive 为零的字段由子类型号常量补齐。`Motor::config` 公开，外部只读，供功率限制、云台零点存储和发射卡弹判断读取；offset 运行中经 `set_offset()`、`set_zero()` 修改，故 config 不加 const。型号物理参数使用公开的 static constexpr 独立常量，不另设全局型号配置包装；VESC 不对应固定型号，drive 须全部给出。速度和位置闭环由底盘、云台、发射机构持有，Motor 只提供电流和力矩设置。DmMotor 和 Vesc 的专用 Config 内含 motor 公共配置及专用参数，DM 型号配置额外提供使能帧发送频率。
 
 DJI 最终型号注册 CAN 回调，私有 can_callback 先校验报文并解析型号特有字段，再直接调用 Motor::can_callback 完成方向修正、多圈累计和在线计时。其他协议子类直接注册并解析 raw。update 每周期先判断反馈超时，再计算闭环；set_current、set_torque 在赋值时处理非有限值、限幅和单位换算。DJI 同组命令由 app 创建零初始化组帧，各电机通过 write_can_frame 按控制帧 ID 和反馈 ID 写入对应槽位，再由 app 统一发送。DM 电机按配置频率定时发送使能帧，该周期不发送 MIT 帧；VESC 不要求在线反馈，只支持开环速度发送。
 
-BSP `Imu` 负责 BMI088 读取、恒温加热、零偏校准和安装方向修正，输出机体系量，可单独使用；`Attitude` 是接收 `Imu&` 的抽象父类，输出 q、欧拉角和累计 yaw，算法由子类（如 `QuaternionEkf`）实现。云台持有 `Attitude& attitude`。转换约定和调参见 [IMU](imu.md)。
+BSP `Imu` 负责 BMI088 读取、恒温加热、零偏校准和安装方向修正，输出机体系量，可单独使用；`Attitude` 是接收 `Imu&` 的抽象父类，输出 q、欧拉角和累计 yaw，算法由子类（如 `QuaternionEkf`）实现。云台不持有姿态：app 调用 `attitude.update()` 后经 `gimbal.update(attitude.yaw, attitude.pitch)` 传入。转换约定和调参见 [IMU](imu.md)。
 
 `Rgb` 提供 `set(red, green, blue)` 和 `set_hsv`，范围 [0, 1]；周期变色由各车 `misc.cpp` 的 `misc_loop()` 执行。`Melody` 在板载 `Buzzer` 上播放曲目，见 [蜂鸣器曲目](music.md)。
 

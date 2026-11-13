@@ -87,5 +87,7 @@ void chassis_loop() {
     chassis.set_gimbal_yaw(gimbal.yaw.ecd.measure);
     super_cap.set_referee_limit(referee.robot_status.chassis_power_limit);
     super_cap.set_referee_energy(referee.power_heat_data.buffer_energy);
+    super_cap.update();
+    chassis.set_power_ref(super_cap.power.chassis_ref);
     chassis.update();
 }

@@ -2,7 +2,7 @@
 #include "math/unit.hpp"
 
 M2006::M2006(const Config& config)
-    : Motor(config) {
+    : Motor(config, {.max_current = MAX_CURRENT, .max_torque = MAX_TORQUE, .reduction = REDUCTION}) {
     config.bus.can.add_rx_callback([this](const CanFrame& frame) { can_callback(frame); });
 }
 
@@ -37,9 +37,9 @@ void M2006::can_callback(const CanFrame& frame) {
 
     // 解析can报文
     const auto* data = frame.data;
-    raw.current = static_cast<float>((data[4] << 8) | data[5]) / 10000.0f * MAX_CURRENT;
-    raw.torque = raw.current * config.drive.kt;
-    raw.speed = static_cast<float>((data[2] << 8) | data[3]) * rpm;
+    raw.current = static_cast<int16_t>((data[4] << 8) | data[5]) / 10000.0f * MAX_CURRENT;
+    raw.torque = raw.current / config.drive.max_current * config.drive.max_torque;
+    raw.speed = static_cast<int16_t>((data[2] << 8) | data[3]) * rpm;
     raw.position = static_cast<float>((data[0] << 8) | data[1]) / 8192.0f * rev;
 
     // 调用上级回调

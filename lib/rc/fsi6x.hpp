@@ -18,16 +18,17 @@ class FSi6X {
         ERR
     };
 
+    FSi6X(const Config& config);
+
+    // 断联检测，需要在循环中调用；断联时数据复位为默认值
+    void update();
+
+  public:
     bool is_connect = false; // 连接标志
 
     float x = 0, y = 0, pitch = 0, yaw = 0;            // 摇杆
     Switch swa = ERR, swb = ERR, swc = ERR, swd = ERR; // 拨杆
     float vra = 0, vrb = 0;                            // 旋钮
-
-    FSi6X(const Config& config);
-
-    // 断联检测，需要在循环中调用；断联时数据复位为默认值
-    void update();
 
   private:
     const Config config_;

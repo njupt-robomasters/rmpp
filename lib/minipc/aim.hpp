@@ -14,6 +14,10 @@ class Aim {
         float timeout = 100 * ms;
     };
 
+    explicit Aim(const Config& config);
+    void update();
+
+  public:
     bool is_connect_vision = false;
 
     struct {
@@ -41,10 +45,7 @@ class Aim {
         float a0 = NAN;
     } insta360;
 
-    explicit Aim(const Config& config);
-    void update();
-
   private:
     const Config config_;
-    Timer timer_vision_, timer_insta360_;
+    Timer vision_timer_, insta360_timer_;
 };

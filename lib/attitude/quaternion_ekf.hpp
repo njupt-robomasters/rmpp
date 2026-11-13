@@ -13,17 +13,20 @@ class QuaternionEkf : public Attitude {
         float innovation_threshold = 1.0e-8f; // 归一化残差门限，> 0
     };
 
-    Vector2f bias = Vector2f::Zero(); // rad/s；不估计 Z 零偏
-
     QuaternionEkf(Imu& imu, const Config& config);
 
     // 清除剩余零偏并重建协方差，保留当前姿态
     void reset_bias();
 
+  public:
+    Vector2f bias = Vector2f::Zero(); // rad/s；不估计 Z 零偏
+
   private:
+    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // solve() 步长限幅，s；避免首次调用和停顿后的大步长
+
     const Config config_;
 
-    Timer solve_timer_{0.0001f, 0.01f};      // solve() 间隔，s；限幅避免首次调用和停顿后的大步长
+    Timer solve_timer_;                      // solve() 间隔
     Matrix6f covariance_ = Matrix6f::Zero(); // 状态协方差，顺序 [qw qx qy qz bias_x bias_y]
     bool initialized_ = false;               // 已由首个有效重力方向确定初始倾角
     bool converged_ = false;                 // 残差曾低于半门限，此后启用门控与增益衰减

@@ -1,4 +1,5 @@
 #include "shooter_42mm.hpp"
+#include <algorithm>
 #include <cmath>
 
 Shooter42mm::Shooter42mm(const Motors& motor, const Config& config)
@@ -26,6 +27,8 @@ void Shooter42mm::set_heat_remain(const int32_t heat_remain) {
 }
 
 void Shooter42mm::update() {
+    const float dt = std::clamp(update_timer_.restart(), DT_MIN, DT_MAX);
+
     // 离线检测
     motor.rub1.update();
     motor.rub2.update();
@@ -71,7 +74,7 @@ void Shooter42mm::update() {
         const float offset = shake_upper_ - a;
         const float t = shake_timer_.elapsed();
         const Angle angle = a * std::cos(2 * pi * SHAKE_FREQ * t) + offset;
-        set_shoot_output(shoot_pid_.calculate(angle - motor.shoot.position));
+        set_shoot_output(shoot_pid_.calculate(dt, angle - motor.shoot.position));
 
         // 防止计时器溢出
         if (SHAKE_FREQ * t > 1)
@@ -88,7 +91,7 @@ void Shooter42mm::update() {
 
     case SHOOT: {
         const Angle target_angle = shake_upper_ + angle_per_bullet;
-        set_shoot_output(shoot_pid_.calculate(target_angle - motor.shoot.position));
+        set_shoot_output(shoot_pid_.calculate(dt, target_angle - motor.shoot.position));
 
         // 到位后回到抖动
         if (std::fabs(target_angle - motor.shoot.position) < (1.0f - SHOOT_FINISH_RATIO) * angle_per_bullet) {

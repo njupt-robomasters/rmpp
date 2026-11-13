@@ -3,7 +3,7 @@
 #include "math/eigen.hpp"
 #include "motor/motor.hpp"
 
-// 电机功率模型：P = Σ(kt·I·ω + 0.75·R·I²)，R 为线间电阻（星形接法三相铜耗 1.5·(R/2)·I²）
+// 电机功率模型：P = Σ(kt·I·ω + 0.75·R·I²)，R 为线间电阻（星形接法三相铜耗 1.5·(R/2)·I²），kt = max_torque / max_current
 // 无状态，供各底盘共用；电流分平移、旋转两组衰减：I = gain.xy·I_xy + gain.z·I_z
 // 国际单位制：功率 W，电流 A，电阻 Ω
 class MotorPower {

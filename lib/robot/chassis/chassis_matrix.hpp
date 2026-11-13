@@ -1,9 +1,9 @@
 #pragma once
 
+#include "bsp/timer.hpp"
 #include "math/angle.hpp"
 #include "pid/pid.hpp"
 #include "power/motor_power.hpp"
-#include "power/super_cap.hpp"
 #include <array>
 
 // 矩阵四轮底盘公共部分：模式与跟随、云台系换算、轮电机在线管理、矩阵正逆解、功率
@@ -45,27 +45,6 @@ class ChassisMatrix {
         FOLLOW_MODE, // 跟随模式
     };
 
-    // 移动速度，云台系，vx 前正后负，vy 左正右负
-    struct {
-        float ref = 0, measure = 0;
-    } vx, vy;
-
-    // 旋转线速度，逆时针为正
-    struct {
-        float ref = 0, measure = 0;
-    } vz;
-
-    // 旋转角速度，逆时针为正；input 为用户输入，ref 叠加跟随后得到
-    struct {
-        float ref = 0, measure = 0, input = 0;
-    } wr;
-
-    // 功率：轮电机模型估计与本周期平移、旋转电流衰减系数；底盘功率目标由超电给出
-    struct {
-        float estimate = 0;
-        MotorPower::Gain gain;
-    } power;
-
     // 使能/失能轮电机
     void set_enable(bool is_enable);
 
@@ -81,6 +60,9 @@ class ChassisMatrix {
     // 设置前进正方向（云台相对底盘的 yaw）
     void set_gimbal_yaw(Angle gimbal_yaw);
 
+    // 设置底盘功率目标，W；通常取超电 power.chassis_ref，未设置时为零、电机不出力
+    void set_power_ref(float power_ref);
+
     // 每个控制周期调用；失能时也更新测量与功率
     void update();
 
@@ -91,49 +73,78 @@ class ChassisMatrix {
     Vector4f backward_force(const Vector3f& f) const; // 底盘牵引力 → 轮牵引力
 
   protected:
+    ChassisMatrix(const std::array<Motor*, 4>& wheel, const Config& config);
+
+    // 控制：底盘目标 → 电机输出；每周期调用，失能时清空 PID；dt 为控制周期，s
+    virtual void control(float dt) = 0;
+
+  public:
+    // 移动速度，云台系，vx 前正后负，vy 左正右负
+    struct {
+        float ref = 0, measure = 0;
+    } vx, vy;
+
+    // 旋转线速度，逆时针为正
+    struct {
+        float ref = 0, measure = 0;
+    } vz;
+
+    // 旋转角速度，逆时针为正；input 为用户输入，ref 叠加跟随后得到
+    struct {
+        float ref = 0, measure = 0, input = 0;
+    } wr;
+
+    // 功率：轮电机模型估计与本周期平移、旋转电流衰减系数
+    struct {
+        float estimate = 0;
+        MotorPower::Gain gain;
+    } power;
+
+  protected:
     const Config config_;
     Motor* const wheel_[4]; // 轮电机：左前、左后、右后、右前
-    SuperCap& super_cap_;   // 由底盘更新，提供底盘功率目标
+
+    // 指令
     bool is_enable_ = false;
-    float reserve_wr_ = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转
     Angle gimbal_yaw_;
-
-    ChassisMatrix(SuperCap& super_cap, const std::array<Motor*, 4>& wheel, const Config& config);
-
-    // 控制：底盘目标 → 电机输出；每周期调用，失能时清空 PID
-    virtual void control() = 0;
+    float power_ref_ = 0;         // 底盘功率目标，W
+    float reserve_wr_ = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转
 
   private:
+    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
+
     Mode mode_ = DETACH_MODE;
     Eigen::Matrix<float, 4, 3> j_;
     Eigen::Matrix<float, 3, 4> j_pinv_;
     Pid follow_pid_;
+    Timer update_timer_;
 };
 
 // 矩阵四轮底盘，速度控制：速度逆解为各轮线速度，轮速 PID 输出电流
 // 电流按力正解拆出旋转分量做功率控制，假设四轮同型号
 class ChassisMatrixSpeed : public ChassisMatrix {
   public:
-    ChassisMatrixSpeed(const std::array<Motor*, 4>& wheel, SuperCap& super_cap, const Config& config);
+    ChassisMatrixSpeed(const std::array<Motor*, 4>& wheel, const Config& config);
 
   private:
     Pid wheel_pid_[4]; // 轮转速误差 rad/s → 电流 A
 
-    void control() override;
+    void control(float dt) override;
 };
 
 // 矩阵四轮底盘，力控制：底盘速度 PID 输出牵引力，力学逆解为各轮电流
 class ChassisMatrixTorque : public ChassisMatrix {
+  public:
+    ChassisMatrixTorque(const std::array<Motor*, 4>& wheel, const Config& config);
+
   public:
     // 牵引力，云台系，fx 前正后负，fy 左正右负，fz 逆时针为正；ref 为功率与限幅后的实际输出
     struct {
         float ref = 0, measure = 0;
     } fx, fy, fz;
 
-    ChassisMatrixTorque(SuperCap& super_cap, const std::array<Motor*, 4>& wheel, const Config& config);
-
   private:
     Pid vx_pid_, vy_pid_, vz_pid_; // 速度误差 m/s → 牵引力 N
 
-    void control() override;
+    void control(float dt) override;
 };

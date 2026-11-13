@@ -11,7 +11,7 @@ void Motor::set_current(float current) {
         current = 0;
     current = std::clamp(current, -config.drive.max_current, config.drive.max_current);
     current_ref = current;
-    torque_ref = current * config.drive.kt;
+    torque_ref = current / config.drive.max_current * config.drive.max_torque;
 }
 
 void Motor::set_torque(float torque) {
@@ -19,11 +19,16 @@ void Motor::set_torque(float torque) {
         torque = 0;
     torque = std::clamp(torque, -config.drive.max_torque, config.drive.max_torque);
     torque_ref = torque;
-    current_ref = torque / config.drive.kt;
+    current_ref = torque / config.drive.max_torque * config.drive.max_current;
 }
 
 void Motor::set_offset(const float offset) {
     config.install.offset = offset;
+}
+
+void Motor::set_zero() {
+    const float dir = config.install.is_invert ? -1.0f : 1.0f;
+    set_offset(config.install.offset + dir * position_multi * config.drive.reduction);
 }
 
 void Motor::update() {
@@ -34,9 +39,8 @@ void Motor::update() {
     }
 }
 
-Motor::Motor(const Config& config)
-    : config(config) {
-}
+Motor::Motor(const Config& config, const Config::Drive& model)
+    : config(with_model(config, model)) {}
 
 void Motor::can_callback() {
     // 用于断联检测
@@ -60,4 +64,14 @@ void Motor::can_callback() {
         position = Angle(dir * (raw.position - config.install.offset));
     else
         position = Angle(position_multi);
+}
+
+Motor::Config Motor::with_model(Config config, const Config::Drive& model) {
+    if (config.drive.max_current == 0)
+        config.drive.max_current = model.max_current;
+    if (config.drive.max_torque == 0)
+        config.drive.max_torque = model.max_torque;
+    if (config.drive.reduction == 0)
+        config.drive.reduction = model.reduction;
+    return config;
 }

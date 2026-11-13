@@ -2,7 +2,7 @@
 #include <cmath>
 
 X630::X630(const Config& config, const Mute& mute)
-    : Motor(config), mute_(mute) {
+    : Motor(config, {.max_current = MAX_CURRENT, .max_torque = MAX_TORQUE, .reduction = REDUCTION}), mute_(mute) {
     config.bus.can.add_rx_callback([this](const CanFrame& frame) { can_callback(frame); });
 }
 
@@ -33,7 +33,7 @@ void X630::write_can_frame(CanFrame& frame) const {
     float current = 0;
     if (is_connect && is_enable_)
         current = config.install.is_invert ? -current_ref : current_ref;
-    const auto command = static_cast<int16_t>(current / 20.0f * 16384.0f);
+    const auto command = static_cast<int16_t>(current / MAX_CURRENT * 16384.0f);
 
     // 构造can报文
     frame.data[offset] = static_cast<uint8_t>(command >> 8);
@@ -50,9 +50,9 @@ void X630::can_callback(const CanFrame& frame) {
     raw.position = static_cast<float>((data[0] << 8) | data[1]) / 8192.0f * rev;
     // 转速、电流为有符号 16 位，先转 int16_t 保留反转符号
     raw.speed = static_cast<int16_t>((data[2] << 8) | data[3]) * rpm;
-    raw.current = static_cast<int16_t>((data[4] << 8) | data[5]) / 16384.0f * 20.0f;
+    raw.current = static_cast<int16_t>((data[4] << 8) | data[5]) / 16384.0f * MAX_CURRENT;
     motor_temperature = static_cast<int8_t>(data[6]);
-    raw.torque = raw.current * config.drive.kt;
+    raw.torque = raw.current / config.drive.max_current * config.drive.max_torque;
 
     // 调用上级回调
     Motor::can_callback();

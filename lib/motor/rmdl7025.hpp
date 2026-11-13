@@ -9,18 +9,18 @@ class RMDL7025 : public Motor {
     // 型号默认物理参数：峰值电流、峰值转矩
     static constexpr float MAX_CURRENT = 8.5f;
     static constexpr float MAX_TORQUE = 4.1f;
-    static constexpr float KT = 0.53f;
     static constexpr float REDUCTION = 1;
-
-    float temperature = 0; // 电机温度，℃
 
     explicit RMDL7025(const Config& config);
 
     // 轮流发送转矩闭环 0xA1 和读取单圈角度 0x94，电机总应答频率上限 500 Hz，调用周期不小于 2 ms
     void send();
 
+  public:
+    float temperature = 0; // 电机温度，℃
+
   private:
-    uint32_t send_count_ = 0;
+    uint32_t send_count_ = 0; // 奇偶决定本次发送的报文
 
     void can_callback(const CanFrame& frame);
 };

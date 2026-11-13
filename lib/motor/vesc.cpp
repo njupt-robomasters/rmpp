@@ -22,7 +22,7 @@ int32_t Vesc::read32(const uint8_t* data) {
 }
 
 Vesc::Vesc(const Motor::Config& config)
-    : Motor(config) {
+    : Motor(config, {}) {
     config.bus.can.add_rx_callback([this](const CanFrame& frame) { can_callback(frame); });
 }
 
@@ -110,7 +110,7 @@ void Vesc::can_callback(const CanFrame& frame) {
     case CAN_PACKET_STATUS:
         raw.speed = static_cast<float>(read32(data)) * rpm;
         raw.current = static_cast<float>(read16(data + 4)) / 10.0f;
-        raw.torque = raw.current * config.drive.kt;
+        raw.torque = raw.current / config.drive.max_current * config.drive.max_torque;
         duty_cycle = static_cast<float>(read16(data + 6)) / 1000.0f * pct;
         break;
     case CAN_PACKET_STATUS_2:

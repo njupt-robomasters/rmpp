@@ -2,8 +2,8 @@
 #include "math/unit.hpp"
 #include <algorithm>
 
-GM6020::GM6020(const Config& config, const BackEmf& back_emf)
-    : Motor(config), back_emf_(back_emf) {
+GM6020::GM6020(const Config& config, const float ke)
+    : Motor(config, {.max_current = MAX_CURRENT, .max_torque = MAX_TORQUE, .reduction = REDUCTION}), ke_(ke) {
     config.bus.can.add_rx_callback([this](const CanFrame& frame) { can_callback(frame); });
 }
 
@@ -30,7 +30,7 @@ void GM6020::write_can_frame(CanFrame& frame) const {
     if (frame.id == 0x1ff || frame.id == 0x2ff) { // 电压模式
         float voltage = 0;
         if (is_connect && is_enable_)
-            voltage = std::clamp(current_ref / MAX_CURRENT * MAX_VOLTAGE + back_emf_.gain * back_emf_.ke * speed, -MAX_VOLTAGE, MAX_VOLTAGE);
+            voltage = std::clamp(current_ref / MAX_CURRENT * MAX_VOLTAGE + ke_ * speed, -MAX_VOLTAGE, MAX_VOLTAGE);
         command = static_cast<int16_t>(dir * voltage / MAX_VOLTAGE * 25000.0f);
     } else { // 电流模式
         float current = 0;
@@ -52,10 +52,10 @@ void GM6020::can_callback(const CanFrame& frame) {
     // 解析can报文
     const auto* data = frame.data;
     raw.position = static_cast<float>((data[0] << 8) | data[1]) / 8192.0f * rev;
-    raw.speed = static_cast<float>((data[2] << 8) | data[3]) / config.drive.reduction * rpm;
-    raw.current = static_cast<float>((data[4] << 8) | data[5]) / 16384.0f * MAX_CURRENT;
+    raw.speed = static_cast<int16_t>((data[2] << 8) | data[3]) * rpm;
+    raw.current = static_cast<int16_t>((data[4] << 8) | data[5]) / 16384.0f * MAX_CURRENT;
     motor_temperature = static_cast<int8_t>(data[6]);
-    raw.torque = raw.current * config.drive.kt;
+    raw.torque = raw.current / config.drive.max_current * config.drive.max_torque;
 
     // 调用上级回调
     Motor::can_callback();

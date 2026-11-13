@@ -53,8 +53,6 @@ class Melody {
         Agc agc = {.ratio = 4, .max_gain = 8, .attack = 0.005f, .release = 0.15f, .hold = 0.5f};
     };
 
-    Monitor monitor; // 复音合成中断的频率与占用
-
     explicit Melody(const Config& config);
 
     // 从头播放，打断当前播放；曲目须在播放期间保持有效
@@ -70,6 +68,9 @@ class Melody {
     bool is_playing() const {
         return stage_ != Stage::IDLE;
     }
+
+  public:
+    Monitor monitor; // 复音合成中断的频率与占用
 
   private:
     static constexpr std::size_t MAX_VOICES = 8; // 每组声部上限，与 tools/midi_to_song.py 一致

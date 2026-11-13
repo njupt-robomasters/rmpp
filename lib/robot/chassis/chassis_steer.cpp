@@ -14,7 +14,7 @@ void Steer::update() {
     measure = motor.position;
 }
 
-float Steer::control(const float vx, const float vy) {
+float Steer::control(const float dt, const float vx, const float vy) {
     // 离线时清空，重连后从当前舵向开始，避免突然转舵
     if (!motor.is_connect) {
         clear();
@@ -40,7 +40,7 @@ float Steer::control(const float vx, const float vy) {
 
     // 舵向闭环，误差取最短角度；PID 跟踪电机限幅后的实际电流
     const Angle error = ref - measure;
-    motor.set_current(pid_.calculate(error));
+    motor.set_current(pid_.calculate(dt, error));
     pid_.track(motor.current_ref);
 
     // 轮速投影到当前舵向，误差达到 90° 时不驱动
@@ -78,7 +78,13 @@ void ChassisSteer::set_gimbal_yaw(const Angle gimbal_yaw) {
     gimbal_yaw_ = gimbal_yaw;
 }
 
+void ChassisSteer::set_power_ref(const float power_ref) {
+    power_ref_ = power_ref;
+}
+
 void ChassisSteer::update() {
+    const float dt = std::clamp(update_timer_.restart(), DT_MIN, DT_MAX);
+
     // 离线检测与速度正解，离线轮反馈已清零
     Vector4f v;
     for (int i = 0; i < 4; i++) {
@@ -92,26 +98,25 @@ void ChassisSteer::update() {
     vz.measure = measure.z();
     wr.measure = vz.measure / config_.chassis_radius;
 
-    // 轮电机功率估计供 SWD 与超电实测对照；超电更新底盘功率目标
+    // 轮电机功率估计供 SWD 与超电实测对照
     power.estimate = MotorPower::estimate(wheel_, config_.wheel_resistance);
-    super_cap_.update();
 
-    // 旋转：用户输入优先，否则按模式分离或跟随；失能时清空跟随 PID 与舵向
+    // 失能时清空舵向
     if (!is_enable_) {
-        follow_pid_.clear();
         for (Steer& s : steer)
             s.clear();
-        wr.ref = 0;
-    } else if (wr.input != 0) {
-        wr.ref = wr.input;
-    } else if (mode_ == FOLLOW_MODE) {
-        wr.ref = follow_pid_.calculate(gimbal_yaw_);
+    }
+
+    // 旋转：用户输入优先，否则按模式分离或跟随；不跟随时清空跟随 PID
+    if (is_enable_ && wr.input == 0 && mode_ == FOLLOW_MODE) {
+        wr.ref = follow_pid_.calculate(dt, gimbal_yaw_);
     } else {
-        wr.ref = 0;
+        follow_pid_.clear();
+        wr.ref = is_enable_ ? wr.input : 0;
     }
     vz.ref = wr.ref * config_.chassis_radius;
 
-    control();
+    control(dt);
 }
 
 Vector3f ChassisSteer::forward_speed(const Vector4f& v) const {
@@ -127,18 +132,18 @@ Vector3f ChassisSteer::forward_force(const Vector4f& f) const {
     return forward_speed(f) * 4.0f;
 }
 
-ChassisSteer::ChassisSteer(SuperCap& super_cap, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)
+ChassisSteer::ChassisSteer(const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)
     : steer{Steer(*steer[0], config.steer_pid_config), Steer(*steer[1], config.steer_pid_config), Steer(*steer[2], config.steer_pid_config), Steer(*steer[3], config.steer_pid_config)},
-      config_(config), wheel_{wheel[0], wheel[1], wheel[2], wheel[3]}, super_cap_(super_cap), follow_pid_(config.follow_pid_config) {}
+      config_(config), wheel_{wheel[0], wheel[1], wheel[2], wheel[3]}, follow_pid_(config.follow_pid_config) {}
 
 bool ChassisSteer::can_drive(const size_t i) const {
     return wheel_[i]->is_connect && steer[i].motor.is_connect;
 }
 
-Vector4f ChassisSteer::backward_speed(const Vector3f& v) {
+Vector4f ChassisSteer::backward_speed(const float dt, const Vector3f& v) {
     Vector4f out;
     for (int i = 0; i < 4; i++)
-        out[i] = steer[i].control(v.x() + v.z() * std::cosf(TANGENT[i]), v.y() + v.z() * std::sinf(TANGENT[i]));
+        out[i] = steer[i].control(dt, v.x() + v.z() * std::cosf(TANGENT[i]), v.y() + v.z() * std::sinf(TANGENT[i]));
     return out;
 }
 
@@ -154,11 +159,11 @@ Vector4f ChassisSteer::backward_force(const Vector3f& f) const {
     return out;
 }
 
-ChassisSteerSpeed::ChassisSteerSpeed(SuperCap& super_cap, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)
-    : ChassisSteer(super_cap, wheel, steer, config),
+ChassisSteerSpeed::ChassisSteerSpeed(const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)
+    : ChassisSteer(wheel, steer, config),
       wheel_pid_{Pid(config.speed_pid_config), Pid(config.speed_pid_config), Pid(config.speed_pid_config), Pid(config.speed_pid_config)} {}
 
-void ChassisSteerSpeed::control() {
+void ChassisSteerSpeed::control(const float dt) {
     // 失能时清空 PID，电机已失能
     if (!is_enable_) {
         for (Pid& pid : wheel_pid_)
@@ -167,11 +172,11 @@ void ChassisSteerSpeed::control() {
     }
 
     // 速度逆解（含舵向闭环）与轮速 PID，不能驱动的轮清空 PID 并输出零
-    const Vector4f v = backward_speed(rotate({vx.ref, vy.ref, vz.ref}, gimbal_yaw_));
+    const Vector4f v = backward_speed(dt, rotate({vx.ref, vy.ref, vz.ref}, gimbal_yaw_));
     Vector4f current;
     for (int i = 0; i < 4; i++) {
         if (can_drive(i)) {
-            current[i] = wheel_pid_[i].calculate(v[i] / config_.wheel_radius - wheel_[i]->speed);
+            current[i] = wheel_pid_[i].calculate(dt, v[i] / config_.wheel_radius - wheel_[i]->speed);
         } else {
             wheel_pid_[i].clear();
             current[i] = 0;
@@ -179,7 +184,7 @@ void ChassisSteerSpeed::control() {
     }
 
     // 功率整体衰减，不拆旋转分量
-    power.gain = MotorPower::limit_current(wheel_, config_.wheel_resistance, current, Vector4f::Zero(), false, super_cap_.power.chassis_ref);
+    power.gain = MotorPower::limit_current(wheel_, config_.wheel_resistance, current, Vector4f::Zero(), false, power_ref_);
 
     // 轮速 PID 跟踪功率衰减与电机限幅后的实际电流
     for (int i = 0; i < 4; i++) {
@@ -188,11 +193,11 @@ void ChassisSteerSpeed::control() {
     }
 }
 
-ChassisSteerTorque::ChassisSteerTorque(SuperCap& super_cap, const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)
-    : ChassisSteer(super_cap, wheel, steer, config),
+ChassisSteerTorque::ChassisSteerTorque(const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)
+    : ChassisSteer(wheel, steer, config),
       vx_pid_(config.speed_pid_config), vy_pid_(config.speed_pid_config), vz_pid_(config.speed_pid_config) {}
 
-void ChassisSteerTorque::control() {
+void ChassisSteerTorque::control(const float dt) {
     // 力学正解，离线轮反馈已清零
     Vector4f f;
     for (int i = 0; i < 4; i++)
@@ -212,19 +217,20 @@ void ChassisSteerTorque::control() {
     }
 
     // 舵向由速度逆解决定
-    backward_speed(rotate({vx.ref, vy.ref, vz.ref}, gimbal_yaw_));
+    backward_speed(dt, rotate({vx.ref, vy.ref, vz.ref}, gimbal_yaw_));
 
     // 速度 PID 输出牵引力，平移与旋转分别力逆解为轮电流；不能驱动的轮输出零
-    const Vector3f force = rotate({vx_pid_.calculate(vx.ref - vx.measure), vy_pid_.calculate(vy.ref - vy.measure), 0}, gimbal_yaw_);
+    const Vector3f force = rotate({vx_pid_.calculate(dt, vx.ref - vx.measure), vy_pid_.calculate(dt, vy.ref - vy.measure), 0}, gimbal_yaw_);
     const Vector4f f_xy = backward_force(force);
-    const Vector4f f_z = backward_force({0, 0, vz_pid_.calculate(vz.ref - vz.measure)});
+    const Vector4f f_z = backward_force({0, 0, vz_pid_.calculate(dt, vz.ref - vz.measure)});
     Vector4f current_xy, current_z;
     for (int i = 0; i < 4; i++) {
-        const float k = can_drive(i) ? config_.wheel_radius / wheel_[i]->config.drive.kt : 0.0f;
+        const auto& drive = wheel_[i]->config.drive;
+        const float k = can_drive(i) ? config_.wheel_radius * drive.max_current / drive.max_torque : 0.0f;
         current_xy[i] = f_xy[i] * k;
         current_z[i] = f_z[i] * k;
     }
-    power.gain = MotorPower::limit_current(wheel_, config_.wheel_resistance, current_xy, current_z, std::fabs(wr.measure) > reserve_wr_, super_cap_.power.chassis_ref);
+    power.gain = MotorPower::limit_current(wheel_, config_.wheel_resistance, current_xy, current_z, std::fabs(wr.measure) > reserve_wr_, power_ref_);
 
     // 实际输出力经力学正解换回云台系，速度 PID 跟踪
     Vector4f f_out;

@@ -85,7 +85,7 @@ extern "C" void app_main() {
             vt13.update();
             fsi6x.update();
             referee.update();
-            aim.imu = {.yaw = gimbal.attitude.yaw, .pitch = gimbal.attitude.pitch, .roll = gimbal.attitude.roll};
+            aim.imu = {.yaw = attitude.yaw, .pitch = attitude.pitch, .roll = attitude.roll};
             aim.referee = {
                 .is_red = referee.robot_status.robot_id < 100,
                 .game_progress = static_cast<Referee::GameProgress>(referee.game_status.game_progress),

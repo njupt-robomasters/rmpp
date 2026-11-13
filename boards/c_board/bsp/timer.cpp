@@ -6,7 +6,6 @@
 #include "bsp/timer.hpp"
 #include "bsp/irq_lock.hpp"
 #include "stm32f4xx_hal.h"
-#include <algorithm>
 
 static volatile uint64_t cycles = 0;      // 截至上次累加的周期数
 static volatile uint32_t last_cyccnt = 0; // 上次累加时的 CYCCNT
@@ -41,15 +40,13 @@ void Timer::delay(const float seconds) {
     }
 }
 
-float Timer::elapsed() {
-    const float seconds = static_cast<float>(read_cycles() - last_cycles_) / static_cast<float>(SystemCoreClock);
-    return std::clamp(seconds, min_dt_, max_dt_);
+float Timer::elapsed() const {
+    return static_cast<float>(read_cycles() - last_cycles_) / static_cast<float>(SystemCoreClock);
 }
 
 float Timer::restart() {
     const uint64_t now = read_cycles();
     const float seconds = static_cast<float>(now - last_cycles_) / static_cast<float>(SystemCoreClock);
-    dt = std::clamp(seconds, min_dt_, max_dt_);
     last_cycles_ = now;
-    return dt;
+    return seconds;
 }

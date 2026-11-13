@@ -8,6 +8,8 @@ static constexpr float VXY_MAX = 3.0f;     // 平移最大速度，m/s
 static constexpr float WR_MAX = 150 * rpm; // 手动旋转最大角速度
 static constexpr float SPIN_WR = 60 * rpm; // 小陀螺角速度
 
+static uint32_t super_cap_send_count = 0; // 超电发送分频计数
+
 void chassis_loop() {
     const bool is_enable = fsi6x.swa == FSi6X::DOWN; // SWA 下挡使能
     const bool is_spin = fsi6x.swd == FSi6X::DOWN;   // SWD 下挡小陀螺
@@ -42,7 +44,10 @@ void chassis_loop() {
     // 裁判电池侧功率上限与缓冲能量由 referee_loop 模拟
     super_cap.set_referee_limit(REFEREE_LIMIT);
     super_cap.set_referee_energy(referee_energy);
+    super_cap.update();
 
+    // 底盘功率目标由超电给出
+    chassis.set_power_ref(super_cap.power.chassis_ref);
     chassis.update();
 
     // CAN1 0x200 组帧发送
@@ -54,7 +59,6 @@ void chassis_loop() {
     Can(1).send(frame);
 
     // 超电 100 Hz 发送
-    static uint32_t super_cap_send_count = 0;
     if (super_cap_send_count++ % 10 == 0) {
         super_cap.send();
     }
