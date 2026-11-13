@@ -104,6 +104,32 @@
 
 状态：代码完成，受影响目标全部编译通过，待用户审计与上车。结论与上车核对项见 `tasks/03-quad_steer/README.md`
 
+## 全局代码优化
+
+状态：规划中，已给出分析，待用户确认决定后再改代码。dummy、leg_up、leg_down 已上车验证，尽量不改业务行为
+
+### 已确认
+
+- 修复：GM6020、M2006 速度和电流按无符号解析（c9ac138 丢失 `int16_t`）；GM6020、DmMotor 在 raw 中先除减速比，基类再除一次
+- Timer 只计时：去掉 min/max 与 `dt`；PID 不再自带计时器，`calculate(err, dt)` 由持有方给 dt
+- 设备由 app 直接设置，持有方只负责 update
+- 每周期需要的外部数据经 `update(...)` 传入，不用 `set_*`；类接口统一为 `set_*`、`update`、`send`
+- Gimbal 不持有 Attitude，app 更新姿态后传入
+- GM6020 `BackEmf` 改为 `float ke = 0`，AGENTS 记录例外
+- Motor：Drive 字段为 0 时由子类型号默认值补全，删除 `kt`，按 max_torque / max_current 换算；`config` 改 const，offset 拆为运行状态
+
+### 待确认
+
+- 访问权限：公开成员约定外部只读（Config 为公开 `const Config config`）还是全私有加读取函数
+- PID 首帧不微分、间歇使用的 PID 在不用时 clear（影响 dummy 跟随、leg_down 自救的首帧微分）
+- 超电由 app 更新，底盘 `update()` 传入功率目标，底盘不再持有 SuperCap
+- DM4310、DM6006、RMDL7025 的 MAX_TORQUE / MAX_CURRENT 与原 KT 不一致，需查手册定值
+
+### 已发现
+
+- infantry 底盘 M3508 只填 kt、reduction，max_current 为 0，`set_current` 恒限幅为 0
+- c_board `Timer::elapsed()` 不写 `dt`、mc02 写；ChassisMatrixSpeed 构造参数顺序与基类、Torque 不同；leg_up `loop()` 未调用 `gimbal_loop()`
+
 ## 后续任务
 
 - VQF 姿态算法：原样引入官方 C++ 实现（确认单精度选项），封装 `Vqf` 与 `QuaternionEkf` 并列
