@@ -32,14 +32,6 @@
             }
         },
         {
-            "name": "examples-empty",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "examples/empty",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
             "name": "examples-gimbal",
             "inherits": "default",
             "cacheVariables": {

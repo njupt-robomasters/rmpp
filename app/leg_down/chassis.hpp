@@ -4,6 +4,7 @@
 #include "motor/dm8009.hpp"
 #include "motor/m3508.hpp"
 #include "robot/chassis/chassis_leg.hpp"
+#include "power/super_cap.hpp"
 
 // 参数来自 SOLDIER_LEG_4/Chassis（已实车验证）；极性核查见 agents/tasks/04-leg_chassis
 
@@ -133,5 +134,7 @@ inline ChassisLeg chassis({left_front, left_back, right_back, right_front, left_
                               .roll_pid = &roll_pid,
                               .lqr_fit = LQR_FIT,
                           });
+
+inline SuperCap super_cap({.can = Can(2)});
 
 void chassis_loop();

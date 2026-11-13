@@ -25,9 +25,13 @@ void chassis_loop() {
     else if (fsi6x.swc == FSi6X::DOWN)
         chassis.set_leg_length(0.33f);
 
+    super_cap.update();
+
     // CAN2 左右关节交替发送，每个关节 500 Hz；每周期不超过 3 帧，匹配 3 个发送邮箱
     static uint32_t send_count = 0;
-    if (send_count++ % 2 == 0) {
+    if (send_count++ % 10 == 0) { // 超电 100 Hz 发送
+        super_cap.send();
+    } else if (send_count % 2 == 0) {
         // 姿态来自本板 IMU；换用虚拟 IMU 时传入换算后的底盘 q 与 gyro
         chassis.update(attitude.q, imu.gyro);
 

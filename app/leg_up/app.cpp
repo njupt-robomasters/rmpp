@@ -12,6 +12,7 @@ static void loop() {
     melody.update();
     vt13.update();
 
+    gimbal_loop();
     shooter_loop();
 }
 
