@@ -15,15 +15,6 @@
 inline Imu imu({.gyro_offset = Vector3f(0.00316276052f, -0.00411193585f, -0.00242328411f), .gravity = 9.79961872f});
 inline QuaternionEkf attitude(imu, {});
 
-// 用于Ozone调参
-// #define yaw_speed_pid speed_pid
-// #define yaw_angle_pid angle_pid
-// #define yaw motor
-//
-// #define pitch_speed_pid speed_pid
-// #define pitch_angle_pid angle_pid
-// #define pitch motor
-
 // yaw电机
 inline Pid::Config yaw_speed_pid = {
     .kp = (3) / (120 * deg_s),

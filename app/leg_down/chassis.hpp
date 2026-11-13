@@ -9,7 +9,6 @@
 
 // 底盘 C 板：传感器 +X 朝车后、+Y 朝车右、+Z 朝上，即相对机体系（X 前、Y 左、Z 上）绕 Z 转 180°
 // 由外部工程腿倾角与横滚补偿的闭环极性反推；上车前用手低头应见 attitude.pitch 增大、右侧压低应见 attitude.roll 增大
-// 零偏与重力模长在上电静止时校准，见 app_main
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = 180 * deg, .pitch = 0 * deg, .roll = 0 * deg}),
                 .gyro_offset = Vector3f(-0.00069f, -0.00059f, 0.00114f),
                 .gravity = 9.5909f});
@@ -19,22 +18,22 @@ inline QuaternionEkf attitude(imu, {});
 // offset 取外部工程 pos = wrap(raw + c) 中 c 的相反数，使 position 零位对应 A 杆方位角 π、E 杆 0
 inline DM8009 left_front({
     .bus = {.can = Can(2), .tx_id = 0x11, .rx_id = 0x21},
-    .drive = {.max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
+    .drive = {.max_current = DM8009::MAX_CURRENT, .max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
     .install = {.is_invert = false, .offset = -2.793f},
 });
 inline DM8009 left_back({
     .bus = {.can = Can(2), .tx_id = 0x12, .rx_id = 0x22},
-    .drive = {.max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
+    .drive = {.max_current = DM8009::MAX_CURRENT, .max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
     .install = {.is_invert = false, .offset = -0.745f},
 });
 inline DM8009 right_back({
     .bus = {.can = Can(2), .tx_id = 0x13, .rx_id = 0x23},
-    .drive = {.max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
+    .drive = {.max_current = DM8009::MAX_CURRENT, .max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
     .install = {.is_invert = false, .offset = -1.1478f},
 });
 inline DM8009 right_front({
     .bus = {.can = Can(2), .tx_id = 0x14, .rx_id = 0x24},
-    .drive = {.max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
+    .drive = {.max_current = DM8009::MAX_CURRENT, .max_torque = DM8009::MAX_TORQUE, .kt = DM8009::KT, .reduction = DM8009::REDUCTION},
     .install = {.is_invert = false, .offset = 1.225f},
 });
 

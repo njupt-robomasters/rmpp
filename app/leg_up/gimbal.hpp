@@ -1,7 +1,26 @@
 #pragma once
 
+#include "attitude/quaternion_ekf.hpp"
 #include "motor/gm6020.hpp"
+#include "robot/gimbal/gimbal_classic.hpp"
 
+// 惯性测量单元与姿态解算
+inline Imu imu({.orientation = euler_to_quaternion({.yaw = 180 * deg, .pitch = 0 * deg, .roll = 0 * deg}),
+                .gyro_offset = Vector3f(0.0f, 0.0f, 0.0f),
+                .gravity = 9.81f});
+inline QuaternionEkf attitude(imu, {});
+
+// yaw电机
+inline Pid::Config yaw_speed_pid = {
+    .kp = 3 / (120 * deg_s),
+    .max_out = 3,
+    .err_fc = 10,
+};
+inline Pid::Config yaw_angle_pid = {
+    .kp = 20.0f,
+    .kd = 0.2,
+    .max_out = 720 * deg_s,
+};
 static GM6020 yaw({
                       .bus = {.can = Can(2), .rx_id = 0x205},
                       .drive = {.max_current = GM6020::MAX_CURRENT, .max_torque = GM6020::MAX_TORQUE, .kt = GM6020::KT, .reduction = GM6020::REDUCTION},
@@ -9,9 +28,33 @@ static GM6020 yaw({
                   },
                   {});
 
+// pitch电机
+inline Pid::Config pitch_speed_pid = {
+    .kp = 3 / (150 * deg_s),
+    .max_out = 3,
+    .err_fc = 10,
+};
+inline Pid::Config pitch_angle_pid = {
+    .kp = 20.0f,
+    .max_out = 720 * deg_s,
+};
 static GM6020 pitch({
                         .bus = {.can = Can(2), .rx_id = 0x206},
                         .drive = {.max_current = GM6020::MAX_CURRENT, .max_torque = GM6020::MAX_TORQUE, .kt = GM6020::KT, .reduction = GM6020::REDUCTION},
                         .install = {.is_invert = false},
                     },
                     {});
+
+// 云台
+inline GimbalClassic gimbal(attitude, {yaw, pitch}, {
+                                                        .yaw_speed_pid_config = &yaw_speed_pid,
+                                                        .yaw_position_pid_config = &yaw_angle_pid,
+                                                        .pitch_speed_pid_config = &pitch_speed_pid,
+                                                        .pitch_position_pid_config = &pitch_angle_pid,
+                                                        .pitch_output = Gimbal::TORQUE_OUTPUT,
+                                                        .pitch_min = -15 * deg,
+                                                        .pitch_max = 30 * deg,
+                                                        .is_pitch_limit = true,
+                                                    });
+
+void gimbal_loop();
