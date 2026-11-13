@@ -385,7 +385,7 @@ void ChassisLeg::calc_lqr() {
 
     // 状态误差，均为“目标减反馈”；航向角不跟随云台，误差恒为零
     const float err[10] = {
-        std::clamp((0 - body_.x) * 10, -config_.x_err_max, config_.x_err_max),                        // 前向位移，前进为正
+        0 - body_.x,                                                                                  // 前向位移，前进为正
         d_x_ref_ - body_.d_x,                                                                         // 前向速度，前进为正
         0,                                                                                            // 航向角，未启用
         d_yaw_ref_ - body_.d_yaw_gyro,                                                                // 航向角速度，逆时针为正

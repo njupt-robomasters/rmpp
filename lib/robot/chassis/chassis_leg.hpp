@@ -30,10 +30,9 @@ class ChassisLeg {
 
         // LQR 目标与误差限幅
         float theta_ref = 0.07f;     // 目标腿倾角，rad，后摆为正
-        float x_err_max = 6.0f;      // 位移误差限幅，误差已乘 10
         float theta_err_max = 0.45f; // 腿倾角误差限幅，rad
         float pitch_err_max = 0.25f; // 俯仰误差限幅，rad
-        float x_max = 0.1f;          // 位移积分限幅，m
+        float x_max = 0.3f;          // 位移限幅，m；重心偏移所需回位位移超出后会持续漂移
 
         // 倒地与自救
         float fall_theta_front = -63 * deg; // 相对腿角下限，rad，后摆为正；任一腿超出判定倒地
