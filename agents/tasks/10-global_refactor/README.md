@@ -96,6 +96,12 @@ python agents/tasks/10-global_refactor/layout_regression.py --baseline 795e263
 
 类布局重构已并入 master，外部 worktree 随合并移除；待用户审阅 SWD 展开顺序与接口后决定上车测试。
 
+### 固定配置收拢
+
+用户确认撤销固定配置逐项展开的写法：云台、17/42 mm 发射机构、矩阵/舵轮/轮腿底盘、超级电容、QuaternionEkf、Melody、FSi6X、VT13、Referee、Aim、Nav 按值保存 `const Config config`，使用处直接读取字段。超级电容 RLS 固定参数统一读取 `config.rls`；PID 状态、运动学矩阵及蜂鸣器预计算的采样周期、增益步长和采样数继续独立保存。电机解析后的量程/零点与 IMU 校准状态按原职责维护。
+
+验证：本轮新增修改的 13 个公共库源码对象编译通过，dummy、leg_up、leg_down 应用对象编译通过；26 个新增修改源码的格式检查与 diff 检查通过。复用本目录现有四组主机回归，对比修改前 HEAD 与当前代码，电机及 17 mm 发射机构、超电辨识、功率管理、蜂鸣器的输出逐字节一致，产物位于 `out/config_regression/`。逐文件核对确认函数体仅改变配置字段访问路径。未执行完整固件链接或硬件操作。
+
 轮腿补充调整：力映射角度按实际顶点命名为 ∠OCB（cos_ocb、tan_ocb）；设置接口统一为 set_allow_rescue(allow_rescue)、set_trigger_jump(trigger_jump)、set_leg_length(leg_length)，同步 leg_down 调用点；update_kin 合入 update，保留原执行顺序。轮腿源码与 leg_down 的 chassis.cpp、app.cpp 对象编译通过，格式及 diff 检查通过。
 
 主线合并：重构提交为 7aee5ea、903f01f。主线原有 13 个暂存文件保留暂存；冲突按双方意图合并，保留首版 Python LQR 系数、轮端力矩与减速比、位移误差乘 10 后限幅、位移积分限幅及跳跃时序，新增 x_err_max 对应只读成员和构造初始化。合并后在主线重新编译轮腿及 leg_down 的 chassis.cpp、app.cpp 对象通过。外部 worktree 的忽略构建产物与临时日志随目录移除，复现源码已入库。
