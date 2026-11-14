@@ -6,18 +6,27 @@
 
 // 摩擦轮
 inline Vesc rub1({
-    .bus = {.can = Can(2), .tx_id = 0x30, .rx_id = 0x30},
-    .drive = {.max_current = M3508::MAX_CURRENT, .max_torque = M3508::MAX_TORQUE, .reduction = M3508::REDUCTION},
+    .can = Can(2),
+    .tx_id = 0x30,
+    .rx_id = 0x30,
+    .max_current = M3508::MAX_CURRENT,
+    .max_torque = M3508::MAX_TORQUE,
+    .reduction = M3508::REDUCTION,
 });
 inline Vesc rub2({
-    .bus = {.can = Can(2), .tx_id = 0x31, .rx_id = 0x31},
-    .drive = {.max_current = M3508::MAX_CURRENT, .max_torque = M3508::MAX_TORQUE, .reduction = M3508::REDUCTION},
+    .can = Can(2),
+    .tx_id = 0x31,
+    .rx_id = 0x31,
+    .max_current = M3508::MAX_CURRENT,
+    .max_torque = M3508::MAX_TORQUE,
+    .reduction = M3508::REDUCTION,
 });
 
 // 拨弹电机
 inline M3508 shoot({
-    .bus = {.can = Can(2), .rx_id = 0x201},
-    .install = {.is_invert = false},
+    .can = Can(2),
+    .rx_id = 0x201,
+    .is_invert = false,
 });
 
 // 拨弹电机 PID 参数

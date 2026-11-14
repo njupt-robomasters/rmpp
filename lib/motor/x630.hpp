@@ -18,21 +18,23 @@ class X630 : public Motor {
         float enter_speed = 10 * rpm;
     };
 
+  private:
+    float motor_temperature = 0; // 电机温度，℃
+    const float enter_current, exit_current, enter_speed;
+    bool is_mute = false;
+
+  public:
     X630(const Config& config, const Mute& mute);
 
     // 设置后按静音滞回判断，静音时 current_ref、torque_ref 置零
     void set_current(float current) override;
+
     void set_torque(float torque) override;
 
     void write_can_frame(CanFrame& frame) const;
 
-  public:
-    float motor_temperature = 0; // 电机温度，℃
-
   private:
-    const Mute mute_;
-    bool is_mute_ = false;
-
     void can_callback(const CanFrame& frame);
+
     void apply_mute();
 };

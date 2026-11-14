@@ -8,6 +8,7 @@ class DM6006 : public DmMotor<3.14159f, 45.0f, 12.0f> {
     static constexpr float MAX_TORQUE = 11.0f;
     static constexpr float REDUCTION = 1.0f;
 
+  public:
     explicit DM6006(const Config& config)
-        : DmMotor(config, {.max_current = MAX_CURRENT, .max_torque = MAX_TORQUE, .reduction = REDUCTION}) {}
+        : DmMotor(config, MAX_CURRENT, MAX_TORQUE, REDUCTION) {}
 };

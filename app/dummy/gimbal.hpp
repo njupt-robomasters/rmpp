@@ -19,8 +19,11 @@ inline Pid::Config yaw_pid_config = {
 
 // 云台电机：RMD-L-7025 直连 CAN1，电机 ID 1；position 为云台相对底盘前方的角度，逆时针为正，零点待标定
 inline RMDL7025 yaw({
-    .bus = {.can = Can(2), .tx_id = 0x141, .rx_id = 0x241},
-    .install = {.is_invert = false, .offset = 2.97f},
+    .can = Can(2),
+    .tx_id = 0x141,
+    .rx_id = 0x241,
+    .is_invert = false,
+    .offset = 2.97f,
 });
 
 void gimbal_loop();

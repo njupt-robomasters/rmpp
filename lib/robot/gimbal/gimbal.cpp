@@ -2,36 +2,36 @@
 #include <algorithm>
 
 void Gimbal::set_enable(const bool is_enable) {
-    is_enable_ = is_enable;
+    this->is_enable = is_enable;
     set_motors_enable(is_enable);
 }
 
 void Gimbal::set_mode(const Mode mode) {
-    mode_ = mode;
+    this->mode = mode;
 }
 
 void Gimbal::set_speed(const float yaw_speed, const float pitch_speed) {
-    yaw_speed_ = yaw_speed;
-    pitch_speed_ = pitch_speed;
+    this->yaw_speed = yaw_speed;
+    this->pitch_speed = pitch_speed;
 }
 
 void Gimbal::set_angle(const Angle yaw, const Angle pitch) {
-    if (mode_ == ECD_MODE) {
+    if (mode == ECD_MODE) {
         this->yaw.ecd.ref = yaw;
         this->pitch.ecd.ref = pitch;
-    } else if (mode_ == IMU_MODE) {
+    } else if (mode == IMU_MODE) {
         this->yaw.imu.ref = yaw;
         this->pitch.imu.ref = pitch;
     }
-    yaw_speed_ = pitch_speed_ = 0;
+    yaw_speed = pitch_speed = 0;
 }
 
 void Gimbal::set_chassis_wr(const float chassis_wr) {
-    chassis_wr_ = chassis_wr;
+    this->chassis_wr = chassis_wr;
 }
 
 void Gimbal::update(const Angle imu_yaw, const Angle imu_pitch) {
-    const float dt = std::clamp(update_timer_.restart(), DT_MIN, DT_MAX);
+    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
 
     // 读取姿态与电机反馈
     yaw.imu.measure = imu_yaw;
@@ -47,31 +47,38 @@ void Gimbal::update(const Angle imu_yaw, const Angle imu_pitch) {
 }
 
 Gimbal::Gimbal(const Config& config)
-    : config_(config), yaw_speed_pid_(config.yaw_speed_pid_config), yaw_position_pid_(config.yaw_position_pid_config),
-      pitch_speed_pid_(config.pitch_speed_pid_config), pitch_position_pid_(config.pitch_position_pid_config) {}
+    : yaw_output(config.yaw_output),
+      pitch_output(config.pitch_output),
+      pitch_min(config.pitch_min),
+      pitch_max(config.pitch_max),
+      is_pitch_limit(config.is_pitch_limit),
+      yaw_speed_pid(config.yaw_speed_pid_config),
+      yaw_position_pid(config.yaw_position_pid_config),
+      pitch_speed_pid(config.pitch_speed_pid_config),
+      pitch_position_pid(config.pitch_position_pid_config) {}
 
 bool Gimbal::check_yaw(const bool is_connect) {
-    if (is_enable_ && is_connect && is_yaw_ready_)
+    if (is_enable && is_connect && is_yaw_ready)
         return true;
 
     yaw.ecd.ref = yaw.ecd.measure;
     yaw.imu.ref = yaw.imu.measure;
-    yaw_speed_pid_.clear();
-    yaw_position_pid_.clear();
-    is_yaw_ready_ = is_enable_ && is_connect;
-    return is_yaw_ready_;
+    yaw_speed_pid.clear();
+    yaw_position_pid.clear();
+    is_yaw_ready = is_enable && is_connect;
+    return is_yaw_ready;
 }
 
 bool Gimbal::check_pitch(const bool is_connect) {
-    if (is_enable_ && is_connect && is_pitch_ready_)
+    if (is_enable && is_connect && is_pitch_ready)
         return true;
 
     pitch.ecd.ref = pitch.ecd.measure;
     pitch.imu.ref = pitch.imu.measure;
-    pitch_speed_pid_.clear();
-    pitch_position_pid_.clear();
-    is_pitch_ready_ = is_enable_ && is_connect;
-    return is_pitch_ready_;
+    pitch_speed_pid.clear();
+    pitch_position_pid.clear();
+    is_pitch_ready = is_enable && is_connect;
+    return is_pitch_ready;
 }
 
 float Gimbal::set_output(Motor& motor, const PidOutput type, const float output) {
@@ -84,15 +91,15 @@ float Gimbal::set_output(Motor& motor, const PidOutput type, const float output)
 }
 
 void Gimbal::handle_motion(const float dt) {
-    if (!is_enable_)
+    if (!is_enable)
         return;
 
-    const Angle yaw_delta = yaw_speed_ * dt;
-    const Angle pitch_delta = pitch_speed_ * dt;
-    if (mode_ == ECD_MODE) {
+    const Angle yaw_delta = yaw_speed * dt;
+    const Angle pitch_delta = pitch_speed * dt;
+    if (mode == ECD_MODE) {
         yaw.ecd.ref += yaw_delta;
         pitch.ecd.ref += pitch_delta;
-    } else if (mode_ == IMU_MODE) {
+    } else if (mode == IMU_MODE) {
         yaw.imu.ref += yaw_delta;
         pitch.imu.ref += pitch_delta;
     }

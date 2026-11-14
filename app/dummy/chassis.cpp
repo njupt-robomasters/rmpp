@@ -47,7 +47,7 @@ void chassis_loop() {
     super_cap.update();
 
     // 底盘功率目标由超电给出
-    chassis.set_power_ref(super_cap.power.chassis_ref);
+    chassis.set_power_ref(super_cap.power_chassis_ref);
     chassis.update();
 
     // CAN1 0x200 组帧发送

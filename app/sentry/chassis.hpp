@@ -36,45 +36,69 @@ inline Pid::Config steer_pid = {
 
 // 轮电机（左前、左后、右后、右前）
 inline M3508 w1({
-    .bus = {.can = Can(1), .rx_id = 0x201, .timeout = TIMEOUT},
-    .drive = {.max_torque = WHEEL_MAX_TORQUE, .reduction = REDUCTION},
-    .install = {.is_invert = IS_WHEEL_INVERT},
+    .can = Can(1),
+    .rx_id = 0x201,
+    .timeout = TIMEOUT,
+    .max_torque = WHEEL_MAX_TORQUE,
+    .reduction = REDUCTION,
+    .is_invert = IS_WHEEL_INVERT,
 });
 inline M3508 w2({
-    .bus = {.can = Can(1), .rx_id = 0x202, .timeout = TIMEOUT},
-    .drive = {.max_torque = WHEEL_MAX_TORQUE, .reduction = REDUCTION},
-    .install = {.is_invert = IS_WHEEL_INVERT},
+    .can = Can(1),
+    .rx_id = 0x202,
+    .timeout = TIMEOUT,
+    .max_torque = WHEEL_MAX_TORQUE,
+    .reduction = REDUCTION,
+    .is_invert = IS_WHEEL_INVERT,
 });
 inline M3508 w3({
-    .bus = {.can = Can(1), .rx_id = 0x203, .timeout = TIMEOUT},
-    .drive = {.max_torque = WHEEL_MAX_TORQUE, .reduction = REDUCTION},
-    .install = {.is_invert = IS_WHEEL_INVERT},
+    .can = Can(1),
+    .rx_id = 0x203,
+    .timeout = TIMEOUT,
+    .max_torque = WHEEL_MAX_TORQUE,
+    .reduction = REDUCTION,
+    .is_invert = IS_WHEEL_INVERT,
 });
 inline M3508 w4({
-    .bus = {.can = Can(1), .rx_id = 0x204, .timeout = TIMEOUT},
-    .drive = {.max_torque = WHEEL_MAX_TORQUE, .reduction = REDUCTION},
-    .install = {.is_invert = IS_WHEEL_INVERT},
+    .can = Can(1),
+    .rx_id = 0x204,
+    .timeout = TIMEOUT,
+    .max_torque = WHEEL_MAX_TORQUE,
+    .reduction = REDUCTION,
+    .is_invert = IS_WHEEL_INVERT,
 });
 
 // 舵电机（左前、左后、右后、右前），直驱；offset 为轮子朝前时的 raw 角度；电压帧反电动势前馈取半
 inline GM6020 s1({
-                     .bus = {.can = Can(1), .rx_id = 0x207, .timeout = TIMEOUT},
-                     .install = {.is_invert = IS_SERVO_INVERT, .offset = -133.5f * deg},
+                     .can = Can(1),
+                     .rx_id = 0x207,
+                     .timeout = TIMEOUT,
+                     .is_invert = IS_SERVO_INVERT,
+                     .offset = -133.5f * deg,
                  },
                  0.5f * GM6020::KE);
 inline GM6020 s2({
-                     .bus = {.can = Can(1), .rx_id = 0x208, .timeout = TIMEOUT},
-                     .install = {.is_invert = IS_SERVO_INVERT, .offset = 105.7f * deg},
+                     .can = Can(1),
+                     .rx_id = 0x208,
+                     .timeout = TIMEOUT,
+                     .is_invert = IS_SERVO_INVERT,
+                     .offset = 105.7f * deg,
                  },
                  0.5f * GM6020::KE);
 inline GM6020 s3({
-                     .bus = {.can = Can(1), .rx_id = 0x209, .timeout = TIMEOUT},
-                     .install = {.is_invert = IS_SERVO_INVERT, .offset = -168.5f * deg}, // 含 180° 修正轮子驱动方向
+                     .can = Can(1),
+                     .rx_id = 0x209,
+                     .timeout = TIMEOUT,
+                     .is_invert = IS_SERVO_INVERT,
+                     .offset = -168.5f * deg, // 含 180° 修正轮子驱动方向
                  },
                  0.5f * GM6020::KE);
 inline GM6020 s4({
-                     .bus = {.can = Can(1), .rx_id = 0x20A, .timeout = TIMEOUT},
-                     .install = {.is_invert = IS_SERVO_INVERT, .offset = -18.4f * deg},
+                     .can = Can(1),
+                     .rx_id = 0x20A,
+                     .timeout = TIMEOUT,
+                     .is_invert = IS_SERVO_INVERT,
+                     .offset = -18.4f * deg,
                  },
                  0.5f * GM6020::KE);
 

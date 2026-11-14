@@ -69,14 +69,14 @@ void uart_init() {
 }
 
 bool Uart::can_send() const {
-    const auto* context = find(id_);
+    const auto* context = find(id);
     return context && context->huart->hdmatx && context->huart->gState == HAL_UART_STATE_READY;
 }
 
 void Uart::send(const uint8_t* data, const std::size_t size) const {
     if (!can_send())
         return;
-    auto* context = find(id_);
+    auto* context = find(id);
 
     // 写回数据后再启动 DMA 读取
     std::memcpy(context->buffer->tx, data, size);
@@ -85,7 +85,7 @@ void Uart::send(const uint8_t* data, const std::size_t size) const {
 }
 
 void Uart::add_rx_callback(RxCallback callback) const {
-    auto* context = find(id_);
+    auto* context = find(id);
     if (!context)
         return;
 

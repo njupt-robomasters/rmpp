@@ -42,12 +42,12 @@ void Timer::delay(const float seconds) {
 }
 
 float Timer::elapsed() const {
-    return static_cast<float>(read_cycles() - last_cycles_) / static_cast<float>(SystemCoreClock);
+    return static_cast<float>(read_cycles() - last_cycles) / static_cast<float>(SystemCoreClock);
 }
 
 float Timer::restart() {
     const uint64_t now = read_cycles();
-    const float seconds = static_cast<float>(now - last_cycles_) / static_cast<float>(SystemCoreClock);
-    last_cycles_ = now;
+    const float seconds = static_cast<float>(now - last_cycles) / static_cast<float>(SystemCoreClock);
+    last_cycles = now;
     return seconds;
 }

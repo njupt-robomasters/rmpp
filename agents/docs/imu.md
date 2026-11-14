@@ -24,10 +24,10 @@ IMU 分为两层：BSP `Imu` 负责硬件读取、零偏校准和安装方向修
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = -90 * deg}),
                 .gyro_offset = Vector3f(-0.00067f, 0.00137f, 0.00146f),
                 .gravity = 9.547f});
-inline QuaternionEkf attitude(imu); // 可选；第二参数覆盖 QuaternionEkf::Config
+inline QuaternionEkf attitude(imu, {}); // 可选；第二参数覆盖 QuaternionEkf::Config
 ```
 
-配置按值保存在私有 `config_`，不提供 `config()`。`Imu` 的温控 PID 借用内部配置，不应复制或移动；`Attitude` 保存 `Imu&`，`Imu` 须在其生命周期内有效。使用姿态解算时只调用 `attitude.update()`，不再单独调用 `imu.update()`。
+Config 仅作为构造输入，固定参数展开到私有 const 成员；gyro_offset、gravity 保留为可校准字段。`Imu` 的温控 PID 借用内部配置，不应复制或移动；`Attitude` 保存 `Imu&`，`Imu` 须在其生命周期内有效。使用姿态解算时只调用 `attitude.update()`，不再单独调用 `imu.update()`。
 
 ## 坐标与公开转换
 
@@ -87,7 +87,7 @@ inline QuaternionEkf attitude(imu); // 可选；第二参数覆盖 QuaternionEkf
 
 `Imu::start_calibration()` 请求开始校准，下一次 `update()` 初始化计时和样本计数后开始采样；调用方负责温稳和静止时机。采样固定 5 s，到时按平均零偏判为成功或失败；采样中一旦非静止立即判为失败，不重新开始。校准状态和样本数为内部状态，不对外开放。
 
-成功时一次提交三个零偏与重力模长，用 SWD 观察 `imu.config_` 读取；不会自动写 Flash。失败保留旧标定。采样过程中温控与旧标定解算继续运行。校准归 `Imu`，提交时不再自动清除 EKF 剩余零偏；需要立即重建时由调用方在校准完成后调用 `QuaternionEkf::reset_bias()`（保留 q 和累计 yaw），否则由 EKF 逐渐收敛。BMI088 读取失败时关闭加热，本周期不推进校准和姿态解算。
+成功时一次提交三个零偏与重力模长，用 SWD 观察 `imu.gyro_offset` 与 `imu.gravity` 读取；不会自动写 Flash。失败保留旧标定。采样过程中温控与旧标定解算继续运行。校准归 `Imu`，提交时不再自动清除 EKF 剩余零偏；需要立即重建时由调用方在校准完成后调用 `QuaternionEkf::reset_bias()`（保留 q 和累计 yaw），否则由 EKF 逐渐收敛。BMI088 读取失败时关闭加热，本周期不推进校准和姿态解算。
 
 解算从首个有效加速度建立倾角，初始 yaw=0。它只观测重力方向，没有磁力计或绝对航向源，Z 零偏仍无法估计，yaw 仍会漂移。
 

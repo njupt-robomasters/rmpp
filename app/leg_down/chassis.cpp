@@ -12,9 +12,9 @@ void chassis_loop() {
 
     // FSi6X：SWA 下使能，SWB 下允许自救，SWC 选腿长，SWD 下跳跃；断联时拨杆为 ERR、摇杆为 0
     chassis.set_enable(fsi6x.is_connect && fsi6x.swa == FSi6X::DOWN);
-    chassis.set_rescue(fsi6x.swb == FSi6X::DOWN);
+    chassis.set_allow_rescue(fsi6x.swb == FSi6X::DOWN);
     if (fsi6x.is_connect) {
-        chassis.set_jump(fsi6x.swd == FSi6X::DOWN);
+        chassis.set_trigger_jump(fsi6x.swd == FSi6X::DOWN);
     }
 
     // 右摇杆：竖直 x 前推为正对应前进，水平 y 左推为正对应逆时针转向

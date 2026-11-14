@@ -11,12 +11,26 @@ using Matrix3x6 = Eigen::Matrix<float, 3, 6>;
 using Matrix6x3 = Eigen::Matrix<float, 6, 3>;
 
 QuaternionEkf::QuaternionEkf(Imu& imu, const Config& config)
-    : Attitude(imu), config_(config) {
+    : Attitude(imu),
+      quaternion_noise(config.quaternion_noise),
+      bias_noise(config.bias_noise),
+      accel_noise(config.accel_noise),
+      bias_fading(config.bias_fading),
+      innovation_threshold(config.innovation_threshold) {
     reset_bias();
 }
 
+void QuaternionEkf::reset_bias() {
+    bias.setZero();
+    converged = false;
+    rejected_count = 0;
+    covariance.setConstant(0.1f);
+    for (int i = 0; i < 6; ++i)
+        covariance(i, i) = i < 4 ? 100000.0f : 100.0f;
+}
+
 void QuaternionEkf::solve(const Vector3f& gyro, const Vector3f& accel) {
-    const float dt = std::clamp(solve_timer_.restart(), DT_MIN, DT_MAX);
+    const float dt = std::clamp(solve_timer.restart(), DT_MIN, DT_MAX);
 
     // 扣除剩余零偏后，恒角速度在 dt 内的旋转增量；极小角用一阶近似，避免除零
     const Vector3f rate{gyro.x() - bias.x(), gyro.y() - bias.y(), gyro.z()};
@@ -33,13 +47,13 @@ void QuaternionEkf::solve(const Vector3f& gyro, const Vector3f& accel) {
     const bool valid_accel = accel.allFinite() && std::isfinite(accel_norm) && accel_norm > 1.0e-6f;
 
     // 首个有效重力方向确定倾角，航向置零；该样本不再重复积分
-    if (!initialized_) {
+    if (!initialized) {
         if (!valid_accel)
             return;
         const float roll = std::atan2(accel.y(), accel.z());
         const float pitch = std::atan2(-accel.x(), std::hypot(accel.y(), accel.z()));
         q = euler_to_quaternion({.pitch = pitch, .roll = roll});
-        initialized_ = true;
+        initialized = true;
         return;
     }
 
@@ -62,17 +76,17 @@ void QuaternionEkf::solve(const Vector3f& gyro, const Vector3f& accel) {
                    0,   0,   0,   0,      0,      1;
     // clang-format on
 
-    Matrix6f prior = covariance_;
+    Matrix6f prior = covariance;
     for (int i = 4; i < 6; ++i)
-        prior(i, i) = std::min(prior(i, i) / config_.bias_fading, 10000.0f);
+        prior(i, i) = std::min(prior(i, i) / bias_fading, 10000.0f);
     Matrix6f predicted_covariance;
     predicted_covariance.noalias() = transition * prior * transition.transpose();
     for (int i = 0; i < 6; ++i)
-        predicted_covariance(i, i) += (i < 4 ? config_.quaternion_noise : config_.bias_noise) * dt;
+        predicted_covariance(i, i) += (i < 4 ? quaternion_noise : bias_noise) * dt;
     if (!symmetrize_covariance(predicted_covariance))
         return;
     q = predicted_q;
-    covariance_ = predicted_covariance;
+    covariance = predicted_covariance;
 
     // 以下任一失败均保留有效预测
     if (!valid_accel)
@@ -92,9 +106,9 @@ void QuaternionEkf::solve(const Vector3f& gyro, const Vector3f& accel) {
     // clang-format on
     observation.leftCols<4>() *= 2;
     const Vector3f residual = accel / accel_norm - gravity;
-    const Matrix6x3 cross_covariance = covariance_ * observation.transpose();
+    const Matrix6x3 cross_covariance = covariance * observation.transpose();
     Matrix3f innovation = observation * cross_covariance;
-    innovation.diagonal().array() += config_.accel_noise;
+    innovation.diagonal().array() += accel_noise;
 
     // 对称正定的 3×3 观测协方差，Cholesky 同时检查数值可解性
     // 由 S = L Lᵀ 求 S⁻¹r 与增益，避免显式求逆
@@ -108,25 +122,25 @@ void QuaternionEkf::solve(const Vector3f& gyro, const Vector3f& accel) {
     const float distance = residual.dot(weighted_residual);
     if (!std::isfinite(distance) || distance < 0)
         return;
-    const float threshold = config_.innovation_threshold;
+    const float threshold = innovation_threshold;
     if (distance < 0.5f * threshold)
-        converged_ = true;
-    if (converged_ && distance > threshold) {
+        converged = true;
+    if (converged && distance > threshold) {
         const bool stable = rate_norm < 0.3f && std::abs(accel_norm - 9.81f) < 0.5f;
         if (stable)
-            ++rejected_count_;
+            ++rejected_count;
         else
-            rejected_count_ = 0;
-        if (rejected_count_ <= 50)
+            rejected_count = 0;
+        if (rejected_count <= 50)
             return;
         // 静稳时持续失配：保留姿态，重建不确定度后重新融合
         // 避免旧交叉协方差把大倾角误差误认为陀螺仪零偏
         reset_bias();
         return;
     }
-    rejected_count_ = 0;
+    rejected_count = 0;
     float gain_scale = 1;
-    if (converged_ && distance > 0.1f * threshold)
+    if (converged && distance > 0.1f * threshold)
         gain_scale = (threshold - distance) / (0.9f * threshold);
 
     Matrix6x3 gain = llt.solve(cross_covariance.transpose()).transpose();
@@ -142,7 +156,7 @@ void QuaternionEkf::solve(const Vector3f& gyro, const Vector3f& accel) {
     Eigen::Matrix<float, 6, 1> correction = gain * residual;
     for (int i = 0; i < 6; ++i) {
         // 同步缩放增益，使 Joseph 更新对应实际使用的零偏修正
-        if (i >= 4 && converged_ && std::abs(correction[i]) > 0.01f * dt) {
+        if (i >= 4 && converged && std::abs(correction[i]) > 0.01f * dt) {
             const float scale = 0.01f * dt / std::abs(correction[i]);
             correction[i] *= scale;
             gain.row(i) *= scale;
@@ -159,22 +173,13 @@ void QuaternionEkf::solve(const Vector3f& gyro, const Vector3f& accel) {
 
     // Joseph 形式：P = (I-KH) P (I-KH)ᵀ + K R Kᵀ
     const Matrix6f remaining = Matrix6f::Identity() - gain * observation;
-    Matrix6f posterior = remaining * covariance_ * remaining.transpose();
-    posterior.noalias() += gain * config_.accel_noise * gain.transpose();
+    Matrix6f posterior = remaining * covariance * remaining.transpose();
+    posterior.noalias() += gain * accel_noise * gain.transpose();
     if (!symmetrize_covariance(posterior))
         return;
     q = corrected_q;
-    covariance_ = posterior;
+    covariance = posterior;
     bias += correction.tail<2>();
-}
-
-void QuaternionEkf::reset_bias() {
-    bias.setZero();
-    converged_ = false;
-    rejected_count_ = 0;
-    covariance_.setConstant(0.1f);
-    for (int i = 0; i < 6; ++i)
-        covariance_(i, i) = i < 4 ? 100000.0f : 100.0f;
 }
 
 bool QuaternionEkf::normalize_quaternion(Quaternionf& q) {

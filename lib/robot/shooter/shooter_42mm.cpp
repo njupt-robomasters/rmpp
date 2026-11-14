@@ -3,10 +3,16 @@
 #include <cmath>
 
 Shooter42mm::Shooter42mm(const Motors& motor, const Config& config)
-    : motor(motor), config_(config), shoot_pid_(config.shoot_pid_config) {}
+    : shoot_output(config.shoot_output),
+      bullet_per_angle(config.bullet_per_angle),
+      block_time(config.block_time),
+      rub_radius(config.rub_radius),
+      heat_protect(config.heat_protect),
+      motor(motor),
+      shoot_pid(config.shoot_pid_config) {}
 
 void Shooter42mm::set_enable(const bool is_enable) {
-    is_enable_ = is_enable;
+    this->is_enable = is_enable;
     motor.rub1.set_enable(is_enable);
     motor.rub2.set_enable(is_enable);
     motor.rub3.set_enable(is_enable);
@@ -19,15 +25,15 @@ void Shooter42mm::set_bullet_speed(const float bullet_speed) {
 }
 
 void Shooter42mm::set_shoot(const bool is_shoot) {
-    is_shoot_ = is_shoot;
+    this->is_shoot = is_shoot;
 }
 
 void Shooter42mm::set_heat_remain(const int32_t heat_remain) {
-    is_heat_protect_ = heat_remain < config_.heat_protect;
+    is_heat_protect = heat_remain < heat_protect;
 }
 
 void Shooter42mm::update() {
-    const float dt = std::clamp(update_timer_.restart(), DT_MIN, DT_MAX);
+    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
 
     // 离线检测
     motor.rub1.update();
@@ -37,15 +43,15 @@ void Shooter42mm::update() {
     motor.shoot.update();
 
     // 正解：电机速度 -> 弹速
-    rub_speed[0] = motor.rub1.speed * config_.rub_radius;
-    rub_speed[1] = motor.rub2.speed * config_.rub_radius;
-    rub_speed[2] = motor.rub3.speed * config_.rub_radius;
-    rub_speed[3] = motor.rub4.speed * config_.rub_radius;
+    rub_speed[0] = motor.rub1.speed * rub_radius;
+    rub_speed[1] = motor.rub2.speed * rub_radius;
+    rub_speed[2] = motor.rub3.speed * rub_radius;
+    rub_speed[3] = motor.rub4.speed * rub_radius;
     bullet_speed.measure = (rub_speed[2] + rub_speed[3]) / 2.0f;
 
     // 摩擦轮：VESC 速度模式，关闭时目标为零制动；低速释放由 app 处理
-    const bool is_rub = is_enable_ && bullet_speed.ref > 0;
-    const float rub_speed_ref = is_rub ? bullet_speed.ref / config_.rub_radius : 0.0f;
+    const bool is_rub = is_enable && bullet_speed.ref > 0;
+    const float rub_speed_ref = is_rub ? bullet_speed.ref / rub_radius : 0.0f;
     motor.rub1.set_speed(rub_speed_ref * RUB12_RATIO);
     motor.rub2.set_speed(rub_speed_ref * RUB12_RATIO);
     motor.rub3.set_speed(rub_speed_ref);
@@ -53,73 +59,73 @@ void Shooter42mm::update() {
 
     // 拨弹电机：关摩擦轮或离线时回到空闲，重连后从当前角度重新开始抖动
     if (!is_rub || !motor.shoot.is_connect) {
-        state_ = FREE;
-        shoot_pid_.clear();
+        state = FREE;
+        shoot_pid.clear();
     }
 
-    const Angle angle_per_bullet = 1 / config_.bullet_per_angle;
-    switch (state_) {
+    const Angle angle_per_bullet = 1 / bullet_per_angle;
+    switch (state) {
     case FREE: {
         motor.shoot.set_current(0);
 
         if (is_rub && motor.shoot.is_connect) { // 开摩擦轮
-            state_ = SHAKE;
-            shake_timer_.restart();
-            shake_upper_ = motor.shoot.position;
+            state = SHAKE;
+            shake_timer.restart();
+            shake_upper = motor.shoot.position;
         }
     } break;
 
     case SHAKE: {
         const float a = angle_per_bullet * SHAKE_AMP / 2;
-        const float offset = shake_upper_ - a;
-        const float t = shake_timer_.elapsed();
+        const float offset = shake_upper - a;
+        const float t = shake_timer.elapsed();
         const Angle angle = a * std::cos(2 * pi * SHAKE_FREQ * t) + offset;
-        set_shoot_output(shoot_pid_.calculate(dt, angle - motor.shoot.position));
+        set_shoot_output(shoot_pid.calculate(dt, angle - motor.shoot.position));
 
         // 防止计时器溢出
         if (SHAKE_FREQ * t > 1)
-            shake_timer_.restart();
+            shake_timer.restart();
 
         // 发射信号上升沿且未热量保护时拨一发，目标对齐到整发相位
-        if (is_shoot_ && !last_shoot_ && !is_heat_protect_) {
-            const float index = std::round((shake_upper_ + angle_per_bullet) / angle_per_bullet);
-            shake_upper_ = index * angle_per_bullet - angle_per_bullet;
-            state_ = SHOOT;
-            block_timer_.restart();
+        if (is_shoot && !last_shoot && !is_heat_protect) {
+            const float index = std::round((shake_upper + angle_per_bullet) / angle_per_bullet);
+            shake_upper = index * angle_per_bullet - angle_per_bullet;
+            state = SHOOT;
+            block_timer.restart();
         }
     } break;
 
     case SHOOT: {
-        const Angle target_angle = shake_upper_ + angle_per_bullet;
-        set_shoot_output(shoot_pid_.calculate(dt, target_angle - motor.shoot.position));
+        const Angle target_angle = shake_upper + angle_per_bullet;
+        set_shoot_output(shoot_pid.calculate(dt, target_angle - motor.shoot.position));
 
         // 到位后回到抖动
         if (std::fabs(target_angle - motor.shoot.position) < (1.0f - SHOOT_FINISH_RATIO) * angle_per_bullet) {
-            state_ = SHAKE;
-            shake_timer_.restart();
-            shake_upper_ = target_angle;
+            state = SHAKE;
+            shake_timer.restart();
+            shake_upper = target_angle;
         }
 
         // 达到力矩限幅并持续 block_time 判为卡弹，从当前角度重新抖动
-        if (std::fabs(motor.shoot.torque_ref) < motor.shoot.config.drive.max_torque) {
-            block_timer_.restart();
-        } else if (block_timer_.elapsed() > config_.block_time) {
-            block_timer_.restart();
-            state_ = SHAKE;
-            shake_timer_.restart();
-            shake_upper_ = motor.shoot.position;
+        if (std::fabs(motor.shoot.torque_ref) < motor.shoot.max_torque) {
+            block_timer.restart();
+        } else if (block_timer.elapsed() > block_time) {
+            block_timer.restart();
+            state = SHAKE;
+            shake_timer.restart();
+            shake_upper = motor.shoot.position;
         }
     } break;
     }
-    last_shoot_ = is_shoot_;
+    last_shoot = is_shoot;
 }
 
 void Shooter42mm::set_shoot_output(const float output) {
-    if (config_.shoot_output == CURRENT_OUTPUT) {
+    if (shoot_output == CURRENT_OUTPUT) {
         motor.shoot.set_current(output);
-        shoot_pid_.track(motor.shoot.current_ref);
+        shoot_pid.track(motor.shoot.current_ref);
     } else {
         motor.shoot.set_torque(output);
-        shoot_pid_.track(motor.shoot.torque_ref);
+        shoot_pid.track(motor.shoot.torque_ref);
     }
 }

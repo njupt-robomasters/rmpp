@@ -3,25 +3,6 @@
 #include "motor.hpp"
 
 class Vesc : public Motor {
-  public:
-    // VESC 不对应固定电机型号，没有默认驱动参数，config.drive 须全部给出；reduction 含极对数
-    explicit Vesc(const Config& config);
-
-    void set_current(float current) override;
-    void set_torque(float torque) override;
-    void set_duty(float duty);
-    void set_current_brake(float current);
-    // 输出轴速度，rad/s；VESC 按 ERPM 闭环，reduction 含极对数
-    void set_speed(float speed);
-    void set_position(float position);
-    void set_current_relative(float current);
-    void set_current_brake_relative(float current);
-    void set_handbrake(float current);
-    void set_handbrake_relative(float current);
-    void set_current_off_delay(float current, float delay);
-    void set_current_relative_off_delay(float current, float delay);
-    void send() const;
-
   private:
     enum Command : uint8_t {
         CAN_PACKET_SET_DUTY = 0,
@@ -44,7 +25,6 @@ class Vesc : public Motor {
         CAN_PACKET_STATUS_6 = 58,
     };
 
-  public:
     // 状态帧反馈
     float temp_fet = 0;
     float temp_motor = 0;
@@ -62,18 +42,54 @@ class Vesc : public Motor {
     float adc3 = 0;
     float ppm = 0;
 
-  private:
     // 待发送的命令，由 set_* 写入、send() 发出
-    Command command_ = CAN_PACKET_SET_CURRENT;
-    uint8_t command_data_[8]{};
-    uint8_t command_size_ = 4;
+    Command command = CAN_PACKET_SET_CURRENT;
+    uint8_t command_data[8]{};
+    uint8_t command_size = 4;
 
+  public:
+    // VESC 不对应固定电机型号，没有默认驱动参数，量程和减速比须全部给出；reduction 含极对数
+    explicit Vesc(const Config& config);
+
+    void set_current(float current) override;
+
+    void set_torque(float torque) override;
+
+    void set_duty(float duty);
+
+    void set_current_brake(float current);
+
+    // 输出轴速度，rad/s；VESC 按 ERPM 闭环，reduction 含极对数
+    void set_speed(float speed);
+
+    void set_position(float position);
+
+    void set_current_relative(float current);
+
+    void set_current_brake_relative(float current);
+
+    void set_handbrake(float current);
+
+    void set_handbrake_relative(float current);
+
+    void set_current_off_delay(float current, float delay);
+
+    void set_current_relative_off_delay(float current, float delay);
+
+    void send() const;
+
+  private:
     void can_callback(const CanFrame& frame);
+
     void set_int32(Command command, int32_t value);
+
     void set_int16(Command command, int32_t first, int16_t second);
 
     static int16_t encode16(float value, float scale);
+
     static int32_t encode32(float value, float scale);
+
     static int16_t read16(const uint8_t* data);
+
     static int32_t read32(const uint8_t* data);
 };

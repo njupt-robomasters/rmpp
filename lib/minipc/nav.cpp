@@ -1,11 +1,11 @@
 #include "nav.hpp"
 
 Nav::Nav(const Config& config)
-    : config_(config) {}
+    : timeout(config.timeout) {}
 
 void Nav::update() {
-    if (chassis_speed_timer_.elapsed() > config_.timeout) {
-        chassis_speed_timer_.restart();
+    if (chassis_speed_timer.elapsed() > timeout) {
+        chassis_speed_timer.restart();
         chassis_speed = {};
     }
 }

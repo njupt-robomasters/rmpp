@@ -13,7 +13,7 @@ static uint32_t referee_count = 0; // 结算分频计数
 void referee_loop() {
     referee_count++;
     if (referee_count % 100 == 0) {
-        referee_power = super_cap.power.battery * POWER_SCALE;
+        referee_power = super_cap.power_battery * POWER_SCALE;
         referee_energy = std::clamp(referee_energy + (REFEREE_LIMIT - referee_power) * REFEREE_DT, 0.0f, BUFFER_MAX);
     }
 }

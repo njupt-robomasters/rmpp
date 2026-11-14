@@ -15,7 +15,9 @@ static VT13 vt13({.uart = Uart(6)});
 static FSi6X fsi6x({.uart = Uart(3)});
 
 static M3508 motor({
-    .bus = {.can = Can(1), .tx_id = 0x200, .rx_id = 0x201},
+    .can = Can(1),
+    .tx_id = 0x200,
+    .rx_id = 0x201,
 });
 
 static Pid::Config speed_pid_config = {

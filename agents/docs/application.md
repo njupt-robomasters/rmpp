@@ -39,7 +39,7 @@
 
 - 设备由 app 定义；只服务一个机构的设备（电机）由该机构持有并在其 `update()` 中更新
 - 被多处使用或与机构业务无关的设备（姿态 `Attitude`、超电 `SuperCap`）由 app 调用 `update()`，结果再交给机构：每周期都要刷新的测量经机构 `update(...)` 参数传入（如底盘 `update(q, gyro)`、云台 `update(yaw, pitch)`），其余输入用 `set_*`（如 `set_power_ref()`、`set_gimbal_yaw()`、`set_chassis_wr()`）
-- app 先更新共享设备再更新机构：如 `super_cap.update()` → `chassis.set_power_ref(super_cap.power.chassis_ref)` → `chassis.update()`
+- app 先更新共享设备再更新机构：如 `super_cap.update()` → `chassis.set_power_ref(super_cap.power_chassis_ref)` → `chassis.update()`
 - 发送（`send()`、`write_can_frame()` 组帧）始终由 app 安排
 - 模块间不互相引用状态
 - 多模块共用判断放在 `app.hpp`

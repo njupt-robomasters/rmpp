@@ -9,6 +9,9 @@
 // 云台公共部分：模式、目标转动、参考系换算与在线管理；电机组合与正逆解由子类实现
 // 姿态由调用方每周期经 update() 传入云台系 IMU 的 yaw、pitch
 class Gimbal {
+  private:
+    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
+
   public:
     enum PidOutput {
         CURRENT_OUTPUT,
@@ -33,6 +36,39 @@ class Gimbal {
         IMU_MODE, // 陀螺仪模式
     };
 
+    // 云台角度
+    struct {
+        struct {
+            Angle ref, measure;
+        } ecd, imu;
+
+        Angle imu_minus_ecd;
+    } yaw, pitch;
+
+  protected:
+    // 闭环输出与俯仰限位
+    const PidOutput yaw_output;
+    const PidOutput pitch_output;
+    const float pitch_min;
+    const float pitch_max;
+    const bool is_pitch_limit;
+
+    // 指令
+    Mode mode = IMU_MODE;
+    float yaw_speed = 0, pitch_speed = 0; // 云台转动速度，rad/s
+    float chassis_wr = 0;                 // yaw速度前馈（小陀螺模式需要）
+
+  private:
+    bool is_enable = false;
+    bool is_yaw_ready = false, is_pitch_ready = false;
+
+  protected:
+    Pid yaw_speed_pid, yaw_position_pid, pitch_speed_pid, pitch_position_pid;
+
+  private:
+    Timer update_timer;
+
+  public:
     // 云台使能/失能
     void set_enable(bool is_enable);
 
@@ -52,6 +88,7 @@ class Gimbal {
     virtual void set_yaw_zero() = 0;
 
     virtual void load_yaw_offset(KvStore& kv_store) = 0;
+
     virtual void save_yaw_offset(KvStore& kv_store) = 0;
 
     // 每个控制周期调用；imu_yaw、imu_pitch 为云台 IMU 姿态，rad
@@ -68,6 +105,7 @@ class Gimbal {
     // 轴可控判断：失能或离线时目标跟随实测并清空 PID，恢复后第一个周期从实测重新开始
     // 须在 forward() 更新实测后调用，返回 false 时调用方输出零
     bool check_yaw(bool is_connect);
+
     bool check_pitch(bool is_connect);
 
     // 按配置的输出类型设置电流或力矩，返回电机限幅后的实际输出，供 PID 跟踪
@@ -79,33 +117,7 @@ class Gimbal {
     // 角度逆解：云台目标 -> 电机输出；dt 为控制周期，s
     virtual void backward(float dt) = 0;
 
-  public:
-    // 云台角度
-    struct {
-        struct {
-            Angle ref, measure;
-        } ecd, imu;
-
-        Angle imu_minus_ecd;
-    } yaw, pitch;
-
-  protected:
-    const Config config_;
-
-    // 指令
-    Mode mode_ = IMU_MODE;
-    float yaw_speed_ = 0, pitch_speed_ = 0; // 云台转动速度，rad/s
-    float chassis_wr_ = 0;                  // yaw速度前馈（小陀螺模式需要）
-
-    Pid yaw_speed_pid_, yaw_position_pid_, pitch_speed_pid_, pitch_position_pid_;
-
   private:
-    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
-
-    bool is_enable_ = false;
-    bool is_yaw_ready_ = false, is_pitch_ready_ = false;
-    Timer update_timer_;
-
     // 处理云台转动，按目标速度积分角度
     void handle_motion(float dt);
 };

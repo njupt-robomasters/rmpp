@@ -3,7 +3,8 @@
 #include <cmath>
 
 GimbalDualYaw::GimbalDualYaw(const Motors& motor, const Config& config)
-    : Gimbal(config), motor(motor) {}
+    : Gimbal(config),
+      motor(motor) {}
 
 void GimbalDualYaw::set_yaw_zero() {
     if (motor.yaw1.is_connect)
@@ -15,7 +16,7 @@ void GimbalDualYaw::load_yaw_offset(KvStore& kv_store) {
 }
 
 void GimbalDualYaw::save_yaw_offset(KvStore& kv_store) {
-    kv_store.write("yaw_offset", motor.yaw1.config.install.offset);
+    kv_store.write("yaw_offset", motor.yaw1.offset);
 }
 
 void GimbalDualYaw::set_motors_enable(const bool is_enable) {
@@ -49,11 +50,11 @@ void GimbalDualYaw::backward(const float dt) {
     yaw.imu_minus_ecd = yaw.imu.measure - yaw.ecd.measure;
     pitch.imu_minus_ecd = pitch.imu.measure - pitch.ecd.measure;
 
-    if (mode_ == ECD_MODE) {
+    if (mode == ECD_MODE) {
         // 换算到imu参考系
         yaw.imu.ref = yaw.ecd.ref + yaw.imu_minus_ecd;
         pitch.imu.ref = pitch.ecd.ref + pitch.imu_minus_ecd;
-    } else if (mode_ == IMU_MODE) {
+    } else if (mode == IMU_MODE) {
         // 换算到ecd参考系
         yaw.ecd.ref = yaw.imu.ref - yaw.imu_minus_ecd;
         pitch.ecd.ref = pitch.imu.ref - pitch.imu_minus_ecd;
@@ -64,8 +65,8 @@ void GimbalDualYaw::backward(const float dt) {
     yaw2.ref = yaw.ecd.ref - yaw1.measure; // 大yaw未转到目标，小yaw来补偿
 
     // 软件限位
-    if (config_.is_pitch_limit)
-        pitch.ecd.ref = Angle(std::clamp(float(pitch.ecd.ref), config_.pitch_min, config_.pitch_max));
+    if (is_pitch_limit)
+        pitch.ecd.ref = Angle(std::clamp(float(pitch.ecd.ref), pitch_min, pitch_max));
     yaw1.ref = Angle(yaw1.ref);
     yaw2.ref = Angle(yaw2.ref);
     pitch.ecd.ref = Angle(pitch.ecd.ref);
@@ -73,18 +74,18 @@ void GimbalDualYaw::backward(const float dt) {
     // yaw 串级 PID，速度反馈取在线的大 yaw，否则取小 yaw；离线的一侧输出零，在线的一侧单独保持指向
     if (can_yaw) {
         const float speed = motor.yaw1.is_connect ? motor.yaw1.speed : motor.yaw2.speed;
-        const float speed_ref = yaw_position_pid_.calculate(dt, yaw.ecd.ref - yaw.ecd.measure) - chassis_wr_ + yaw_speed_;
-        const float output = yaw_speed_pid_.calculate(dt, speed_ref - speed);
-        const float output1 = set_output(motor.yaw1, config_.yaw_output, motor.yaw1.is_connect ? output : 0.0f);
-        const float output2 = set_output(motor.yaw2, config_.yaw_output, motor.yaw2.is_connect ? output : 0.0f);
+        const float speed_ref = yaw_position_pid.calculate(dt, yaw.ecd.ref - yaw.ecd.measure) - chassis_wr + yaw_speed;
+        const float output = yaw_speed_pid.calculate(dt, speed_ref - speed);
+        const float output1 = set_output(motor.yaw1, yaw_output, motor.yaw1.is_connect ? output : 0.0f);
+        const float output2 = set_output(motor.yaw2, yaw_output, motor.yaw2.is_connect ? output : 0.0f);
 
         // PID 跟踪在线电机中被限幅更多的实际输出
         if (!motor.yaw1.is_connect)
-            yaw_speed_pid_.track(output2);
+            yaw_speed_pid.track(output2);
         else if (!motor.yaw2.is_connect || std::fabs(output1) < std::fabs(output2))
-            yaw_speed_pid_.track(output1);
+            yaw_speed_pid.track(output1);
         else
-            yaw_speed_pid_.track(output2);
+            yaw_speed_pid.track(output2);
     } else {
         motor.yaw1.set_current(0);
         motor.yaw2.set_current(0);
@@ -92,8 +93,8 @@ void GimbalDualYaw::backward(const float dt) {
 
     // pitch 串级 PID
     if (can_pitch) {
-        const float speed_ref = pitch_position_pid_.calculate(dt, pitch.ecd.ref - pitch.ecd.measure) + pitch_speed_;
-        pitch_speed_pid_.track(set_output(motor.pitch, config_.pitch_output, pitch_speed_pid_.calculate(dt, speed_ref - motor.pitch.speed)));
+        const float speed_ref = pitch_position_pid.calculate(dt, pitch.ecd.ref - pitch.ecd.measure) + pitch_speed;
+        pitch_speed_pid.track(set_output(motor.pitch, pitch_output, pitch_speed_pid.calculate(dt, speed_ref - motor.pitch.speed)));
     } else {
         motor.pitch.set_current(0);
     }

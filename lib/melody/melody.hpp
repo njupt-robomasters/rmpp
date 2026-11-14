@@ -28,6 +28,9 @@ struct Song {
 // play 普通模式：直驱方波，只放旋律主声部，用于提示音
 // play_poly 复音模式：蜂鸣器作 PWM-DAC，在采样流中断内合成全部声部
 class Melody {
+  private:
+    static constexpr std::size_t MAX_VOICES = 8; // 每组声部上限，与 tools/midi_to_song.py 一致
+
   public:
     struct Envelope {
         float decay;   // A4 处衰减时间常数 s，按 sqrt(440/f) 随音高缩放，低音衰减慢
@@ -53,52 +56,33 @@ class Melody {
         Agc agc = {.ratio = 4, .max_gain = 8, .attack = 0.005f, .release = 0.15f, .hold = 0.5f};
     };
 
-    explicit Melody(const Config& config);
-
-    // 从头播放，打断当前播放；曲目须在播放期间保持有效
-    void play(const Song& song);
-    void play_poly(const Song& song);
-
-    // 停止播放并静音
-    void stop();
-
-    // 主循环约 1 kHz 调用：普通模式到时切换音符，复音模式播完后关闭采样流
-    void update();
-
-    bool is_playing() const {
-        return stage_ != Stage::IDLE;
-    }
-
-  public:
-    Monitor monitor; // 复音合成中断的频率与占用
-
   private:
-    static constexpr std::size_t MAX_VOICES = 8; // 每组声部上限，与 tools/midi_to_song.py 一致
-
     // 复音单声部：限带方波 + 衰减包络，每次 update 推进一个采样
     class VoiceSynth {
       public:
         float amplitude = 0; // 本采样包络幅度
 
+      private:
+        Envelope envelope = {};
+        float weight = 0, dt = 0;
+        std::size_t index = 0;
+        float left = 0;                  // 当前条目剩余时间 s
+        uint8_t midi = 0;                // 正在发声的音符，0 为休止
+        float phase = 0, step = 0;       // 相位 [0, 1) 与每采样增量
+        float decay = 0, decay_step = 1; // exp(-age/tau) 与每采样衰减系数
+        float fade = 0, fade_step = 0;   // 休止内淡出系数与每采样减量
+        Voice voice;
+
+      public:
         void start(Voice voice, const Envelope& envelope, float weight, float dt);
+
         float update();
 
         bool is_done() const {
-            return index_ >= voice_.size();
+            return index >= voice.size();
         }
 
       private:
-        Voice voice_;
-        Envelope envelope_ = {};
-        float weight_ = 0, dt_ = 0;
-
-        std::size_t index_ = 0;
-        float left_ = 0;                   // 当前条目剩余时间 s
-        uint8_t midi_ = 0;                 // 正在发声的音符，0 为休止
-        float phase_ = 0, step_ = 0;       // 相位 [0, 1) 与每采样增量
-        float decay_ = 0, decay_step_ = 1; // exp(-age/tau) 与每采样衰减系数
-        float fade_ = 0, fade_step_ = 0;   // 休止内淡出系数与每采样减量
-
         void enter();
     };
 
@@ -107,14 +91,17 @@ class Melody {
       public:
         float level = 0; // 本采样增益后的组电平
 
-        void start(Part part, float share, const Envelope& lead, const Envelope& inner, float inner_weight, float dt);
-        float update(bool should_update_gain, float attack_step, float release_step);
-        bool is_done() const;
-
       private:
-        VoiceSynth voices_[MAX_VOICES];
-        std::size_t count_ = 0;
-        float share_ = 0, gain_ = 0;
+        std::size_t count = 0;
+        float share = 0, gain = 0;
+        VoiceSynth voices[MAX_VOICES];
+
+      public:
+        void start(Part part, float share, const Envelope& lead, const Envelope& inner, float inner_weight, float dt);
+
+        float update(bool should_update_gain, float attack_step, float release_step);
+
+        bool is_done() const;
     };
 
     // 复音阶段：FADE_IN 占空比从 0 升到中点，FADE_OUT 降回 0，避免爆音；ENDED 等 update 关闭采样流
@@ -125,29 +112,58 @@ class Melody {
                        FADE_OUT,
                        ENDED };
 
-    const Config config_;
+  public:
+    Monitor monitor; // 复音合成中断的频率与占用
 
-    Buzzer buzzer_;
-    volatile Stage stage_ = Stage::IDLE; // 复音阶段由中断推进
+  private:
+    const float carrier_hz;         // 复音模式载波即采样率，取 20~64 kHz 内 1 kHz 的整数倍
+    const float melody_share;       // 旋律组占输出摆幅，伴奏组为其余
+    const Envelope melody_envelope; // 旋律主声部
+    const Envelope chords_envelope; // 伴奏主声部，余音低不拖沓
+    const Envelope inner_envelope;  // 其余声部，快衰减只在起音时加厚和声
+    const float inner_weight;       // 其余声部相对主声部的音量
+    const Agc agc;
 
-    // 普通模式进度：index_ 指向下一个音符，note_timer_ 对当前音符计时
-    Voice direct_;
-    std::size_t index_ = 0;
-    Timer note_timer_;
+    // 由 config 换算
+    const float dt;                        // 采样周期 s
+    const float attack_step, release_step; // 增益每次更新的跟随系数
+    const uint32_t hold, ramp_samples;     // 采样数
+    Buzzer buzzer;
+    volatile Stage stage = Stage::IDLE; // 复音阶段由中断推进
+    std::size_t index = 0;
+    float gain = 1;
+    uint32_t sample = 0; // 已合成的采样数
+    uint32_t silent = 0; // 旋律组连续无声的采样数
+    uint32_t ramp = 0;   // 首尾斜坡进度，采样数
+
+    // 普通模式进度：index 指向下一个音符，note_timer 对当前音符计时
+    Voice direct;
 
     // 复音模式状态，采样流开启后只在中断内修改
-    PartSynth melody_, chords_;
-    float gain_ = 1;
-    uint32_t sample_ = 0; // 已合成的采样数
-    uint32_t silent_ = 0; // 旋律组连续无声的采样数
-    uint32_t ramp_ = 0;   // 首尾斜坡进度，采样数
+    PartSynth melody, chords;
+    Timer note_timer;
 
-    // 由 config_ 换算
-    const float dt_;                         // 采样周期 s
-    const float attack_step_, release_step_; // 增益每次更新的跟随系数
-    const uint32_t hold_, ramp_samples_;     // 采样数
+  public:
+    explicit Melody(const Config& config);
 
+    // 从头播放，打断当前播放；曲目须在播放期间保持有效
+    void play(const Song& song);
+
+    void play_poly(const Song& song);
+
+    // 停止播放并静音
+    void stop();
+
+    // 主循环约 1 kHz 调用：普通模式到时切换音符，复音模式播完后关闭采样流
+    void update();
+
+    bool is_playing() const {
+        return stage != Stage::IDLE;
+    }
+
+  private:
     void fill(std::span<float> duty);
+
     float next_sample();
 
     static float midi_to_hz(uint8_t midi);

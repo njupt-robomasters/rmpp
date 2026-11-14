@@ -11,10 +11,6 @@ class Nav {
         float timeout = 100 * ms;
     };
 
-    explicit Nav(const Config& config);
-    void update();
-
-  public:
     struct {
         float x = 0;
         float y = 0;
@@ -26,6 +22,11 @@ class Nav {
     } chassis_speed;
 
   private:
-    const Config config_;
-    Timer chassis_speed_timer_;
+    const float timeout;
+    Timer chassis_speed_timer;
+
+  public:
+    explicit Nav(const Config& config);
+
+    void update();
 };

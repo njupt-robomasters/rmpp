@@ -55,7 +55,7 @@ Timer 提供 `elapsed`、`restart`、`delay`，时间为秒，不限幅；底层
 业务库接收句柄，app 指定通道。通信配置在对象构造时确定，注册回调后保持稳定。
 
 ```cpp
-M3508 motor({.bus = {.can = Can(1), .rx_id = 0x201}});
+M3508 motor({.can = Can(1), .rx_id = 0x201});
 FSi6X fsi6x({.uart = Uart(3)});
 VT13 vt13({.uart = Uart(6)});
 Aim aim({.cdc = Cdc(1)});
@@ -66,7 +66,7 @@ QuaternionEkf attitude(imu);
 KvStore kv_store("infantry");
 ```
 
-电机各层构造函数只接收并传递唯一的 config。公共配置分为 bus（CAN 通道、命令与反馈 ID、超时）、drive（成对的电流与转矩满量程、减速比；二者之比即转矩常数，不另存 kt）和 install（零点偏移、方向）；drive 为零的字段由子类型号常量补齐。`Motor::config` 公开，外部只读，供功率限制、云台零点存储和发射卡弹判断读取；offset 运行中经 `set_offset()`、`set_zero()` 修改，故 config 不加 const。型号物理参数使用公开的 static constexpr 独立常量，不另设全局型号配置包装；VESC 不对应固定型号，drive 须全部给出。速度和位置闭环由底盘、云台、发射机构持有，Motor 只提供电流和力矩设置。DmMotor 和 Vesc 的专用 Config 内含 motor 公共配置及专用参数，DM 型号配置额外提供使能帧发送频率。
+电机各层共用平面的 Motor::Config 构造输入，实例中展开通信、量程、安装参数与原始反馈。型号常量补齐零量程，VESC 由 app 给出量程。max_current/max_torque 供机构换算，offset 供云台存储；温度、原始反馈、多圈计数等内部状态按最小权限保存。Motor 提供电流和力矩设置及反馈更新，闭环由机构持有。类布局见 conventions.md，电机协议见 motor.md。
 
 DJI 最终型号注册 CAN 回调，私有 can_callback 先校验报文并解析型号特有字段，再直接调用 Motor::can_callback 完成方向修正、多圈累计和在线计时。其他协议子类直接注册并解析 raw。update 每周期先判断反馈超时，再计算闭环；set_current、set_torque 在赋值时处理非有限值、限幅和单位换算。DJI 同组命令由 app 创建零初始化组帧，各电机通过 write_can_frame 按控制帧 ID 和反馈 ID 写入对应槽位，再由 app 统一发送。DM 电机按配置频率定时发送使能帧，该周期不发送 MIT 帧；VESC 不要求在线反馈，只支持开环速度发送。
 
@@ -123,3 +123,7 @@ python tools/format_code.py --clang-format <相同路径> --check
 ```
 
 CLion 2026.2.2 随附的 clang-format 位于 `plugins/clion-radler/DotFiles/windows-x64/clang-format.exe`。LLVM 基础、四空格、同行大括号、无列宽限制。
+
+## 超电观察字段
+
+SuperCap 的电压、电流、功率与缓冲能量直接展开为 `voltage_chassis`、`voltage_cap`、`current_chassis`、`current_cap`、`power_chassis`、`power_cap`、`power_battery`、`power_battery_ref`、`power_boost_max`、`power_chassis_ref`、`energy_referee`、`energy_local`。RLS 参数和跨窗口状态保留在 `rls`；Config 仅作为构造输入。应用更新超电后，将 `super_cap.power_chassis_ref` 交给底盘。

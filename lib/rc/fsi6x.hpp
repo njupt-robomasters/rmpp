@@ -18,20 +18,14 @@ class FSi6X {
         ERR
     };
 
-    FSi6X(const Config& config);
-
-    // 断联检测，需要在循环中调用；断联时数据复位为默认值
-    void update();
-
-  public:
-    bool is_connect = false; // 连接标志
-
+    bool is_connect = false;                           // 连接标志
     float x = 0, y = 0, pitch = 0, yaw = 0;            // 摇杆
     Switch swa = ERR, swb = ERR, swc = ERR, swd = ERR; // 拨杆
-    float vra = 0, vrb = 0;                            // 旋钮
 
   private:
-    const Config config_;
+    const float timeout;    // 断联检测超时时间
+    const float deadline;   // 摇杆死区，小于此值认为是0
+    float vra = 0, vrb = 0; // 旋钮
 
     // 通道原始值
     struct __attribute__((packed)) {
@@ -59,10 +53,17 @@ class FSi6X {
         uint8_t is_disconnect : 8; // 连接上为0x00，断联为0x0C
 
         uint8_t tail : 8; // 0x00
-    } raw_{};
+    } raw{};
 
-    Timer callback_timer_; // 用于断联检测
+    Timer callback_timer; // 用于断联检测
 
+  public:
+    FSi6X(const Config& config);
+
+    // 断联检测，需要在循环中调用；断联时数据复位为默认值
+    void update();
+
+  private:
     // 串口接收回调
     void callback(const uint8_t data[], uint16_t size);
 

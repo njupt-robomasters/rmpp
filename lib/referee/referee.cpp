@@ -5,117 +5,120 @@
 #include <utility>
 
 Referee::Referee(const Config& config)
-    : config_(config) {
-    if (const auto* can = std::get_if<Can>(&config_.bus)) {
+    : bus(config.bus),
+      rx_id(config.rx_id),
+      tx_id(config.tx_id),
+      timeout(config.timeout) {
+    if (const auto* can = std::get_if<Can>(&bus)) {
         can->add_rx_callback([this](const CanFrame& frame) {
-            if (frame.id == config_.rx_id && !frame.is_extend && !frame.is_remote && frame.size <= 8)
+            if (frame.id == rx_id && !frame.is_extend && !frame.is_remote && frame.size <= 8)
                 receive(frame.data, frame.size);
         });
     } else {
-        std::get<Uart>(config_.bus).add_rx_callback([this](const uint8_t* data, const size_t size) {
+        std::get<Uart>(bus).add_rx_callback([this](const uint8_t* data, const size_t size) {
             receive(data, size);
         });
     }
 }
 
 void Referee::add_0311_callback(RxCallback callback) {
-    callbacks_0311_.push_back(std::move(callback));
+    callbacks_0311.push_back(std::move(callback));
 }
 
 void Referee::update() {
-    if (frame_timer_.elapsed() > config_.timeout)
+    if (frame_timer.elapsed() > timeout)
         is_connected = false;
-    if (tx_size_ == 0)
+    if (tx_size == 0)
         return;
 
     // 链路忙时保留待发帧，下次重试
-    if (const auto* can = std::get_if<Can>(&config_.bus)) {
+    if (const auto* can = std::get_if<Can>(&bus)) {
         if (!can->can_send())
             return;
-        const auto size = std::min<size_t>(8, tx_size_ - tx_pos_);
-        CanFrame frame{.id = config_.tx_id, .size = static_cast<uint8_t>(size)};
-        std::memcpy(frame.data, tx_buf_ + tx_pos_, size);
+        const auto size = std::min<size_t>(8, tx_size - tx_pos);
+        CanFrame frame{.id = tx_id, .size = static_cast<uint8_t>(size)};
+        std::memcpy(frame.data, tx_buf + tx_pos, size);
         can->send(frame);
-        tx_pos_ += size;
+        tx_pos += size;
     } else {
-        const auto& uart = std::get<Uart>(config_.bus);
+        const auto& uart = std::get<Uart>(bus);
         if (!uart.can_send())
             return;
-        uart.send(tx_buf_, tx_size_);
-        tx_pos_ = tx_size_;
+        uart.send(tx_buf, tx_size);
+        tx_pos = tx_size;
     }
-    if (tx_pos_ == tx_size_) {
-        tx_size_ = 0;
-        tx_pos_ = 0;
+    if (tx_pos == tx_size) {
+        tx_size = 0;
+        tx_pos = 0;
     }
 }
 
 bool Referee::send(const uint16_t cmd_id, const uint8_t* data, const size_t size) {
-    if (tx_size_ != 0 || size > 300 || (size != 0 && !data))
+    if (tx_size != 0 || size > 300 || (size != 0 && !data))
         return false;
-    if (cmd_id == 0x0301 && (size < 6 || size > 118 || interaction_timer_.elapsed() < 1.0f / 30.0f))
+    if (cmd_id == 0x0301 && (size < 6 || size > 118 || interaction_timer.elapsed() < 1.0f / 30.0f))
         return false;
-    tx_buf_[0] = 0xA5;
-    tx_buf_[1] = static_cast<uint8_t>(size);
-    tx_buf_[2] = static_cast<uint8_t>(size >> 8);
-    tx_buf_[3] = seq_++;
-    tx_buf_[4] = CRC8::check_sum(tx_buf_, 4);
-    tx_buf_[5] = static_cast<uint8_t>(cmd_id);
-    tx_buf_[6] = static_cast<uint8_t>(cmd_id >> 8);
+    tx_buf[0] = 0xA5;
+    tx_buf[1] = static_cast<uint8_t>(size);
+    tx_buf[2] = static_cast<uint8_t>(size >> 8);
+    tx_buf[3] = seq++;
+    tx_buf[4] = CRC8::check_sum(tx_buf, 4);
+    tx_buf[5] = static_cast<uint8_t>(cmd_id);
+    tx_buf[6] = static_cast<uint8_t>(cmd_id >> 8);
     if (size != 0)
-        std::memcpy(tx_buf_ + 7, data, size);
-    const auto crc = CRC16::check_sum(tx_buf_, size + 7);
-    tx_buf_[size + 7] = static_cast<uint8_t>(crc);
-    tx_buf_[size + 8] = static_cast<uint8_t>(crc >> 8);
-    tx_size_ = size + 9;
+        std::memcpy(tx_buf + 7, data, size);
+    const auto crc = CRC16::check_sum(tx_buf, size + 7);
+    tx_buf[size + 7] = static_cast<uint8_t>(crc);
+    tx_buf[size + 8] = static_cast<uint8_t>(crc >> 8);
+    tx_size = size + 9;
     if (cmd_id == 0x0301)
-        interaction_timer_.restart();
+        interaction_timer.restart();
     return true;
 }
 
 void Referee::receive(const uint8_t* data, const size_t size) {
     // 正常帧内不会停顿 100 ms；丢失尾部后不让旧半包阻塞后续数据
-    if (receive_timer_.elapsed() > 0.1f)
-        rx_size_ = 0;
-    receive_timer_.restart();
+    if (receive_timer.elapsed() > 0.1f)
+        rx_size = 0;
+    receive_timer.restart();
 
     for (size_t i = 0; i < size; i++) {
-        if (rx_size_ == sizeof(rx_buf_))
-            rx_size_ = 0;
-        rx_buf_[rx_size_++] = data[i];
+        if (rx_size == sizeof(rx_buf))
+            rx_size = 0;
+        rx_buf[rx_size++] = data[i];
 
-        while (rx_size_ != 0) {
-            if (rx_buf_[0] != 0xA5) {
-                rx_size_--;
-                std::memmove(rx_buf_, rx_buf_ + 1, rx_size_);
+        while (rx_size != 0) {
+            if (rx_buf[0] != 0xA5) {
+                rx_size--;
+                std::memmove(rx_buf, rx_buf + 1, rx_size);
                 continue;
             }
-            if (rx_size_ < 5)
+            if (rx_size < 5)
                 break;
 
-            const size_t payload_size = rx_buf_[1] | (static_cast<size_t>(rx_buf_[2]) << 8);
-            if (payload_size > 300 || !CRC8::verify(rx_buf_, 4, rx_buf_[4])) {
-                rx_size_--;
-                std::memmove(rx_buf_, rx_buf_ + 1, rx_size_);
+            const size_t payload_size = rx_buf[1] | (static_cast<size_t>(rx_buf[2]) << 8);
+            if (payload_size > 300 || !CRC8::verify(rx_buf, 4, rx_buf[4])) {
+                rx_size--;
+                std::memmove(rx_buf, rx_buf + 1, rx_size);
                 continue;
             }
 
             const size_t frame_size = payload_size + 9;
-            if (rx_size_ < frame_size)
+            if (rx_size < frame_size)
                 break;
 
-            const uint16_t crc = rx_buf_[frame_size - 2] | (static_cast<uint16_t>(rx_buf_[frame_size - 1]) << 8);
-            if (CRC16::verify(rx_buf_, frame_size - 2, crc)) {
-                const uint16_t cmd = rx_buf_[5] | (static_cast<uint16_t>(rx_buf_[6]) << 8);
-                deserialize(cmd, rx_buf_ + 7, payload_size);
+            const uint16_t crc = rx_buf[frame_size - 2] | (static_cast<uint16_t>(rx_buf[frame_size - 1]) << 8);
+            if (CRC16::verify(rx_buf, frame_size - 2, crc)) {
+                const uint16_t cmd = rx_buf[5] | (static_cast<uint16_t>(rx_buf[6]) << 8);
+                deserialize(cmd, rx_buf + 7, payload_size);
                 is_connected = true;
-                frame_timer_.restart();
-                rx_size_ -= frame_size;
-                std::memmove(rx_buf_, rx_buf_ + frame_size, rx_size_);
+                frame_timer.restart();
+                rx_size -= frame_size;
+                std::memmove(rx_buf, rx_buf + frame_size, rx_size);
             } else {
                 // 保留后续字节重新寻找帧头，支持坏帧后紧接有效帧
-                rx_size_--;
-                std::memmove(rx_buf_, rx_buf_ + 1, rx_size_);
+                rx_size--;
+                std::memmove(rx_buf, rx_buf + 1, rx_size);
             }
         }
     }
@@ -347,7 +350,7 @@ bool Referee::deserialize(const uint16_t cmd_id, const uint8_t* data, const size
         std::memset(custom_client_command.data, 0, sizeof(custom_client_command.data));
         std::memcpy(custom_client_command.data, data, size);
         custom_client_command.size = static_cast<uint16_t>(size);
-        for (const auto& callback : callbacks_0311_)
+        for (const auto& callback : callbacks_0311)
             callback(data, size);
         return true;
     case 0x0a01:

@@ -148,19 +148,19 @@ bool UiControl::delete_all() {
 }
 
 void UiControl::clear_queue() {
-    head_ = 0;
-    count_ = 0;
+    head = 0;
+    count = 0;
 }
 
 void UiControl::update() {
-    if (count_ == 0)
+    if (count == 0)
         return;
     const auto sender = robot_id();
     // 只有文档列出的选手端允许自动映射
     if (!((sender >= 1 && sender <= 6) || (sender >= 101 && sender <= 106)))
         return;
     const uint16_t receiver = sender + 0x0100;
-    const auto& request = queue_[head_];
+    const auto& request = queue[head];
     uint8_t data[111]{};
     data[0] = static_cast<uint8_t>(request.content_id);
     data[1] = static_cast<uint8_t>(request.content_id >> 8);
@@ -169,9 +169,9 @@ void UiControl::update() {
     data[4] = static_cast<uint8_t>(receiver);
     data[5] = static_cast<uint8_t>(receiver >> 8);
     std::memcpy(data + 6, request.data, request.size);
-    if (referee_.send(0x0301, data, request.size + 6)) {
-        head_ = (head_ + 1) % QUEUE_CAPACITY;
-        count_--;
+    if (referee.send(0x0301, data, request.size + 6)) {
+        head = (head + 1) % QUEUE_CAPACITY;
+        count--;
     }
 }
 
@@ -206,8 +206,8 @@ bool UiControl::enqueue(const Request& request) {
     if (request.content_id == 0x0104 && request.size == 105) {
         const uint32_t name = request.data[0] | (static_cast<uint32_t>(request.data[1]) << 8) | (static_cast<uint32_t>(request.data[2]) << 16);
         if (name == 0x000160 || name == 0x000170) {
-            for (size_t i = 0; i < count_; i++) {
-                auto& queued = queue_[(head_ + i) % QUEUE_CAPACITY];
+            for (size_t i = 0; i < count; i++) {
+                auto& queued = queue[(head + i) % QUEUE_CAPACITY];
                 const uint32_t queued_name = queued.data[0] | (static_cast<uint32_t>(queued.data[1]) << 8) | (static_cast<uint32_t>(queued.data[2]) << 16);
                 if (queued.content_id == request.content_id && queued.size == request.size && queued_name == name) {
                     queued = request;
@@ -216,30 +216,61 @@ bool UiControl::enqueue(const Request& request) {
             }
         }
     }
-    if (count_ == QUEUE_CAPACITY)
+    if (count == QUEUE_CAPACITY)
         return false;
-    queue_[(head_ + count_) % QUEUE_CAPACITY] = request;
-    count_++;
+    queue[(head + count) % QUEUE_CAPACITY] = request;
+    count++;
     return true;
 }
 
+void RobotUi::init() {
+    clear_queue();
+    initialized = false;
+    enqueue_initial_layout();
+    initialized = true;
+}
+
 void RobotUi::update() {
-    if (!initialized_)
+    if (!initialized)
         init();
 
-    if (dashboard_timer_.elapsed() >= 1.0f / 30.0f) {
-        dashboard_timer_.restart();
+    if (dashboard_timer.elapsed() >= 1.0f / 30.0f) {
+        dashboard_timer.restart();
         update_dashboard();
     }
 
     UiControl::update();
 }
 
-void RobotUi::init() {
-    clear_queue();
-    initialized_ = false;
-    enqueue_initial_layout();
-    initialized_ = true;
+void RobotUi::update_dashboard() {
+    const auto green = GREEN;
+    const auto progress = std::clamp(cap / max_cap, 0.0f, 1.0f);
+    const auto speed = std::clamp(std::fabs(wr) / max_wr, 0.0f, 1.0f);
+    const auto bullet_ratio = std::clamp(bullet / max_bullet, 0.0f, 1.0f);
+    const auto shoot_ratio = std::clamp(std::fabs(shoot) / max_shoot, 0.0f, 1.0f);
+    const auto span = [](float ratio) { return static_cast<uint16_t>(1 + ratio * 38); };
+    Graphic arcs[7] = {
+        arc(0x000160, 1, robot.referee, 10, 960, 540, yaw_ecd - 20 * deg, yaw_ecd + 20 * deg, 85, 85),
+        arc(0x000161, 1, PINK, is_hurt ? 10 : 0, 960, 540, -hurt_dir - 20 * deg, -hurt_dir + 20 * deg, 85, 85),
+        arc(0x000162, 1, green, 14, 960, 540, 275 * deg, (275 + span(progress)) * deg, 387, 387),
+        arc(0x000163, 1, green, 14, 960, 540, (265 - span(speed)) * deg, 265 * deg, 387, 387),
+        arc(0x000164, 1, green, 14, 960, 540, 95 * deg, (95 + span(bullet_ratio)) * deg, 387, 387),
+        arc(0x000165, 1, green, 14, 960, 540, (85 - span(shoot_ratio)) * deg, 85 * deg, 387, 387),
+        circle(0x000166, 1, robot.aim, is_detect ? 21 : 0, 960, 540, 21),
+    };
+    set_arc(arcs[0], yaw_ecd - 20 * deg, yaw_ecd + 20 * deg);
+    set_arc(arcs[1], -hurt_dir - 20 * deg, -hurt_dir + 20 * deg);
+    draw(arcs, 7, MODIFY);
+
+    Graphic numbers[6] = {
+        integer(0x000170, 2, WHITE, 2, 615, 565, 15, static_cast<int32_t>(cap / pct)),
+        integer(0x000171, 2, WHITE, 2, 615, 530, 15, static_cast<int32_t>(wr / rpm)),
+        integer(0x000172, 2, WHITE, 2, 1250, 530, 15, static_cast<int32_t>(bullet * (bullet_is_speed ? 10 : 1))),
+        integer(0x000173, 2, WHITE, 2, 1250, 565, 15, static_cast<int32_t>(shoot)),
+        integer(0x000174, 2, WHITE, 2, 970, 680, 15, static_cast<int32_t>(yaw / deg)),
+        integer(0x000175, 2, WHITE, 2, 780, 565, 15, static_cast<int32_t>(pitch / deg)),
+    };
+    draw(numbers, 6, MODIFY);
 }
 
 void RobotUi::enqueue_initial_layout() {
@@ -322,35 +353,4 @@ void RobotUi::enqueue_initial_layout() {
         line(0x003203, 3, green, 2, 298, 680, 323, 692),
     };
     draw(modules_tail, 4, ADD);
-}
-
-void RobotUi::update_dashboard() {
-    const auto green = GREEN;
-    const auto progress = std::clamp(cap / config_.max_cap, 0.0f, 1.0f);
-    const auto speed = std::clamp(std::fabs(wr) / config_.max_wr, 0.0f, 1.0f);
-    const auto bullet_ratio = std::clamp(bullet / config_.max_bullet, 0.0f, 1.0f);
-    const auto shoot_ratio = std::clamp(std::fabs(shoot) / config_.max_shoot, 0.0f, 1.0f);
-    const auto span = [](float ratio) { return static_cast<uint16_t>(1 + ratio * 38); };
-    Graphic arcs[7] = {
-        arc(0x000160, 1, robot.referee, 10, 960, 540, yaw_ecd - 20 * deg, yaw_ecd + 20 * deg, 85, 85),
-        arc(0x000161, 1, PINK, is_hurt ? 10 : 0, 960, 540, -hurt_dir - 20 * deg, -hurt_dir + 20 * deg, 85, 85),
-        arc(0x000162, 1, green, 14, 960, 540, 275 * deg, (275 + span(progress)) * deg, 387, 387),
-        arc(0x000163, 1, green, 14, 960, 540, (265 - span(speed)) * deg, 265 * deg, 387, 387),
-        arc(0x000164, 1, green, 14, 960, 540, 95 * deg, (95 + span(bullet_ratio)) * deg, 387, 387),
-        arc(0x000165, 1, green, 14, 960, 540, (85 - span(shoot_ratio)) * deg, 85 * deg, 387, 387),
-        circle(0x000166, 1, robot.aim, is_detect ? 21 : 0, 960, 540, 21),
-    };
-    set_arc(arcs[0], yaw_ecd - 20 * deg, yaw_ecd + 20 * deg);
-    set_arc(arcs[1], -hurt_dir - 20 * deg, -hurt_dir + 20 * deg);
-    draw(arcs, 7, MODIFY);
-
-    Graphic numbers[6] = {
-        integer(0x000170, 2, WHITE, 2, 615, 565, 15, static_cast<int32_t>(cap / pct)),
-        integer(0x000171, 2, WHITE, 2, 615, 530, 15, static_cast<int32_t>(wr / rpm)),
-        integer(0x000172, 2, WHITE, 2, 1250, 530, 15, static_cast<int32_t>(bullet * (bullet_is_speed ? 10 : 1))),
-        integer(0x000173, 2, WHITE, 2, 1250, 565, 15, static_cast<int32_t>(shoot)),
-        integer(0x000174, 2, WHITE, 2, 970, 680, 15, static_cast<int32_t>(yaw / deg)),
-        integer(0x000175, 2, WHITE, 2, 780, 565, 15, static_cast<int32_t>(pitch / deg)),
-    };
-    draw(numbers, 6, MODIFY);
 }

@@ -4,6 +4,9 @@
 
 template <float PMAX, float VMAX, float TMAX>
 class DmMotor : public Motor {
+  private:
+    static constexpr float ENABLE_FREQUENCY = 10; // 使能帧发送频率，Hz
+
   public:
     enum ErrCode {
         NONE = 0x00,
@@ -22,30 +25,33 @@ class DmMotor : public Motor {
         OVERLOAD = 0x0E,           // 过载
     };
 
+    ErrCode err_code = NONE;
+
+  private:
+    float temp_mos = 0;
+    float temp_motor = 0;
+    Timer enable_timer;
+
+  public:
     // 按状态发送失能、清错、周期使能或 MIT 力矩帧
     void send();
 
   protected:
-    DmMotor(const Config& config, const Config::Drive& model);
-
-  public:
-    ErrCode err_code = NONE;
-    float temp_mos = 0;
-    float temp_motor = 0;
+    DmMotor(const Config& config, float max_current, float max_torque, float reduction);
 
   private:
-    static constexpr float ENABLE_FREQUENCY = 10; // 使能帧发送频率，Hz
-
-    Timer enable_timer_;
-
     void can_callback(const CanFrame& frame);
 
     void send_mit() const;
+
     void send_enable() const;
+
     void send_disable() const;
+
     void send_clear_err() const;
 
     static float decode(uint16_t value, float maximum, unsigned bits);
+
     static uint16_t encode(float value, float maximum, unsigned bits);
 };
 

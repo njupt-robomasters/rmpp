@@ -16,12 +16,20 @@
 
 // 摩擦轮
 inline Vesc rub1({
-    .bus = {.can = Can(2), .tx_id = 0x21, .rx_id = 0x21},
-    .drive = {.max_current = M3508::MAX_CURRENT, .max_torque = M3508::MAX_TORQUE, .reduction = M3508::REDUCTION},
+    .can = Can(2),
+    .tx_id = 0x21,
+    .rx_id = 0x21,
+    .max_current = M3508::MAX_CURRENT,
+    .max_torque = M3508::MAX_TORQUE,
+    .reduction = M3508::REDUCTION,
 });
 inline Vesc rub2({
-    .bus = {.can = Can(2), .tx_id = 0x22, .rx_id = 0x22},
-    .drive = {.max_current = M3508::MAX_CURRENT, .max_torque = M3508::MAX_TORQUE, .reduction = M3508::REDUCTION},
+    .can = Can(2),
+    .tx_id = 0x22,
+    .rx_id = 0x22,
+    .max_current = M3508::MAX_CURRENT,
+    .max_torque = M3508::MAX_TORQUE,
+    .reduction = M3508::REDUCTION,
 });
 
 // 拨弹电机
@@ -30,8 +38,9 @@ inline Pid::Config shoot_pid = {
     .max_out = 10,
 };
 inline M2006 shoot({
-    .bus = {.can = Can(1), .rx_id = 0x206},
-    .install = {.is_invert = false},
+    .can = Can(1),
+    .rx_id = 0x206,
+    .is_invert = false,
 });
 
 // 发射机构

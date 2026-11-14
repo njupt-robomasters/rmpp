@@ -38,8 +38,10 @@ inline Pid::Config yaw1_pid = {
     .err_fc = 10,
 };
 inline DM4310 yaw1({
-    .bus = {.can = Can(1), .tx_id = 0x12, .rx_id = 0x13},
-    .install = {.is_invert = false},
+    .can = Can(1),
+    .tx_id = 0x12,
+    .rx_id = 0x13,
+    .is_invert = false,
 });
 
 // 小yaw电机
@@ -54,8 +56,9 @@ inline Pid::Config yaw2_angle_pid = {
     .max_out = 720 * deg_s,
 };
 inline GM6020 yaw2({
-                       .bus = {.can = Can(1), .rx_id = 0x205},
-                       .install = {.offset = 0 * deg},
+                       .can = Can(1),
+                       .rx_id = 0x205,
+                       .offset = 0 * deg,
                    },
                    GM6020::KE); // 电压帧完整反电动势前馈
 
@@ -70,8 +73,11 @@ inline Pid::Config pitch_angle_pid = {
     .max_out = 720 * deg_s,
 };
 inline DM4310 pitch({
-    .bus = {.can = Can(2), .tx_id = 0x11, .rx_id = 0x10},
-    .install = {.is_invert = true, .offset = -72 * deg},
+    .can = Can(2),
+    .tx_id = 0x11,
+    .rx_id = 0x10,
+    .is_invert = true,
+    .offset = -72 * deg,
 });
 
 // 云台

@@ -14,6 +14,7 @@ class MotorPower {
         float z = 1;  // 旋转
     };
 
+  public:
     // 四个电机按反馈估计的当前功率；离线电机反馈已清零
     static float estimate(Motor* const motor[4], float resistance);
 

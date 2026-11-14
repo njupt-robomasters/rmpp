@@ -29,32 +29,17 @@ class Referee {
         SETTLING
     };
 
-    // 实例及其绑定对象在 BSP 回调有效期间不得销毁或移动
-    explicit Referee(const Config& config);
-    Referee(const Referee&) = delete;
-    Referee& operator=(const Referee&) = delete;
-
-    void add_0311_callback(RxCallback callback);
-    void update();
-
-    // 拷贝完整载荷到待发帧；忙或非法长度返回 false，不部分接收
-    // 0x0301 的所有调用共用 30 Hz 限额；仅在主循环调用
-    bool send(uint16_t cmd_id, const uint8_t* data, size_t size);
-
-    bool is_sending() const {
-        return tx_size_ != 0;
-    }
-
-  public:
     bool is_connected = false;
     GameStatus game_status{};
+    RobotStatus robot_status{};
+    PowerHeatData power_heat_data{};
+
+  private:
     GameResult game_result{};
     GameRobotHp game_robot_hp{};
     EventData event_data{};
     RefereeWarning referee_warning{};
     DartInfo dart_info{};
-    RobotStatus robot_status{};
-    PowerHeatData power_heat_data{};
     RobotPos robot_pos{};
     Buff buff{};
     HurtData hurt_data{};
@@ -83,20 +68,49 @@ class Referee {
     RadarBuff radar_buff{};
     RadarKey radar_key{};
 
+    // 通信绑定
+    const std::variant<Can, Uart> bus;
+    const uint32_t rx_id; // CAN 转发接收 ID，UART 不使用
+    const uint32_t tx_id; // CAN 转发发送 ID，UART 不使用
+    const float timeout;  // 连接超时，秒
+
     // 每次有效伤害报文递增，避免依赖字段变化判断新事件
     uint32_t hurt_sequence = 0;
+    std::vector<RxCallback> callbacks_0311;
+    uint8_t rx_buf[309]{};
+    size_t rx_size = 0;
+    uint8_t tx_buf[309]{};
+    size_t tx_size = 0, tx_pos = 0;
+    uint8_t seq = 0;
+
+  public:
     Timer hurt_timer;
 
   private:
-    const Config config_;
-    std::vector<RxCallback> callbacks_0311_;
-    Timer frame_timer_, receive_timer_, interaction_timer_;
-    uint8_t rx_buf_[309]{};
-    size_t rx_size_ = 0;
-    uint8_t tx_buf_[309]{};
-    size_t tx_size_ = 0, tx_pos_ = 0;
-    uint8_t seq_ = 0;
+    Timer frame_timer, receive_timer, interaction_timer;
+
+  public:
+    // 实例及其绑定对象在 BSP 回调有效期间不得销毁或移动
+    explicit Referee(const Config& config);
+
+    Referee(const Referee&) = delete;
+
+    void add_0311_callback(RxCallback callback);
+
+    void update();
+
+    // 拷贝完整载荷到待发帧；忙或非法长度返回 false，不部分接收
+    // 0x0301 的所有调用共用 30 Hz 限额；仅在主循环调用
+    bool send(uint16_t cmd_id, const uint8_t* data, size_t size);
+
+    bool is_sending() const {
+        return tx_size != 0;
+    }
+
+  private:
+    Referee& operator=(const Referee&) = delete;
 
     void receive(const uint8_t* data, size_t size);
+
     bool deserialize(uint16_t cmd_id, const uint8_t* data, size_t size);
 };

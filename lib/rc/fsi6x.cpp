@@ -4,7 +4,8 @@
 #include <cstring>
 
 FSi6X::FSi6X(const Config& config)
-    : config_(config) {
+    : timeout(config.timeout),
+      deadline(config.deadline) {
     // 注册串口回调
     config.uart.add_rx_callback([this](const uint8_t* data, const size_t size) {
         callback(data, size);
@@ -12,8 +13,8 @@ FSi6X::FSi6X(const Config& config)
 }
 
 void FSi6X::update() {
-    if (callback_timer_.elapsed() > config_.timeout) {
-        callback_timer_.restart();
+    if (callback_timer.elapsed() > timeout) {
+        callback_timer.restart();
         reset_data();
     }
 }
@@ -28,31 +29,31 @@ void FSi6X::callback(const uint8_t data[], const uint16_t size) {
         return;
 
     // 解析原始通道值
-    std::memcpy(&raw_, data, sizeof(raw_));
+    std::memcpy(&raw, data, sizeof(raw));
 
     // 断联标志位检查
-    if (raw_.is_disconnect) {
+    if (raw.is_disconnect) {
         reset_data();
     } else {
         // 复位断联检测
         is_connect = true;
-        callback_timer_.restart();
+        callback_timer.restart();
 
         // 解析摇杆和拨杆
-        y = -get_joystick(raw_.ch0);    // 右手水平
-        x = get_joystick(raw_.ch1);     // 右手垂直
-        pitch = get_joystick(raw_.ch2); // 左手垂直
-        yaw = -get_joystick(raw_.ch3);  // 左手水平
+        y = -get_joystick(raw.ch0);    // 右手水平
+        x = get_joystick(raw.ch1);     // 右手垂直
+        pitch = get_joystick(raw.ch2); // 左手垂直
+        yaw = -get_joystick(raw.ch3);  // 左手水平
 
         // 解析拨杆
-        swa = get_switch(raw_.ch4);
-        swb = get_switch(raw_.ch5);
-        swc = get_switch(raw_.ch6);
-        swd = get_switch(raw_.ch7);
+        swa = get_switch(raw.ch4);
+        swb = get_switch(raw.ch5);
+        swc = get_switch(raw.ch6);
+        swd = get_switch(raw.ch7);
 
         // 解析旋钮
-        vra = get_joystick(raw_.ch8);
-        vrb = get_joystick(raw_.ch9);
+        vra = get_joystick(raw.ch8);
+        vrb = get_joystick(raw.ch9);
     }
 }
 
@@ -66,7 +67,7 @@ void FSi6X::reset_data() {
 float FSi6X::get_joystick(const uint16_t value) const {
     float ret = (static_cast<float>(value) - 1024.0f) / 783.0f; // 240(-784) ~ 1024 ~ 1807(+783)
     ret = std::clamp(ret, -1.0f, 1.0f);
-    if (std::fabs(ret) < config_.deadline)
+    if (std::fabs(ret) < deadline)
         ret = 0.0f;
     return ret;
 }

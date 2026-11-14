@@ -32,24 +32,32 @@ inline Pid::Config follow_pid = {
 
 // 底盘电机
 inline M3508 w1({
-    .bus = {.can = Can(1), .rx_id = 0x201},
-    .drive = {.max_torque = WHEEL_MAX_TORQUE, .reduction = REDUCTION},
-    .install = {.is_invert = IS_INVERT},
+    .can = Can(1),
+    .rx_id = 0x201,
+    .max_torque = WHEEL_MAX_TORQUE,
+    .reduction = REDUCTION,
+    .is_invert = IS_INVERT,
 });
 inline M3508 w2({
-    .bus = {.can = Can(1), .rx_id = 0x202},
-    .drive = {.max_torque = WHEEL_MAX_TORQUE, .reduction = REDUCTION},
-    .install = {.is_invert = IS_INVERT},
+    .can = Can(1),
+    .rx_id = 0x202,
+    .max_torque = WHEEL_MAX_TORQUE,
+    .reduction = REDUCTION,
+    .is_invert = IS_INVERT,
 });
 inline M3508 w3({
-    .bus = {.can = Can(1), .rx_id = 0x203},
-    .drive = {.max_torque = WHEEL_MAX_TORQUE, .reduction = REDUCTION},
-    .install = {.is_invert = IS_INVERT},
+    .can = Can(1),
+    .rx_id = 0x203,
+    .max_torque = WHEEL_MAX_TORQUE,
+    .reduction = REDUCTION,
+    .is_invert = IS_INVERT,
 });
 inline M3508 w4({
-    .bus = {.can = Can(1), .rx_id = 0x204},
-    .drive = {.max_torque = WHEEL_MAX_TORQUE, .reduction = REDUCTION},
-    .install = {.is_invert = IS_INVERT},
+    .can = Can(1),
+    .rx_id = 0x204,
+    .max_torque = WHEEL_MAX_TORQUE,
+    .reduction = REDUCTION,
+    .is_invert = IS_INVERT,
 });
 
 // 超级电容：未装，不调用 send()，离线时按估计功率控制

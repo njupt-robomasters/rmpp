@@ -19,14 +19,7 @@ class VT13 {
         ERR,
     };
 
-    VT13(const Config& config);
-
-    // 断联检测，需要在循环中调用；断联时数据复位为默认值
-    void update();
-
-  public:
-    bool is_connect = false; // 连接标志
-
+    bool is_connect = false;                                        // 连接标志
     float x = 0, y = 0, pitch = 0, yaw = 0;                         // 摇杆
     float wheel = 0;                                                // 左上角拨轮
     Mode mode = ERR;                                                // 模式切换开关
@@ -48,7 +41,9 @@ class VT13 {
     } key;
 
   private:
-    const Config config_;
+    const float timeout;      // 断联检测超时时间
+    const float deadline;     // 摇杆死区，小于此值认为是0
+    const uint16_t mouse_max; // 鼠标xy最大速度
 
     // 通道原始值
     struct __attribute__((packed)) {
@@ -78,14 +73,22 @@ class VT13 {
 
         uint16_t key : 16;   // 键盘按键
         uint16_t crc16 : 16; // CRC校验，CRC-16/CCITT-FALSE多项式 P(x) = x^16 + x^12 + x^5 + 1（对应0x1021），初始值0xFFFF，无输入输出反转，无异或
-    } raw_{};
+    } raw{};
 
-    Timer callback_timer_; // 用于断联检测
-    uint8_t rx_buf_[64]{};
-    uint8_t rx_size_ = 0;
+    uint8_t rx_buf[64]{};
+    uint8_t rx_size = 0;
+    Timer callback_timer; // 用于断联检测
 
+  public:
+    VT13(const Config& config);
+
+    // 断联检测，需要在循环中调用；断联时数据复位为默认值
+    void update();
+
+  private:
     // 串口接收回调
     void callback(const uint8_t data[], size_t size);
+
     void parse_raw();
 
     void reset_data();

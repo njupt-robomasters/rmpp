@@ -95,9 +95,9 @@ void imu_init() {
 
 void Imu::update() {
     // 初始化传感器，失败时下次重试
-    if (!is_initialized_) {
-        is_initialized_ = init_sensor();
-        if (!is_initialized_)
+    if (!is_initialized) {
+        is_initialized = init_sensor();
+        if (!is_initialized)
             return;
     }
 
@@ -126,13 +126,13 @@ void Imu::update() {
 
     // 加热闭环：[0, 1] 占空比按 ARR 换算为 PWM 比较值，避免满占空比时 CCR 溢出
     // 加热电阻直接接电源输入（12~24 V），满占空比会烧毁 PCB；按官方例程上限 500/10000 衰减到 5%
-    const float output = std::clamp(temperature_pid_.calculate(std::clamp(update_timer_.restart(), DT_MIN, DT_MAX), config_.temperature - temperature), 0.0f, 1.0f);
-    temperature_pid_.track(output);
+    const float output = std::clamp(temperature_pid.calculate(std::clamp(update_timer.restart(), DT_MIN, DT_MAX), target_temperature - temperature), 0.0f, 1.0f);
+    temperature_pid.track(output);
     const float duty = 0.05f * output;
     __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, static_cast<uint32_t>(__HAL_TIM_GET_AUTORELOAD(&htim3) * duty));
 
     // 零偏校准，再修正零偏、重力模长与安装方向
     update_calibration(raw_gyro, raw_accel);
-    gyro = config_.orientation * (raw_gyro - config_.gyro_offset);
-    accel = config_.orientation * (raw_accel * (9.81f / config_.gravity));
+    gyro = orientation * (raw_gyro - gyro_offset);
+    accel = orientation * (raw_accel * (9.81f / gravity));
 }

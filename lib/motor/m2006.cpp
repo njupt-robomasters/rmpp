@@ -2,8 +2,8 @@
 #include "math/unit.hpp"
 
 M2006::M2006(const Config& config)
-    : Motor(config, {.max_current = MAX_CURRENT, .max_torque = MAX_TORQUE, .reduction = REDUCTION}) {
-    config.bus.can.add_rx_callback([this](const CanFrame& frame) { can_callback(frame); });
+    : Motor(config, MAX_CURRENT, MAX_TORQUE, REDUCTION) {
+    config.can.add_rx_callback([this](const CanFrame& frame) { can_callback(frame); });
 }
 
 void M2006::write_can_frame(CanFrame& frame) const {
@@ -15,14 +15,14 @@ void M2006::write_can_frame(CanFrame& frame) const {
         first_id = 0x205;
     else
         return;
-    if (frame.size != 8 || config.bus.rx_id < first_id || config.bus.rx_id >= first_id + 4)
+    if (frame.size != 8 || rx_id < first_id || rx_id >= first_id + 4)
         return;
-    const uint8_t offset = static_cast<uint8_t>(config.bus.rx_id - first_id) * 2;
+    const uint8_t offset = static_cast<uint8_t>(rx_id - first_id) * 2;
 
     // 计算can命令
     float current = 0;
-    if (is_connect && is_enable_)
-        current = config.install.is_invert ? -current_ref : current_ref;
+    if (is_connect && is_enable)
+        current = is_invert ? -current_ref : current_ref;
     const auto command = static_cast<int16_t>(current / MAX_CURRENT * 10000.0f);
 
     // 构造can报文
@@ -32,15 +32,15 @@ void M2006::write_can_frame(CanFrame& frame) const {
 
 void M2006::can_callback(const CanFrame& frame) {
     // 检查id和size
-    if (frame.id != config.bus.rx_id || frame.size != 8)
+    if (frame.id != rx_id || frame.size != 8)
         return;
 
     // 解析can报文
     const auto* data = frame.data;
-    raw.current = static_cast<int16_t>((data[4] << 8) | data[5]) / 10000.0f * MAX_CURRENT;
-    raw.torque = raw.current / config.drive.max_current * config.drive.max_torque;
-    raw.speed = static_cast<int16_t>((data[2] << 8) | data[3]) * rpm;
-    raw.position = static_cast<float>((data[0] << 8) | data[1]) / 8192.0f * rev;
+    raw_current = static_cast<int16_t>((data[4] << 8) | data[5]) / 10000.0f * MAX_CURRENT;
+    raw_torque = raw_current / max_current * max_torque;
+    raw_speed = static_cast<int16_t>((data[2] << 8) | data[3]) * rpm;
+    raw_position = static_cast<float>((data[0] << 8) | data[1]) / 8192.0f * rev;
 
     // 调用上级回调
     Motor::can_callback();

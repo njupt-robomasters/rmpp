@@ -22,8 +22,9 @@ inline Pid::Config yaw_angle_pid = {
     .max_out = 720 * deg_s,
 };
 static GM6020 yaw({
-    .bus = {.can = Can(2), .rx_id = 0x205},
-    .install = {.is_invert = false},
+    .can = Can(2),
+    .rx_id = 0x205,
+    .is_invert = false,
 });
 
 // pitch电机
@@ -37,8 +38,9 @@ inline Pid::Config pitch_angle_pid = {
     .max_out = 720 * deg_s,
 };
 static GM6020 pitch({
-    .bus = {.can = Can(2), .rx_id = 0x206},
-    .install = {.is_invert = false},
+    .can = Can(2),
+    .rx_id = 0x206,
+    .is_invert = false,
 });
 
 // 云台

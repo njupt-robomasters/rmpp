@@ -8,6 +8,19 @@
 
 // 单个舵向：舵电机、舵向 PID 与目标
 class Steer {
+  private:
+    static constexpr float MIN_V = 1 * cm; // 最小转舵速度，m/s
+
+  public:
+    Motor& motor;
+
+    // 舵向，0 朝前，逆时针为正
+    Angle ref, measure;
+
+  private:
+    Pid pid; // 舵向误差 rad → 电流 A
+    bool has_ref = false;
+
   public:
     Steer(Motor& motor, const Pid::Config* pid_config);
 
@@ -19,18 +32,6 @@ class Steer {
 
     // 清空 PID，下次控制从当前舵向开始
     void clear();
-
-  public:
-    Motor& motor;
-
-    // 舵向，0 朝前，逆时针为正
-    Angle ref, measure;
-
-  private:
-    static constexpr float MIN_V = 1 * cm; // 最小转舵速度，m/s
-
-    Pid pid_; // 舵向误差 rad → 电流 A
-    bool has_ref_ = false;
 };
 
 // 四舵轮底盘公共部分：模式与跟随、云台系换算、轮与舵在线管理、舵向正逆解、功率
@@ -38,6 +39,9 @@ class Steer {
 // 控制方式由 ChassisSteerSpeed、ChassisSteerTorque 实现；接口与 ChassisMatrix 一致
 // 国际单位制：半径 m，速度 m/s，角速度 rad/s，力 N
 class ChassisSteer {
+  private:
+    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
+
   public:
     struct Config {
         float chassis_radius = 0;                       // 底盘中心到轮的距离
@@ -54,6 +58,53 @@ class ChassisSteer {
         FOLLOW_MODE, // 跟随模式
     };
 
+    // 移动速度，云台系，vx 前正后负，vy 左正右负
+    struct {
+        float ref = 0, measure = 0;
+    } vx, vy;
+
+  protected:
+    // 旋转线速度，逆时针为正
+    struct {
+        float ref = 0, measure = 0;
+    } vz;
+
+  public:
+    // 旋转角速度，逆时针为正；input 为用户输入，ref 叠加跟随后得到
+    struct {
+        float ref = 0, measure = 0, input = 0;
+    } wr;
+
+  protected:
+    // 功率：轮电机模型估计与本周期平移、旋转电流衰减系数
+    struct {
+        float estimate = 0;
+        MotorPower::Gain gain;
+    } power;
+
+    // 几何与功率模型
+    const float chassis_radius;   // 底盘中心到轮的距离
+    const float wheel_radius;     // 轮子半径
+    const float wheel_resistance; // 轮电机线间电阻，Ω，用于功率估计
+
+  private:
+    Steer steer[4];
+
+  protected:
+    Motor* const wheel[4]; // 轮电机
+
+    // 指令
+    bool is_enable = false;
+    Angle gimbal_yaw;
+    float power_ref = 0;         // 底盘功率目标，W
+    float reserve_wr = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转（力控制）
+
+  private:
+    Mode mode = DETACH_MODE;
+    Pid follow_pid;
+    Timer update_timer;
+
+  public:
     // 使能/失能轮与舵电机
     void set_enable(bool is_enable);
 
@@ -69,7 +120,7 @@ class ChassisSteer {
     // 设置前进正方向（云台相对底盘的 yaw）
     void set_gimbal_yaw(Angle gimbal_yaw);
 
-    // 设置底盘功率目标，W；通常取超电 power.chassis_ref，未设置时为零、电机不出力
+    // 设置底盘功率目标，W；通常取超电 power_chassis_ref，未设置时为零、电机不出力
     void set_power_ref(float power_ref);
 
     // 每个控制周期调用；失能时也更新测量与功率
@@ -77,6 +128,7 @@ class ChassisSteer {
 
     // 运动学，底盘系 (x, y, z)；按实测舵向分解，速度取平均、力求和
     Vector3f forward_speed(const Vector4f& v) const; // 轮线速度 → 底盘速度
+
     Vector3f forward_force(const Vector4f& f) const; // 轮牵引力 → 底盘牵引力
 
   protected:
@@ -93,73 +145,33 @@ class ChassisSteer {
 
     // 控制：底盘目标 → 电机输出；每周期调用，失能时清空 PID；dt 为控制周期，s
     virtual void control(float dt) = 0;
-
-  public:
-    // 移动速度，云台系，vx 前正后负，vy 左正右负
-    struct {
-        float ref = 0, measure = 0;
-    } vx, vy;
-
-    // 旋转线速度，逆时针为正
-    struct {
-        float ref = 0, measure = 0;
-    } vz;
-
-    // 旋转角速度，逆时针为正；input 为用户输入，ref 叠加跟随后得到
-    struct {
-        float ref = 0, measure = 0, input = 0;
-    } wr;
-
-    // 功率：轮电机模型估计与本周期平移、旋转电流衰减系数
-    struct {
-        float estimate = 0;
-        MotorPower::Gain gain;
-    } power;
-
-    Steer steer[4];
-
-  protected:
-    const Config config_;
-    Motor* const wheel_[4]; // 轮电机
-
-    // 指令
-    bool is_enable_ = false;
-    Angle gimbal_yaw_;
-    float power_ref_ = 0;         // 底盘功率目标，W
-    float reserve_wr_ = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转（力控制）
-
-  private:
-    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
-
-    Mode mode_ = DETACH_MODE;
-    Pid follow_pid_;
-    Timer update_timer_;
 };
 
 // 四舵轮底盘，速度控制：轮速 PID 输出电流，功率整体衰减
 class ChassisSteerSpeed : public ChassisSteer {
+  private:
+    Pid wheel_pid[4]; // 轮转速误差 rad/s → 电流 A
+
   public:
     ChassisSteerSpeed(const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
 
   private:
-    Pid wheel_pid_[4]; // 轮转速误差 rad/s → 电流 A
-
     void control(float dt) override;
 };
 
 // 四舵轮底盘，力控制：底盘速度 PID 输出牵引力，力学逆解到实测舵向
 class ChassisSteerTorque : public ChassisSteer {
-  public:
-    ChassisSteerTorque(const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
-
-  public:
+  private:
     // 牵引力，云台系，fx 前正后负，fy 左正右负，fz 逆时针为正；ref 为功率与限幅后的实际输出
     struct {
         float ref = 0, measure = 0;
     } fx, fy, fz;
 
-  private:
-    Pid vx_pid_, vy_pid_, vz_pid_; // 速度误差 m/s → 牵引力 N
+    Pid vx_pid, vy_pid, vz_pid; // 速度误差 m/s → 牵引力 N
 
+  public:
+    ChassisSteerTorque(const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
+
+  private:
     void control(float dt) override;
 };

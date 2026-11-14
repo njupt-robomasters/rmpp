@@ -22,10 +22,10 @@ extern "C" void bsp_init() {
 
 // 关中断作用域：保存并恢复 PRIMASK，嵌套时只有最外层重新开中断
 IrqLock::IrqLock()
-    : primask_(__get_PRIMASK()) {
+    : primask(__get_PRIMASK()) {
     __disable_irq();
 }
 
 IrqLock::~IrqLock() {
-    __set_PRIMASK(primask_);
+    __set_PRIMASK(primask);
 }

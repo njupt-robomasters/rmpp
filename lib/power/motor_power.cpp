@@ -15,7 +15,7 @@ MotorPower::Gain MotorPower::limit_current(Motor* const motor[4], const float re
     const float k = 0.75f * resistance;
     float xx = 0, zz = 0, xz = 0, x = 0, z = 0;
     for (int i = 0; i < 4; i++) {
-        const auto& drive = motor[i]->config.drive;
+        const auto& drive = *motor[i];
         const float kt_speed = drive.max_torque / drive.max_current * motor[i]->speed;
         xx += k * current_xy[i] * current_xy[i];
         zz += k * current_z[i] * current_z[i];

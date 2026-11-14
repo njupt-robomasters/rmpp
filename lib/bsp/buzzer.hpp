@@ -9,6 +9,7 @@ class Buzzer {
     // 采样流回调：在 DMA 中断内执行，写入下一块占空比，范围 [0, 1]
     using Fill = std::function<void(std::span<float> duty)>;
 
+  public:
     // 以 50% 占空比按 hz 发声，hz 须大于 0
     void set_tone(float hz) const;
 

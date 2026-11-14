@@ -19,10 +19,10 @@ inline Pid::Config follow_pid_config = {
 };
 
 // 底盘电机：N630，C620 协议，物理参数取型号默认（同 M3508）；HFI 静音用默认滞回阈值；左前、左后、右后、右前
-inline X630 w1({.bus = {.can = Can(1), .tx_id = 0x200, .rx_id = 0x201}, .install = {.is_invert = false}}, {});
-inline X630 w2({.bus = {.can = Can(1), .tx_id = 0x200, .rx_id = 0x202}, .install = {.is_invert = false}}, {});
-inline X630 w3({.bus = {.can = Can(1), .tx_id = 0x200, .rx_id = 0x203}, .install = {.is_invert = false}}, {});
-inline X630 w4({.bus = {.can = Can(1), .tx_id = 0x200, .rx_id = 0x204}, .install = {.is_invert = false}}, {});
+inline X630 w1({.can = Can(1), .tx_id = 0x200, .rx_id = 0x201, .is_invert = false}, {});
+inline X630 w2({.can = Can(1), .tx_id = 0x200, .rx_id = 0x202, .is_invert = false}, {});
+inline X630 w3({.can = Can(1), .tx_id = 0x200, .rx_id = 0x203, .is_invert = false}, {});
+inline X630 w4({.can = Can(1), .tx_id = 0x200, .rx_id = 0x204, .is_invert = false}, {});
 
 // 超级电容：CAN1；靶车无裁判系统，电池侧功率上限与缓冲能量由 referee_loop 模拟
 inline SuperCap super_cap({.can = Can(1)});

@@ -19,7 +19,7 @@
 
 ## 构造与启动
 
-- `Can`、`Uart`、`Cdc` 只保存编号 `id_`，构造 constexpr，可在全局创建且不访问硬件
+- `Can`、`Uart`、`Cdc` 只保存编号 `id`，构造 constexpr，可在全局创建且不访问硬件
 - 运行数据放在各板外设 `.cpp` 的文件私有 static 表（`CanContext`、`UartContext`、`CdcContext`），头文件不暴露；操作时按编号查表，中断回调按 HAL 句柄查表
 - 不存在的编号各操作静默返回
 - `Rgb`、`Buzzer` 无状态，可任意构造；`Imu` 持有温控配置和 PID 状态，由 app 创建唯一实例

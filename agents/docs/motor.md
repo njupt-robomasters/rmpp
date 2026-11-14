@@ -4,16 +4,14 @@
 
 ## 构造与配置
 
-- 各层构造函数只接收并传递 motor 唯一的 config 参数
-- 型号默认值为子类 `MAX_CURRENT`、`MAX_TORQUE`、`REDUCTION` 常量，构造时传给 `Motor(config, model)`，补齐 `config.drive` 中为零的字段
-- VESC 不对应固定型号，传空 model，app 须给出全部 drive 字段（摩擦轮按 M3508 常量）
-- 不另设全局型号配置包装
-- 配置按 `bus/drive/install` 组织
-- `drive` 保存成对的电流与转矩满量程、减速比，`install` 保存零点和方向
-- 不保存 kt：电流与力矩按 `max_torque / max_current` 换算；限流交给 PID `max_out`，不单独改小 `max_current`
-- 减速比与型号不同时同时给出 `max_torque`
-- `config` 公开、外部只读；offset 由 `set_offset()`、`set_zero()` 运行时修改，故不加 const
-- 自行发送的协议使用 `tx_id/rx_id` 明确收发方向；DJI 组帧仅配置 `rx_id`
+- 各层使用平面的 Motor::Config 构造输入，按通信、量程与减速比、安装方向与零点分组
+- 实例直接保存字段，删除 bus/drive/install/raw 结构层；型号 MAX_CURRENT、MAX_TORQUE、REDUCTION 传入 Motor 构造函数补齐零值
+- VESC 无固定型号，app 显式给出 max_current、max_torque、reduction；摩擦轮按 M3508 常量
+- 固定量程和硬件绑定加 const；max_current、max_torque 供机构计算，offset 供零点存储，外部只读；offset 经 set_offset()/set_zero() 修改
+- 不保存 kt，电流与力矩按 max_torque/max_current 换算；限流交给 PID max_out
+- 减速比与型号不同时同时给出 max_torque；自行发送的协议使用 tx_id/rx_id，DJI 组帧只需 rx_id
+- 原始反馈为 protected raw_current/raw_torque/raw_speed/raw_position；仅供 SWD 的温度等诊断字段使用 private
+- Config 仅用于构造输入，实例无 Config 成员；布局见 conventions.md
 
 ## 基类与子类
 
@@ -21,7 +19,7 @@
 - 父类只保留通用控制和反馈修正
 - 最终型号负责注册回调、筛帧和解析型号特有字段
 - DJI 型号解析反馈后直接调用 `Motor::can_callback()` 完成通用反馈修正
-- 其他协议子类解析后写入 `raw`，再调用 `Motor::can_callback()` 修正反馈并刷新在线状态
+- 其他协议子类解析后写入原始标量，再调用 `Motor::can_callback()` 修正反馈并刷新在线状态
 - 周期 `update()` 只完成离线检测，闭环由机构库完成
 
 ## 协议刻度
@@ -31,11 +29,11 @@
 
 ## 零值与限幅
 
-- `drive` 零值字段按型号常量补齐
+- 量程与减速比零值字段按型号常量补齐
 - `set_current()` 先将非有限值置零，再按 `max_current` 限幅并换算转矩
 - `set_torque()` 先将非有限值置零，再按 `max_torque` 限幅并换算电流
 - 反馈解析中有符号的转速、电流先转 `int16_t` 保留反转符号
-- `raw.speed` 为电机侧转速，只由 `Motor::can_callback()` 除一次减速比
+- `raw_speed` 为电机侧转速，只由 `Motor::can_callback()` 除一次减速比
 
 ## DJI 组帧
 

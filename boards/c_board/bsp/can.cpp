@@ -78,12 +78,12 @@ void can_init() {
 }
 
 bool Can::can_send() const {
-    const auto* context = find(id_);
+    const auto* context = find(id);
     return context && HAL_CAN_GetTxMailboxesFreeLevel(context->hcan) != 0;
 }
 
 void Can::send(const CanFrame& frame) const {
-    const auto* context = find(id_);
+    const auto* context = find(id);
     if (!context)
         return;
 
@@ -99,7 +99,7 @@ void Can::send(const CanFrame& frame) const {
 }
 
 void Can::add_rx_callback(RxCallback callback) const {
-    auto* context = find(id_);
+    auto* context = find(id);
     if (!context)
         return;
 

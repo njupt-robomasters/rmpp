@@ -10,6 +10,15 @@
 // 42mm 发射机构：四 VESC 摩擦轮速度模式，拨弹电机位置闭环，发射信号上升沿拨一发，空闲时抖动下弹
 class Shooter42mm {
   public:
+    static constexpr float RUB12_RATIO = 0.5f; // 摩擦轮 1、2 相对弹速的速度比
+
+  private:
+    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
+    static constexpr float SHOOT_FINISH_RATIO = 0.95f;       // 用于检查拨弹完成
+    static constexpr float SHAKE_FREQ = 1;                   // 抖动频率
+    static constexpr float SHAKE_AMP = 1;                    // 抖动幅度（一个弹 = 1）
+
+  public:
     enum PidOutput {
         CURRENT_OUTPUT,
         TORQUE_OUTPUT
@@ -25,14 +34,50 @@ class Shooter42mm {
         uint16_t heat_protect = 0;           // 剩余热量保护阈值
     };
 
-    // 发射机构电机
+    // 弹速 (m/s)
+    struct {
+        float ref = 0, measure = 0;
+    } bullet_speed;
+
+    // 摩擦轮线速度，m/s
+    float rub_speed[4]{};
+
+  private:
+    // 拨弹闭环与弹数换算
+    const PidOutput shoot_output;
+    const float bullet_per_angle; // 每弧度发射弹数，默认每转一发
+
+    // 卡弹与摩擦轮参数
+    const float block_time;      // 卡弹检测时间
+    const float rub_radius;      // 摩擦轮半径
+    const uint16_t heat_protect; // 剩余热量保护阈值
+
+    // 设备绑定
     struct Motors {
         Vesc &rub1, &rub2, &rub3, &rub4; // 摩擦轮
         Motor& shoot;                    // 拨弹电机
-    };
+    } motor;
 
-    static constexpr float RUB12_RATIO = 0.5f; // 摩擦轮 1、2 相对弹速的速度比
+    // 指令；发射信号保留上周期值用于检测上升沿
+    bool is_enable = false;
+    bool is_heat_protect = false; // 热量保护状态
+    bool is_shoot = false;
 
+    // 拨弹状态机
+    enum {
+        FREE,
+        SHOOT,
+        SHAKE,
+    } state = FREE;
+
+    Angle shake_upper; // 抖动上沿角度
+    bool last_shoot = false;
+    Pid shoot_pid;
+    Timer shake_timer;
+    Timer block_timer; // 卡弹计时器
+    Timer update_timer;
+
+  public:
     Shooter42mm(const Motors& motor, const Config& config);
 
     // 设置发射机构使能/失能
@@ -50,44 +95,7 @@ class Shooter42mm {
     // 每个控制周期调用
     void update();
 
-  public:
-    // 弹速 (m/s)
-    struct {
-        float ref = 0, measure = 0;
-    } bullet_speed;
-
-    // 摩擦轮线速度，m/s
-    float rub_speed[4]{};
-
-    Motors motor;
-
   private:
-    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
-    static constexpr float SHOOT_FINISH_RATIO = 0.95f;       // 用于检查拨弹完成
-    static constexpr float SHAKE_FREQ = 1;                   // 抖动频率
-    static constexpr float SHAKE_AMP = 1;                    // 抖动幅度（一个弹 = 1）
-
-    const Config config_;
-
-    // 指令；发射信号保留上周期值用于检测上升沿
-    bool is_enable_ = false;
-    bool is_heat_protect_ = false; // 热量保护状态
-    bool is_shoot_ = false;
-    bool last_shoot_ = false;
-
-    // 拨弹状态机
-    enum {
-        FREE,
-        SHOOT,
-        SHAKE,
-    } state_ = FREE;
-
-    Angle shake_upper_; // 抖动上沿角度
-    Pid shoot_pid_;
-    Timer shake_timer_;
-    Timer block_timer_; // 卡弹计时器
-    Timer update_timer_;
-
     // 按配置输出类型设置拨弹电机电流或力矩，并用限幅后实际输出跟踪 PID
     void set_shoot_output(float output);
 };

@@ -9,5 +9,6 @@ class KvStore {
 
     // 首次读写时初始化数据库，须在 bsp_init 之后调用；缺失键读得 0
     float read(const char* key);
+
     void write(const char* key, float value);
 };

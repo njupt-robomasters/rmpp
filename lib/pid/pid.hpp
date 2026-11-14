@@ -13,7 +13,16 @@ class Pid {
         float d_fc = 0;   // 微分项低通截止频率，Hz，0 直通
     };
 
+  private:
+    float out = 0;
+    const Config* const config = nullptr;
+    float p_out = 0, i_out = 0, d_out = 0;
+    float err = 0, last_err = 0;
+    bool has_last_err = false;
+
+  public:
     Pid() = default;
+
     explicit Pid(const Config* config);
 
     // dt 为距上次计算的间隔，s，由持有方统一计时并限幅
@@ -26,15 +35,4 @@ class Pid {
 
     // 清空状态；持有方在不使用的分支调用，重新使用时从零开始
     void clear();
-
-  private:
-    const Config* config_ = nullptr;
-
-  public:
-    float out = 0;
-
-  private:
-    float p_out_ = 0, i_out_ = 0, d_out_ = 0;
-    float err_ = 0, last_err_ = 0;
-    bool has_last_err_ = false;
 };

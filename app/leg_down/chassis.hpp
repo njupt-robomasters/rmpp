@@ -17,34 +17,50 @@ inline QuaternionEkf attitude(imu, {});
 // 关节 DM8009：CAN2；面向输出轴逆时针为正，不反向
 // offset 取外部工程 pos = wrap(raw + c) 中 c 的相反数，使 position 零位对应 A 杆方位角 π、E 杆 0
 inline DM8009 left_front({
-    .bus = {.can = Can(2), .tx_id = 0x11, .rx_id = 0x21},
-    .install = {.is_invert = false, .offset = -2.793f},
+    .can = Can(2),
+    .tx_id = 0x11,
+    .rx_id = 0x21,
+    .is_invert = false,
+    .offset = -2.793f,
 });
 inline DM8009 left_back({
-    .bus = {.can = Can(2), .tx_id = 0x12, .rx_id = 0x22},
-    .install = {.is_invert = false, .offset = -0.745f},
+    .can = Can(2),
+    .tx_id = 0x12,
+    .rx_id = 0x22,
+    .is_invert = false,
+    .offset = -0.745f,
 });
 inline DM8009 right_back({
-    .bus = {.can = Can(2), .tx_id = 0x13, .rx_id = 0x23},
-    .install = {.is_invert = false, .offset = -1.1478f},
+    .can = Can(2),
+    .tx_id = 0x13,
+    .rx_id = 0x23,
+    .is_invert = false,
+    .offset = -1.1478f,
 });
 inline DM8009 right_front({
-    .bus = {.can = Can(2), .tx_id = 0x14, .rx_id = 0x24},
-    .install = {.is_invert = false, .offset = 1.225f},
+    .can = Can(2),
+    .tx_id = 0x14,
+    .rx_id = 0x24,
+    .is_invert = false,
+    .offset = 1.225f,
 });
 
 // 轮 M3508：CAN2；左轮电机正转为后退，反向后转速与力矩均以前进为正
 static constexpr float MAX_TORQUE = 5.0f;
 static constexpr float REDUCTION = 16.875f;
 inline M3508 left_wheel({
-    .bus = {.can = Can(2), .rx_id = 0x201},
-    .drive = {.max_torque = MAX_TORQUE, .reduction = REDUCTION},
-    .install = {.is_invert = true},
+    .can = Can(2),
+    .rx_id = 0x201,
+    .max_torque = MAX_TORQUE,
+    .reduction = REDUCTION,
+    .is_invert = true,
 });
 inline M3508 right_wheel({
-    .bus = {.can = Can(2), .rx_id = 0x202},
-    .drive = {.max_torque = MAX_TORQUE, .reduction = REDUCTION},
-    .install = {.is_invert = false},
+    .can = Can(2),
+    .rx_id = 0x202,
+    .max_torque = MAX_TORQUE,
+    .reduction = REDUCTION,
+    .is_invert = false,
 });
 
 // 腿长 PD：误差 m → 轴向力 N，伸腿为正

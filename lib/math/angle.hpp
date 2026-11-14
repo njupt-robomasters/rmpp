@@ -7,46 +7,47 @@
 #include <tuple>
 
 class Angle {
+  private:
+    float radians;
+
   public:
     constexpr Angle()
-        : radians_(0.0f) {}
+        : radians(0.0f) {}
 
     // 角度统一使用弧度，构造时归一化
     constexpr Angle(const float radians)
-        : radians_(normalize(radians)) {}
+        : radians(normalize(radians)) {}
 
     constexpr operator float() const {
-        return radians_;
+        return radians;
     }
 
     constexpr Angle& operator=(const float radians) {
-        radians_ = normalize(radians);
+        this->radians = normalize(radians);
         return *this;
     }
 
     constexpr Angle& operator+=(const float radians) {
-        radians_ = normalize(radians_ + radians);
+        this->radians = normalize(this->radians + radians);
         return *this;
     }
 
     constexpr Angle& operator-=(const float radians) {
-        radians_ = normalize(radians_ - radians);
+        this->radians = normalize(this->radians - radians);
         return *this;
     }
 
     constexpr Angle& operator*=(const float factor) {
-        radians_ = normalize(radians_ * factor);
+        radians = normalize(radians * factor);
         return *this;
     }
 
     constexpr Angle& operator/=(const float factor) {
-        radians_ = normalize(radians_ / factor);
+        radians = normalize(radians / factor);
         return *this;
     }
 
   private:
-    float radians_;
-
     static constexpr float normalize(const float radians) {
         if (!std::isfinite(radians))
             return radians;
