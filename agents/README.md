@@ -52,5 +52,5 @@ agents/
 - `06-super_cap_capacitance/`：超电在线容量/ESR 辨识（RLS）与虚拟缓冲能量功率控制；主机仿真与上车核对项
 - `07-can_tx_latest/`：CAN 发送“同 ID 只留最新”方案（已撤销）；撤销延迟、FIFO 空洞等实测硬件知识与上板测试写法
 - `08-attitude_cpu/`：attitude 示例 -Og 下 Eigen 不内联导致 CPU 超时；编译变体统计与上板周期测量
-- `09-leg_lqr/`：Python 复现 SOLDIER_LEG_4 轮腿 LQR（替代 MATLAB）；重心偏移下位移稳态误差与漂移分析、LQI 对比
+- `09-leg_lqr/`：Python 复现 SOLDIER_LEG_4 轮腿 LQR（替代 MATLAB）；重心偏移下位移稳态误差与漂移分析、LQI 对比、首版 Q_s=60 参数实车对照
 - `10-global_refactor/`：全局优化（Timer/PID dt、电机默认参数与符号修复、持有与 update 约定、类布局）；外部 worktree 成员展平、SWD 排序与验证记录

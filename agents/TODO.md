@@ -114,4 +114,9 @@
 
 ## 外部 worktree 类布局重构
 
-基线 `795e263`，分支 `refactor/class-layout`，目录 `../rmpp-class-layout`。当前按新的 SWD 观察布局重构：去成员尾下划线、展平实例配置、电机与超电状态展平、最小权限、声明与实现排序。infantry 跳过编译验证。代码与验证结论见 `tasks/10-global_refactor/README.md`，待用户审计与合并。
+基线 `795e263`，类布局重构已并入 master，外部 worktree 随合并移除。完成成员尾下划线移除、实例配置与设备状态展平、SWD 排序、最小权限和声明与实现排序；保留主线暂存的轮腿 LQR 调整并完成适配。infantry 跳过编译验证。代码与验证结论见 `tasks/10-global_refactor/README.md`，待用户审计与上车。
+
+## 轮腿 LQR 首版参数对照
+
+- 用户确认原系数不抖；恢复最初 Python 模型（8f01151，Q_s=60、无 LQI）并独立为 lqr_fit.hpp，仅换 K，保留当前控制逻辑，待实车对照
+- 允许车体倾斜、优先定位的控制目标只分析，不实施
