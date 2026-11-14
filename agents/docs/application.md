@@ -26,6 +26,7 @@
 - 各模块在同名 `.hpp` 声明、`.cpp` 实现
 - 文件名不加 `_loop` 后缀
 - 配置和实例跟随所属模块
+- leg_down 的 LQR 系数独立放在 `app/leg_down/lqr_fit.hpp`，由 `agents/tasks/09-leg_lqr/gen_lqr_fit.py` 生成；`chassis.hpp` 只引用，当前参数与验证范围见任务 09
 - 组件可独立使用
 - 整合管理器引用外部实例
 

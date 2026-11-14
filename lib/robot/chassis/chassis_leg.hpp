@@ -35,9 +35,10 @@ class ChassisLeg {
 
         // LQR 目标与误差限幅
         float theta_ref = 0.07f;     // 目标腿倾角，rad，后摆为正
+        float x_err_max = 6.0f;      // 位移误差限幅，误差已乘 10
         float theta_err_max = 0.45f; // 腿倾角误差限幅，rad
         float pitch_err_max = 0.25f; // 俯仰误差限幅，rad
-        float x_max = 0.3f;          // 位移限幅，m；重心偏移所需回位位移超出后会持续漂移
+        float x_max = 0.1f;          // 位移积分限幅，m
 
         // 倒地与自救
         float fall_theta_front = -63 * deg; // 相对腿角下限，rad，后摆为正；任一腿超出判定倒地
@@ -48,9 +49,9 @@ class ChassisLeg {
         // 跳跃
         float jump_takeoff_force = 350.0f;  // 单腿起跳力，N，伸腿为正
         float jump_retract_force = -350.0f; // 单腿收腿力，N，伸腿为正
-        float jump_retract_time = 0.3f;     // 收腿保持时间，s
+        float jump_retract_time = 0.2f;     // 收腿保持时间，s
         float jump_buffer_length = 0.22f;   // 落地缓冲目标腿长，m
-        float jump_buffer_time = 0.3f;      // 落地缓冲时间，s
+        float jump_buffer_time = 0.5f;      // 落地缓冲时间，s
     };
 
   private:
@@ -148,9 +149,10 @@ class ChassisLeg {
     // LQR 增益与误差限幅
     const float (*const lqr_fit)[10][6]; // LQR 增益拟合系数 [4 输出][10 状态][6 项]，项序 1、Ll、Lr、Ll²、Ll·Lr、Lr²
     const float theta_ref;               // 目标腿倾角，rad，后摆为正
+    const float x_err_max;               // 位移误差限幅，误差已乘 10
     const float theta_err_max;           // 腿倾角误差限幅，rad
     const float pitch_err_max;           // 俯仰误差限幅，rad
-    const float x_max;                   // 位移限幅，m；重心偏移所需回位位移超出后会持续漂移
+    const float x_max;                   // 位移积分限幅，m
 
     // 倒地与自救
     const float fall_theta_front;   // 相对腿角下限，rad，后摆为正；任一腿超出判定倒地

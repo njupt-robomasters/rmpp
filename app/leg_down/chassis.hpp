@@ -7,6 +7,9 @@
 #include "power/super_cap.hpp"
 #include "robot/chassis/chassis_leg.hpp"
 
+// 硬件参数沿用 SOLDIER_LEG_4/Chassis；LQR 使用首版 Python 模型生成值，待实车对照
+// 极性核查见 agents/tasks/04-leg_chassis
+
 // 底盘 C 板：传感器 +X 朝车后、+Y 朝车右、+Z 朝上，即相对机体系（X 前、Y 左、Z 上）绕 Z 转 180°
 // 由外部工程腿倾角与横滚补偿的闭环极性反推；上车前用手低头应见 attitude.pitch 增大、右侧压低应见 attitude.roll 增大
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = 180 * deg, .pitch = 0 * deg, .roll = 0 * deg}),
@@ -46,20 +49,20 @@ inline DM8009 right_front({
 });
 
 // 轮 M3508：CAN2；左轮电机正转为后退，反向后转速与力矩均以前进为正
-static constexpr float MAX_TORQUE = 5.0f;
-static constexpr float REDUCTION = 16.875f;
+static constexpr float WHEEL_REDUCTION = 16.875f;
+static constexpr float WHEEL_KT = 0.2545043441f; // 轮端等效转矩常数，N·m/A
 inline M3508 left_wheel({
     .can = Can(2),
     .rx_id = 0x201,
-    .max_torque = MAX_TORQUE,
-    .reduction = REDUCTION,
+    .max_torque = M3508::MAX_CURRENT * WHEEL_KT,
+    .reduction = WHEEL_REDUCTION,
     .is_invert = true,
 });
 inline M3508 right_wheel({
     .can = Can(2),
     .rx_id = 0x202,
-    .max_torque = MAX_TORQUE,
-    .reduction = REDUCTION,
+    .max_torque = M3508::MAX_CURRENT * WHEEL_KT,
+    .reduction = WHEEL_REDUCTION,
     .is_invert = false,
 });
 
@@ -67,7 +70,7 @@ inline M3508 right_wheel({
 inline Pid::Config leg_length_pid = {.kp = 1750, .kd = 100, .max_out = 180};
 // 相对腿角 PD：误差 rad → 摆动力矩 N·m，后摆为正
 inline Pid::Config leg_angle_pid = {.kp = 140, .kd = 7, .max_out = 80};
-// 横滚 PD：误差 rad → 腿长修正 m；微分用 gyro.x
+// 横滚 PD：误差 rad → 腿长修正 m；微分用 gyro.x，外部工程为 10 阶最小二乘微分
 inline Pid::Config roll_pid = {.kp = 1.3f, .kd = 0.004f, .max_out = 0.4f};
 
 // 底盘：其余参数取 ChassisLeg::Config 默认值，与外部工程一致

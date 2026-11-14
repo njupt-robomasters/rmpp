@@ -14,6 +14,7 @@ ChassisLeg::ChassisLeg(const Motors& motor, const Config& config)
       leg_max(config.leg_max),
       lqr_fit(config.lqr_fit),
       theta_ref(config.theta_ref),
+      x_err_max(config.x_err_max),
       theta_err_max(config.theta_err_max),
       pitch_err_max(config.pitch_err_max),
       x_max(config.x_max),
@@ -404,7 +405,7 @@ void ChassisLeg::calc_lqr() {
 
     // 状态误差，均为“目标减反馈”；航向角不跟随云台，误差恒为零
     const float err[10] = {
-        0 - body.x,                                                          // 前向位移，前进为正
+        std::clamp((0 - body.x) * 10, -x_err_max, x_err_max),                // 前向位移，前进为正
         d_x_ref - body.d_x,                                                  // 前向速度，前进为正
         0,                                                                   // 航向角，未启用
         d_yaw_ref - body.d_yaw_gyro,                                         // 航向角速度，逆时针为正
