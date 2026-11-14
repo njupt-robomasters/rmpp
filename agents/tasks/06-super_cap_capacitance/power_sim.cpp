@@ -10,15 +10,25 @@
 static double sim_time = 0;
 static Can::RxCallback rx_callback;
 
-bool Can::can_send() const { return true; }
+bool Can::can_send() const {
+    return true;
+}
+
 void Can::send(const CanFrame&) const {}
-void Can::add_rx_callback(RxCallback callback) const { rx_callback = callback; }
+
+void Can::add_rx_callback(RxCallback callback) const {
+    rx_callback = callback;
+}
 
 void Timer::delay(float) {}
-float Timer::elapsed() { return static_cast<float>(sim_time - last_cycles_ * 1e-6); }
+
+float Timer::elapsed() const {
+    return static_cast<float>(sim_time - last_cycles * 1e-6);
+}
+
 float Timer::restart() {
-    dt = std::clamp(static_cast<float>(sim_time - last_cycles_ * 1e-6), min_dt_, max_dt_);
-    last_cycles_ = static_cast<uint64_t>(sim_time * 1e6);
+    const float dt = static_cast<float>(sim_time - last_cycles * 1e-6);
+    last_cycles = static_cast<uint64_t>(sim_time * 1e6);
     return dt;
 }
 
@@ -56,16 +66,16 @@ static void run(const char* name, const float referee_limit, const float model_s
             super_cap.set_referee_energy(referee_energy);
             super_cap.update();
             if (k > 1)
-                max_jump = std::max(max_jump, std::fabs(super_cap.power.chassis_ref - last_ref));
-            last_ref = super_cap.power.chassis_ref;
-            const float chassis = std::min(phases[p].demand, super_cap.power.chassis_ref / model_scale);
+                max_jump = std::max(max_jump, std::fabs(super_cap.power_chassis_ref - last_ref));
+            last_ref = super_cap.power_chassis_ref;
+            const float chassis = std::min(phases[p].demand, super_cap.power_chassis_ref / model_scale);
 
             // 超电：电池侧稳在 battery_ref，电容补差；放空或充满时由电池承担
             const bool is_dcdc = phases[p].mode != SuperCap::OFF;
             const float voltage = cap_charge / capacitance;
             float cap_power = 0;
             if (is_dcdc) {
-                cap_power = std::clamp(super_cap.power.battery_ref, 0.0f, 327.67f) - chassis;
+                cap_power = std::clamp(super_cap.power_battery_ref, 0.0f, 327.67f) - chassis;
                 if ((cap_power < 0 && voltage <= cap_empty) || (cap_power > 0 && voltage >= cap_full))
                     cap_power = 0;
             }
@@ -92,7 +102,9 @@ static void run(const char* name, const float referee_limit, const float model_s
             }
 
             if (k % 1000 == 0)
-                std::printf("  %4.0f  %-6s %7.1f  %7.1f  %6.1f  %7.1f  %5.1f  %5.1f  %5.2f\n", sim_time, phases[p].mode == SuperCap::OFF ? "OFF" : phases[p].mode == SuperCap::CHARGE ? "CHARGE" : "BOOST", super_cap.power.chassis_ref, super_cap.power.chassis, super_cap.power.cap, super_cap.power.battery, super_cap.energy.local, referee_energy, voltage);
+                std::printf("  %4.0f  %-6s %7.1f  %7.1f  %6.1f  %7.1f  %5.1f  %5.1f  %5.2f\n", sim_time, phases[p].mode == SuperCap::OFF ? "OFF" : phases[p].mode == SuperCap::CHARGE ? "CHARGE"
+                                                                                                                                                                                      : "BOOST",
+                            super_cap.power_chassis_ref, super_cap.power_chassis, super_cap.power_cap, super_cap.power_battery, super_cap.energy_local, referee_energy, voltage);
         }
     }
     std::printf("  裁判缓冲能量最低 %.1f J，单步 chassis_ref 最大跳变 %.2f W\n\n", min_referee, max_jump);

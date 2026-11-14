@@ -1,6 +1,6 @@
-# 全局代码优化
+# 全局代码优化与类布局重构
 
-基线：`8f01151`（改动前已提交工作区）。长期约定已写入 `AGENTS.md`、`docs/architecture.md`、`docs/application.md`、`docs/motor.md`、`docs/bsp.md`
+基线：`8f01151`（改动前已提交工作区）。长期约定见 `agents/docs/conventions.md` 与模块文档，历史修改涉及、`docs/architecture.md`、`docs/application.md`、`docs/motor.md`、`docs/bsp.md`
 
 ## 改动
 
@@ -13,7 +13,7 @@
 - 底盘不再持有 SuperCap：app `super_cap.update()` 后 `chassis.set_power_ref(super_cap.power.chassis_ref)`
 - 云台不再持有 Attitude：app `attitude.update()` 后 `gimbal.update(attitude.yaw, attitude.pitch)`
 - 跟随 PID 在不跟随时 clear；ChassisLeg 腿角 PID 在非自救时 clear
-- 类布局：首个 `public:` 只放类型、常量、函数，变量另起 `public:`/`private:` 按重要性排序
+- 历史类布局已由下方“外部 worktree 类布局重构”替换
 - app 函数内 `static` 提到文件作用域；sentry 计时器改名 `<用途>_timer`；Aim 计时器改名
 
 ## 行为变化
@@ -44,3 +44,56 @@ python tools/check_builds.py --cmake <CLion cmake> --ninja <CLion ninja>
 ```
 
 `out/` 下为一次性编辑脚本，不入库
+
+## 外部 worktree 类布局重构
+
+- 基线：`795e263`；分支：`refactor/class-layout`；worktree：`../rmpp-class-layout`
+- 范围：项目手写 class、对应实现与调用点，CubeMX 生成代码及第三方原始代码保持原样；infantry 仅迁移共同接口调用，跳过编译验证
+- 常量集中在 class 最前面，public 优先；全部变量在函数前，输出与诊断按观察顺序排列，配置和设备居中，跨周期状态及 Timer 收尾
+- 变量名去尾下划线，权限按当前调用收紧；子类确需的变量用 protected，仅供 SWD 的内部量用 private
+- 函数按 public / 必要的 protected / private 排列，private 回调 can_callback 在前；.cpp 和 .tpp 定义跟随声明，构造初始化列表跟随变量顺序
+- Config 仅作为构造输入，实例配置展开并按相似含义分组；Pid 保留指向调用方可调配置的只读指针
+- 电机 bus/drive/install/raw 展平，实例使用 max_current/max_torque/offset、protected 通信配置与 raw_* 标量；固定字段加 const
+- SuperCap 的 voltage/current/power/energy 展平，RLS 配置与窗口状态保留在 rls，功率管理算法保持原有流程
+- 单一设备绑定的 Motors 结构与 motor 实例就地声明；局部变量也复用的请求、配置等类型保留名称
+- 根 AGENTS.md 精简为入口，详细编码规则迁入 agents/docs/conventions.md，协作、验证与维护规则迁入 workflow.md，README 提供按需读取索引
+
+### 接口变化
+
+| 原路径 | 当前路径 |
+| --- | --- |
+| 构造 `.bus = {.can = …, .rx_id = …}` | 构造 `.can = …, .rx_id = …` |
+| 构造 `.drive = {.max_current = …}` | 构造 `.max_current = …` |
+| 构造 `.install = {.is_invert = …, .offset = …}` | 构造 `.is_invert = …, .offset = …` |
+| `motor.config.drive.max_current/max_torque` | `motor.max_current/max_torque` |
+| `motor.config.install.offset` | `motor.offset` |
+| `super_cap.power.chassis_ref` | `super_cap.power_chassis_ref` |
+| `super_cap.power.battery` | `super_cap.power_battery` |
+| `imu.config_.gyro_offset/gravity`（SWD） | `imu.gyro_offset/gravity`（SWD） |
+
+删除的嵌套层原用于参数与反馈分组，现由同组标量、空行和注释表达；Config 输入仍保留指定成员初始化。最小权限调整会限制外部直接访问诊断字段，SWD 可观察这些 private 字段。
+
+### 验证与复现
+
+最终检查：53 个 class 的变量在前、无尾下划线、常量在顶部、private can_callback 在前，以及声明/实现排序检查通过。101 个受影响工程手写源码格式检查通过，额外检查模板和主机回归源码；git diff --check 通过。14 个预设对象编译通过，两板公共库与手写 BSP 编译通过，四组主机差分回归输出逐字节一致。
+
+本轮验证对象库与主机行为，未链接完整固件，未烧录或执行硬件操作。
+
+```sh
+cmake --preset dummy
+cmake --build build/dummy --target rmpp_lib rmpp_bsp rmpp_app --parallel 8
+cmake --preset examples-cdc
+cmake --build build/examples-cdc --target rmpp_lib rmpp_bsp rmpp_app --parallel 8
+python agents/tasks/10-global_refactor/layout_regression.py --baseline 795e263
+```
+
+- 应用对象编译：dummy、examples-attitude/cdc/gimbal/kv_store/melody/motor/rc/referee/rgb、leg_down、leg_up、sentry、test，共 14 个预设
+- 公共库与手写 BSP：dummy 覆盖 C 板，examples-cdc 覆盖 mc02
+- 主机差分回归：layout_motor_regression.cpp 验证八类电机反馈、限幅、零点、离线处理、CAN 命令及 17 mm 发射机构电流/力矩输出；sim.cpp 验证超电容量/ESR；power_sim.cpp 验证功率与虚拟缓冲能量；layout_melody_regression.cpp 比较直驱音符时序、带伴奏和纯旋律的复音浮点采样。分别编译基线与当前实现，要求输出逐字节一致
+- `layout_regression.py` 只读取指定 Git 基线，提取文件与构建产物放在本任务 out/layout_regression；包含生成和第三方目录的工程文件未改动
+- 保留的应用告警：motor 示例两个未使用函数；leg_up/gimbal.cpp 的 is_auto_aim 未使用
+- 构建日志和差分结果位于 out/；最终状态以本节对应执行结果为准，早期失败尝试也保留在 out/ 便于追溯
+
+待用户审阅 SWD 展开顺序与接口后决定合并、上车测试。
+
+轮腿补充调整：力映射角度按实际顶点命名为 ∠OCB（cos_ocb、tan_ocb）；设置接口统一为 set_allow_rescue(allow_rescue)、set_trigger_jump(trigger_jump)、set_leg_length(leg_length)，同步 leg_down 调用点；update_kin 合入 update，保留原执行顺序。轮腿源码与 leg_down 的 chassis.cpp、app.cpp 对象编译通过，格式及 diff 检查通过。

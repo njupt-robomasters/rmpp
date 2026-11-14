@@ -7,7 +7,7 @@
 状态：代码与文档完成，编译通过，待用户审计和上板。结论见 `docs/bsp.md`，过程与待用户操作见 `tasks/01-mc02_bsp/README.md`
 
 - mc02 `main.c` USER CODE 2 的 `bsp_init()`/`app_main()` 调用尚未添加（用户操作）
-- OUT_5V 供电的是哪一路 CAN 接口：待看原理图图片或实测后写入 `board/power.hpp` 注释
+- OUT_5V 供电的是哪一路 CAN 接口：待看原理图图片或实测后写入 `board/power_hpp` 注释
 
 ## 第二轮：KvStore、FlashDB 重建、目录整理
 
@@ -87,17 +87,17 @@
 ### 已确认
 
 - 类 `SuperCap`，`lib/power/super_cap.{hpp,cpp}`；模式 OFF / CHARGE / BOOST；应答 `voltage`、`current`、`power` 的 chassis/cap
-- 裁判输入 `set_referee_limit()`、`set_referee_energy()`；电池侧目标 `power.battery_ref` = 裁判上限·g(裁判缓冲能量)，所有模式下发
-- 底盘功率目标 `power.chassis_ref` = 供给·g(所用缓冲能量)；g 为 30 J 零、60 J 1.1 倍线性
-- OFF、离线、不限功率：供给为裁判上限，用 `energy.referee`，`energy.local` 跟随
-- CHARGE / BOOST：供给为 battery_ref（+ boost_max），`energy.local += (供给 − power.chassis)·dt`，限幅 [0, 60] J；电容额外放电与电容放空后的电池超用都扣除
+- 裁判输入 `set_referee_limit()`、`set_referee_energy()`；电池侧目标 `power_battery_ref` = 裁判上限·g(裁判缓冲能量)，所有模式下发
+- 底盘功率目标 `power_chassis_ref` = 供给·g(所用缓冲能量)；g 为 30 J 零、60 J 1.1 倍线性
+- OFF、离线、不限功率：供给为裁判上限，用 `energy_referee`，`energy_local` 跟随
+- CHARGE / BOOST：供给为 battery_ref（+ boost_max），`energy_local += (供给 − power_chassis)·dt`，限幅 [0, 60] J；电容额外放电与电容放空后的电池超用都扣除
 - 已删 MONITOR、`set_estimate()`、估计偏差修正；底盘保留 `power.estimate` 供 SWD 对照
 - dummy：SWC 上 OFF、中 CHARGE、下 BOOST，遥控断联 OFF；referee_loop 模拟裁判，超电 CAN1
 
 ### 待上车核对
 
-- 0x051 应答电压电流符号与量程；底盘 `power.estimate` 与 `super_cap.power.chassis` 对比
-- CHARGE 稳态 `power.cap` 不为负；若因 DCDC 损耗偏负再考虑充电余量；BOOST 在 10/12 V 的补偿衰减
+- 0x051 应答电压电流符号与量程；底盘 `power.estimate` 与 `super_cap.power_chassis` 对比
+- CHARGE 稳态 `power_cap` 不为负；若因 DCDC 损耗偏负再考虑充电余量；BOOST 在 10/12 V 的补偿衰减
 - infantry/sentry 未装超电（不调用 send，按 OFF）
 
 ## 底盘深度重构、PID 回算、UI 下放
@@ -111,3 +111,7 @@
 ## 后续任务
 
 - VQF 姿态算法：原样引入官方 C++ 实现（确认单精度选项），封装 `Vqf` 与 `QuaternionEkf` 并列
+
+## 外部 worktree 类布局重构
+
+基线 `795e263`，分支 `refactor/class-layout`，目录 `../rmpp-class-layout`。当前按新的 SWD 观察布局重构：去成员尾下划线、展平实例配置、电机与超电状态展平、最小权限、声明与实现排序。infantry 跳过编译验证。代码与验证结论见 `tasks/10-global_refactor/README.md`，待用户审计与合并。
