@@ -94,6 +94,8 @@ python agents/tasks/10-global_refactor/layout_regression.py --baseline 795e263
 - 保留的应用告警：motor 示例两个未使用函数；leg_up/gimbal.cpp 的 is_auto_aim 未使用
 - 构建日志和差分结果位于 out/；最终状态以本节对应执行结果为准，早期失败尝试也保留在 out/ 便于追溯
 
-待用户审阅 SWD 展开顺序与接口后决定合并、上车测试。
+类布局重构已并入 master，外部 worktree 随合并移除；待用户审阅 SWD 展开顺序与接口后决定上车测试。
 
 轮腿补充调整：力映射角度按实际顶点命名为 ∠OCB（cos_ocb、tan_ocb）；设置接口统一为 set_allow_rescue(allow_rescue)、set_trigger_jump(trigger_jump)、set_leg_length(leg_length)，同步 leg_down 调用点；update_kin 合入 update，保留原执行顺序。轮腿源码与 leg_down 的 chassis.cpp、app.cpp 对象编译通过，格式及 diff 检查通过。
+
+主线合并：重构提交为 7aee5ea、903f01f。主线原有 13 个暂存文件保留暂存；冲突按双方意图合并，保留首版 Python LQR 系数、轮端力矩与减速比、位移误差乘 10 后限幅、位移积分限幅及跳跃时序，新增 x_err_max 对应只读成员和构造初始化。合并后在主线重新编译轮腿及 leg_down 的 chassis.cpp、app.cpp 对象通过。外部 worktree 的忽略构建产物与临时日志随目录移除，复现源码已入库。
