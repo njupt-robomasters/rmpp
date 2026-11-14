@@ -1,15 +1,15 @@
 #include "aim.hpp"
 
 Aim::Aim(const Config& config)
-    : timeout(config.timeout) {}
+    : config(config) {}
 
 void Aim::update() {
-    if (vision_timer.elapsed() > timeout) {
+    if (vision_timer.elapsed() > config.timeout) {
         vision_timer.restart();
         is_connect_vision = false;
         vision = {};
     }
-    if (insta360_timer.elapsed() > timeout) {
+    if (insta360_timer.elapsed() > config.timeout) {
         insta360_timer.restart();
         insta360 = {};
     }

@@ -4,8 +4,7 @@
 #include <cstring>
 
 FSi6X::FSi6X(const Config& config)
-    : timeout(config.timeout),
-      deadline(config.deadline) {
+    : config(config) {
     // 注册串口回调
     config.uart.add_rx_callback([this](const uint8_t* data, const size_t size) {
         callback(data, size);
@@ -13,7 +12,7 @@ FSi6X::FSi6X(const Config& config)
 }
 
 void FSi6X::update() {
-    if (callback_timer.elapsed() > timeout) {
+    if (callback_timer.elapsed() > config.timeout) {
         callback_timer.restart();
         reset_data();
     }
@@ -67,7 +66,7 @@ void FSi6X::reset_data() {
 float FSi6X::get_joystick(const uint16_t value) const {
     float ret = (static_cast<float>(value) - 1024.0f) / 783.0f; // 240(-784) ~ 1024 ~ 1807(+783)
     ret = std::clamp(ret, -1.0f, 1.0f);
-    if (std::fabs(ret) < deadline)
+    if (std::fabs(ret) < config.deadline)
         ret = 0.0f;
     return ret;
 }

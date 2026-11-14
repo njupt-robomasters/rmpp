@@ -38,8 +38,9 @@ void gimbal_loop() {
     const bool calib = (vt13.mode == VT13::C && vt13.fn && vt13.photo) ||
                        (fsi6x.swc == FSi6X::UP && fsi6x.swa == FSi6X::DOWN && fsi6x.swd == FSi6X::DOWN);
     if (calib && !last_calib) {
-        gimbal.set_yaw_zero();
-        gimbal.save_yaw_offset(kv_store);
+        if (yaw1.is_connect)
+            yaw1.set_zero();
+        kv_store.write("yaw_offset", yaw1.offset);
         melody.play(G5G5G5);
     }
     last_calib = calib;

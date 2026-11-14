@@ -42,7 +42,8 @@ class Aim {
     } insta360;
 
   private:
-    const float timeout;
+    const Config config;
+
     Timer vision_timer, insta360_timer;
 
   public:

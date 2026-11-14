@@ -4,29 +4,7 @@
 #include <cmath>
 
 ChassisLeg::ChassisLeg(const Motors& motor, const Config& config)
-    : mass(config.mass),
-      spring_force(config.spring_force),
-      wheel_radius(config.wheel_radius),
-      wheel_distance(config.wheel_distance),
-      active_link(config.active_link),
-      passive_link(config.passive_link),
-      leg_min(config.leg_min),
-      leg_max(config.leg_max),
-      lqr_fit(config.lqr_fit),
-      theta_ref(config.theta_ref),
-      x_err_max(config.x_err_max),
-      theta_err_max(config.theta_err_max),
-      pitch_err_max(config.pitch_err_max),
-      x_max(config.x_max),
-      fall_theta_front(config.fall_theta_front),
-      fall_theta_back(config.fall_theta_back),
-      rescue_stand_speed(config.rescue_stand_speed),
-      rescue_flip_speed(config.rescue_flip_speed),
-      jump_takeoff_force(config.jump_takeoff_force),
-      jump_retract_force(config.jump_retract_force),
-      jump_retract_time(config.jump_retract_time),
-      jump_buffer_length(config.jump_buffer_length),
-      jump_buffer_time(config.jump_buffer_time),
+    : config(config),
       motor(motor),
       leg_length_ref(config.leg_min),
       leg_length_pid{Pid(config.leg_length_pid), Pid(config.leg_length_pid)},
@@ -49,7 +27,7 @@ void ChassisLeg::set_speed(const float d_x, const float d_yaw) {
 }
 
 void ChassisLeg::set_leg_length(const float leg_length) {
-    leg_length_ref = std::clamp(leg_length, leg_min, leg_max);
+    leg_length_ref = std::clamp(leg_length, config.leg_min, config.leg_max);
 }
 
 void ChassisLeg::set_allow_rescue(const bool allow_rescue) {
@@ -69,7 +47,7 @@ void ChassisLeg::update(const Quaternionf& q, const Vector3f& gyro) {
     const float v_left = leg[0].v_wheel + leg[0].v_swing;
     const float v_right = leg[1].v_wheel + leg[1].v_swing;
     body.d_x = (v_left + v_right) / 2;
-    body.d_yaw_wheel = (v_right - v_left) / wheel_distance;
+    body.d_yaw_wheel = (v_right - v_left) / config.wheel_distance;
 
     // 位移积分：停机、倒地、跳跃或有速度指令时清零，速度降到 0.1 m/s 内后开始积分
     if (!is_enable || rescue.is_fallen || jump.is_active || std::fabs(d_x_ref) > 0.01f) {
@@ -79,7 +57,7 @@ void ChassisLeg::update(const Quaternionf& q, const Vector3f& gyro) {
         if (std::fabs(body.d_x) < 0.1f)
             is_position = true;
         if (is_position)
-            body.x = std::clamp(body.x + body.d_x * dt, -x_max, x_max);
+            body.x = std::clamp(body.x + body.d_x * dt, -config.x_max, config.x_max);
     }
 
     update_rescue(dt);
@@ -149,20 +127,20 @@ void ChassisLeg::update_feedback(const Quaternionf& q, const Vector3f& gyro) {
 
     for (auto& l : leg) {
         // 重力取非负沿腿分量，气弹簧取等效伸腿力幅值
-        l.Fg = std::max(mass * 9.8f / 2 * std::cos(l.theta), 0.0f);
-        l.Fs = std::fabs(0.5f * spring_force * std::sin(l.phi_obc) * std::sin(pi - 0.5f * l.phi_bod - l.phi_obc));
+        l.Fg = std::max(config.mass * 9.8f / 2 * std::cos(l.theta), 0.0f);
+        l.Fs = std::fabs(0.5f * config.spring_force * std::sin(l.phi_obc) * std::sin(pi - 0.5f * l.phi_bod - l.phi_obc));
 
         // 腿摆动引起的前向速度补偿
         l.v_swing = l.d_L * std::sin(l.theta) + l.L * l.d_theta * std::cos(l.theta);
     }
 
     // 轮速：电机安装方向已由 is_invert 修正为前进为正
-    leg[0].v_wheel = motor.left_wheel.speed * wheel_radius;
-    leg[1].v_wheel = motor.right_wheel.speed * wheel_radius;
+    leg[0].v_wheel = motor.left_wheel.speed * config.wheel_radius;
+    leg[1].v_wheel = motor.right_wheel.speed * config.wheel_radius;
 }
 
 void ChassisLeg::solve_leg(Leg& leg) const {
-    const float a = active_link, b = passive_link;
+    const float a = config.active_link, b = config.passive_link;
 
     // 膝点间位移 D - B，m
     const float x_db = a * std::cos(leg.phi4) - a * std::cos(leg.phi1);
@@ -204,7 +182,7 @@ void ChassisLeg::update_rescue(const float dt) {
         rescue = {};
     } else {
         for (const auto& l : leg)
-            if (l.rel_theta < fall_theta_front || l.rel_theta > fall_theta_back)
+            if (l.rel_theta < config.fall_theta_front || l.rel_theta > config.fall_theta_back)
                 rescue.is_fallen = true;
         if (std::fabs(body.roll) > 90 * deg)
             rescue.is_fallen = true;
@@ -236,7 +214,7 @@ void ChassisLeg::update_rescue(const float dt) {
 }
 
 void ChassisLeg::rescue_stand(const float dt) {
-    const float step = rescue_stand_speed * dt;
+    const float step = config.rescue_stand_speed * dt;
 
     for (int i = 0; i < 2; i++) {
         float& target = rescue.target_theta[i];
@@ -266,7 +244,7 @@ void ChassisLeg::rescue_stand(const float dt) {
 void ChassisLeg::rescue_flip(const float side, const float dt) {
     // side：尾部着地 +1，腿向后翻转到 [90°, 166°]；头部着地 -1，镜像到 [-166°, -90°]
     // 以下区间均为 side × 角度
-    const float step = rescue_flip_speed * dt;
+    const float step = config.rescue_flip_speed * dt;
 
     for (int i = 0; i < 2; i++) {
         float& target = rescue.target_theta[i];
@@ -307,27 +285,27 @@ void ChassisLeg::update_jump(const float dt) {
 
         if (jump.is_active) {
             if (jump.step == 0) { // 起跳，双腿伸到位后收腿
-                jump.force = jump_takeoff_force;
-                if (leg[0].L >= leg_max && leg[1].L >= leg_max) {
+                jump.force = config.jump_takeoff_force;
+                if (leg[0].L >= config.leg_max && leg[1].L >= config.leg_max) {
                     jump.step = 1;
-                    jump.force = jump_retract_force;
+                    jump.force = config.jump_retract_force;
                 }
             } else if (jump.step == 1) { // 收腿，双腿收到位后保持
-                jump.force = jump_retract_force;
-                if (leg[0].L <= leg_min && leg[1].L <= leg_min) {
+                jump.force = config.jump_retract_force;
+                if (leg[0].L <= config.leg_min && leg[1].L <= config.leg_min) {
                     jump.step = 2;
                     jump.force = 0;
                     jump.hold_time = 0;
                 }
             } else if (jump.step == 2) { // 收腿长度保持
                 jump.hold_time += dt;
-                if (jump.hold_time >= jump_retract_time) {
+                if (jump.hold_time >= config.jump_retract_time) {
                     jump.step = 3;
                     jump.hold_time = 0;
                 }
             } else { // 落地缓冲，从进入阶段起计时，不等待触地
                 jump.hold_time += dt;
-                if (jump.hold_time >= jump_buffer_time)
+                if (jump.hold_time >= config.jump_buffer_time)
                     jump = {};
             }
         }
@@ -353,7 +331,7 @@ void ChassisLeg::calc_force(const float dt) {
             for (int i = 0; i < 2; i++) {
                 leg[i].Tt = leg_angle_pid[i].calculate(dt, Angle(rescue.target_theta[i] - leg[i].rel_theta));
                 if (rescue.stand_step[i] == 1)
-                    leg[i].Fn = leg_length_pid[i].calculate(dt, leg_min - leg[i].L, 0 - leg[i].d_L) + leg[i].Fg - leg[i].Fs;
+                    leg[i].Fn = leg_length_pid[i].calculate(dt, config.leg_min - leg[i].L, 0 - leg[i].d_L) + leg[i].Fg - leg[i].Fs;
             }
         }
     } else {
@@ -368,9 +346,9 @@ void ChassisLeg::calc_force(const float dt) {
                 l.Fn = jump.force - l.Fs;
         } else if (jump.step == 2) { // 收腿保持：腿长 PD，不补偿重力
             for (int i = 0; i < 2; i++)
-                leg[i].Fn = leg_length_pid[i].calculate(dt, leg_min - leg[i].L, 0 - leg[i].d_L) - leg[i].Fs;
+                leg[i].Fn = leg_length_pid[i].calculate(dt, config.leg_min - leg[i].L, 0 - leg[i].d_L) - leg[i].Fs;
         } else { // 落地缓冲
-            balance_legs(dt, jump_buffer_length);
+            balance_legs(dt, config.jump_buffer_length);
         }
 
         calc_lqr();
@@ -389,8 +367,8 @@ void ChassisLeg::balance_legs(const float dt, const float length) {
     // 外部工程 imu_roll 与 roll 反号，其写法为左 L - out、右 L + out；此处左 +、右 - 是同一物理方向
     const float roll_out = roll_pid.calculate(dt, 0 - body.roll, 0 - body.d_roll);
     const float length_ref[2] = {
-        std::clamp(length + roll_out, leg_min, leg_max),
-        std::clamp(length - roll_out, leg_min, leg_max),
+        std::clamp(length + roll_out, config.leg_min, config.leg_max),
+        std::clamp(length - roll_out, config.leg_min, config.leg_max),
     };
 
     // 腿长 PD 叠加重力补偿、扣除弹簧力；微分取伸缩速度，不含目标变化
@@ -405,16 +383,16 @@ void ChassisLeg::calc_lqr() {
 
     // 状态误差，均为“目标减反馈”；航向角不跟随云台，误差恒为零
     const float err[10] = {
-        std::clamp((0 - body.x) * 10, -x_err_max, x_err_max),                // 前向位移，前进为正
-        d_x_ref - body.d_x,                                                  // 前向速度，前进为正
-        0,                                                                   // 航向角，未启用
-        d_yaw_ref - body.d_yaw_gyro,                                         // 航向角速度，逆时针为正
-        std::clamp(theta_ref - leg[0].theta, -theta_err_max, theta_err_max), // 左腿倾角，后摆为正
-        0 - leg[0].d_theta,                                                  // 左腿倾角速度
-        std::clamp(theta_ref - leg[1].theta, -theta_err_max, theta_err_max), // 右腿倾角，后摆为正
-        0 - leg[1].d_theta,                                                  // 右腿倾角速度
-        std::clamp(0 - body.pitch, -pitch_err_max, pitch_err_max),           // 俯仰，低头为正
-        0 - body.d_pitch,                                                    // 俯仰角速度，低头为正
+        std::clamp((0 - body.x) * 10, -config.x_err_max, config.x_err_max),                       // 前向位移，前进为正
+        d_x_ref - body.d_x,                                                                       // 前向速度，前进为正
+        0,                                                                                        // 航向角，未启用
+        d_yaw_ref - body.d_yaw_gyro,                                                              // 航向角速度，逆时针为正
+        std::clamp(config.theta_ref - leg[0].theta, -config.theta_err_max, config.theta_err_max), // 左腿倾角，后摆为正
+        0 - leg[0].d_theta,                                                                       // 左腿倾角速度
+        std::clamp(config.theta_ref - leg[1].theta, -config.theta_err_max, config.theta_err_max), // 右腿倾角，后摆为正
+        0 - leg[1].d_theta,                                                                       // 右腿倾角速度
+        std::clamp(0 - body.pitch, -config.pitch_err_max, config.pitch_err_max),                  // 俯仰，低头为正
+        0 - body.d_pitch,                                                                         // 俯仰角速度，低头为正
     };
 
     // 输出 [0/1] 左/右轮力矩，前进为正；[2/3] 左/右摆动力矩，后摆为正
@@ -423,7 +401,7 @@ void ChassisLeg::calc_lqr() {
         for (int j = 0; j < 10; j++) {
             float k = 0;
             for (int n = 0; n < 6; n++)
-                k += lqr_fit[i][j][n] * terms[n];
+                k += config.lqr_fit[i][j][n] * terms[n];
             out[i] += k * err[j];
         }
     }
@@ -434,7 +412,7 @@ void ChassisLeg::calc_lqr() {
 }
 
 void ChassisLeg::map_force(Leg& leg, const float Tt) const {
-    const float a = active_link, b = passive_link;
+    const float a = config.active_link, b = config.passive_link;
 
     // ∠OCB 为轮轴 C 处 CO 与 CB 的夹角
     const float cos_ocb = (leg.L * leg.L + b * b - a * a) / (2 * leg.L * b);

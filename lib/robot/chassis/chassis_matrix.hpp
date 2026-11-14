@@ -73,10 +73,7 @@ class ChassisMatrix {
         MotorPower::Gain gain;
     } power;
 
-    // 几何与功率模型
-    const float chassis_radius;   // 底盘中心到轮的距离
-    const float wheel_radius;     // 轮子半径
-    const float wheel_resistance; // 轮电机线间电阻，Ω，用于功率估计
+    const Config config;
 
   private:
     const Eigen::Matrix<float, 4, 3> j;

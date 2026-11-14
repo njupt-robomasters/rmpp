@@ -41,9 +41,7 @@ class VT13 {
     } key;
 
   private:
-    const float timeout;      // 断联检测超时时间
-    const float deadline;     // 摇杆死区，小于此值认为是0
-    const uint16_t mouse_max; // 鼠标xy最大速度
+    const Config config;
 
     // 通道原始值
     struct __attribute__((packed)) {

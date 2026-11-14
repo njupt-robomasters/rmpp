@@ -87,7 +87,7 @@ static float cpu_usage = 0; // 主循环占用，SWD 观察
 
 extern "C" void app_main() {
     // imu.start_calibration();
-    gimbal.load_yaw_offset(kv_store);
+    yaw1.set_offset(kv_store.read("yaw_offset"));
     melody.play(C5D5G5);
 
     Timer timer;

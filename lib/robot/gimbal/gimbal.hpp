@@ -1,6 +1,5 @@
 #pragma once
 
-#include "bsp/kv_store.hpp"
 #include "math/angle.hpp"
 #include "motor/motor.hpp"
 #include "pid/pid.hpp"
@@ -20,13 +19,12 @@ class Gimbal {
     struct Config {
         const Pid::Config* yaw_speed_pid_config;
         const Pid::Config* yaw_position_pid_config;
+        PidOutput yaw_output = CURRENT_OUTPUT;
         const Pid::Config* pitch_speed_pid_config;
         const Pid::Config* pitch_position_pid_config;
-        PidOutput yaw_output = CURRENT_OUTPUT;
         PidOutput pitch_output = CURRENT_OUTPUT;
         float pitch_min = 0;
         float pitch_max = 0;
-        bool is_pitch_limit = false;
     };
 
     // 云台模式
@@ -45,12 +43,7 @@ class Gimbal {
     } yaw, pitch;
 
   protected:
-    // 闭环输出与俯仰限位
-    const PidOutput yaw_output;
-    const PidOutput pitch_output;
-    const float pitch_min;
-    const float pitch_max;
-    const bool is_pitch_limit;
+    const Config config;
 
     // 指令
     Mode mode = IMU_MODE;
@@ -83,13 +76,6 @@ class Gimbal {
     // 设置底盘旋转速度，用于yaw轴前馈
     void set_chassis_wr(float chassis_wr);
 
-    // 以当前 yaw 电机角度为零点
-    virtual void set_yaw_zero() = 0;
-
-    virtual void load_yaw_offset(KvStore& kv_store) = 0;
-
-    virtual void save_yaw_offset(KvStore& kv_store) = 0;
-
     // 每个控制周期调用；imu_yaw、imu_pitch 为云台 IMU 姿态，rad
     void update(Angle imu_yaw, Angle imu_pitch);
 
@@ -110,10 +96,10 @@ class Gimbal {
     // 按配置的输出类型设置电流或力矩，返回电机限幅后的实际输出，供 PID 跟踪
     static float set_output(Motor& motor, PidOutput type, float output);
 
-    // 角度正解：电机角度 -> 云台编码器角度
+    // 读取电机角度
     virtual void forward() = 0;
 
-    // 角度逆解：云台目标 -> 电机输出；dt 为控制周期，s
+    // 设置电机角度
     virtual void backward(float dt) = 0;
 
   private:

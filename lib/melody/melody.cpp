@@ -10,13 +10,7 @@ static constexpr float TAU_MAX = 2.0f;       // 上限 s
 static constexpr uint32_t GAIN_EVERY = 8;    // 增益每 8 个采样更新一次，包络变化慢
 
 Melody::Melody(const Config& config)
-    : carrier_hz(config.carrier_hz),
-      melody_share(config.melody_share),
-      melody_envelope(config.melody),
-      chords_envelope(config.chords),
-      inner_envelope(config.inner),
-      inner_weight(config.inner_weight),
-      agc(config.agc),
+    : config(config),
       dt(1 / config.carrier_hz),
       attack_step(1 - std::exp(-dt * GAIN_EVERY / config.agc.attack)),
       release_step(1 - std::exp(-dt * GAIN_EVERY / config.agc.release)),
@@ -35,16 +29,16 @@ void Melody::play_poly(const Song& song) {
     stop();
 
     // 采样流未开启，可在主循环初始化合成状态
-    const float share = song.chords.empty() ? 1.0f : melody_share;
-    melody.start(song.melody, share, melody_envelope, inner_envelope, inner_weight, dt);
-    chords.start(song.chords, 1 - share, chords_envelope, inner_envelope, inner_weight, dt);
+    const float share = song.chords.empty() ? 1.0f : config.melody_share;
+    melody.start(song.melody, share, config.melody, config.inner, config.inner_weight, dt);
+    chords.start(song.chords, 1 - share, config.chords, config.inner, config.inner_weight, dt);
     gain = 1;
     sample = 0;
     silent = hold; // 开头视为旋律已缺席，前奏按伴奏调节
     ramp = 0;
     stage = Stage::FADE_IN;
 
-    buzzer.start_stream(carrier_hz, [this](const std::span<float> duty) { fill(duty); });
+    buzzer.start_stream(config.carrier_hz, [this](const std::span<float> duty) { fill(duty); });
 }
 
 void Melody::stop() {
@@ -127,7 +121,7 @@ float Melody::next_sample() {
     const float level = melody.level + chords.level;
     const bool is_held = silent > 0 && silent < hold;
     if (should_update_gain && level > 0 && !is_held) {
-        const float target = std::min(std::pow(level, 1 / agc.ratio - 1), agc.max_gain);
+        const float target = std::min(std::pow(level, 1 / config.agc.ratio - 1), config.agc.max_gain);
         follow(gain, target, attack_step, release_step);
     }
 

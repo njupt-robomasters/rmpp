@@ -5,17 +5,14 @@
 #include <utility>
 
 Referee::Referee(const Config& config)
-    : bus(config.bus),
-      rx_id(config.rx_id),
-      tx_id(config.tx_id),
-      timeout(config.timeout) {
-    if (const auto* can = std::get_if<Can>(&bus)) {
+    : config(config) {
+    if (const auto* can = std::get_if<Can>(&config.bus)) {
         can->add_rx_callback([this](const CanFrame& frame) {
-            if (frame.id == rx_id && !frame.is_extend && !frame.is_remote && frame.size <= 8)
+            if (frame.id == this->config.rx_id && !frame.is_extend && !frame.is_remote && frame.size <= 8)
                 receive(frame.data, frame.size);
         });
     } else {
-        std::get<Uart>(bus).add_rx_callback([this](const uint8_t* data, const size_t size) {
+        std::get<Uart>(config.bus).add_rx_callback([this](const uint8_t* data, const size_t size) {
             receive(data, size);
         });
     }
@@ -26,22 +23,22 @@ void Referee::add_0311_callback(RxCallback callback) {
 }
 
 void Referee::update() {
-    if (frame_timer.elapsed() > timeout)
+    if (frame_timer.elapsed() > config.timeout)
         is_connected = false;
     if (tx_size == 0)
         return;
 
     // 链路忙时保留待发帧，下次重试
-    if (const auto* can = std::get_if<Can>(&bus)) {
+    if (const auto* can = std::get_if<Can>(&config.bus)) {
         if (!can->can_send())
             return;
         const auto size = std::min<size_t>(8, tx_size - tx_pos);
-        CanFrame frame{.id = tx_id, .size = static_cast<uint8_t>(size)};
+        CanFrame frame{.id = config.tx_id, .size = static_cast<uint8_t>(size)};
         std::memcpy(frame.data, tx_buf + tx_pos, size);
         can->send(frame);
         tx_pos += size;
     } else {
-        const auto& uart = std::get<Uart>(bus);
+        const auto& uart = std::get<Uart>(config.bus);
         if (!uart.can_send())
             return;
         uart.send(tx_buf, tx_size);

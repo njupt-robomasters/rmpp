@@ -19,14 +19,7 @@ class QuaternionEkf : public Attitude {
   private:
     Vector2f bias = Vector2f::Zero(); // rad/s；不估计 Z 零偏
 
-    // 过程噪声
-    const float quaternion_noise; // 四元数过程噪声强度，>= 0
-    const float bias_noise;       // 零偏过程噪声强度，>= 0
-
-    // 加速度观测与门控
-    const float accel_noise;          // 单位重力方向的观测方差，> 0
-    const float bias_fading;          // 每周期零偏协方差保留系数，(0, 1]
-    const float innovation_threshold; // 归一化残差门限，> 0
+    const Config config;
 
     // 跨周期收敛状态
     bool initialized = false;               // 已由首个有效重力方向确定初始倾角

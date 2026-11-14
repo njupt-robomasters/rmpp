@@ -59,7 +59,6 @@ inline GimbalClassic gimbal({yaw, pitch}, {
                                               .pitch_output = Gimbal::TORQUE_OUTPUT,
                                               .pitch_min = -15 * deg,
                                               .pitch_max = 30 * deg,
-                                              .is_pitch_limit = true,
                                           });
 
 void gimbal_loop();

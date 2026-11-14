@@ -1,22 +1,8 @@
 #include "gimbal_classic.hpp"
-#include <algorithm>
 
 GimbalClassic::GimbalClassic(const Motors& motor, const Config& config)
     : Gimbal(config),
       motor(motor) {}
-
-void GimbalClassic::set_yaw_zero() {
-    if (motor.yaw.is_connect)
-        motor.yaw.set_zero();
-}
-
-void GimbalClassic::load_yaw_offset(KvStore& kv_store) {
-    motor.yaw.set_offset(kv_store.read("yaw_offset"));
-}
-
-void GimbalClassic::save_yaw_offset(KvStore& kv_store) {
-    kv_store.write("yaw_offset", motor.yaw.offset);
-}
 
 void GimbalClassic::set_motors_enable(const bool is_enable) {
     motor.yaw.set_enable(is_enable);
@@ -46,7 +32,6 @@ void GimbalClassic::backward(const float dt) {
     if (mode == ECD_MODE) {
         // 换算到imu参考系
         yaw.imu.ref = yaw.ecd.ref + yaw.imu_minus_ecd;
-        pitch.imu.ref = pitch.ecd.ref + pitch.imu_minus_ecd;
     } else if (mode == IMU_MODE) {
         // 换算到ecd参考系
         yaw.ecd.ref = yaw.imu.ref - yaw.imu_minus_ecd;
@@ -54,15 +39,14 @@ void GimbalClassic::backward(const float dt) {
     }
 
     // 软件限位
-    if (is_pitch_limit)
-        pitch.ecd.ref = Angle(std::clamp(float(pitch.ecd.ref), pitch_min, pitch_max));
-    yaw.ecd.ref = Angle(yaw.ecd.ref);
-    pitch.ecd.ref = Angle(pitch.ecd.ref);
+    pitch.ecd.ref = Angle(std::clamp(static_cast<float>(pitch.ecd.ref), config.pitch_min, config.pitch_max));
+    // 传递软件限位到imu参考系
+    pitch.imu.ref = pitch.ecd.ref + pitch.imu_minus_ecd;
 
     // yaw 串级 PID
     if (can_yaw) {
         const float speed_ref = yaw_position_pid.calculate(dt, yaw.ecd.ref - yaw.ecd.measure) - chassis_wr + yaw_speed;
-        yaw_speed_pid.track(set_output(motor.yaw, yaw_output, yaw_speed_pid.calculate(dt, speed_ref - motor.yaw.speed)));
+        set_output(motor.yaw, config.yaw_output, yaw_speed_pid.calculate(dt, speed_ref - motor.yaw.speed));
     } else {
         motor.yaw.set_current(0);
     }
@@ -70,12 +54,8 @@ void GimbalClassic::backward(const float dt) {
     // pitch 串级 PID
     if (can_pitch) {
         const float speed_ref = pitch_position_pid.calculate(dt, pitch.ecd.ref - pitch.ecd.measure) + pitch_speed;
-        pitch_speed_pid.track(set_output(motor.pitch, pitch_output, pitch_speed_pid.calculate(dt, speed_ref - motor.pitch.speed)));
+        set_output(motor.pitch, config.pitch_output, pitch_speed_pid.calculate(dt, speed_ref - motor.pitch.speed));
     } else {
         motor.pitch.set_current(0);
     }
-
-    // 传递软件限位到imu参考系
-    yaw.imu.ref = yaw.ecd.ref + yaw.imu_minus_ecd;
-    pitch.imu.ref = pitch.ecd.ref + pitch.imu_minus_ecd;
 }

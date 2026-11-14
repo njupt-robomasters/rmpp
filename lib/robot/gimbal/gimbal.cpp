@@ -47,11 +47,7 @@ void Gimbal::update(const Angle imu_yaw, const Angle imu_pitch) {
 }
 
 Gimbal::Gimbal(const Config& config)
-    : yaw_output(config.yaw_output),
-      pitch_output(config.pitch_output),
-      pitch_min(config.pitch_min),
-      pitch_max(config.pitch_max),
-      is_pitch_limit(config.is_pitch_limit),
+    : config(config),
       yaw_speed_pid(config.yaw_speed_pid_config),
       yaw_position_pid(config.yaw_position_pid_config),
       pitch_speed_pid(config.pitch_speed_pid_config),

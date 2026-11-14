@@ -68,11 +68,7 @@ class Referee {
     RadarBuff radar_buff{};
     RadarKey radar_key{};
 
-    // 通信绑定
-    const std::variant<Can, Uart> bus;
-    const uint32_t rx_id; // CAN 转发接收 ID，UART 不使用
-    const uint32_t tx_id; // CAN 转发发送 ID，UART 不使用
-    const float timeout;  // 连接超时，秒
+    const Config config;
 
     // 每次有效伤害报文递增，避免依赖字段变化判断新事件
     uint32_t hurt_sequence = 0;

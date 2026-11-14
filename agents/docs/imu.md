@@ -27,7 +27,7 @@ inline Imu imu({.orientation = euler_to_quaternion({.yaw = -90 * deg}),
 inline QuaternionEkf attitude(imu, {}); // 可选；第二参数覆盖 QuaternionEkf::Config
 ```
 
-Config 仅作为构造输入，固定参数展开到私有 const 成员；gyro_offset、gravity 保留为可校准字段。`Imu` 的温控 PID 借用内部配置，不应复制或移动；`Attitude` 保存 `Imu&`，`Imu` 须在其生命周期内有效。使用姿态解算时只调用 `attitude.update()`，不再单独调用 `imu.update()`。
+`QuaternionEkf` 按值保存只读 `Config`，噪声和门限直接读取 `config`。`Imu` 保存安装、温控参数及可校准的 gyro_offset、gravity；温控 PID 借用内部配置，不应复制或移动。`Attitude` 保存 `Imu&`，`Imu` 须在其生命周期内有效。使用姿态解算时只调用 `attitude.update()`，不再单独调用 `imu.update()`。
 
 ## 坐标与公开转换
 

@@ -5,9 +5,7 @@
 #include <cstring>
 
 VT13::VT13(const Config& config)
-    : timeout(config.timeout),
-      deadline(config.deadline),
-      mouse_max(config.mouse_max) {
+    : config(config) {
     // 注册串口回调
     config.uart.add_rx_callback([this](const uint8_t* data, std::size_t size) {
         callback(data, size);
@@ -16,7 +14,7 @@ VT13::VT13(const Config& config)
 
 void VT13::update() {
     // 断联检测
-    if (callback_timer.elapsed() > timeout) {
+    if (callback_timer.elapsed() > config.timeout) {
         callback_timer.restart();
         reset_data();
     }
@@ -69,8 +67,8 @@ void VT13::parse_raw() {
     photo = raw.fn_2;
 
     // 解析鼠标
-    mouse.yaw = -static_cast<float>(raw.mouse_x) / static_cast<float>(mouse_max);
-    mouse.pitch = static_cast<float>(raw.mouse_y) / static_cast<float>(mouse_max);
+    mouse.yaw = -static_cast<float>(raw.mouse_x) / static_cast<float>(config.mouse_max);
+    mouse.pitch = static_cast<float>(raw.mouse_y) / static_cast<float>(config.mouse_max);
     mouse.wheel = raw.mouse_z;
     mouse.left = raw.mouse_left;
     mouse.right = raw.mouse_right;
@@ -112,7 +110,7 @@ void VT13::reset_data() {
 float VT13::get_joy_stick(const uint16_t value) const {
     float ret = (static_cast<float>(value) - 1024.0f) / 660.0f;
     ret = std::clamp(ret, -1.0f, 1.0f);
-    if (std::fabs(ret) < deadline)
+    if (std::fabs(ret) < config.deadline)
         ret = 0.0f;
     return ret;
 }

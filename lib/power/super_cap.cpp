@@ -5,17 +5,8 @@
 #include <limits>
 
 SuperCap::SuperCap(const Config& config)
-    : can(config.can),
-      tx_id(config.tx_id),
-      rx_id(config.rx_id),
-      timeout(config.timeout),
-      current_fc(config.current_fc),
-      buffer_cutoff(config.buffer_cutoff),
-      buffer_gain_max(config.buffer_gain_max),
-      boost_voltage_cutoff(config.boost_voltage_cutoff),
-      boost_voltage_full(config.boost_voltage_full),
-      boost_max_current(config.boost_max_current),
-      rls{.min_charge = config.rls.min_charge, .max_window = config.rls.max_window, .lambda = config.rls.lambda, .p_init = config.rls.p_init, .p = {{config.rls.p_init, 0}, {0, config.rls.p_init}}} {
+    : config(config),
+      rls{.p = {{config.rls.p_init, 0}, {0, config.rls.p_init}}} {
     config.can.add_rx_callback([this](const CanFrame& frame) { can_callback(frame); });
 }
 
@@ -35,13 +26,13 @@ void SuperCap::update() {
     const float dt = std::min(update_timer.restart(), DT_MAX);
 
     // 断联检测
-    if (callback_timer.elapsed() > timeout)
+    if (callback_timer.elapsed() > config.timeout)
         is_connect = false;
 
     // BOOST 补偿：电容电压在截止与满额之间线性
     if (is_connect && mode == BOOST) {
-        const float cap_ratio = std::clamp((voltage_cap - boost_voltage_cutoff) / (boost_voltage_full - boost_voltage_cutoff), 0.0f, 1.0f);
-        power_boost_max = boost_max_current * voltage_cap * cap_ratio;
+        const float cap_ratio = std::clamp((voltage_cap - config.boost_voltage_cutoff) / (config.boost_voltage_full - config.boost_voltage_cutoff), 0.0f, 1.0f);
+        power_boost_max = config.boost_max_current * voltage_cap * cap_ratio;
     } else {
         power_boost_max = 0;
     }
@@ -74,8 +65,8 @@ void SuperCap::update() {
 void SuperCap::send() const {
     // data[0].bit0 使能 DCDC；data[1..2] 电池侧目标功率，0.01 W/LSB，大端；不限功率时限幅到协议最大值
     const auto command = static_cast<int16_t>(std::clamp(power_battery_ref, -327.68f, 327.67f) * 100.0f);
-    can.send({
-        .id = tx_id,
+    config.can.send({
+        .id = config.tx_id,
         .size = 8,
         .data = {is_dcdc_enable(), static_cast<uint8_t>(command >> 8), static_cast<uint8_t>(command)},
     });
@@ -83,17 +74,17 @@ void SuperCap::send() const {
 
 void SuperCap::can_callback(const CanFrame& frame) {
     // 检查 id 和 size
-    if (frame.id != rx_id || frame.size != 8)
+    if (frame.id != config.rx_id || frame.size != 8)
         return;
 
     // V_BAT、I_OUT、V_CAP、I_CAP，1 mV/LSB、1 mA/LSB，大端；电流按应答间隔低通
     const auto* data = frame.data;
     const float dt = callback_timer.restart();
     voltage_chassis = static_cast<int16_t>((data[0] << 8) | data[1]) * 1.0e-3f;
-    current_chassis = lowpass(current_chassis, static_cast<int16_t>((data[2] << 8) | data[3]) * 1.0e-3f, current_fc, dt);
+    current_chassis = lowpass(current_chassis, static_cast<int16_t>((data[2] << 8) | data[3]) * 1.0e-3f, config.current_fc, dt);
     voltage_cap = static_cast<int16_t>((data[4] << 8) | data[5]) * 1.0e-3f;
     const float raw_current_cap = static_cast<int16_t>((data[6] << 8) | data[7]) * 1.0e-3f;
-    current_cap = lowpass(current_cap, raw_current_cap, current_fc, dt);
+    current_cap = lowpass(current_cap, raw_current_cap, config.current_fc, dt);
 
     // 功率：battery = chassis + cap
     power_chassis = voltage_chassis * current_chassis;
@@ -111,7 +102,7 @@ bool SuperCap::is_dcdc_enable() const {
 }
 
 float SuperCap::buffer_gain(const float energy) const {
-    return buffer_gain_max * std::clamp((energy - buffer_cutoff) / (BUFFER_FULL - buffer_cutoff), 0.0f, 1.0f);
+    return config.buffer_gain_max * std::clamp((energy - config.buffer_cutoff) / (BUFFER_FULL - config.buffer_cutoff), 0.0f, 1.0f);
 }
 
 void SuperCap::update_capacitance(const float current_cap, const float dt) {
@@ -121,8 +112,8 @@ void SuperCap::update_capacitance(const float current_cap, const float dt) {
     rls.last_current = current_cap;
 
     // 首帧、应答中断或窗口超时时丢弃窗口；有效且电荷未达阈值时继续累计
-    const bool is_valid = is_connect && dt <= timeout && rls.time <= rls.max_window;
-    if (is_valid && std::fabs(rls.charge) < rls.min_charge)
+    const bool is_valid = is_connect && dt <= config.timeout && rls.time <= config.rls.max_window;
+    if (is_valid && std::fabs(rls.charge) < config.rls.min_charge)
         return;
 
     // RLS 一步：ΔV = ΔQ·1/C + ΔI·ESR，差分消去未知的初始电荷
@@ -134,7 +125,7 @@ void SuperCap::update_capacitance(const float current_cap, const float dt) {
         };
 
         // 协方差迹超过初值时停止遗忘，防止 ESR 方向激励不足时协方差发散
-        const float lambda = rls.p[0][0] + rls.p[1][1] < 2 * rls.p_init ? rls.lambda : 1;
+        const float lambda = rls.p[0][0] + rls.p[1][1] < 2 * config.rls.p_init ? config.rls.lambda : 1;
         const float denominator = lambda + phi[0] * p_phi[0] + phi[1] * p_phi[1];
         const float gain[2] = {p_phi[0] / denominator, p_phi[1] / denominator};
         const float error = voltage_cap - rls.voltage - (phi[0] * rls.theta[0] + phi[1] * rls.theta[1]);

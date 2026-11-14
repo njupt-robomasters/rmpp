@@ -3,12 +3,7 @@
 #include <cmath>
 
 Shooter17mm::Shooter17mm(const Motors& motor, const Config& config)
-    : shoot_output(config.shoot_output),
-      bullet_per_angle(config.bullet_per_angle),
-      block_time(config.block_time),
-      reverse_time(config.reverse_time),
-      rub_radius(config.rub_radius),
-      heat_protect(config.heat_protect),
+    : config(config),
       motor(motor),
       shoot_pid(config.shoot_pid_config) {}
 
@@ -28,7 +23,7 @@ void Shooter17mm::set_bullet_freq(const float bullet_freq) {
 }
 
 void Shooter17mm::set_heat_remain(const int32_t heat_remain) {
-    is_heat_protect = heat_remain < heat_protect;
+    is_heat_protect = heat_remain < config.heat_protect;
 }
 
 void Shooter17mm::update() {
@@ -40,14 +35,14 @@ void Shooter17mm::update() {
     motor.shoot.update();
 
     // 正解：电机速度 -> 弹速、弹频
-    rub_speed[0] = motor.rub1.speed * rub_radius;
-    rub_speed[1] = motor.rub2.speed * rub_radius;
+    rub_speed[0] = motor.rub1.speed * config.rub_radius;
+    rub_speed[1] = motor.rub2.speed * config.rub_radius;
     bullet_speed.measure = (rub_speed[0] + rub_speed[1]) / 2.0f;
-    bullet_freq.measure = motor.shoot.speed * bullet_per_angle;
+    bullet_freq.measure = motor.shoot.speed * config.bullet_per_angle;
 
     // 摩擦轮：VESC 速度模式，关闭时目标为零制动；低速释放由 app 处理
     const bool is_rub = is_enable && bullet_speed.ref > 0;
-    const float rub_speed_ref = is_rub ? bullet_speed.ref / rub_radius : 0.0f;
+    const float rub_speed_ref = is_rub ? bullet_speed.ref / config.rub_radius : 0.0f;
     motor.rub1.set_speed(rub_speed_ref);
     motor.rub2.set_speed(rub_speed_ref);
 
@@ -61,10 +56,10 @@ void Shooter17mm::update() {
     }
 
     // 未卡弹按弹频转动，卡弹反转
-    const float shoot_speed = bullet_freq.ref / bullet_per_angle;
+    const float shoot_speed = bullet_freq.ref / config.bullet_per_angle;
     const float shoot_speed_ref = is_block ? -shoot_speed : shoot_speed;
     const float output = shoot_pid.calculate(dt, shoot_speed_ref - motor.shoot.speed);
-    if (shoot_output == CURRENT_OUTPUT) {
+    if (config.shoot_output == CURRENT_OUTPUT) {
         motor.shoot.set_current(output);
         shoot_pid.track(motor.shoot.current_ref);
     } else {
@@ -76,11 +71,11 @@ void Shooter17mm::update() {
         // 达到电流限幅并持续 block_time 判为卡弹；取绝对值兼顾负弹频反转
         if (std::fabs(motor.shoot.current_ref) < motor.shoot.max_current) {
             block_timer.restart();
-        } else if (block_timer.elapsed() > block_time) {
+        } else if (block_timer.elapsed() > config.block_time) {
             block_timer.restart();
             is_block = true;
         }
-    } else if (block_timer.elapsed() > reverse_time) {
+    } else if (block_timer.elapsed() > config.reverse_time) {
         block_timer.restart();
         is_block = false;
     }

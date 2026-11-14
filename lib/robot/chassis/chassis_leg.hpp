@@ -136,36 +136,7 @@ class ChassisLeg {
 
     bool is_motor_ok = false; // 全部电机在线且关节已使能无报错；否则全部电机输出零
 
-    // 质量与几何
-    const float mass;           // 整车质量，kg
-    const float spring_force;   // 气弹簧标称推力，N
-    const float wheel_radius;   // m
-    const float wheel_distance; // 左右轮距，m
-    const float active_link;    // 主动杆长 AB=ED，m
-    const float passive_link;   // 从动杆长 BC=DC，m
-    const float leg_min;        // 目标腿长范围，m；leg_min 也是自救站起与跳跃收腿腿长，leg_max 也是起跳腿长
-    const float leg_max;        // 目标腿长范围，m；leg_min 也是自救站起与跳跃收腿腿长，leg_max 也是起跳腿长
-
-    // LQR 增益与误差限幅
-    const float (*const lqr_fit)[10][6]; // LQR 增益拟合系数 [4 输出][10 状态][6 项]，项序 1、Ll、Lr、Ll²、Ll·Lr、Lr²
-    const float theta_ref;               // 目标腿倾角，rad，后摆为正
-    const float x_err_max;               // 位移误差限幅，误差已乘 10
-    const float theta_err_max;           // 腿倾角误差限幅，rad
-    const float pitch_err_max;           // 俯仰误差限幅，rad
-    const float x_max;                   // 位移积分限幅，m
-
-    // 倒地与自救
-    const float fall_theta_front;   // 相对腿角下限，rad，后摆为正；任一腿超出判定倒地
-    const float fall_theta_back;    // 相对腿角上限，rad
-    const float rescue_stand_speed; // 站起目标腿角速度，rad/s
-    const float rescue_flip_speed;  // 翻转目标腿角速度，rad/s
-
-    // 跳跃
-    const float jump_takeoff_force; // 单腿起跳力，N，伸腿为正
-    const float jump_retract_force; // 单腿收腿力，N，伸腿为正
-    const float jump_retract_time;  // 收腿保持时间，s
-    const float jump_buffer_length; // 落地缓冲目标腿长，m
-    const float jump_buffer_time;   // 落地缓冲时间，s
+    const Config config;
 
     // 设备绑定
     struct Motors {

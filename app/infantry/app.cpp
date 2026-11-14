@@ -72,7 +72,7 @@ static void update_ui() {
 
 extern "C" void app_main() {
     // imu.start_calibration();
-    gimbal.load_yaw_offset(kv_store);
+    yaw.set_offset(kv_store.read("yaw_offset"));
     melody.play(C5D5G5);
 
     [[maybe_unused]] static float cpu_usage = 0;

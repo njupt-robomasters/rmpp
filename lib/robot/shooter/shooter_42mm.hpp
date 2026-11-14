@@ -43,14 +43,7 @@ class Shooter42mm {
     float rub_speed[4]{};
 
   private:
-    // 拨弹闭环与弹数换算
-    const PidOutput shoot_output;
-    const float bullet_per_angle; // 每弧度发射弹数，默认每转一发
-
-    // 卡弹与摩擦轮参数
-    const float block_time;      // 卡弹检测时间
-    const float rub_radius;      // 摩擦轮半径
-    const uint16_t heat_protect; // 剩余热量保护阈值
+    const Config config;
 
     // 设备绑定
     struct Motors {

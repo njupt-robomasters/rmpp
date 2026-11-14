@@ -23,8 +23,8 @@ class FSi6X {
     Switch swa = ERR, swb = ERR, swc = ERR, swd = ERR; // 拨杆
 
   private:
-    const float timeout;    // 断联检测超时时间
-    const float deadline;   // 摇杆死区，小于此值认为是0
+    const Config config;
+
     float vra = 0, vrb = 0; // 旋钮
 
     // 通道原始值

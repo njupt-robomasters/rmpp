@@ -116,13 +116,7 @@ class Melody {
     Monitor monitor; // 复音合成中断的频率与占用
 
   private:
-    const float carrier_hz;         // 复音模式载波即采样率，取 20~64 kHz 内 1 kHz 的整数倍
-    const float melody_share;       // 旋律组占输出摆幅，伴奏组为其余
-    const Envelope melody_envelope; // 旋律主声部
-    const Envelope chords_envelope; // 伴奏主声部，余音低不拖沓
-    const Envelope inner_envelope;  // 其余声部，快衰减只在起音时加厚和声
-    const float inner_weight;       // 其余声部相对主声部的音量
-    const Agc agc;
+    const Config config;
 
     // 由 config 换算
     const float dt;                        // 采样周期 s

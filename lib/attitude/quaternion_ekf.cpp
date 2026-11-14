@@ -12,11 +12,7 @@ using Matrix6x3 = Eigen::Matrix<float, 6, 3>;
 
 QuaternionEkf::QuaternionEkf(Imu& imu, const Config& config)
     : Attitude(imu),
-      quaternion_noise(config.quaternion_noise),
-      bias_noise(config.bias_noise),
-      accel_noise(config.accel_noise),
-      bias_fading(config.bias_fading),
-      innovation_threshold(config.innovation_threshold) {
+      config(config) {
     reset_bias();
 }
 
@@ -78,11 +74,11 @@ void QuaternionEkf::solve(const Vector3f& gyro, const Vector3f& accel) {
 
     Matrix6f prior = covariance;
     for (int i = 4; i < 6; ++i)
-        prior(i, i) = std::min(prior(i, i) / bias_fading, 10000.0f);
+        prior(i, i) = std::min(prior(i, i) / config.bias_fading, 10000.0f);
     Matrix6f predicted_covariance;
     predicted_covariance.noalias() = transition * prior * transition.transpose();
     for (int i = 0; i < 6; ++i)
-        predicted_covariance(i, i) += (i < 4 ? quaternion_noise : bias_noise) * dt;
+        predicted_covariance(i, i) += (i < 4 ? config.quaternion_noise : config.bias_noise) * dt;
     if (!symmetrize_covariance(predicted_covariance))
         return;
     q = predicted_q;
@@ -108,7 +104,7 @@ void QuaternionEkf::solve(const Vector3f& gyro, const Vector3f& accel) {
     const Vector3f residual = accel / accel_norm - gravity;
     const Matrix6x3 cross_covariance = covariance * observation.transpose();
     Matrix3f innovation = observation * cross_covariance;
-    innovation.diagonal().array() += accel_noise;
+    innovation.diagonal().array() += config.accel_noise;
 
     // 对称正定的 3×3 观测协方差，Cholesky 同时检查数值可解性
     // 由 S = L Lᵀ 求 S⁻¹r 与增益，避免显式求逆
@@ -122,7 +118,7 @@ void QuaternionEkf::solve(const Vector3f& gyro, const Vector3f& accel) {
     const float distance = residual.dot(weighted_residual);
     if (!std::isfinite(distance) || distance < 0)
         return;
-    const float threshold = innovation_threshold;
+    const float threshold = config.innovation_threshold;
     if (distance < 0.5f * threshold)
         converged = true;
     if (converged && distance > threshold) {
@@ -174,7 +170,7 @@ void QuaternionEkf::solve(const Vector3f& gyro, const Vector3f& accel) {
     // Joseph 形式：P = (I-KH) P (I-KH)ᵀ + K R Kᵀ
     const Matrix6f remaining = Matrix6f::Identity() - gain * observation;
     Matrix6f posterior = remaining * covariance * remaining.transpose();
-    posterior.noalias() += gain * accel_noise * gain.transpose();
+    posterior.noalias() += gain * config.accel_noise * gain.transpose();
     if (!symmetrize_covariance(posterior))
         return;
     q = corrected_q;

@@ -6,7 +6,7 @@
 #include "rc/vt13.hpp"
 #include <algorithm>
 
-static constexpr float WYAW_MAX = 360 * deg_s;   // yaw 最大角速度，rad/s
+static constexpr float YAW_SPEED_MAX = 360 * deg_s;   // yaw 最大角速度，rad/s
 static constexpr float WPITCH_MAX = 360 * deg_s; // pitch 最大角速度，rad/s
 
 static VT13 vt13({.uart = Uart(6)});
@@ -35,7 +35,7 @@ static void loop() {
     fsi6x.update();
 
     gimbal.set_enable(rc_enable());
-    const float yaw_speed = std::clamp((vt13.yaw + fsi6x.yaw) * WYAW_MAX, -WYAW_MAX, WYAW_MAX);
+    const float yaw_speed = std::clamp((vt13.yaw + fsi6x.yaw) * YAW_SPEED_MAX, -YAW_SPEED_MAX, YAW_SPEED_MAX);
     const float pitch_speed = std::clamp((vt13.pitch + fsi6x.pitch) * WPITCH_MAX, -WPITCH_MAX, WPITCH_MAX);
     gimbal.set_speed(yaw_speed, pitch_speed);
     attitude.update();

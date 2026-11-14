@@ -88,13 +88,7 @@ class SuperCap {
     float resistance = 0;  // 等效串联电阻，Ω
 
   private:
-    const Can can;
-    const uint32_t tx_id, rx_id;
-    const float timeout, current_fc;
-
-    // 缓冲折算与 BOOST 补偿
-    const float buffer_cutoff, buffer_gain_max;
-    const float boost_voltage_cutoff, boost_voltage_full, boost_max_current;
+    const Config config;
 
     // 指令
     Mode mode = OFF;
@@ -102,11 +96,6 @@ class SuperCap {
 
     // 容量辨识状态：窗口起点与窗口内累计量，参数 θ = [1/C, ESR] 与协方差 P
     struct {
-        const float min_charge = 1; // 每步最小充放电量，C
-        const float max_window = 1; // 窗口最长时间，s
-        const float lambda = 0.98f; // 遗忘因子，协方差迹小于初值时生效
-        const float p_init = 100;   // 初始协方差对角元
-
         float last_current = 0; // 上帧原始电容电流，A
         float voltage = 0;      // 窗口起点电容电压，V
         float current = 0;      // 窗口起点原始电容电流，A

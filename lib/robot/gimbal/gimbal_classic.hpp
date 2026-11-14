@@ -12,12 +12,6 @@ class GimbalClassic : public Gimbal {
   public:
     GimbalClassic(const Motors& motor, const Config& config);
 
-    void set_yaw_zero() override;
-
-    void load_yaw_offset(KvStore& kv_store) override;
-
-    void save_yaw_offset(KvStore& kv_store) override;
-
   private:
     void set_motors_enable(bool is_enable) override;
 

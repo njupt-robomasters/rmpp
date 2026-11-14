@@ -22,7 +22,8 @@ class Nav {
     } chassis_speed;
 
   private:
-    const float timeout;
+    const Config config;
+
     Timer chassis_speed_timer;
 
   public:
