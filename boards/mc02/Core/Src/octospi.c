@@ -193,3 +193,4 @@ void HAL_OSPI_MspDeInit(OSPI_HandleTypeDef* ospiHandle)
 /* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */
+

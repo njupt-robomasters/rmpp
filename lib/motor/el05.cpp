@@ -1,5 +1,6 @@
 #include "el05.hpp"
 #include <algorithm>
+#include <cmath>
 
 EL05::EL05(const Config& config)
     : Motor(config) {
@@ -7,79 +8,91 @@ EL05::EL05(const Config& config)
 }
 
 void EL05::send() {
-    // 失能或有故障时发停止帧；故障不自动清除，排查后重新上电或用上位机清除
-    if (!is_enable_ || fault != 0) {
-        send_stop();
+    if (fault != 0) {
+        enable_sent_ = false;
+        if (!has_fault_) {
+            has_fault_ = true;
+            clear_fault_timer_.restart();
+        }
+
+        // 手册第 52 页指令 5：F_CMD=FF 清错，应答为正常状态帧
+        if (clear_fault_timer_.elapsed() >= 0.5f) {
+            clear_fault_timer_.restart();
+            send_command(0xFB);
+            clear_fault_count++;
+        } else {
+            send_command(0xFD);
+        }
+        return;
+    }
+    has_fault_ = false;
+
+    if (!is_enable_) {
+        enable_sent_ = false;
+        send_command(0xFD);
         return;
     }
 
-    // 定期补发使能帧，电机回到复位模式后能重新进入运行
-    if (enable_timer_.elapsed() >= 1.0f / ENABLE_FREQUENCY) {
+    if (!enable_sent_ || enable_timer_.elapsed() >= 0.1f) {
         enable_timer_.restart();
-        send_enable();
+        enable_sent_ = true;
+        send_command(0xFC);
         return;
     }
 
+    // 默认不主动上报，周期控制帧用于获取反馈，离线或未运行时发零力矩
     send_torque();
 }
 
 void EL05::can_callback(const CanFrame& frame) {
-    // 只接收扩展帧反馈：通信类型 2，bit15~8 为电机 ID，bit7~0 为主机 ID
-    if (!frame.is_extend || frame.size != 8 || ((frame.id >> 24) & 0x1f) != FEEDBACK)
-        return;
-    if (((frame.id >> 8) & 0xff) != config.bus.tx_id || (frame.id & 0xff) != config.bus.rx_id)
+    if (frame.is_extend || frame.is_remote || frame.size != 8 ||
+        frame.id != config.bus.rx_id || frame.data[0] != config.bus.tx_id)
         return;
 
-    // bit21~16 故障，bit23~22 模式
-    fault = (frame.id >> 16) & 0x3f;
-    mode = static_cast<Mode>((frame.id >> 22) & 0x03);
-
-    // 大端序：角度、速度、力矩按量程线性映射，温度 0.1 ℃/LSB；角度为 ±4π 多圈，由 Motor 归一化
+    // 手册第 51 页应答指令 1，12 位速度/力矩，状态与温度共用 Byte6
     const auto* data = frame.data;
-    raw.position = decode((data[0] << 8) | data[1], P_MAX);
-    raw.speed = decode((data[2] << 8) | data[3], V_MAX);
-    raw.torque = decode((data[4] << 8) | data[5], T_MAX);
+    mode = static_cast<Mode>((data[6] >> 6) & 0x03);
+    fault = (data[6] >> 5) & 0x01;
+    warning = (data[6] >> 4) & 0x01;
+    raw.position = decode((data[1] << 8) | data[2], P_MAX, 16);
+    raw.speed = decode((data[3] << 4) | (data[4] >> 4), V_MAX, 12);
+    raw.torque = decode(((data[4] & 0x0F) << 8) | data[5], T_MAX, 12);
     raw.current = raw.torque / config.drive.kt;
-    temperature = static_cast<float>((data[6] << 8) | data[7]) / 10.0f;
+    temperature = static_cast<float>(((data[6] & 0x0F) << 8) | data[7]) / 10.0f;
 
-    // 调用上级回调
     Motor::can_callback();
 }
 
 void EL05::send_torque() const {
-    // 力矩指令放在扩展 ID 数据区 2；离线或电机未进入运行模式时发零力矩
     float torque = 0;
-    if (is_connect && mode == MOTOR_MODE)
+    if (is_connect && mode == MOTOR_MODE && fault == 0 && std::isfinite(torque_ref))
         torque = config.install.is_invert ? -torque_ref : torque_ref;
 
-    // 纯力矩运控：p、v 为零的量化编码固定，kp、kd 为零
-    const uint16_t position = encode(0, P_MAX);
-    const uint16_t speed = encode(0, V_MAX);
+    // 手册第 52 页指令 3：p16、v12、kp12、kd12、t12，MIT Kp/Kd 为零
+    const uint16_t p = encode(0, P_MAX, 16);
+    const uint16_t v = encode(0, V_MAX, 12);
+    const uint16_t t = encode(torque, T_MAX, 12);
     config.bus.can.send({
-        .id = extend_id(REMOTE_CONTROL, encode(torque, T_MAX)),
-        .is_extend = true,
+        .id = config.bus.tx_id,
         .size = 8,
-        .data = {static_cast<uint8_t>(position >> 8), static_cast<uint8_t>(position), static_cast<uint8_t>(speed >> 8), static_cast<uint8_t>(speed), 0, 0, 0, 0},
+        .data = {static_cast<uint8_t>(p >> 8), static_cast<uint8_t>(p),
+                 static_cast<uint8_t>(v >> 4), static_cast<uint8_t>((v & 0x0F) << 4),
+                 0, 0, static_cast<uint8_t>(t >> 8), static_cast<uint8_t>(t)},
     });
 }
 
-void EL05::send_enable() const {
-    config.bus.can.send({.id = extend_id(ENABLE, config.bus.rx_id), .is_extend = true, .size = 8});
+void EL05::send_command(const uint8_t command) const {
+    config.bus.can.send({
+        .id = config.bus.tx_id,
+        .size = 8,
+        .data = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, command},
+    });
 }
 
-void EL05::send_stop() const {
-    // data[0] 为 1 时同时清除故障，这里不清除
-    config.bus.can.send({.id = extend_id(STOP, config.bus.rx_id), .is_extend = true, .size = 8});
+float EL05::decode(const uint16_t value, const float maximum, const uint8_t bits) {
+    return static_cast<float>(value) * (2 * maximum) / ((1U << bits) - 1U) - maximum;
 }
 
-uint32_t EL05::extend_id(const Type type, const uint16_t data) const {
-    return (static_cast<uint32_t>(type & 0x1f) << 24) | (static_cast<uint32_t>(data) << 8) | (config.bus.tx_id & 0xff);
-}
-
-float EL05::decode(const uint16_t value, const float maximum) {
-    return static_cast<float>(value) * (2 * maximum) / 65535.0f - maximum;
-}
-
-uint16_t EL05::encode(const float value, const float maximum) {
-    return static_cast<uint16_t>((std::clamp(value, -maximum, maximum) + maximum) * 65535.0f / (2 * maximum));
+uint16_t EL05::encode(const float value, const float maximum, const uint8_t bits) {
+    return static_cast<uint16_t>((std::clamp(value, -maximum, maximum) + maximum) * ((1U << bits) - 1U) / (2 * maximum));
 }

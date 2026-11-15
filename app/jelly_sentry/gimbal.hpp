@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include "pid/pid.hpp"
 
 #include "bsp/can.hpp"
@@ -14,11 +16,11 @@
 // 惯性测量单元与姿态解算：MC02 倒装在 pitch2 云台头上
 // orientation：传感器到机体的安装旋转，Z-Y-X 欧拉角
 // 旧框架实测为绕左右轴翻转 180°（旧 pitch = 180°）；旧安装矩阵为 Rz(-yaw) Rx(pitch) Ry(roll)，同一物理旋转即新 roll = 180°
-// 新框架 attitude.pitch 绕机体 Y 轴（旧框架绕 X），与上游 hero 迁移一致未重排机体轴
-// TODO: 上车确认枪管水平时 attitude.pitch / roll 接近 0°，抬枪口时 attitude.pitch 增大；不对时加 yaw = ±90° 使俯仰轴对齐机体 Y
+// 新框架 attitude.pitch 绕机体 Y 轴（旧框架绕 X）；实测只加 roll = 180° 时抬枪口变化的是 attitude.roll
+// 再绕 Z 转 -90° 重排机体轴，使俯仰轴对齐机体 Y；实测抬枪口时 attitude.pitch 与 pitch2.position 同向变化
 // gyro_offset、gravity：用 jelly_sentry_debug-imu_calib 校准后填入；未校准时为 0 与 9.81
 // temperature：调试阶段频繁 halt，沿用旧框架做法关闭加热（目标 0 ℃）；调试结束后改为 50，并在恒温下重新校准零偏
-inline Imu imu({.orientation = euler_to_quaternion({.yaw = 0 * deg, .pitch = 0 * deg, .roll = 180 * deg}),
+inline Imu imu({.orientation = euler_to_quaternion({.yaw = -90 * deg, .pitch = 0 * deg, .roll = 180 * deg}),
                 .gyro_offset = Vector3f(0.0f, 0.0f, 0.0f),
                 .gravity = 9.81f,
                 .temperature = 0.0f});
@@ -41,7 +43,7 @@ inline Pid::Config yaw1_position_pid = {
     .max_out = 720 * deg_s,
 };
 inline DM4310 yaw1({
-    .bus = {.can = Can(1), .tx_id = 0x01, .rx_id = 0x11},
+    .bus = {.can = Can(1), .tx_id = 0x10, .rx_id = 0x20},
     .drive = {.max_torque = DM4310::MAX_TORQUE, .kt = DM4310::KT, .reduction = DM4310::REDUCTION},
     .install = {.is_invert = false},
 });
@@ -60,6 +62,8 @@ inline Pid::Config yaw2_position_pid = {
     .max_out = 720 * deg_s,
 };
 // TODO: 上车确认方向；offset 为小 yaw 回中时的原始角度，也可用上位机把当前位置写为电机零点
+// 运行时可写发送周期，单位 ms；主循环约 1 ms，7025 建议取 2~99
+inline volatile uint32_t yaw2_send_period_ms = 2;
 inline RMDL7025 yaw2({
     .bus = {.can = Can(2), .tx_id = 0x141, .rx_id = 0x241},
     .drive = {.max_current = RMDL7025::MAX_CURRENT, .max_torque = RMDL7025::MAX_TORQUE, .kt = RMDL7025::KT, .reduction = RMDL7025::REDUCTION},
@@ -80,17 +84,20 @@ inline Pid::Config pitch1_position_pid = {
     .max_out = 90 * deg_s,
 };
 // TODO: 上车确认方向；offset 为展开（工作姿态）时的原始角度
+// 运行时可写发送周期，单位 ms，建议取 1~99，避免超过反馈超时
+inline volatile uint32_t pitch1_send_period_ms = 4;
 inline DM4310 pitch1({
-    .bus = {.can = Can(2), .tx_id = 0x11, .rx_id = 0x10},
+    .bus = {.can = Can(2), .tx_id = 0x10, .rx_id = 0x20},
     .drive = {.max_torque = DM4310::MAX_TORQUE, .kt = DM4310::KT, .reduction = DM4310::REDUCTION},
     .install = {.is_invert = false, .offset = 0 * deg},
 });
 
 // pitch2：俯仰轴，DM4310，CAN2，IMU 装在其上，走 ECD / IMU 模式
 inline Pid::Config pitch2_speed_pid = {
-    .kp = (1.2f) / (150 * deg_s),
-    .ki = (0.3f) / (150 * deg),
-    .kd = (0.5f) / (1000 * deg_ss),
+    .kp = (0.8f) / (150 * deg_s),
+    .ki = (0.03f) / (150 * deg),
+    .kd = (0.01f) / (1000 * deg_ss),
+    .ff = -1.2f,
     .max_i = 0.3f,
     .max_out = 4.0f,
     .err_fc = 10,
@@ -100,8 +107,10 @@ inline Pid::Config pitch2_position_pid = {
     .max_out = 720 * deg_s,
 };
 // offset 为枪管水平时的原始角度（实测）；TODO: 上车确认方向
+// 运行时可写发送周期，单位 ms，建议取 1~99，避免超过反馈超时
+inline volatile uint32_t pitch2_send_period_ms = 1;
 inline DM4310 pitch2({
-    .bus = {.can = Can(2), .tx_id = 0x13, .rx_id = 0x12},
+    .bus = {.can = Can(2), .tx_id = 0x11, .rx_id = 0x21},
     .drive = {.max_torque = DM4310::MAX_TORQUE, .kt = DM4310::KT, .reduction = DM4310::REDUCTION},
     .install = {.is_invert = false, .offset = -61.3f * deg},
 });
@@ -116,7 +125,7 @@ inline GimbalFold gimbal(attitude, {yaw1, yaw2, pitch1, pitch2}, {
                                                                           .yaw_output = Gimbal::TORQUE_OUTPUT,
                                                                           .pitch_output = Gimbal::TORQUE_OUTPUT,
                                                                           .pitch_min = -22 * deg,
-                                                                          .pitch_max = 15 * deg,
+                                                                          .pitch_max = 25 * deg,
                                                                           .is_pitch_limit = true,
                                                                       },
                                                                       .yaw2 = {

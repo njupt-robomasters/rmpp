@@ -10,13 +10,14 @@
 // 默认测试 pitch2（俯仰，DM4310，力矩输出）；换电机时修改：
 // - motor 的类型与对象、speed_pid、position_pid 改为对应电机与参数（yaw1 / pitch1 为 DM4310，yaw2 为 RMDL7025）
 // - IS_TORQUE_OUTPUT：yaw2（7025）为电流输出，其余为力矩输出
-// - 测试 yaw2 时把循环周期改为 2 ms（7025 应答上限 500 Hz）
+// - send_period_ms 绑定对应电机的发送周期；测试 yaw2 时绑定 yaw2_send_period_ms，控制计算仍为 1 kHz
 // 调试器观察 position_ref、motor.position、motor.speed、motor.torque_ref / current_ref
 
 static constexpr float MAX_SPEED = 360 * deg_s; // 摇杆满打时的目标转速，rad/s
 static constexpr bool IS_TORQUE_OUTPUT = true;  // true 力矩输出（DM4310），false 电流输出（7025）
 
 static DM4310& motor = pitch2;
+static volatile uint32_t& send_period_ms = pitch2_send_period_ms;
 static Pid speed_pid(&pitch2_speed_pid);
 static Pid position_pid(&pitch2_position_pid);
 
@@ -35,6 +36,7 @@ static bool rc_enable() {
 
 extern "C" void app_main() {
     Timer loop_timer;
+    uint32_t send_divider = 0;
     while (true) {
         if (loop_timer.elapsed() < 1 * ms)
             continue;
@@ -69,6 +71,9 @@ extern "C" void app_main() {
             }
         }
 
-        motor.send();
+        if (++send_divider >= send_period_ms) {
+            send_divider = 0;
+            motor.send();
+        }
     }
 }

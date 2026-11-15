@@ -31,9 +31,10 @@ agents/
 
 ## 任务索引
 
-- `01-mc02_bsp/`：mc02 BSP 适配、C 板外设类重构、CherryUSB、`lib/attitude`；复现构建与待上板验证项
+- `01-mc02_bsp/`：mc02 BSP 适配、C 板外设类重构、CherryUSB、`lib/attitude`；复现构建、EL05 MIT 接入、CAN2 降载、7025/PCAN ID 干扰分析与待上板验证项
 - `02-buzzer_timbre/`：蜂鸣器复音 PWM-DAC 音色探索与样机归档；正式实现在 `lib/melody`
 - `03-quad_steer/`：底盘重构（四舵移植、矩阵底盘、统一功率控制）、PID 回算、UI 下放、机构库掉线处理；已确认决定与上车核对项
 - `04-leg_chassis/`：轮腿底盘从 SOLDIER_LEG_4 迁移；IMU 极性核查、电机映射与虚拟 IMU 方案
 - `05-dummy_target/`：PR #3 靶车移植到 `app/dummy`；映射、删减与上车核对项
 - `06-super_cap_capacitance/`：超电在线容量/ESR 辨识（RLS）与虚拟缓冲能量功率控制；主机仿真与上车核对项
+- `12-upstream_merge_review/`：上游合并预检；隔离模拟冲突、EL05/折叠云台接口迁移与 CAN2 配置核对（07–11 已由上游使用）

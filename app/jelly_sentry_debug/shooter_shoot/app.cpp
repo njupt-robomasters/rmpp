@@ -4,10 +4,10 @@
 #include "rc/fsi6x.hpp"
 #include "rc/vt13.hpp"
 
-// 拨弹电机单独测试（灵足 EL05，CAN3 扩展帧）：不经过发射机构，不要求摩擦轮开启
+// 拨弹电机单独测试（灵足 EL05，CAN2 MIT 标准帧）：不经过发射机构，不要求摩擦轮开启
 // 右手水平摇杆控制拨弹转速，满打对应 BULLET_FREQ；速度环使用整车 shoot_pid，输出力矩
 // 使能：VT13 N、S 挡，或 FSi6X SWC 中、下挡
-// 调试器观察 shoot.speed、shoot.torque、shoot.mode、shoot.fault，核对方向与扩展帧解析
+// 调试器观察 shoot.speed、shoot.torque、shoot.mode、shoot.fault，核对方向与 MIT 标准帧解析
 
 static constexpr float BULLET_FREQ = 20.0f;    // 弹频，发/秒
 static constexpr float BULLET_PER_ANGLE = 9.0f / rev; // 与整车发射机构一致，发/rad
@@ -24,6 +24,7 @@ static bool rc_enable() {
 
 extern "C" void app_main() {
     Timer loop_timer;
+    uint32_t shoot_divider = 0;
     while (true) {
         if (loop_timer.elapsed() < 1 * ms)
             continue;
@@ -44,6 +45,10 @@ extern "C" void app_main() {
             shoot.set_current(0);
         }
 
-        shoot.send();
+        // 控制计算保持 1 kHz，发送周期与整车 shoot_send_period_ms 共用
+        if (++shoot_divider >= shoot_send_period_ms) {
+            shoot_divider = 0;
+            shoot.send();
+        }
     }
 }

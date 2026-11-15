@@ -106,4 +106,12 @@
 
 ## 后续任务
 
+- 上游合并预检（2026-11-15）：origin/master@f3b8e14；本地含未提交改动模拟合并有 4 个冲突文件，另需迁移 EL05、GimbalFold、jelly_sentry 与调试入口的新接口；CAN2 自动重发配置存在分歧，由用户操作 .ioc/生成文件。尚未实际合并，详见 `tasks/12-upstream_merge_review/README.md`
 - VQF 姿态算法：原样引入官方 C++ 实现（确认单精度选项），封装 `Vqf` 与 `QuaternionEkf` 并列
+
+## jelly_sentry EL05 / CAN2 调试
+
+- 7025 + PCAN 独立总线出现部分 ID 引起反馈间隔从稳定 2 ms 跳至十几 ms：PCAN 交替发送电流控制和位置查询；用户确认干扰帧仅改变 ID，其他发送配置相同、一次只测一个 ID。待核对总线上真实请求间隔、分命令应答数与错误帧；优先对照 CANID 滤波器开关。V4.3 协议 0x20/index=0x02 为滤波器，示例文字误写 0x01（实际为清零）；尚未发送设置或确认根因
+- EL05 已按用户参数改为 CAN2 MIT 0x12/0x22，局部编译通过；详见 tasks/01-mc02_bsp/README.md
+- 两个4310在接入EL05后丢反馈的实机原因未确认；EmberProbe仍从旧工作区uart2can-master查找桥接，需同步会话工作目录到rmpp后读取总线错误状态
+- 本轮未完整链接、烧录、复位或硬件验证；待用户审计与台架测试
