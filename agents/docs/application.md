@@ -11,7 +11,7 @@
 - yaw 校零与偏移持久化在 app 直接操作电机和 KvStore：infantry 使用 yaw，sentry 使用 yaw1；启动将 `yaw_offset` 读入 `motor.config.offset`，校准时按当前输出轴角度、方向与减速比更新 offset，随后保存；两处 yaw 减速比均为 1
 - lib 不为车型策略保留开关或流程
 - 发射机构、底盘、超级电容、遥控器、裁判通信与 MiniPC 通信按值保存只读 `Config`，直接读取配置字段；PID 状态、运动学矩阵、校准值与其他运行状态独立保存，超级电容 RLS 的固定参数读取 `config.rls`
-- 云台按值保存只读 `Config`，俯仰软件限位始终启用，各实例通过 `pitch_min`、`pitch_max` 配置编码器角度范围
+- `GimbalClassic` 与 `GimbalDualYaw` 独立实现，各自提供同名的 `Config`、`Mode`、`set_*` 和 `update()`，同类状态沿用一致名称；控制流程直接在各自 `update()` 中展开，按值保存只读 `Config`，俯仰软件限位始终启用，各实例通过 `pitch_min`、`pitch_max` 配置编码器角度范围
 - `GimbalClassic` 在 ECD 模式同步 yaw 的 IMU 目标，pitch 的 IMU 目标统一在编码器目标限位后回写
 - 云台和 17/42 mm 发射机构通过 `Motor::set_output()` 设置原生输出，PID 单位和限幅由 app 按电机配置，省去外部 `track()` 回算；PID 自身的输出限幅与积分回算保留
 - 双 yaw 共用速度 PID 输出，各电机按自身原生单位接收同一数值；sentry 的 DM4310 为 N·m、GM6020 为 A，参数待实车整定

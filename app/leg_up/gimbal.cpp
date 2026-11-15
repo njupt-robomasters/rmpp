@@ -9,7 +9,7 @@ void gimbal_loop() {
     attitude.update();
 
     gimbal.set_enable(vt13.is_connect && (vt13.mode == VT13::N || vt13.mode == VT13::S));
-    gimbal.set_mode(Gimbal::ECD_MODE);
+    gimbal.set_mode(GimbalClassic::ECD_MODE);
 
     // 摇杆：射击开关打开时 pitch 摇杆改为调节弹频，不再控制云台
     const float yaw_speed = YAW_SPEED_MAX * (vt13.yaw + vt13.mouse.yaw);

@@ -29,3 +29,22 @@ python agents/tasks/11-shooter_state/verify.py --cxx g++ --arm-build build/leg_u
 sentry 双 yaw 共用一个速度 PID，DM4310 按 N·m、GM6020 按 A 接收同一输出数值；保留现有参数，待用户实车整定。leg_up 的 GM6020 pitch 现在按电流接收 PID 输出。
 
 任务 10 的布局差分测试保留当时的输出类型接口，作为历史重构记录；本轮行为由本目录测试验证。
+
+## 云台独立实现
+
+- 外部 worktree：`../rmpp-gimbal-standalone`，分支 `gimbal_standalone`，基线 `f3b8e14`
+- 删除 `Gimbal` 基类与 `gimbal.{hpp,cpp}`；`GimbalClassic`、`GimbalDualYaw` 各自持有配置、电机引用、PID、指令和跨周期状态，主要流程在 `update()` 中展开
+- 两类统一 `Config` 字段、`Mode` 枚举、`set_*`、`update()`、公共观测量及内部同类变量名称；示例改用 `GimbalClassic::IMU_MODE`
+- 沿用主工作区已有的 `Config` 声明与实例紧邻、速度直接乘 dt 的简化；主工作区两处未提交改动保持原样
+- 保留模式切换、限位、参考系换算、掉线恢复、PID 和双 yaw 输出行为；双 yaw 按大 yaw 目标回写 IMU 目标的运算顺序保持原样，避免浮点误差跨周期累积
+- `verify_gimbal.py` 将基线类更名后与真实当前源码一起编译，模拟相同电机反馈、指令和时钟，比较每周期目标、实测、参考系差值和电机输出
+
+复现：
+
+```sh
+python agents/tasks/11-shooter_state/verify_gimbal.py --cxx g++
+```
+
+默认对照已提交基线；`--baseline-root <目录>` 可对照指定工作区的实际文件。本轮对照主工作区，12,000 周期、186,000 项比较通过，覆盖 ECD/IMU 模式切换、速度积分、角度设置、限位、失能恢复、反馈超时、双 yaw 单侧在线、角度回绕及 dt 上下限。
+
+ARM 对象编译通过且无警告：两个云台源码，以及 `leg_up`、`infantry`、`sentry`、`examples-gimbal` 的全部应用源码，共 16 个对象。clang-format 与 `git diff --check` 通过；日志和测试产物位于 `out/gimbal_standalone/`。本轮未执行完整固件链接和硬件操作，改动留在外部 worktree 供审计。

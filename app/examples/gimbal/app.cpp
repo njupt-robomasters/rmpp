@@ -6,8 +6,8 @@
 #include "rc/vt13.hpp"
 #include <algorithm>
 
-static constexpr float YAW_SPEED_MAX = 360 * deg_s;   // yaw 最大角速度，rad/s
-static constexpr float WPITCH_MAX = 360 * deg_s; // pitch 最大角速度，rad/s
+static constexpr float YAW_SPEED_MAX = 360 * deg_s; // yaw 最大角速度，rad/s
+static constexpr float WPITCH_MAX = 360 * deg_s;    // pitch 最大角速度，rad/s
 
 static VT13 vt13({.uart = Uart(6)});
 static FSi6X fsi6x({.uart = Uart(3)});
@@ -27,7 +27,7 @@ void send_can_cmd() {
 }
 
 static void setup() {
-    gimbal.set_mode(Gimbal::IMU_MODE);
+    gimbal.set_mode(GimbalClassic::IMU_MODE);
 }
 
 static void loop() {
