@@ -5,13 +5,13 @@
 ## 构造与配置
 
 - 各层使用平面的 Motor::Config 构造输入，按通信、量程与减速比、安装方向与零点分组
-- 实例直接保存字段，删除 bus/drive/install/raw 结构层；型号 MAX_CURRENT、MAX_TORQUE、REDUCTION 传入 Motor 构造函数补齐零值
+- 实例按值保存一份公开的 `Config config`，通信、超时、量程、减速比、方向和零点直接读取 config，不再逐项保存同名成员；型号 MAX_CURRENT、MAX_TORQUE、REDUCTION 传入 Motor 构造函数补齐 config 中的零值
 - VESC 无固定型号，app 显式给出 max_current、max_torque、reduction；摩擦轮按 M3508 常量
-- 固定量程和硬件绑定加 const；max_current、max_torque 供机构计算，offset 供零点存储，外部只读；offset 经 set_offset()/set_zero() 修改
+- 外部经 `motor.config.max_current/max_torque` 读取量程，经 `motor.config.offset` 维护和存储零点；其余配置在构造后保持固定，CAN 回调仍注册在构造时的总线上
 - 不保存 kt，电流与力矩按 max_torque/max_current 换算；限流交给 PID max_out
 - 减速比与型号不同时同时给出 max_torque；自行发送的协议使用 tx_id/rx_id，DJI 组帧只需 rx_id
 - 原始反馈为 protected raw_current/raw_torque/raw_speed/raw_position；仅供 SWD 的温度等诊断字段使用 private
-- Config 仅用于构造输入，实例无 Config 成员；布局见 conventions.md
+- 电机库不提供 `set_offset()`、`set_zero()`；校零策略由 app 维护，布局见 conventions.md
 
 ## 基类与子类
 
@@ -29,6 +29,9 @@
 
 ## 零值与限幅
 
+- `set_output()` 返回 void，按协议原生输出设置：基类调用虚函数 `set_current()`（A），DM 系列覆盖为 `set_torque()`（N·m）；保留显式电流、力矩接口
+- RMDL7025 的 0xA1 输入为电流；GM6020 默认输出仍为电流，电压帧沿用发送层换算；VESC 命令更新与 X630 静音继续经原设置接口执行
+- 使用默认输出的机构由 app 配置 PID 输出单位和限幅，电机设置函数保留量程限幅
 - 量程与减速比零值字段按型号常量补齐
 - `set_current()` 先将非有限值置零，再按 `max_current` 限幅并换算转矩
 - `set_torque()` 先将非有限值置零，再按 `max_torque` 限幅并换算电流

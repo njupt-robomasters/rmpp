@@ -39,8 +39,8 @@ void gimbal_loop() {
                        (fsi6x.swc == FSi6X::UP && fsi6x.swa == FSi6X::DOWN && fsi6x.swd == FSi6X::DOWN);
     if (calib && !last_calib) {
         if (yaw1.is_connect)
-            yaw1.set_zero();
-        kv_store.write("yaw_offset", yaw1.offset);
+            yaw1.config.offset += (yaw1.config.is_invert ? -yaw1.position : yaw1.position) * yaw1.config.reduction;
+        kv_store.write("yaw_offset", yaw1.config.offset);
         melody.play(G5G5G5);
     }
     last_calib = calib;

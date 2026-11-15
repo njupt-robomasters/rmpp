@@ -46,16 +46,16 @@ void GimbalClassic::backward(const float dt) {
     // yaw 串级 PID
     if (can_yaw) {
         const float speed_ref = yaw_position_pid.calculate(dt, yaw.ecd.ref - yaw.ecd.measure) - chassis_wr + yaw_speed;
-        set_output(motor.yaw, config.yaw_output, yaw_speed_pid.calculate(dt, speed_ref - motor.yaw.speed));
+        motor.yaw.set_output(yaw_speed_pid.calculate(dt, speed_ref - motor.yaw.speed));
     } else {
-        motor.yaw.set_current(0);
+        motor.yaw.set_output(0);
     }
 
     // pitch 串级 PID
     if (can_pitch) {
         const float speed_ref = pitch_position_pid.calculate(dt, pitch.ecd.ref - pitch.ecd.measure) + pitch_speed;
-        set_output(motor.pitch, config.pitch_output, pitch_speed_pid.calculate(dt, speed_ref - motor.pitch.speed));
+        motor.pitch.set_output(pitch_speed_pid.calculate(dt, speed_ref - motor.pitch.speed));
     } else {
-        motor.pitch.set_current(0);
+        motor.pitch.set_output(0);
     }
 }

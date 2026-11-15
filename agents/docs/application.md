@@ -8,12 +8,16 @@
 - lib 接收句柄或引用
 - 板卡 BSP 实现外设
 - 校准组合键、断联保持使能等车型策略在 app 展开
-- yaw 校零与偏移持久化在 app 直接操作电机和 KvStore：infantry 使用 yaw，sentry 使用 yaw1；启动读取 `yaw_offset`，校准时在线电机执行 `set_zero()`，随后保存偏移
+- yaw 校零与偏移持久化在 app 直接操作电机和 KvStore：infantry 使用 yaw，sentry 使用 yaw1；启动将 `yaw_offset` 读入 `motor.config.offset`，校准时按当前输出轴角度、方向与减速比更新 offset，随后保存；两处 yaw 减速比均为 1
 - lib 不为车型策略保留开关或流程
 - 发射机构、底盘、超级电容、遥控器、裁判通信与 MiniPC 通信按值保存只读 `Config`，直接读取配置字段；PID 状态、运动学矩阵、校准值与其他运行状态独立保存，超级电容 RLS 的固定参数读取 `config.rls`
-- 云台按值保存只读 `Config`，闭环输出类型与俯仰限位直接读取 `config`，不另存同名字段；俯仰软件限位始终启用，各实例通过 `pitch_min`、`pitch_max` 配置编码器角度范围
+- 云台按值保存只读 `Config`，俯仰软件限位始终启用，各实例通过 `pitch_min`、`pitch_max` 配置编码器角度范围
 - `GimbalClassic` 在 ECD 模式同步 yaw 的 IMU 目标，pitch 的 IMU 目标统一在编码器目标限位后回写
-- `GimbalClassic` 的速度 PID 输出范围由调用方配置在对应电机的电流或力矩允许范围内，输出直接交给电机，省去外部 `track()` 回算；PID 自身的输出限幅与积分回算保留
+- 云台和 17/42 mm 发射机构通过 `Motor::set_output()` 设置原生输出，PID 单位和限幅由 app 按电机配置，省去外部 `track()` 回算；PID 自身的输出限幅与积分回算保留
+- 双 yaw 共用速度 PID 输出，各电机按自身原生单位接收同一数值；sentry 的 DM4310 为 N·m、GM6020 为 A，参数待实车整定
+- 17 mm 拨弹在 `update()` 内使用 STOP/FEED/REVERSE 状态机，失能、热量保护、零弹频或拨弹离线优先停止；拨弹独立于摩擦轮开关和在线状态
+- 卡弹检测与退弹分别用 `block_elapsed`、`reverse_elapsed` 累加限幅后的 `dt`；连续命令电流饱和达到 `block_time` 后反向运行 `reverse_time`，方向和速度跟随当前有符号弹频；STOP 清累计时间，使能时保持零速度闭环，失能时输出零电流并清 PID
+- 17 mm 拨弹先由状态机确定目标速度，再统一计算速度 PID；FEED 使用上一周期命令电流检测卡弹，状态切换在下一周期改变目标速度
 
 ## 启动与循环
 

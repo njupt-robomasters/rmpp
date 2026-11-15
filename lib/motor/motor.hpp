@@ -5,7 +5,7 @@
 
 class Motor {
   public:
-    // 仅用于构造，零量程与减速比取型号默认值
+    // 零量程与减速比在构造时取型号默认值；零点由外部维护
     struct Config {
         Can can;
         uint32_t tx_id = 0, rx_id = 0;
@@ -27,23 +27,7 @@ class Motor {
     float speed = 0;
     float position = 0;
 
-  private:
-    float position_multi = 0;
-
-  public:
-    float offset;
-
-    // 成对满量程，电流与力矩按二者之比换算；限流交给 PID max_out
-    const float max_current, max_torque;
-
-  protected:
-    const Can can;
-    const uint32_t tx_id, rx_id;
-    const bool is_invert;
-    const float reduction;
-
-  private:
-    const float timeout;
+    Config config;
 
   protected:
     bool is_enable = false;
@@ -60,14 +44,12 @@ class Motor {
   public:
     virtual void set_enable(bool is_enable);
 
+    // 设置原生输出：默认电流 A，DM 系列为力矩 N·m；PID 输出单位和限幅由 app 配置
+    virtual void set_output(float output);
+
     virtual void set_current(float current);
 
     virtual void set_torque(float torque);
-
-    void set_offset(float offset);
-
-    // 以当前位置为零点：按多圈位置换算并修改 offset
-    void set_zero();
 
     // 每个控制周期调用，检查反馈是否超时
     void update();

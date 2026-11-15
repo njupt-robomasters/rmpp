@@ -8,13 +8,13 @@ Vesc::Vesc(const Motor::Config& config)
 
 void Vesc::set_current(const float current) {
     Motor::set_current(current);
-    const float direction = is_invert ? -1.0f : 1.0f;
+    const float direction = config.is_invert ? -1.0f : 1.0f;
     set_int32(CAN_PACKET_SET_CURRENT, encode32(direction * current_ref, 1000));
 }
 
 void Vesc::set_torque(const float torque) {
     Motor::set_torque(torque);
-    const float direction = is_invert ? -1.0f : 1.0f;
+    const float direction = config.is_invert ? -1.0f : 1.0f;
     set_int32(CAN_PACKET_SET_CURRENT, encode32(direction * current_ref, 1000));
 }
 
@@ -27,13 +27,13 @@ void Vesc::set_current_brake(const float current) {
 }
 
 void Vesc::set_speed(const float speed) {
-    const float direction = is_invert ? -1.0f : 1.0f;
-    set_int32(CAN_PACKET_SET_RPM, encode32(direction * speed / rpm * reduction, 1));
+    const float direction = config.is_invert ? -1.0f : 1.0f;
+    set_int32(CAN_PACKET_SET_RPM, encode32(direction * speed / rpm * config.reduction, 1));
 }
 
 void Vesc::set_position(const float position) {
-    const float direction = is_invert ? -1.0f : 1.0f;
-    set_int32(CAN_PACKET_SET_POS, encode32(direction * position / deg * reduction, 1000000));
+    const float direction = config.is_invert ? -1.0f : 1.0f;
+    set_int32(CAN_PACKET_SET_POS, encode32(direction * position / deg * config.reduction, 1000000));
 }
 
 void Vesc::set_current_relative(const float current) {
@@ -74,14 +74,14 @@ void Vesc::send() const {
         data[2] = static_cast<uint8_t>(current >> 8);
         data[3] = static_cast<uint8_t>(current);
     }
-    can.send({.id = tx_id | (static_cast<uint32_t>(command) << 8),
-              .is_extend = true,
-              .size = size,
-              .data = {data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]}});
+    config.can.send({.id = config.tx_id | (static_cast<uint32_t>(command) << 8),
+                     .is_extend = true,
+                     .size = size,
+                     .data = {data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]}});
 }
 
 void Vesc::can_callback(const CanFrame& frame) {
-    if ((frame.id & 0xff) != rx_id || frame.size != 8)
+    if ((frame.id & 0xff) != config.rx_id || frame.size != 8)
         return;
 
     const auto status = static_cast<Status>(frame.id >> 8);
@@ -90,7 +90,7 @@ void Vesc::can_callback(const CanFrame& frame) {
     case CAN_PACKET_STATUS:
         raw_speed = static_cast<float>(read32(data)) * rpm;
         raw_current = static_cast<float>(read16(data + 4)) / 10.0f;
-        raw_torque = raw_current / max_current * max_torque;
+        raw_torque = raw_current / config.max_current * config.max_torque;
         duty_cycle = static_cast<float>(read16(data + 6)) / 1000.0f * pct;
         break;
     case CAN_PACKET_STATUS_2:

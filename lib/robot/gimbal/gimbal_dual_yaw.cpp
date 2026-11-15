@@ -1,6 +1,5 @@
 #include "gimbal_dual_yaw.hpp"
 #include <algorithm>
-#include <cmath>
 
 GimbalDualYaw::GimbalDualYaw(const Motors& motor, const Config& config)
     : Gimbal(config),
@@ -62,27 +61,19 @@ void GimbalDualYaw::backward(const float dt) {
         const float speed = motor.yaw1.is_connect ? motor.yaw1.speed : motor.yaw2.speed;
         const float speed_ref = yaw_position_pid.calculate(dt, yaw.ecd.ref - yaw.ecd.measure) - chassis_wr + yaw_speed;
         const float output = yaw_speed_pid.calculate(dt, speed_ref - speed);
-        const float output1 = set_output(motor.yaw1, config.yaw_output, motor.yaw1.is_connect ? output : 0.0f);
-        const float output2 = set_output(motor.yaw2, config.yaw_output, motor.yaw2.is_connect ? output : 0.0f);
-
-        // PID 跟踪在线电机中被限幅更多的实际输出
-        if (!motor.yaw1.is_connect)
-            yaw_speed_pid.track(output2);
-        else if (!motor.yaw2.is_connect || std::fabs(output1) < std::fabs(output2))
-            yaw_speed_pid.track(output1);
-        else
-            yaw_speed_pid.track(output2);
+        motor.yaw1.set_output(motor.yaw1.is_connect ? output : 0.0f);
+        motor.yaw2.set_output(motor.yaw2.is_connect ? output : 0.0f);
     } else {
-        motor.yaw1.set_current(0);
-        motor.yaw2.set_current(0);
+        motor.yaw1.set_output(0);
+        motor.yaw2.set_output(0);
     }
 
     // pitch 串级 PID
     if (can_pitch) {
         const float speed_ref = pitch_position_pid.calculate(dt, pitch.ecd.ref - pitch.ecd.measure) + pitch_speed;
-        pitch_speed_pid.track(set_output(motor.pitch, config.pitch_output, pitch_speed_pid.calculate(dt, speed_ref - motor.pitch.speed)));
+        motor.pitch.set_output(pitch_speed_pid.calculate(dt, speed_ref - motor.pitch.speed));
     } else {
-        motor.pitch.set_current(0);
+        motor.pitch.set_output(0);
     }
 
     // 传递软件限位到imu参考系

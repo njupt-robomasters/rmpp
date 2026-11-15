@@ -231,7 +231,7 @@ void ChassisSteerTorque::control(const float dt) {
     Vector4f current_xy, current_z;
     for (int i = 0; i < 4; i++) {
         const auto& drive = *wheel[i];
-        const float k = can_drive(i) ? config.wheel_radius * drive.max_current / drive.max_torque : 0.0f;
+        const float k = can_drive(i) ? config.wheel_radius * drive.config.max_current / drive.config.max_torque : 0.0f;
         current_xy[i] = f_xy[i] * k;
         current_z[i] = f_z[i] * k;
     }

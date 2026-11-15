@@ -33,6 +33,9 @@ class DmMotor : public Motor {
     Timer enable_timer;
 
   public:
+    // MIT 协议原生输出力矩，N·m
+    void set_output(float output) override;
+
     // 按状态发送失能、清错、周期使能或 MIT 力矩帧
     void send();
 

@@ -31,7 +31,7 @@ inline M3508 shoot({
 
 // 拨弹电机 PID 参数
 inline Pid::Config shoot_pid_config = {
-    .kp = M3508::MAX_CURRENT / (60 * rpm),
+    .kp = 4.0f,
     .max_out = M3508::MAX_CURRENT,
 };
 
@@ -39,7 +39,7 @@ inline Pid::Config shoot_pid_config = {
 inline Shooter17mm shooter({rub1, rub2, shoot},
                            {
                                .shoot_pid_config = &shoot_pid_config,
-                               .bullet_per_angle = 10.0f / rev,
+                               .bullet_per_angle = 10.0f / 56.0f * 22.0f / rev,
                            });
 
 void shooter_loop();

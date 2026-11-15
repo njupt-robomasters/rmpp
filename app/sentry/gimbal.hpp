@@ -30,7 +30,7 @@ inline QuaternionEkf attitude(imu, {});
 // #define pitch motor
 
 // 大yaw电机：由 MF9025 换为 DM4310，CAN ID、PID 与安装方向待实车整定
-// GimbalDualYaw 的 yaw_output 同时作用于大小 yaw，大 yaw 为 DM4310、小 yaw 为 GM6020，输出类型待调整
+// 共用 yaw PID 输出：大 yaw 按 N·m、小 yaw 按 A 解释，参数待实车整定
 inline Pid::Config yaw1_pid = {
     .kp = (9) / (1.8 * deg),
     .kd = (9) / (18 * deg_s),
@@ -86,7 +86,6 @@ inline GimbalDualYaw gimbal({yaw1, yaw2, pitch}, {
                                                      .yaw_position_pid_config = &yaw2_angle_pid,
                                                      .pitch_speed_pid_config = &pitch_speed_pid,
                                                      .pitch_position_pid_config = &pitch_angle_pid,
-                                                     .pitch_output = Gimbal::TORQUE_OUTPUT,
                                                      .pitch_min = -22 * deg,
                                                      .pitch_max = 15 * deg,
                                                  });

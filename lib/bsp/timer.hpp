@@ -5,6 +5,7 @@
 // 基于 64 位 CPU 周期计数的计时器；不限幅，积分步长由调用方按用途限幅
 class Timer {
   private:
+    float dt = 0; // 最后一次 restart() 的原始间隔，单位 s，供调试观察
     uint64_t last_cycles = 0;
 
   public:

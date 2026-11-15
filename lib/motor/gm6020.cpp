@@ -21,12 +21,12 @@ void GM6020::write_can_frame(CanFrame& frame) const {
     } else {
         return;
     }
-    if (frame.size != 8 || rx_id < first_id || rx_id >= first_id + motor_count)
+    if (frame.size != 8 || config.rx_id < first_id || config.rx_id >= first_id + motor_count)
         return;
-    const uint8_t offset = static_cast<uint8_t>(rx_id - first_id) * 2;
+    const uint8_t offset = static_cast<uint8_t>(config.rx_id - first_id) * 2;
 
     // 计算can命令，先在安装方向修正后的坐标系计算，再换回电机方向
-    const float dir = is_invert ? -1.0f : 1.0f;
+    const float dir = config.is_invert ? -1.0f : 1.0f;
     int16_t command = 0;
     if (frame.id == 0x1ff || frame.id == 0x2ff) { // 电压模式
         float voltage = 0;
@@ -47,7 +47,7 @@ void GM6020::write_can_frame(CanFrame& frame) const {
 
 void GM6020::can_callback(const CanFrame& frame) {
     // 检查id和size
-    if (frame.id != rx_id || frame.size != 8)
+    if (frame.id != config.rx_id || frame.size != 8)
         return;
 
     // 解析can报文
@@ -56,7 +56,7 @@ void GM6020::can_callback(const CanFrame& frame) {
     raw_speed = static_cast<int16_t>((data[2] << 8) | data[3]) * rpm;
     raw_current = static_cast<int16_t>((data[4] << 8) | data[5]) / 16384.0f * MAX_CURRENT;
     motor_temperature = static_cast<int8_t>(data[6]);
-    raw_torque = raw_current / max_current * max_torque;
+    raw_torque = raw_current / config.max_current * config.max_torque;
 
     // 调用上级回调
     Motor::can_callback();

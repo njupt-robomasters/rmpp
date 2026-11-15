@@ -3,8 +3,7 @@
 #include <cmath>
 
 Shooter17mm::Shooter17mm(const Motors& motor, const Config& config)
-    : config(config),
-      motor(motor),
+    : motor(motor), config(config),
       shoot_pid(config.shoot_pid_config) {}
 
 void Shooter17mm::set_enable(const bool is_enable) {
@@ -34,49 +33,59 @@ void Shooter17mm::update() {
     motor.rub2.update();
     motor.shoot.update();
 
-    // 正解：电机速度 -> 弹速、弹频
+    // 弹速与弹频反馈
     rub_speed[0] = motor.rub1.speed * config.rub_radius;
     rub_speed[1] = motor.rub2.speed * config.rub_radius;
     bullet_speed.measure = (rub_speed[0] + rub_speed[1]) / 2.0f;
     bullet_freq.measure = motor.shoot.speed * config.bullet_per_angle;
 
-    // 摩擦轮：VESC 速度模式，关闭时目标为零制动；低速释放由 app 处理
-    const bool is_rub = is_enable && bullet_speed.ref > 0;
-    const float rub_speed_ref = is_rub ? bullet_speed.ref / config.rub_radius : 0.0f;
+    // 摩擦轮速度控制
+    const float rub_speed_ref = is_enable ? bullet_speed.ref / config.rub_radius : 0.0f;
     motor.rub1.set_speed(rub_speed_ref);
     motor.rub2.set_speed(rub_speed_ref);
 
-    // 拨弹电机：摩擦轮开启、未热量保护、弹频非零且在线；不检查摩擦轮是否在线，便于单独调试
-    if (!is_rub || is_heat_protect || bullet_freq.ref == 0 || !motor.shoot.is_connect) {
-        is_block = false;
-        block_timer.restart();
-        shoot_pid.clear();
-        motor.shoot.set_current(0);
-        return;
+    // 拨弹启停判断
+    if (!is_enable || is_heat_protect || bullet_freq.ref == 0 || !motor.shoot.is_connect) {
+        state = STOP;
+    } else if (state == STOP) {
+        state = FEED;
     }
 
-    // 未卡弹按弹频转动，卡弹反转
-    const float shoot_speed = bullet_freq.ref / config.bullet_per_angle;
-    const float shoot_speed_ref = is_block ? -shoot_speed : shoot_speed;
-    const float output = shoot_pid.calculate(dt, shoot_speed_ref - motor.shoot.speed);
-    if (config.shoot_output == CURRENT_OUTPUT) {
-        motor.shoot.set_current(output);
-        shoot_pid.track(motor.shoot.current_ref);
-    } else {
-        motor.shoot.set_torque(output);
-        shoot_pid.track(motor.shoot.torque_ref);
-    }
+    // 拨弹与卡弹退弹状态机
+    float shoot_speed = bullet_freq.ref / config.bullet_per_angle;
+    switch (state) {
+    case STOP:
+        shoot_speed = 0;
+        block_elapsed = reverse_elapsed = 0;
+        break;
 
-    if (!is_block) {
-        // 达到电流限幅并持续 block_time 判为卡弹；取绝对值兼顾负弹频反转
-        if (std::fabs(motor.shoot.current_ref) < motor.shoot.max_current) {
-            block_timer.restart();
-        } else if (block_timer.elapsed() > config.block_time) {
-            block_timer.restart();
-            is_block = true;
+    case FEED:
+        if (std::fabs(motor.shoot.current_ref) < motor.shoot.config.max_current) {
+            block_elapsed = 0;
+        } else {
+            block_elapsed += dt;
+            if (block_elapsed >= config.block_time) {
+                state = REVERSE;
+                reverse_elapsed = 0;
+            }
         }
-    } else if (block_timer.elapsed() > config.reverse_time) {
-        block_timer.restart();
-        is_block = false;
+        break;
+
+    case REVERSE:
+        shoot_speed = -shoot_speed;
+        reverse_elapsed += dt;
+        if (reverse_elapsed >= config.reverse_time) {
+            state = FEED;
+            block_elapsed = 0;
+        }
+        break;
+    }
+
+    // 拨弹速度闭环与失能处理
+    if (is_enable) {
+        motor.shoot.set_output(shoot_pid.calculate(dt, shoot_speed - motor.shoot.speed));
+    } else {
+        motor.shoot.set_output(0);
+        shoot_pid.clear();
     }
 }

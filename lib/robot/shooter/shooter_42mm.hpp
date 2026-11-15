@@ -19,15 +19,9 @@ class Shooter42mm {
     static constexpr float SHAKE_AMP = 1;                    // 抖动幅度（一个弹 = 1）
 
   public:
-    enum PidOutput {
-        CURRENT_OUTPUT,
-        TORQUE_OUTPUT
-    };
-
     // 发射机构配置
     struct Config {
         const Pid::Config* shoot_pid_config;
-        PidOutput shoot_output = CURRENT_OUTPUT;
         float bullet_per_angle = 1.0f / rev; // 每弧度发射弹数，默认每转一发
         float block_time = 500 * ms;         // 卡弹检测时间
         float rub_radius = 3.0f * cm;        // 摩擦轮半径
@@ -87,8 +81,4 @@ class Shooter42mm {
 
     // 每个控制周期调用
     void update();
-
-  private:
-    // 按配置输出类型设置拨弹电机电流或力矩，并用限幅后实际输出跟踪 PID
-    void set_shoot_output(float output);
 };

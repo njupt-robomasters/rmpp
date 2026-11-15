@@ -15,14 +15,14 @@ void M2006::write_can_frame(CanFrame& frame) const {
         first_id = 0x205;
     else
         return;
-    if (frame.size != 8 || rx_id < first_id || rx_id >= first_id + 4)
+    if (frame.size != 8 || config.rx_id < first_id || config.rx_id >= first_id + 4)
         return;
-    const uint8_t offset = static_cast<uint8_t>(rx_id - first_id) * 2;
+    const uint8_t offset = static_cast<uint8_t>(config.rx_id - first_id) * 2;
 
     // 计算can命令
     float current = 0;
     if (is_connect && is_enable)
-        current = is_invert ? -current_ref : current_ref;
+        current = config.is_invert ? -current_ref : current_ref;
     const auto command = static_cast<int16_t>(current / MAX_CURRENT * 10000.0f);
 
     // 构造can报文
@@ -32,13 +32,13 @@ void M2006::write_can_frame(CanFrame& frame) const {
 
 void M2006::can_callback(const CanFrame& frame) {
     // 检查id和size
-    if (frame.id != rx_id || frame.size != 8)
+    if (frame.id != config.rx_id || frame.size != 8)
         return;
 
     // 解析can报文
     const auto* data = frame.data;
     raw_current = static_cast<int16_t>((data[4] << 8) | data[5]) / 10000.0f * MAX_CURRENT;
-    raw_torque = raw_current / max_current * max_torque;
+    raw_torque = raw_current / config.max_current * config.max_torque;
     raw_speed = static_cast<int16_t>((data[2] << 8) | data[3]) * rpm;
     raw_position = static_cast<float>((data[0] << 8) | data[1]) / 8192.0f * rev;
 

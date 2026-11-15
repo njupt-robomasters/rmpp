@@ -55,7 +55,6 @@ inline GimbalClassic gimbal({yaw, pitch}, {
                                               .yaw_position_pid_config = &yaw_angle_pid,
                                               .pitch_speed_pid_config = &pitch_speed_pid,
                                               .pitch_position_pid_config = &pitch_angle_pid,
-                                              .pitch_output = Gimbal::TORQUE_OUTPUT,
                                               .pitch_min = -15 * deg,
                                               .pitch_max = 30 * deg,
                                           });

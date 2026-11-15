@@ -62,7 +62,7 @@ void Shooter42mm::update() {
     const Angle angle_per_bullet = 1 / config.bullet_per_angle;
     switch (state) {
     case FREE: {
-        motor.shoot.set_current(0);
+        motor.shoot.set_output(0);
 
         if (is_rub && motor.shoot.is_connect) { // 开摩擦轮
             state = SHAKE;
@@ -76,7 +76,7 @@ void Shooter42mm::update() {
         const float offset = shake_upper - a;
         const float t = shake_timer.elapsed();
         const Angle angle = a * std::cos(2 * pi * SHAKE_FREQ * t) + offset;
-        set_shoot_output(shoot_pid.calculate(dt, angle - motor.shoot.position));
+        motor.shoot.set_output(shoot_pid.calculate(dt, angle - motor.shoot.position));
 
         // 防止计时器溢出
         if (SHAKE_FREQ * t > 1)
@@ -93,7 +93,7 @@ void Shooter42mm::update() {
 
     case SHOOT: {
         const Angle target_angle = shake_upper + angle_per_bullet;
-        set_shoot_output(shoot_pid.calculate(dt, target_angle - motor.shoot.position));
+        motor.shoot.set_output(shoot_pid.calculate(dt, target_angle - motor.shoot.position));
 
         // 到位后回到抖动
         if (std::fabs(target_angle - motor.shoot.position) < (1.0f - SHOOT_FINISH_RATIO) * angle_per_bullet) {
@@ -103,7 +103,7 @@ void Shooter42mm::update() {
         }
 
         // 达到力矩限幅并持续 block_time 判为卡弹，从当前角度重新抖动
-        if (std::fabs(motor.shoot.torque_ref) < motor.shoot.max_torque) {
+        if (std::fabs(motor.shoot.torque_ref) < motor.shoot.config.max_torque) {
             block_timer.restart();
         } else if (block_timer.elapsed() > config.block_time) {
             block_timer.restart();
@@ -114,14 +114,4 @@ void Shooter42mm::update() {
     } break;
     }
     last_shoot = is_shoot;
-}
-
-void Shooter42mm::set_shoot_output(const float output) {
-    if (config.shoot_output == CURRENT_OUTPUT) {
-        motor.shoot.set_current(output);
-        shoot_pid.track(motor.shoot.current_ref);
-    } else {
-        motor.shoot.set_torque(output);
-        shoot_pid.track(motor.shoot.torque_ref);
-    }
 }

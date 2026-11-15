@@ -1,6 +1,6 @@
 #include "shooter.hpp"
-#include <cmath>
 #include "app.hpp"
+#include <cmath>
 
 static constexpr float BULLET_SPEED = 25.0f;         // 弹速，m/s
 static constexpr float BULLET_FREQ = 10.0f;          // 弹频，发/秒

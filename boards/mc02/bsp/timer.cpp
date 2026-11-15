@@ -47,7 +47,7 @@ float Timer::elapsed() const {
 
 float Timer::restart() {
     const uint64_t now = read_cycles();
-    const float seconds = static_cast<float>(now - last_cycles) / static_cast<float>(SystemCoreClock);
+    dt = static_cast<float>(now - last_cycles) / static_cast<float>(SystemCoreClock);
     last_cycles = now;
-    return seconds;
+    return dt;
 }

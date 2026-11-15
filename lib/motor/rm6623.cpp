@@ -16,14 +16,14 @@ void RM6623::write_can_frame(CanFrame& frame) const {
         first_id = 0x209;
     else
         return;
-    if (frame.size != 8 || rx_id < first_id || rx_id >= first_id + 4)
+    if (frame.size != 8 || config.rx_id < first_id || config.rx_id >= first_id + 4)
         return;
-    const uint8_t offset = static_cast<uint8_t>(rx_id - first_id) * 2;
+    const uint8_t offset = static_cast<uint8_t>(config.rx_id - first_id) * 2;
 
     // 计算can命令
     float current = 0;
     if (is_connect && is_enable)
-        current = is_invert ? -current_ref : current_ref;
+        current = config.is_invert ? -current_ref : current_ref;
     const int16_t command = static_cast<int16_t>(current / MAX_CURRENT * 5000.0f);
 
     // 构造can报文
@@ -32,19 +32,19 @@ void RM6623::write_can_frame(CanFrame& frame) const {
 }
 
 void RM6623::send_calibrate_cmd() const {
-    can.send({.id = 0x3f0, .size = 8, .data = {'c'}});
+    config.can.send({.id = 0x3f0, .size = 8, .data = {'c'}});
 }
 
 void RM6623::can_callback(const CanFrame& frame) {
     // 检查id和size
-    if (frame.id != rx_id || frame.size != 8)
+    if (frame.id != config.rx_id || frame.size != 8)
         return;
 
     // 解析can报文
     const auto* data = frame.data;
     // 解析电流和位置反馈，电流位于第 2、3 字节
     raw_current = static_cast<int16_t>((static_cast<uint16_t>(data[2]) << 8) | data[3]) / 5000.0f * MAX_CURRENT;
-    raw_torque = raw_current / max_current * max_torque;
+    raw_torque = raw_current / config.max_current * config.max_torque;
     raw_position = static_cast<uint16_t>((static_cast<uint16_t>(data[0]) << 8) | data[1]) / 8192.0f * rev;
 
     const float dt = speed_timer.restart();

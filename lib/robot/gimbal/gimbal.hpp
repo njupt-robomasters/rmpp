@@ -11,18 +11,11 @@ class Gimbal {
     static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
 
   public:
-    enum PidOutput {
-        CURRENT_OUTPUT,
-        TORQUE_OUTPUT,
-    };
-
     struct Config {
         const Pid::Config* yaw_speed_pid_config;
         const Pid::Config* yaw_position_pid_config;
-        PidOutput yaw_output = CURRENT_OUTPUT;
         const Pid::Config* pitch_speed_pid_config;
         const Pid::Config* pitch_position_pid_config;
-        PidOutput pitch_output = CURRENT_OUTPUT;
         float pitch_min = 0;
         float pitch_max = 0;
     };
@@ -92,9 +85,6 @@ class Gimbal {
     bool check_yaw(bool is_connect);
 
     bool check_pitch(bool is_connect);
-
-    // 按配置的输出类型设置电流或力矩，返回电机限幅后的实际输出，供 PID 跟踪
-    static float set_output(Motor& motor, PidOutput type, float output);
 
     // 读取电机角度
     virtual void forward() = 0;

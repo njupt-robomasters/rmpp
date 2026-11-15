@@ -11,21 +11,21 @@ class Shooter17mm {
     static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
 
   public:
-    enum PidOutput {
-        CURRENT_OUTPUT,
-        TORQUE_OUTPUT
-    };
+    // 设备绑定
+    struct Motors {
+        Vesc &rub1, &rub2; // 摩擦轮
+        Motor& shoot;      // 拨弹电机
+    } motor;
 
     // 发射机构配置
     struct Config {
         const Pid::Config* shoot_pid_config;
-        PidOutput shoot_output = CURRENT_OUTPUT;
         float bullet_per_angle = 1.0f / rev; // 每弧度发射弹数，默认每转一发
-        float block_time = 500 * ms;         // 卡弹检测时间
-        float reverse_time = 250 * ms;       // 卡弹倒转时间
-        float rub_radius = 3.0f * cm;        // 摩擦轮半径
+        float rub_radius = 0.03f;            // 摩擦轮半径
+        float block_time = 0.5f;             // 卡弹检测时间
+        float reverse_time = 0.25f;          // 卡弹倒转时间
         uint16_t heat_protect = 0;           // 剩余热量保护阈值
-    };
+    } const config;
 
     // 弹速 (m/s)
     struct {
@@ -43,22 +43,22 @@ class Shooter17mm {
     float rub_speed[2]{};
 
   private:
-    const Config config;
-
-    // 设备绑定
-    struct Motors {
-        Vesc &rub1, &rub2; // 摩擦轮
-        Motor& shoot;      // 拨弹电机
-    } motor;
-
     // 指令
     bool is_enable = false;
     bool is_heat_protect = false; // 热量保护状态
-    bool is_block = false;        // 卡弹标志
+
+    // 拨弹状态与累计时间，s
+    enum {
+        STOP,
+        FEED,
+        REVERSE,
+    } state = STOP;
+
+    float block_elapsed = 0;
+    float reverse_elapsed = 0;
 
     // 拨弹闭环与卡弹检测
     Pid shoot_pid;
-    Timer block_timer; // 卡弹计时器
     Timer update_timer;
 
   public:
