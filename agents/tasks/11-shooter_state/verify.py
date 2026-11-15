@@ -28,7 +28,7 @@ def main():
     if args.arm_build is None:
         return
     rows = json.loads((args.arm_build / "compile_commands.json").read_text())
-    sources = ["lib/robot/gimbal/gimbal.cpp", "lib/robot/gimbal/gimbal_classic.cpp",
+    sources = ["lib/robot/gimbal/gimbal_classic.cpp",
                "lib/robot/gimbal/gimbal_dual_yaw.cpp", "lib/robot/shooter/shooter_17mm.cpp",
                "lib/robot/shooter/shooter_42mm.cpp"]
     sources += [p.relative_to(ROOT).as_posix() for p in (ROOT / "lib/motor").glob("*.cpp")]
