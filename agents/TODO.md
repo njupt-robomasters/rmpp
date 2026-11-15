@@ -45,7 +45,7 @@
 
 - `app/sentry/gimbal.hpp` 的 `yaw1` 改为 `DM4310`，输出改为力矩；变更 `send()` 调用保持
 - 用户确认可以随写，后续自行调整：暂用 Can(1)，tx 0x12 / rx 0x13（避开 pitch 的 0x11/0x10）；`yaw1_pid`、安装方向保持原值，加注释标明待实车整定
-- `GimbalDualYaw` 的 `yaw_output` 同时作用于 yaw1（DM4310）和 yaw2（GM6020），不在本轮修改，写入 sentry 注释提醒
+- `GimbalDualYaw` 已使用各电机原生输出：yaw1（DM4310）按 N·m、yaw2（GM6020）按 A 接收共用 PID 数值，参数待实车整定
 
 ### 目录整理
 

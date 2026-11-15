@@ -105,3 +105,13 @@ python agents/tasks/10-global_refactor/layout_regression.py --baseline 795e263
 轮腿补充调整：力映射角度按实际顶点命名为 ∠OCB（cos_ocb、tan_ocb）；设置接口统一为 set_allow_rescue(allow_rescue)、set_trigger_jump(trigger_jump)、set_leg_length(leg_length)，同步 leg_down 调用点；update_kin 合入 update，保留原执行顺序。轮腿源码与 leg_down 的 chassis.cpp、app.cpp 对象编译通过，格式及 diff 检查通过。
 
 主线合并：重构提交为 7aee5ea、903f01f。主线原有 13 个暂存文件保留暂存；冲突按双方意图合并，保留首版 Python LQR 系数、轮端力矩与减速比、位移误差乘 10 后限幅、位移积分限幅及跳跃时序，新增 x_err_max 对应只读成员和构造初始化。合并后在主线重新编译轮腿及 leg_down 的 chassis.cpp、app.cpp 对象通过。外部 worktree 的忽略构建产物与临时日志随目录移除，复现源码已入库。
+
+### Timer 调试与电机配置收拢
+
+- Timer 两板均在 `restart()` 更新 private `dt` 并返回，保存未经限幅的秒数，初值为 0；`elapsed()` 保持只读
+- Motor 按值保存 `Config config`，通信、超时、量程、减速比、安装方向与零点直接使用 config；量程和减速比的零值仍在构造时补齐
+- 删除 `set_offset()`、`set_zero()`，app 直接维护 `config.offset`；infantry/sentry 启动读取、在线校准及持久化已迁移，校零按当前输出轴角度、方向和减速比换算
+- 删除原来供 `set_zero()` 读取的 `position_multi` 成员，多圈位置换算直接在反馈处理中完成；功率计算和发射机构读取量程的调用点同步迁移
+- 新增 `motor_config_test.cpp`，覆盖默认值补齐、显式配置、电流/力矩限幅与换算、反向反馈、外部校零和超时；历史布局测试保留当时接口，本轮使用新测试及任务 11 的原生输出/拨弹测试
+
+验证：两板 timer.cpp ARM 对象编译通过；配置回归及任务 11 主机测试通过；24 个相关源码 ARM 对象编译通过，无警告。21 个工程源码及 DM 模板、新测试的格式检查与 `git diff --check` 通过。未执行完整固件链接或硬件操作；新增对象和测试产物位于本任务 `out/`，任务 11 验证产物沿用其 `out/`。
