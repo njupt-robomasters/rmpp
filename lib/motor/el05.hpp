@@ -9,9 +9,14 @@ class EL05 : public Motor {
   public:
     static constexpr float MAX_CURRENT = 11.0f;
     static constexpr float MAX_TORQUE = 6.0f;
-    static constexpr float KT = 0.94f;
     static constexpr float REDUCTION = 1;
 
+  private:
+    static constexpr float P_MAX = 12.57f;
+    static constexpr float V_MAX = 50.0f;
+    static constexpr float T_MAX = 6.0f;
+
+  public:
     enum Mode : uint8_t {
         RESET_MODE,
         CALIBRATION_MODE,
@@ -19,26 +24,27 @@ class EL05 : public Motor {
     };
 
     Mode mode = RESET_MODE;
-    uint8_t fault = 0;         // Byte6 bit5，故障存在标志，不是详细错误码
-    uint8_t warning = 0;       // Byte6 bit4，预警标志
-    float temperature = 0;     // ℃
+    uint8_t fault = 0;              // Byte6 bit5，故障存在标志，不是详细错误码
+    uint8_t warning = 0;            // Byte6 bit4，预警标志
+    float temperature = 0;          // ℃
     uint32_t clear_fault_count = 0; // 自动清错发送次数
 
+  private:
+    bool enable_sent = false;
+    bool has_fault = false;
+    Timer enable_timer;
+    Timer clear_fault_timer;
+
+  public:
     explicit EL05(const Config& config);
+
+    // MIT 协议原生输出力矩，N·m
+    void set_output(float output) override;
 
     // 每周期调用，停止帧也会返回状态；故障时每 500 ms 尝试清错
     void send();
 
   private:
-    static constexpr float P_MAX = 12.57f;
-    static constexpr float V_MAX = 50.0f;
-    static constexpr float T_MAX = 6.0f;
-
-    Timer enable_timer_;
-    Timer clear_fault_timer_;
-    bool enable_sent_ = false;
-    bool has_fault_ = false;
-
     void can_callback(const CanFrame& frame);
     void send_torque() const;
     void send_command(uint8_t command) const;

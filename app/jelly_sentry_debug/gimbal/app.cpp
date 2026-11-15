@@ -1,8 +1,8 @@
-#include <algorithm>
 #include "../../jelly_sentry/gimbal.hpp"
 #include "bsp/timer.hpp"
 #include "rc/fsi6x.hpp"
 #include "rc/vt13.hpp"
+#include <algorithm>
 
 // pitch2 单轴测试：云台只控制俯仰轴 pitch2，CAN 只发送 pitch2（CAN2，CAN ID 0x11 / Master ID 0x21），用于排查 pitch2 震荡与断联
 // 大 yaw、小 yaw、pitch1 不发送任何指令：达妙与 7025 收不到命令不会应答，保持离线，云台对它们输出零，不会动作
@@ -45,7 +45,8 @@ extern "C" void app_main() {
         gimbal.set_enable(rc_enable());
         const float pitch_speed = std::clamp((vt13.pitch + fsi6x.pitch) * WPITCH_MAX, -WPITCH_MAX, WPITCH_MAX);
         gimbal.set_speed(0, pitch_speed);
-        gimbal.update();
+        attitude.update();
+        gimbal.update(attitude.yaw, attitude.pitch);
 
         // 断联计数：在线变离线时加一
         if (last_connect && !pitch2.is_connect)

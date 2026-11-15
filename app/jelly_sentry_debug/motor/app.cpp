@@ -9,8 +9,8 @@
 volatile float current = 0.1f; // 输出电流，A
 
 static M3508 motor({
-    .bus = {.can = Can(1), .rx_id = 0x205},
-    .drive = {.max_current = M3508::MAX_CURRENT, .max_torque = M3508::MAX_TORQUE, .kt = M3508::KT, .reduction = M3508::REDUCTION},
+    .can = Can(1),
+    .rx_id = 0x205,
 });
 
 extern "C" void app_main() {

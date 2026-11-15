@@ -49,6 +49,6 @@ g++ -std=c++23 -O2 -I../../../lib -I../../../lib/math power_sim.cpp ../../../lib
 结论（60 W 裁判上限，需求 200 W，OFF → CHARGE → BOOST → CHARGE → OFF）：
 
 - CHARGE 稳态底盘 60 W、电容功率 0，不放电；电池 60 W，裁判缓冲能量稳在 57.3 J
-- 模型低估 20%：CHARGE 稳态 `energy.local` 降到 51.8 J，底盘真实功率仍为 60 W、电容功率约 0；偏差由积分吃掉
+- 模型低估 20%：CHARGE 稳态 `energy_local` 降到 51.8 J，底盘真实功率仍为 60 W、电容功率约 0；偏差由积分吃掉
 - BOOST 满额补偿约 140 W，电压降到 12 V 以下后补偿线性衰减；电容将空时 chassis_ref 平滑回落到 60 W
 - 切换无能量跳变；`chassis_ref` 的大跳变只在切入切出 BOOST 时，来自 boost_max 本身

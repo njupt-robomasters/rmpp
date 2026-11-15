@@ -1,11 +1,14 @@
 #pragma once
 
 #include "bsp/timer.hpp"
-#include "math/eigen_types.hpp"
+#include "math/eigen.hpp"
 #include "pid/pid.hpp"
 
 // 板载 BMI088：读取、零偏与安装方向修正、校准及恒温加热
 class Imu {
+  private:
+    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 加热闭环步长限幅，s；避免首次调用和停顿后的大步长
+
   public:
     struct Config {
         Quaternionf orientation = Quaternionf::Identity(); // 传感器到机体
@@ -20,6 +23,38 @@ class Imu {
     Vector3f accel = Vector3f::Zero(); // m/s²
     float temperature = 0;             // °C
 
+  private:
+    // 安装方向
+    const Quaternionf orientation; // 传感器到机体
+
+    // 恒温配置
+    const float target_temperature; // 目标温度，°C
+    const Pid::Config temperature_pid_config;
+
+    // 可更新标定
+    Vector3f gyro_offset; // 传感器系零偏，rad/s；校准成功后更新
+    float gravity;        // 标定时原始加速度模长，m/s²；校准成功后更新
+
+    // 零偏校准
+    enum class Calibration {
+        IDLE,
+        STARTING,
+        SAMPLING,
+        SUCCEEDED,
+        FAILED
+    } calibration = Calibration::IDLE;
+    float calibration_mean[4] = {}; // 陀螺仪 xyz（rad/s）与加速度模长（m/s²）
+    float calibration_min[4] = {};
+    float calibration_max[4] = {};
+    bool is_initialized = false;
+
+    // 恒温加热
+    Pid temperature_pid;
+    uint32_t calibration_samples = 0;
+    Timer update_timer;
+    Timer calibration_timer;
+
+  public:
     explicit Imu(const Config& config);
 
     // 板卡实现：首次调用初始化传感器，失败时下次重试；读取成功后执行一步加热闭环、推进校准并刷新输出
@@ -30,24 +65,6 @@ class Imu {
     void start_calibration();
 
   private:
-    Config config_;
-    Pid temperature_pid_;
-    bool is_initialized_ = false;
-
-    // 零偏校准
-    enum class Calibration {
-        IDLE,
-        STARTING,
-        SAMPLING,
-        SUCCEEDED,
-        FAILED
-    } calibration_ = Calibration::IDLE;
-    Timer calibration_timer_;
-    uint32_t calibration_samples_ = 0;
-    float calibration_mean_[4] = {}; // 陀螺仪 xyz（rad/s）与加速度模长（m/s²）
-    float calibration_min_[4] = {};
-    float calibration_max_[4] = {};
-
     // 用传感器系原始量推进校准，成功时更新 gyro_offset 与 gravity
     void update_calibration(const Vector3f& gyro, const Vector3f& accel);
 };

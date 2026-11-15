@@ -1,8 +1,8 @@
 #include "app.hpp"
-#include <algorithm>
-#include <cmath>
 #include "bsp/timer.hpp"
 #include "melody/music/g5g5g5.hpp"
+#include <algorithm>
+#include <cmath>
 
 // 操控参数
 static constexpr float WYAW_MAX = 360 * deg_s;   // yaw 最大角速度，rad/s
@@ -15,7 +15,7 @@ static constexpr float YAW_SPEED = 180 * deg_s, PITCH_SPEED = 60 * deg_s;
 static constexpr Angle PITCH_MIN = -22 * deg, PITCH_MAX = 0 * deg;
 static constexpr float LOCK_DISTANCE = 5, LOCK_TIMEOUT = 500 * ms;           // 自瞄有效距离 m、脱锁时间 s
 static constexpr float INSTA360_CHECK_TIMEOUT = 1, INSTA360_PUNISH_TIME = 0; // 全景目标检查时间、误识别惩罚时间，s
-static constexpr int GO_HOME_HP = 120;                                        // 低于此血量放弃锁定
+static constexpr int GO_HOME_HP = 120;                                       // 低于此血量放弃锁定
 
 enum GimbalState { SCAN,
                    INSTA360_CHECK,
@@ -39,8 +39,9 @@ void gimbal_loop() {
     const bool calib = (vt13.mode == VT13::C && vt13.fn && vt13.photo) ||
                        (fsi6x.swc == FSi6X::UP && fsi6x.swa == FSi6X::DOWN && fsi6x.swd == FSi6X::DOWN);
     if (calib && !last_calib) {
-        gimbal.set_yaw_zero();
-        gimbal.save_yaw_offset(kv_store);
+        if (yaw1.is_connect)
+            yaw1.config.offset += (yaw1.config.is_invert ? -yaw1.position : yaw1.position) * yaw1.config.reduction;
+        kv_store.write("yaw_offset", yaw1.config.offset);
         melody.play(G5G5G5);
     }
     last_calib = calib;
@@ -153,5 +154,5 @@ void gimbal_loop() {
 
     // 小陀螺前馈
     gimbal.set_chassis_wr(chassis.wr.measure);
-    gimbal.update();
+    gimbal.update(attitude.yaw, attitude.pitch);
 }

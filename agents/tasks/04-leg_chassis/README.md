@@ -9,7 +9,7 @@
 ## 已确认
 
 - 底盘 C 板与外部车安装一致：`orientation = yaw 180°`
-- 独立类 `lib/robot/chassis/chassis_leg.*`，姿态每周期由 `update(q, gyro)` 传入；应用 `app/leg`，C 板
+- 独立类 `lib/robot/chassis/chassis_leg.*`，姿态每周期由 `update(q, gyro)` 传入；应用 `../../../app/leg_down`，C 板
 - 自救步长按 dt 换算为 rad/s
 - roll PD 微分用 `-gyro.x`
 - 任一关节或轮掉线、关节未使能或报错：全部输出零
@@ -26,10 +26,10 @@
 
 ## 上车前核对（架空、不使能，SWD 观察 `chassis`）
 
-1. 姿态：低头 `body.pitch` 增大、`body.d_pitch > 0`；右侧压低 `body.roll` 增大；俯视逆时针转 `body.d_yaw > 0`
+1. 姿态：低头 `body_.pitch` 增大、`body_.d_pitch > 0`；右侧压低 `body_.roll` 增大；俯视逆时针转 `body_.d_yaw_gyro > 0`
 2. 腿：双腿竖直向下时 `rel_theta ≈ 0`，轮轴向后摆 `rel_theta > 0`；`L` 与外部工程同姿态一致
 3. 轮：手推车轮使车前进方向转动，两侧 `v_wheel > 0`
-4. 拔任一电机线：`is_motor_ok` 变假
+4. 拔任一电机线：`is_motor_ok_` 变假
 
 
 ## 坐标约定（迁移后统一）

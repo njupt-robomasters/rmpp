@@ -9,16 +9,25 @@
 static double sim_time = 0;
 static Can::RxCallback rx_callback;
 
-bool Can::can_send() const { return true; }
+bool Can::can_send() const {
+    return true;
+}
+
 void Can::send(const CanFrame&) const {}
-void Can::add_rx_callback(RxCallback callback) const { rx_callback = callback; }
+
+void Can::add_rx_callback(RxCallback callback) const {
+    rx_callback = callback;
+}
 
 void Timer::delay(float) {}
-float Timer::elapsed() { return static_cast<float>(sim_time - last_cycles_ * 1e-6); }
+
+float Timer::elapsed() const {
+    return static_cast<float>(sim_time - last_cycles * 1e-6);
+}
+
 float Timer::restart() {
-    const double now = sim_time;
-    dt = static_cast<float>(now - last_cycles_ * 1e-6);
-    last_cycles_ = static_cast<uint64_t>(now * 1e6);
+    const float dt = static_cast<float>(sim_time - last_cycles * 1e-6);
+    last_cycles = static_cast<uint64_t>(sim_time * 1e6);
     return dt;
 }
 

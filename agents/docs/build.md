@@ -32,9 +32,11 @@ IMU 的固定维度 EKF 使用独立 C++ 实现，`rmpp_lib` 不再依赖本板 
 
 ## 第三方库
 
+Eigen 只经 `lib/math/eigen.hpp` 包含：该头在 `#pragma GCC optimize("O2")` 内包含所需模块，使 Debug（-Og）下 Eigen 模板仍按 O2 实例化，调用方代码保持 -Og 可调试。-Og 不内联，直接包含时表达式模板逐层成为函数调用，C 板 EKF 单次约 1.29 ms，改后约 0.18 ms（实测见 `agents/tasks/08-attitude_cpu/`）。新增 Eigen 模块时加到该头的 pragma 区内
+
 | 库 | 版本 | 位置 | 接入 |
 | --- | --- | --- | --- |
-| Eigen | 3.4.0 | `lib/third_party/eigen-3.4.0` | `lib/CMakeLists.txt` 的 `eigen` 接口目标 |
+| Eigen | 3.4.0 | `lib/third_party/eigen-3.4.0` | `lib/CMakeLists.txt` 的 `eigen` 接口目标；代码只经 `math/eigen.hpp` 包含 |
 | CherryUSB | v1.6.1 | `third_party/CherryUSB` | 各板 `bsp/CMakeLists.txt` 的 `cherryusb` 目标，配置为各板 `bsp/usb_config.h` |
 | FlashDB | 2.2.0 | `third_party/FlashDB` | 各板 `bsp/CMakeLists.txt` 的 `flashdb` 目标，配置与 Flash 驱动在各板 `bsp/flashdb/` |
 

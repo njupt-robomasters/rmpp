@@ -17,7 +17,7 @@
 agents/
 ├── README.md          本说明
 ├── TODO.md            跨对话的规划、已确认决定和待办
-├── docs/              架构与模块文档，索引见 AGENTS.md“文档读取”
+├── docs/              架构与模块文档，索引见下文
 └── tasks/
     └── NN-名称/       一类任务一个目录，NN 两位递增序号，名称用 snake_case
         └── out/       临时输出，已被 .gitignore 忽略
@@ -29,12 +29,31 @@ agents/
 - `docs/` 是长期项目知识，改代码时同步修正；`tasks/` 是单类任务过程，结论成为长期知识时提炼进 `docs/`
 - `docs/` 随对应代码同一提交更新；仅任务记录或索引的变更单独提交，信息以 `agents:` 开头
 
+## 文档索引
+
+- 修改前：`docs/conventions.md`（编码、命名、SWD 类布局）、`docs/workflow.md`（协作、验证、交付）
+- 整体分层与入口：`docs/architecture.md`；应用：`docs/application.md`
+- `lib/bsp/**`、`boards/**/bsp/**`：`docs/bsp.md`；电机：`docs/motor.md`
+- CMake 与工具链：`docs/build.md`；验证与人工审计：`docs/verification.md`
+- IMU：`docs/imu.md`；算法原理按需读 `docs/imu-principles.md`
+- 单位迁移：`docs/unit-migration.md`；蜂鸣器曲目：`docs/music.md`
+- 硬件资料：`reference/电机/` 对应型号、`reference/C板/`、`reference/达妙mc02/`
+- 裁判协议和比赛规则：`reference/<年份>规则/`，默认最新年份，先搜索关键词再局部读取
+
+只读取当前任务涉及的文档，相似任务复用下列目录。
+
 ## 任务索引
 
 - `01-mc02_bsp/`：mc02 BSP 适配、C 板外设类重构、CherryUSB、`lib/attitude`；复现构建、EL05 MIT 接入、CAN2 降载、7025/PCAN ID 干扰分析与待上板验证项
 - `02-buzzer_timbre/`：蜂鸣器复音 PWM-DAC 音色探索与样机归档；正式实现在 `lib/melody`
 - `03-quad_steer/`：底盘重构（四舵移植、矩阵底盘、统一功率控制）、PID 回算、UI 下放、机构库掉线处理；已确认决定与上车核对项
 - `04-leg_chassis/`：轮腿底盘从 SOLDIER_LEG_4 迁移；IMU 极性核查、电机映射与虚拟 IMU 方案
-- `05-dummy_target/`：PR #3 靶车移植到 `app/dummy`；映射、删减与上车核对项
+- `05-dummy_target/`：PR #3 靶车移植到 `app/dummy`；映射、删减与上车核对项；follow PID 微分尖峰只读采样与分析
 - `06-super_cap_capacitance/`：超电在线容量/ESR 辨识（RLS）与虚拟缓冲能量功率控制；主机仿真与上车核对项
-- `12-upstream_merge_review/`：上游合并预检；隔离模拟冲突、EL05/折叠云台接口迁移与 CAN2 配置核对（07–11 已由上游使用）
+
+- `07-can_tx_latest/`：CAN 发送“同 ID 只留最新”方案（已撤销）；撤销延迟、FIFO 空洞等实测硬件知识与上板测试写法
+- `08-attitude_cpu/`：attitude 示例 -Og 下 Eigen 不内联导致 CPU 超时；编译变体统计与上板周期测量
+- `09-leg_lqr/`：Python 复现 SOLDIER_LEG_4 轮腿 LQR（替代 MATLAB）；重心偏移下位移稳态误差与漂移分析、LQI 对比、首版 Q_s=60 参数实车对照
+- `10-global_refactor/`：全局优化（Timer/PID dt、电机默认参数与符号修复、持有与 update 约定、类布局）；外部 worktree 成员展平、SWD 排序与验证记录
+- `11-shooter_state/`：17 mm 拨弹状态机与 dt 累加计时、电机原生输出接口、云台与发射机构迁移及主机测试
+- `12-upstream_merge_review/`：上游合并预检与执行；保存本地基线、EL05/折叠云台接口迁移、CAN2 自动重发与 11 个应用入口局部编译

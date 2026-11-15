@@ -1,15 +1,15 @@
-#include <algorithm>
 #include "../../jelly_sentry/shooter.hpp"
 #include "bsp/timer.hpp"
 #include "rc/fsi6x.hpp"
 #include "rc/vt13.hpp"
+#include <algorithm>
 
 // 拨弹电机单独测试（灵足 EL05，CAN2 MIT 标准帧）：不经过发射机构，不要求摩擦轮开启
 // 右手水平摇杆控制拨弹转速，满打对应 BULLET_FREQ；速度环使用整车 shoot_pid，输出力矩
 // 使能：VT13 N、S 挡，或 FSi6X SWC 中、下挡
 // 调试器观察 shoot.speed、shoot.torque、shoot.mode、shoot.fault，核对方向与 MIT 标准帧解析
 
-static constexpr float BULLET_FREQ = 20.0f;    // 弹频，发/秒
+static constexpr float BULLET_FREQ = 20.0f;           // 弹频，发/秒
 static constexpr float BULLET_PER_ANGLE = 9.0f / rev; // 与整车发射机构一致，发/rad
 
 static VT13 vt13({.uart = Uart(1)});
@@ -28,7 +28,7 @@ extern "C" void app_main() {
     while (true) {
         if (loop_timer.elapsed() < 1 * ms)
             continue;
-        loop_timer.restart();
+        const float dt = std::clamp(loop_timer.restart(), 0.0001f, 0.01f);
 
         vt13.update();
         fsi6x.update();
@@ -38,7 +38,7 @@ extern "C" void app_main() {
         shoot.set_enable(is_enable);
         if (is_enable && shoot.is_connect) {
             const float speed = std::clamp(vt13.x + fsi6x.x, -1.0f, 1.0f) * BULLET_FREQ / BULLET_PER_ANGLE;
-            shoot.set_torque(speed_pid.calculate(speed - shoot.speed));
+            shoot.set_torque(speed_pid.calculate(dt, speed - shoot.speed));
             speed_pid.track(shoot.torque_ref);
         } else {
             speed_pid.clear();

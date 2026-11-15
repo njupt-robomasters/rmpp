@@ -30,7 +30,7 @@ inline QuaternionEkf attitude(imu, {});
 // #define pitch motor
 
 // 大yaw电机：由 MF9025 换为 DM4310，CAN ID、PID 与安装方向待实车整定
-// GimbalDualYaw 的 yaw_output 同时作用于大小 yaw，大 yaw 为 DM4310、小 yaw 为 GM6020，输出类型待调整
+// 共用 yaw PID 输出：大 yaw 按 N·m、小 yaw 按 A 解释，参数待实车整定
 inline Pid::Config yaw1_pid = {
     .kp = (9) / (1.8 * deg),
     .kd = (9) / (18 * deg_s),
@@ -38,9 +38,10 @@ inline Pid::Config yaw1_pid = {
     .err_fc = 10,
 };
 inline DM4310 yaw1({
-    .bus = {.can = Can(1), .tx_id = 0x12, .rx_id = 0x13},
-    .drive = {.max_torque = DM4310::MAX_TORQUE, .kt = DM4310::KT, .reduction = DM4310::REDUCTION},
-    .install = {.is_invert = false},
+    .can = Can(1),
+    .tx_id = 0x12,
+    .rx_id = 0x13,
+    .is_invert = false,
 });
 
 // 小yaw电机
@@ -55,11 +56,11 @@ inline Pid::Config yaw2_angle_pid = {
     .max_out = 720 * deg_s,
 };
 inline GM6020 yaw2({
-                       .bus = {.can = Can(1), .rx_id = 0x205},
-                       .drive = {.max_current = GM6020::MAX_CURRENT, .kt = GM6020::KT, .reduction = GM6020::REDUCTION},
-                       .install = {.offset = 0 * deg},
+                       .can = Can(1),
+                       .rx_id = 0x205,
+                       .offset = 0 * deg,
                    },
-                   {.gain = 1.0f}); // 电压帧完整反电动势前馈
+                   GM6020::KE); // 电压帧完整反电动势前馈
 
 // pitch电机
 inline Pid::Config pitch_speed_pid = {
@@ -72,21 +73,21 @@ inline Pid::Config pitch_angle_pid = {
     .max_out = 720 * deg_s,
 };
 inline DM4310 pitch({
-    .bus = {.can = Can(2), .tx_id = 0x11, .rx_id = 0x10},
-    .drive = {.max_torque = DM4310::MAX_TORQUE, .kt = DM4310::KT, .reduction = DM4310::REDUCTION},
-    .install = {.is_invert = true, .offset = -72 * deg},
+    .can = Can(2),
+    .tx_id = 0x11,
+    .rx_id = 0x10,
+    .is_invert = true,
+    .offset = -72 * deg,
 });
 
 // 云台
-inline GimbalDualYaw gimbal(attitude, {yaw1, yaw2, pitch}, {
-                                                               .yaw_speed_pid_config = &yaw2_speed_pid,
-                                                               .yaw_position_pid_config = &yaw2_angle_pid,
-                                                               .pitch_speed_pid_config = &pitch_speed_pid,
-                                                               .pitch_position_pid_config = &pitch_angle_pid,
-                                                               .pitch_output = Gimbal::TORQUE_OUTPUT,
-                                                               .pitch_min = -22 * deg,
-                                                               .pitch_max = 15 * deg,
-                                                               .is_pitch_limit = true,
-                                                           });
+inline GimbalDualYaw gimbal({yaw1, yaw2, pitch}, {
+                                                     .yaw_speed_pid_config = &yaw2_speed_pid,
+                                                     .yaw_position_pid_config = &yaw2_angle_pid,
+                                                     .pitch_speed_pid_config = &pitch_speed_pid,
+                                                     .pitch_position_pid_config = &pitch_angle_pid,
+                                                     .pitch_min = -22 * deg,
+                                                     .pitch_max = 15 * deg,
+                                                 });
 
 void gimbal_loop();

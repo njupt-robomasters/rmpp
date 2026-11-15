@@ -166,7 +166,7 @@ void cdc_init() {
 }
 
 void Cdc::send(const uint8_t* data, const std::size_t size) const {
-    auto* context = find(id_);
+    auto* context = find(id);
     if (!context)
         return;
 
@@ -184,7 +184,7 @@ void Cdc::send(const uint8_t* data, const std::size_t size) const {
 }
 
 void Cdc::add_rx_callback(RxCallback callback) const {
-    auto* context = find(id_);
+    auto* context = find(id);
     if (!context)
         return;
 

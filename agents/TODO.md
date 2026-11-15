@@ -7,7 +7,7 @@
 状态：代码与文档完成，编译通过，待用户审计和上板。结论见 `docs/bsp.md`，过程与待用户操作见 `tasks/01-mc02_bsp/README.md`
 
 - mc02 `main.c` USER CODE 2 的 `bsp_init()`/`app_main()` 调用尚未添加（用户操作）
-- OUT_5V 供电的是哪一路 CAN 接口：待看原理图图片或实测后写入 `board/power.hpp` 注释
+- OUT_5V 供电的是哪一路 CAN 接口：待看原理图图片或实测后写入 `board/power_hpp` 注释
 
 ## 第二轮：KvStore、FlashDB 重建、目录整理
 
@@ -45,7 +45,7 @@
 
 - `app/sentry/gimbal.hpp` 的 `yaw1` 改为 `DM4310`，输出改为力矩；变更 `send()` 调用保持
 - 用户确认可以随写，后续自行调整：暂用 Can(1)，tx 0x12 / rx 0x13（避开 pitch 的 0x11/0x10）；`yaw1_pid`、安装方向保持原值，加注释标明待实车整定
-- `GimbalDualYaw` 的 `yaw_output` 同时作用于 yaw1（DM4310）和 yaw2（GM6020），不在本轮修改，写入 sentry 注释提醒
+- `GimbalDualYaw` 已使用各电机原生输出：yaw1（DM4310）按 N·m、yaw2（GM6020）按 A 接收共用 PID 数值，参数待实车整定
 
 ### 目录整理
 
@@ -87,26 +87,30 @@
 ### 已确认
 
 - 类 `SuperCap`，`lib/power/super_cap.{hpp,cpp}`；模式 OFF / CHARGE / BOOST；应答 `voltage`、`current`、`power` 的 chassis/cap
-- 裁判输入 `set_referee_limit()`、`set_referee_energy()`；电池侧目标 `power.battery_ref` = 裁判上限·g(裁判缓冲能量)，所有模式下发
-- 底盘功率目标 `power.chassis_ref` = 供给·g(所用缓冲能量)；g 为 30 J 零、60 J 1.1 倍线性
-- OFF、离线、不限功率：供给为裁判上限，用 `energy.referee`，`energy.local` 跟随
-- CHARGE / BOOST：供给为 battery_ref（+ boost_max），`energy.local += (供给 − power.chassis)·dt`，限幅 [0, 60] J；电容额外放电与电容放空后的电池超用都扣除
+- 裁判输入 `set_referee_limit()`、`set_referee_energy()`；电池侧目标 `power_battery_ref` = 裁判上限·g(裁判缓冲能量)，所有模式下发
+- 底盘功率目标 `power_chassis_ref` = 供给·g(所用缓冲能量)；g 为 30 J 零、60 J 1.1 倍线性
+- OFF、离线、不限功率：供给为裁判上限，用 `energy_referee`，`energy_local` 跟随
+- CHARGE / BOOST：供给为 battery_ref（+ boost_max），`energy_local += (供给 − power_chassis)·dt`，限幅 [0, 60] J；电容额外放电与电容放空后的电池超用都扣除
 - 已删 MONITOR、`set_estimate()`、估计偏差修正；底盘保留 `power.estimate` 供 SWD 对照
 - dummy：SWC 上 OFF、中 CHARGE、下 BOOST，遥控断联 OFF；referee_loop 模拟裁判，超电 CAN1
 
 ### 待上车核对
 
-- 0x051 应答电压电流符号与量程；底盘 `power.estimate` 与 `super_cap.power.chassis` 对比
-- CHARGE 稳态 `power.cap` 不为负；若因 DCDC 损耗偏负再考虑充电余量；BOOST 在 10/12 V 的补偿衰减
+- 0x051 应答电压电流符号与量程；底盘 `power.estimate` 与 `super_cap.power_chassis` 对比
+- CHARGE 稳态 `power_cap` 不为负；若因 DCDC 损耗偏负再考虑充电余量；BOOST 在 10/12 V 的补偿衰减
 - infantry/sentry 未装超电（不调用 send，按 OFF）
 
 ## 底盘深度重构、PID 回算、UI 下放
 
 状态：代码完成，受影响目标全部编译通过，待用户审计与上车。结论与上车核对项见 `tasks/03-quad_steer/README.md`
 
+## 全局代码优化
+
+状态：代码与文档完成，15 个预设全部编译通过，待用户审计与上车。基线 `8f01151`，过程与上车核对项见 `tasks/10-global_refactor/README.md`
+
 ## 后续任务
 
-- 上游合并预检（2026-11-15）：origin/master@f3b8e14；本地含未提交改动模拟合并有 4 个冲突文件，另需迁移 EL05、GimbalFold、jelly_sentry 与调试入口的新接口；CAN2 自动重发配置存在分歧，由用户操作 .ioc/生成文件。尚未实际合并，详见 `tasks/12-upstream_merge_review/README.md`
+- 上游合并（2026-11-15）：已保存基线 `4d59574`，合入 origin/master@f3b8e14 并适配 EL05、GimbalFold、jelly_sentry 与 10 个调试入口；按用户指定启用 CAN2 自动重发与 FIFO。局部编译与待实机核对项见 `tasks/12-upstream_merge_review/README.md`
 - VQF 姿态算法：原样引入官方 C++ 实现（确认单精度选项），封装 `Vqf` 与 `QuaternionEkf` 并列
 
 ## jelly_sentry EL05 / CAN2 调试
@@ -115,3 +119,12 @@
 - EL05 已按用户参数改为 CAN2 MIT 0x12/0x22，局部编译通过；详见 tasks/01-mc02_bsp/README.md
 - 两个4310在接入EL05后丢反馈的实机原因未确认；EmberProbe仍从旧工作区uart2can-master查找桥接，需同步会话工作目录到rmpp后读取总线错误状态
 - 本轮未完整链接、烧录、复位或硬件验证；待用户审计与台架测试
+
+## 外部 worktree 类布局重构
+
+基线 `795e263`，类布局重构已并入 master，外部 worktree 随合并移除。完成成员尾下划线移除、实例配置与设备状态展平、SWD 排序、最小权限和声明与实现排序；保留主线暂存的轮腿 LQR 调整并完成适配。infantry 跳过编译验证。代码与验证结论见 `tasks/10-global_refactor/README.md`，待用户审计与上车。
+
+## 轮腿 LQR 首版参数对照
+
+- 用户确认原系数不抖；恢复最初 Python 模型（8f01151，Q_s=60、无 LQI）并独立为 lqr_fit.hpp，仅换 K，保留当前控制逻辑，待实车对照
+- 允许车体倾斜、优先定位的控制目标只分析，不实施

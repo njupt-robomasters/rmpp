@@ -72,7 +72,7 @@ static void update_ui() {
 
 extern "C" void app_main() {
     // imu.start_calibration();
-    gimbal.load_yaw_offset(kv_store);
+    yaw.config.offset = kv_store.read("yaw_offset");
     melody.play(C5D5G5);
 
     [[maybe_unused]] static float cpu_usage = 0;
@@ -85,7 +85,7 @@ extern "C" void app_main() {
             vt13.update();
             fsi6x.update();
             referee.update();
-            aim.imu = {.yaw = gimbal.attitude.yaw, .pitch = gimbal.attitude.pitch, .roll = gimbal.attitude.roll};
+            aim.imu = {.yaw = attitude.yaw, .pitch = attitude.pitch, .roll = attitude.roll};
             aim.referee = {
                 .is_red = referee.robot_status.robot_id < 100,
                 .game_progress = static_cast<Referee::GameProgress>(referee.game_status.game_progress),

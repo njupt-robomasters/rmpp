@@ -1,7 +1,7 @@
-#include <algorithm>
 #include "../../jelly_sentry/chassis.hpp"
 #include "bsp/can.hpp"
 #include "bsp/timer.hpp"
+#include <algorithm>
 
 // 哨兵底盘测试：调试器修改下列变量控制平移和旋转，不依赖遥控器（分离模式，不跟随云台）
 // 电机与 PID 使用整车 app/jelly_sentry/chassis.hpp
@@ -46,6 +46,8 @@ extern "C" void app_main() {
 
         chassis.set_enable(is_enable);
         chassis.set_speed(std::clamp(float(vx), -VXY_MAX, VXY_MAX), std::clamp(float(vy), -VXY_MAX, VXY_MAX), std::clamp(wr * rpm, -WR_MAX, WR_MAX));
+        super_cap.update();
+        chassis.set_power_ref(super_cap.power_chassis_ref);
         chassis.update();
 
         send_can_cmd();

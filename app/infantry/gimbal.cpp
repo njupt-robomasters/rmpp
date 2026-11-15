@@ -22,8 +22,9 @@ void gimbal_loop() {
     const bool calib = (vt13.mode == VT13::C && vt13.fn && vt13.photo) ||
                        (fsi6x.swc == FSi6X::UP && fsi6x.swa == FSi6X::DOWN && fsi6x.swd == FSi6X::DOWN);
     if (calib && !last_calib) {
-        gimbal.set_yaw_zero();
-        gimbal.save_yaw_offset(kv_store);
+        if (yaw.is_connect)
+            yaw.config.offset += (yaw.config.is_invert ? -yaw.position : yaw.position) * yaw.config.reduction;
+        kv_store.write("yaw_offset", yaw.config.offset);
         melody.play(G5G5G5);
     }
     last_calib = calib;
@@ -61,5 +62,6 @@ void gimbal_loop() {
         gimbal.set_speed(std::clamp(wyaw, -WYAW_MAX, WYAW_MAX), std::clamp(wpitch, -WPITCH_MAX, WPITCH_MAX));
 
     gimbal.set_chassis_wr(chassis.wr.measure);
-    gimbal.update();
+    attitude.update();
+    gimbal.update(attitude.yaw, attitude.pitch);
 }

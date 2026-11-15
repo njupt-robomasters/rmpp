@@ -1,6 +1,6 @@
-# 上游合并预检
+# 上游合并与接口适配
 
-2026-11-15：只检查和规划，尚未执行 merge、stash、暂存、提交或修改工程代码
+2026-11-15：按用户要求先提交当前成果，再合并上游、启用 CAN2 自动重发并迁移接口。以下预检基线保留用于复核，实施结果见末节
 
 ## 基线与复现
 
@@ -37,11 +37,29 @@
 - `app/jelly_sentry` 和 `app/jelly_sentry_debug` 的电机初始化需迁移；上游移除了型号 `KT` 常量、重组底盘配置，不能只修云台和 EL05
 - 本地实测安装方向、PID 参数、CAN ID、可写发送周期和临时注释的发送代码均是既有调试成果，迁移时逐项保留并单独审计
 
-## 后续顺序
+## 实施结果
 
-1. 用户明确要求开始后，先独立保存、核对本地提交和未提交成果，包括生成文件及未跟踪脚本；不擅自提交或丢弃
-2. 合并上游，处理预设与文档冲突；用户决定 CAN2 配置并处理 .ioc/生成文件
-3. 迁移 EL05、GimbalFold、整车及全部相关调试入口到上游接口，保留实际调参
-4. 对涉及的手写代码格式检查、局部真实编译；单独列出待硬件验证项
+- 保存提交：`4d59574`，包含既有工程改动、生成文件和任务脚本。本机未跟踪 `.agents/`、`.clangd`、`.settings/` 保留在工作区，不加入工程提交
+- 合并上游 `f3b8e14`。提交预检记录后 `agents/README.md` 也发生任务索引冲突，实际共 5 个文件；两侧任务与索引均保留
+- CMakePresets 同时保留 jelly_sentry 与 10 个调试入口、上游 leg_down/leg_up；移除已由上游淘汰的 leg 预设
+- 用户明确指定采用上游 CAN2 配置，冲突段取上游 ENABLE 和 FIFO；保留本地 CubeMX 版本等其他改动。实际 `fdcan.c` 自动合并得到 ENABLE/FIFO，与 .ioc 一致，未调用 CubeMX 重新生成
+- EL05 采用平铺配置、原始反馈标量与原生力矩输出，保留 MIT 帧、周期使能与清错逻辑；app 显式配置 5 Nm 和 `5/0.94` A，电流/力矩比例保持原值
+- GimbalFold 通过 `backward(dt)` 统一传入 PID 周期；IMU 更新、yaw 零点与持久化移至 app，移除旧输出类型和旧基类接口依赖；保留独立轴 PID、重力补偿与电机限幅跟踪
+- 底盘改由 app 更新超电并设置 power_chassis_ref；VESC 显式保留原参数 20 A、20 Nm、reduction=7
+- 裁判数据中已有 hurt_data、hurt_sequence、shoot_data 恢复公开，继续支持本地受击方向 UI 与实测弹速，其他字段权限保持上游状态
+- 实机 PID、安装方向、零点、CAN ID、发送周期及被注释的发送代码保留；删除的接口职责已迁至 app 或电机原生输出
 
-本轮未构建、烧录、复位或进行硬件操作；尚不能声称合并后可编译或可上车
+## 验证与复现
+
+工具：Arm GCC 14.3.1、CMake 4.4、Ninja 1.13；Python 3.12 路径为 `C:/Users/joushua/.local/bin/python3.12.exe`
+
+```powershell
+& 'C:/Users/joushua/.local/bin/python3.12.exe' agents/tasks/12-upstream_merge_review/verify_baseline.py
+& 'C:/Users/joushua/.local/bin/python3.12.exe' agents/tasks/12-upstream_merge_review/compile.py
+```
+
+- 29 项基线/配置检查：PID 数值、发送周期、IMU 安装和俯仰零点/限位、11 个入口的实际发送开关、预设与 CAN2 配置一致性
+- 整车 rmpp_app、rmpp_lib、rmpp_bsp 及 FDCAN 初始化对象局部编译通过；10 个 jelly_sentry_debug 入口 rmpp_app 对象全部编译通过，零警告
+- clang-format 22.1.0 格式化并检查本次 16 个手写源码文件，`git diff --check` 检查任务改动
+- 编译命令与日志保存在 `out/compile_summary.json`、`out/*_compile.log`，工程对象产物仍使用默认 `build/`
+- 本轮仅对象编译与静态基线核对；未完整链接、运行控制算法测试或操作硬件。CAN2 重发/FIFO 的实际负载、7025 干扰与 EL05/4310 反馈需用户审计后上板核对

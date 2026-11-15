@@ -1,29 +1,24 @@
 #pragma once
 
-#include "attitude/attitude.hpp"
-#include "bsp/kv_store.hpp"
 #include "math/angle.hpp"
 #include "motor/motor.hpp"
 #include "pid/pid.hpp"
 
+// 云台公共部分：模式、目标转动、参考系换算与在线管理；电机组合与正逆解由子类实现
+// 姿态由调用方每周期经 update() 传入云台系 IMU 的 yaw、pitch
 class Gimbal {
-  public:
-    enum PidOutput { CURRENT_OUTPUT,
-                     TORQUE_OUTPUT };
+  private:
+    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
 
+  public:
     struct Config {
         const Pid::Config* yaw_speed_pid_config;
         const Pid::Config* yaw_position_pid_config;
         const Pid::Config* pitch_speed_pid_config;
         const Pid::Config* pitch_position_pid_config;
-        PidOutput yaw_output = CURRENT_OUTPUT;
-        PidOutput pitch_output = CURRENT_OUTPUT;
         float pitch_min = 0;
         float pitch_max = 0;
-        bool is_pitch_limit = false;
     };
-
-    Attitude& attitude; // 姿态解算，用于云台 IMU 闭环模式
 
     // 云台模式
     enum Mode {
@@ -40,8 +35,25 @@ class Gimbal {
         Angle imu_minus_ecd;
     } yaw, pitch;
 
-    Gimbal(Attitude& attitude, const Config& config);
+  protected:
+    const Config config;
 
+    // 指令
+    Mode mode = IMU_MODE;
+    float yaw_speed = 0, pitch_speed = 0; // 云台转动速度，rad/s
+    float chassis_wr = 0;                 // yaw速度前馈（小陀螺模式需要）
+
+  private:
+    bool is_enable = false;
+    bool is_yaw_ready = false, is_pitch_ready = false;
+
+  protected:
+    Pid yaw_speed_pid, yaw_position_pid, pitch_speed_pid, pitch_position_pid;
+
+  private:
+    Timer update_timer;
+
+  public:
     // 云台使能/失能
     void set_enable(bool is_enable);
 
@@ -57,21 +69,11 @@ class Gimbal {
     // 设置底盘旋转速度，用于yaw轴前馈
     void set_chassis_wr(float chassis_wr);
 
-    virtual void load_yaw_offset(KvStore& kv_store) = 0;
-
-    virtual void save_yaw_offset(KvStore& kv_store) = 0;
-
-    virtual void set_yaw_zero() = 0;
-
-    // 需要在循环中调用
-    void update();
+    // 每个控制周期调用；imu_yaw、imu_pitch 为云台 IMU 姿态，rad
+    void update(Angle imu_yaw, Angle imu_pitch);
 
   protected:
-    const Config config_;
-    Mode mode_ = IMU_MODE;
-    float yaw_speed_ = 0, pitch_speed_ = 0; // 云台转动速度，rad/s
-    float chassis_wr_ = 0;                  // yaw速度前馈（小陀螺模式需要）
-    Pid yaw_speed_pid_, yaw_position_pid_, pitch_speed_pid_, pitch_position_pid_;
+    explicit Gimbal(const Config& config);
 
     virtual void set_motors_enable(bool is_enable) = 0;
 
@@ -81,22 +83,16 @@ class Gimbal {
     // 轴可控判断：失能或离线时目标跟随实测并清空 PID，恢复后第一个周期从实测重新开始
     // 须在 forward() 更新实测后调用，返回 false 时调用方输出零
     bool check_yaw(bool is_connect);
+
     bool check_pitch(bool is_connect);
 
-    // 按配置的输出类型设置电流或力矩，返回电机限幅后的实际输出，供 PID 跟踪
-    static float set_output(Motor& motor, PidOutput type, float output);
-
-    // 角度正解：电机角度 -> 云台姿态
+    // 读取电机角度
     virtual void forward() = 0;
 
-    // 角度正解：云台姿态 -> 电机角度
-    virtual void backward() = 0;
+    // 设置电机角度
+    virtual void backward(float dt) = 0;
 
   private:
-    bool is_enable_ = false;
-    Timer motion_timer_; // 用于云台转动
-    bool is_yaw_ready_ = false, is_pitch_ready_ = false;
-
-    // 处理云台转动，通过dt不断计算角度增量
-    void handle_motion();
+    // 处理云台转动，按目标速度积分角度
+    void handle_motion(float dt);
 };

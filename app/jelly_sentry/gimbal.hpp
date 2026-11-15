@@ -43,9 +43,10 @@ inline Pid::Config yaw1_position_pid = {
     .max_out = 720 * deg_s,
 };
 inline DM4310 yaw1({
-    .bus = {.can = Can(1), .tx_id = 0x10, .rx_id = 0x20},
-    .drive = {.max_torque = DM4310::MAX_TORQUE, .kt = DM4310::KT, .reduction = DM4310::REDUCTION},
-    .install = {.is_invert = false},
+    .can = Can(1),
+    .tx_id = 0x10,
+    .rx_id = 0x20,
+    .is_invert = false,
 });
 
 // 小 yaw：脉塔 RMD-L-7025，CAN2，电机 ID 1（控制帧 0x141，回复帧 0x241），电机只跑电流环
@@ -65,9 +66,11 @@ inline Pid::Config yaw2_position_pid = {
 // 运行时可写发送周期，单位 ms；主循环约 1 ms，7025 建议取 2~99
 inline volatile uint32_t yaw2_send_period_ms = 2;
 inline RMDL7025 yaw2({
-    .bus = {.can = Can(2), .tx_id = 0x141, .rx_id = 0x241},
-    .drive = {.max_current = RMDL7025::MAX_CURRENT, .max_torque = RMDL7025::MAX_TORQUE, .kt = RMDL7025::KT, .reduction = RMDL7025::REDUCTION},
-    .install = {.is_invert = false, .offset = 0 * deg},
+    .can = Can(2),
+    .tx_id = 0x141,
+    .rx_id = 0x241,
+    .is_invert = false,
+    .offset = 0 * deg,
 });
 
 // pitch1：折叠关节，DM4310，CAN2，只用编码器闭环；位置环限速 90°/s 限制折叠、展开速度
@@ -87,9 +90,11 @@ inline Pid::Config pitch1_position_pid = {
 // 运行时可写发送周期，单位 ms，建议取 1~99，避免超过反馈超时
 inline volatile uint32_t pitch1_send_period_ms = 4;
 inline DM4310 pitch1({
-    .bus = {.can = Can(2), .tx_id = 0x10, .rx_id = 0x20},
-    .drive = {.max_torque = DM4310::MAX_TORQUE, .kt = DM4310::KT, .reduction = DM4310::REDUCTION},
-    .install = {.is_invert = false, .offset = 0 * deg},
+    .can = Can(2),
+    .tx_id = 0x10,
+    .rx_id = 0x20,
+    .is_invert = false,
+    .offset = 0 * deg,
 });
 
 // pitch2：俯仰轴，DM4310，CAN2，IMU 装在其上，走 ECD / IMU 模式
@@ -110,40 +115,37 @@ inline Pid::Config pitch2_position_pid = {
 // 运行时可写发送周期，单位 ms，建议取 1~99，避免超过反馈超时
 inline volatile uint32_t pitch2_send_period_ms = 1;
 inline DM4310 pitch2({
-    .bus = {.can = Can(2), .tx_id = 0x11, .rx_id = 0x21},
-    .drive = {.max_torque = DM4310::MAX_TORQUE, .kt = DM4310::KT, .reduction = DM4310::REDUCTION},
-    .install = {.is_invert = false, .offset = -61.3f * deg},
+    .can = Can(2),
+    .tx_id = 0x11,
+    .rx_id = 0x21,
+    .is_invert = false,
+    .offset = -61.3f * deg,
 });
 
 // 云台：限位均为各自编码器角度；重力补偿力矩为 0 表示不补偿，折叠关节负载大，建议标定
-inline GimbalFold gimbal(attitude, {yaw1, yaw2, pitch1, pitch2}, {
-                                                                      .gimbal = {
-                                                                          .yaw_speed_pid_config = &yaw1_speed_pid,
-                                                                          .yaw_position_pid_config = &yaw1_position_pid,
-                                                                          .pitch_speed_pid_config = &pitch2_speed_pid,
-                                                                          .pitch_position_pid_config = &pitch2_position_pid,
-                                                                          .yaw_output = Gimbal::TORQUE_OUTPUT,
-                                                                          .pitch_output = Gimbal::TORQUE_OUTPUT,
-                                                                          .pitch_min = -22 * deg,
-                                                                          .pitch_max = 25 * deg,
-                                                                          .is_pitch_limit = true,
-                                                                      },
-                                                                      .yaw2 = {
-                                                                          .speed_pid_config = &yaw2_speed_pid,
-                                                                          .position_pid_config = &yaw2_position_pid,
-                                                                          .output = Gimbal::CURRENT_OUTPUT,
-                                                                          .min = -40 * deg,
-                                                                          .max = 40 * deg,
-                                                                      },
-                                                                      .pitch1 = {
-                                                                          .speed_pid_config = &pitch1_speed_pid,
-                                                                          .position_pid_config = &pitch1_position_pid,
-                                                                          .output = Gimbal::TORQUE_OUTPUT,
-                                                                          .min = -90 * deg, // TODO: 折叠极限
-                                                                          .max = 0 * deg,   // TODO: 展开极限
-                                                                      },
-                                                                      .pitch1_gravity = {.torque = 0, .phase = 0 * deg},
-                                                                      .pitch2_gravity = {.torque = 0, .phase = 0 * deg},
-                                                                  });
+inline GimbalFold gimbal({yaw1, yaw2, pitch1, pitch2}, {
+                                                           .gimbal = {
+                                                               .yaw_speed_pid_config = &yaw1_speed_pid,
+                                                               .yaw_position_pid_config = &yaw1_position_pid,
+                                                               .pitch_speed_pid_config = &pitch2_speed_pid,
+                                                               .pitch_position_pid_config = &pitch2_position_pid,
+                                                               .pitch_min = -22 * deg,
+                                                               .pitch_max = 25 * deg,
+                                                           },
+                                                           .yaw2 = {
+                                                               .speed_pid_config = &yaw2_speed_pid,
+                                                               .position_pid_config = &yaw2_position_pid,
+                                                               .min = -40 * deg,
+                                                               .max = 40 * deg,
+                                                           },
+                                                           .pitch1 = {
+                                                               .speed_pid_config = &pitch1_speed_pid,
+                                                               .position_pid_config = &pitch1_position_pid,
+                                                               .min = -90 * deg, // TODO: 折叠极限
+                                                               .max = 0 * deg,   // TODO: 展开极限
+                                                           },
+                                                           .pitch1_gravity = {.torque = 0, .phase = 0 * deg},
+                                                           .pitch2_gravity = {.torque = 0, .phase = 0 * deg},
+                                                       });
 
 void gimbal_loop();

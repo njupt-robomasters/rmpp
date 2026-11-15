@@ -9,8 +9,12 @@ class Uart {
     // 接收数据仅在回调期间有效
     using RxCallback = std::function<void(const uint8_t*, std::size_t)>;
 
+  private:
+    const int id;
+
+  public:
     // 编号不存在时各操作静默返回
-    constexpr explicit Uart(const int id) : id_(id) {}
+    constexpr explicit Uart(const int id) : id(id) {}
 
     // 上次 DMA 发送已完成
     bool can_send() const;
@@ -20,7 +24,4 @@ class Uart {
 
     // 回调在接收中断内依序执行
     void add_rx_callback(RxCallback callback) const;
-
-  private:
-    int id_;
 };

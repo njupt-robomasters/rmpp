@@ -1,8 +1,8 @@
 #include "app.hpp"
-#include <cmath>
 #include "bsp/can.hpp"
 #include "bsp/timer.hpp"
 #include "melody/music/c5d5g5.hpp"
+#include <cmath>
 
 // 伤害方向显示时长，s
 static constexpr float HURT_TIMEOUT = 1;
@@ -13,7 +13,8 @@ static Angle hurt_dir_imu; // 伤害方向，IMU 参考系
 static Timer hurt_timer;   // 自上次装甲受弹丸攻击以来的时间
 static bool has_hurt = false;
 static uint8_t chassis_divider = 0;
-static uint32_t pitch1_divider = 0, pitch2_divider = 0, yaw2_divider = 0, shoot_divider = 0;
+static uint32_t yaw2_divider = 0;
+[[maybe_unused]] static uint32_t pitch1_divider = 0, pitch2_divider = 0, shoot_divider = 0;
 
 static void send_can_cmd() {
     // CAN1：底盘 C620 控制帧 0x200 每 2 ms 发一次，与 C620 500 Hz 回传对齐，降低 CAN1 负载
@@ -47,15 +48,15 @@ static void send_can_cmd() {
         yaw2.send();
     }
 
-//     // CAN3：摩擦轮 P630，VESC 速度模式；调试阶段暂不发送
-//     // rub1.send();
-//     // rub2.send();
+    //     // CAN3：摩擦轮 P630，VESC 速度模式；调试阶段暂不发送
+    //     // rub1.send();
+    //     // rub2.send();
 
-//     // CAN2：EL05 发送周期由 shooter.hpp 的可写变量决定
-//     if (++shoot_divider >= shoot_send_period_ms) {
-//         shoot_divider = 0;
-//         shoot.send();
-//     }
+    //     // CAN2：EL05 发送周期由 shooter.hpp 的可写变量决定
+    //     if (++shoot_divider >= shoot_send_period_ms) {
+    //         shoot_divider = 0;
+    //         shoot.send();
+    //     }
 }
 
 // 摩擦轮状态：离线粉色，偏离目标弹速超过 1 m/s 橙色
@@ -119,12 +120,13 @@ static void update_ui() {
     ui.update();
 }
 
+static float cpu_usage = 0; // 主循环占用，SWD 观察
+
 extern "C" void app_main() {
     // 大 yaw 零位从 KvStore 读取，未标定时为 0；标定方法见 gimbal.cpp 组合键
-    gimbal.load_yaw_offset(kv_store);
+    yaw1.config.offset = kv_store.read("yaw_offset");
     melody.play(C5D5G5);
 
-    [[maybe_unused]] static float cpu_usage = 0;
     Timer loop_timer;
     while (true) {
         if (loop_timer.elapsed() > 1 * ms) {
@@ -134,9 +136,10 @@ extern "C" void app_main() {
             referee.update();
             vt13.update();
             fsi6x.update();
+            attitude.update();
 
             // 上位机数据：弹速取裁判系统实测初速
-            aim.imu = {.yaw = gimbal.attitude.yaw, .pitch = gimbal.attitude.pitch, .roll = gimbal.attitude.roll};
+            aim.imu = {.yaw = attitude.yaw, .pitch = attitude.pitch, .roll = attitude.roll};
             aim.referee = {
                 .is_red = referee.robot_status.robot_id < 100,
                 .game_progress = static_cast<Referee::GameProgress>(referee.game_status.game_progress),

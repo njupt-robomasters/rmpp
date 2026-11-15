@@ -2,16 +2,13 @@
 #include "app.hpp"
 #include "gimbal.hpp"
 #include "referee.hpp"
-#include <cmath>
 
 // 操控参数
 static constexpr float VXY_MAX = 3.0f;     // 平移最大速度，m/s
 static constexpr float WR_MAX = 150 * rpm; // 手动旋转最大角速度
 static constexpr float SPIN_WR = 60 * rpm; // 小陀螺角速度
 
-// N630 HFI 静止附近有高频噪音：目标电流与实际轮速均低于阈值时发零电流
-static constexpr float LOW_CURRENT = 0.5f; // A
-static constexpr float LOW_SPEED = 5 * rpm;
+static uint32_t super_cap_send_count = 0; // 超电发送分频计数
 
 void chassis_loop() {
     const bool is_enable = fsi6x.swa == FSi6X::DOWN; // SWA 下挡使能
@@ -47,22 +44,22 @@ void chassis_loop() {
     // 裁判电池侧功率上限与缓冲能量由 referee_loop 模拟
     super_cap.set_referee_limit(REFEREE_LIMIT);
     super_cap.set_referee_energy(referee_energy);
+    super_cap.update();
 
+    // 底盘功率目标由超电给出
+    chassis.set_power_ref(super_cap.power_chassis_ref);
     chassis.update();
 
-    // CAN1 0x200 组帧发送，低速低电流的轮发零电流
+    // CAN1 0x200 组帧发送
     CanFrame frame{.id = 0x200, .size = 8};
-    for (M3508* wheel : {&w1, &w2, &w3, &w4}) {
-        if (std::fabs(wheel->current_ref) < LOW_CURRENT && std::fabs(wheel->speed) < LOW_SPEED)
-            wheel->set_current(0);
-        wheel->write_can_frame(frame);
-    }
+    w1.write_can_frame(frame);
+    w2.write_can_frame(frame);
+    w3.write_can_frame(frame);
+    w4.write_can_frame(frame);
     Can(1).send(frame);
 
     // 超电 100 Hz 发送
-    static Timer super_cap_send_timer;
-    if (super_cap_send_timer.elapsed() >= 0.01f) {
-        super_cap_send_timer.restart();
+    if (super_cap_send_count++ % 10 == 0) {
         super_cap.send();
     }
 }

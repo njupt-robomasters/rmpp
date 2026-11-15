@@ -1,8 +1,8 @@
 #include "app.hpp"
-#include <algorithm>
-#include <cmath>
 #include "bsp/timer.hpp"
 #include "math/math.hpp"
+#include <algorithm>
+#include <cmath>
 
 // 操控参数
 static constexpr float VXY_MAX = 5.0f;     // 平移最大速度，m/s；100W下2.3m/s，不限功率3.2m/s
@@ -99,5 +99,7 @@ void chassis_loop() {
     chassis.set_gimbal_yaw(gimbal.yaw.ecd.measure);
     super_cap.set_referee_limit(referee.robot_status.chassis_power_limit);
     super_cap.set_referee_energy(referee.power_heat_data.buffer_energy);
+    super_cap.update();
+    chassis.set_power_ref(super_cap.power_chassis_ref);
     chassis.update();
 }

@@ -1,11 +1,11 @@
 #include "attitude.hpp"
 
 Attitude::Attitude(Imu& imu)
-    : imu_(imu) {}
+    : imu(imu) {}
 
 void Attitude::update() {
-    imu_.update();
-    solve(imu_.gyro, imu_.accel);
+    imu.update();
+    solve(imu.gyro, imu.accel);
 
     // 四元数 -> 欧拉角
     const Angle last_yaw = yaw;

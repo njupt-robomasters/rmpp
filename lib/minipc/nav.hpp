@@ -21,10 +21,13 @@ class Nav {
         float vy = 0;
     } chassis_speed;
 
-    explicit Nav(const Config& config);
-    void update();
-
   private:
-    const Config config_;
-    Timer chassis_speed_timer_;
+    const Config config;
+
+    Timer chassis_speed_timer;
+
+  public:
+    explicit Nav(const Config& config);
+
+    void update();
 };

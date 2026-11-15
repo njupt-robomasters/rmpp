@@ -1,13 +1,28 @@
+#include "bsp/monitor.hpp"
 #include "referee/referee.hpp"
 
 static Referee referee({.bus = Can(1)});
 
+static void setup() {}
+
+static void loop() {
+    referee.update();
+}
+
+static Timer app_timer;     // 主循环 1 kHz 分频
+static Monitor app_monitor; // 主循环负载监控
+
 extern "C" void app_main() {
-    Timer timer;
+    setup();
     while (true) {
-        if (timer.elapsed() > 0.001f) {
-            timer.restart();
-            referee.update();
-        }
+        // 1 kHz 更新
+        if (app_timer.elapsed() < 0.001f)
+            continue;
+        app_timer.restart();
+
+        // 负载监控
+        app_monitor.begin();
+        loop();
+        app_monitor.end();
     }
 }

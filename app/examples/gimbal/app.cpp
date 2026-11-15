@@ -1,12 +1,12 @@
 #include "bsp/can.hpp"
-#include "bsp/timer.hpp"
+#include "bsp/monitor.hpp"
 #include "bsp/uart.hpp"
 #include "gimbal.hpp"
 #include "rc/fsi6x.hpp"
 #include "rc/vt13.hpp"
 #include <algorithm>
 
-static constexpr float WYAW_MAX = 360 * deg_s;   // yaw 最大角速度，rad/s
+static constexpr float YAW_SPEED_MAX = 360 * deg_s;   // yaw 最大角速度，rad/s
 static constexpr float WPITCH_MAX = 360 * deg_s; // pitch 最大角速度，rad/s
 
 static VT13 vt13({.uart = Uart(6)});
@@ -26,23 +26,38 @@ void send_can_cmd() {
     pitch.send();
 }
 
-extern "C" void app_main() {
+static void setup() {
     gimbal.set_mode(Gimbal::IMU_MODE);
+}
 
-    Timer timer;
+static void loop() {
+    vt13.update();
+    fsi6x.update();
+
+    gimbal.set_enable(rc_enable());
+    const float yaw_speed = std::clamp((vt13.yaw + fsi6x.yaw) * YAW_SPEED_MAX, -YAW_SPEED_MAX, YAW_SPEED_MAX);
+    const float pitch_speed = std::clamp((vt13.pitch + fsi6x.pitch) * WPITCH_MAX, -WPITCH_MAX, WPITCH_MAX);
+    gimbal.set_speed(yaw_speed, pitch_speed);
+    attitude.update();
+    gimbal.update(attitude.yaw, attitude.pitch);
+
+    send_can_cmd();
+}
+
+static Timer app_timer;     // 主循环 1 kHz 分频
+static Monitor app_monitor; // 主循环负载监控
+
+extern "C" void app_main() {
+    setup();
     while (true) {
-        if (timer.elapsed() > 1 * ms) {
-            timer.restart();
-            vt13.update();
-            fsi6x.update();
+        // 1 kHz 更新
+        if (app_timer.elapsed() < 0.001f)
+            continue;
+        app_timer.restart();
 
-            gimbal.set_enable(rc_enable());
-            const float yaw_speed = std::clamp((vt13.yaw + fsi6x.yaw) * WYAW_MAX, -WYAW_MAX, WYAW_MAX);
-            const float pitch_speed = std::clamp((vt13.pitch + fsi6x.pitch) * WPITCH_MAX, -WPITCH_MAX, WPITCH_MAX);
-            gimbal.set_speed(yaw_speed, pitch_speed);
-            gimbal.update();
-
-            send_can_cmd();
-        }
+        // 负载监控
+        app_monitor.begin();
+        loop();
+        app_monitor.end();
     }
 }

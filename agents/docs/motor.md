@@ -4,12 +4,14 @@
 
 ## 构造与配置
 
-- 各层构造函数只接收并传递 motor 唯一的 config 参数
-- 型号默认值由子类通过 Config 成员补齐
-- 不另设全局型号配置包装
-- 配置按 `bus/drive/install` 组织
-- `drive` 保存 kt、电流与转矩量程、减速比，`install` 保存零点和方向
-- 自行发送的协议使用 `tx_id/rx_id` 明确收发方向；DJI 组帧仅配置 `rx_id`
+- 各层使用平面的 Motor::Config 构造输入，按通信、量程与减速比、安装方向与零点分组
+- 实例按值保存一份公开的 `Config config`，通信、超时、量程、减速比、方向和零点直接读取 config，不再逐项保存同名成员；型号 MAX_CURRENT、MAX_TORQUE、REDUCTION 传入 Motor 构造函数补齐 config 中的零值
+- VESC 无固定型号，app 显式给出 max_current、max_torque、reduction；摩擦轮按 M3508 常量
+- 外部经 `motor.config.max_current/max_torque` 读取量程，经 `motor.config.offset` 维护和存储零点；其余配置在构造后保持固定，CAN 回调仍注册在构造时的总线上
+- 不保存 kt，电流与力矩按 max_torque/max_current 换算；限流交给 PID max_out
+- 减速比与型号不同时同时给出 max_torque；自行发送的协议使用 tx_id/rx_id，DJI 组帧只需 rx_id
+- 原始反馈为 protected raw_current/raw_torque/raw_speed/raw_position；仅供 SWD 的温度等诊断字段使用 private
+- 电机库不提供 `set_offset()`、`set_zero()`；校零策略由 app 维护，布局见 conventions.md
 
 ## 基类与子类
 
@@ -17,7 +19,7 @@
 - 父类只保留通用控制和反馈修正
 - 最终型号负责注册回调、筛帧和解析型号特有字段
 - DJI 型号解析反馈后直接调用 `Motor::can_callback()` 完成通用反馈修正
-- 其他协议子类解析后写入 `raw`，再调用 `Motor::can_callback()` 修正反馈并刷新在线状态
+- 其他协议子类解析后写入原始标量，再调用 `Motor::can_callback()` 修正反馈并刷新在线状态
 - 周期 `update()` 只完成离线检测，闭环由机构库完成
 
 ## 协议刻度
@@ -27,13 +29,14 @@
 
 ## 零值与限幅
 
-- 零值 `kt` 补为 1
-- 零值 `drive.reduction` 补为 1
-- `max_current/max_torque` 仅一项为零时，通过 kt 补齐
-- 两项全为零时保持零
+- `set_output()` 返回 void，按协议原生输出设置：基类调用虚函数 `set_current()`（A），DM 系列和 EL05 覆盖为 `set_torque()`（N·m）；保留显式电流、力矩接口
+- RMDL7025 的 0xA1 输入为电流；GM6020 默认输出仍为电流，电压帧沿用发送层换算；VESC 命令更新与 X630 静音继续经原设置接口执行
+- 使用默认输出的机构由 app 配置 PID 输出单位和限幅，电机设置函数保留量程限幅
+- 量程与减速比零值字段按型号常量补齐
 - `set_current()` 先将非有限值置零，再按 `max_current` 限幅并换算转矩
 - `set_torque()` 先将非有限值置零，再按 `max_torque` 限幅并换算电流
-- 对应最大值为零时，输出限制为零
+- 反馈解析中有符号的转速、电流先转 `int16_t` 保留反转符号
+- `raw_speed` 为电机侧转速，只由 `Motor::can_callback()` 除一次减速比
 
 ## DJI 组帧
 
@@ -44,8 +47,9 @@
 ## GM6020 电压帧
 
 - 电压帧 0x1FF/0x2FF 把 `current_ref` 按 3 A ↔ 25 V 换算为电压，电流帧 0x1FE/0x2FE 直接发电流
-- 反电动势前馈在电机定义时用 `BackEmf{gain, ke}` 给出，发送时叠加 `gain·ke·speed` 并限幅 ±25 V；`ke` 默认手册 1 V/13.33 rpm，`gain` 默认 0 不补偿
-- 只有一个构造，不补偿时调用方传 `{}`
+- 电流与力矩按 3 A ↔ 2.223 N·m 换算，与其他型号一致
+- 反电动势前馈系数为构造第二参数 `float ke = 0`，V/(rad/s)，发送时叠加 `ke·speed` 并限幅 ±25 V；0 不补偿，需要时传手册值 `GM6020::KE`（1 V/13.33 rpm）或按比例缩小，如 `0.5f * GM6020::KE`
+- 可选前馈系数是“配置不给默认实参”约定的例外
 
 ## RMD-L-7025
 
@@ -56,8 +60,15 @@
 
 ## EL05 MIT
 
+- 使用上游平铺 `Motor::Config` 与原始反馈标量；电流按 `max_current/max_torque` 换算，当前 app 显式使用 5 Nm 与 `5/0.94` A 保留实测比例
 - 使用 1 Mbps 经典标准帧，8 字节；tx_id/rx_id 在 app 显式绑定
 - 手册印刷页 51 的应答指令 1：Byte0 电机 ID，Byte1~2 角度16位，Byte3/Byte4高半字节速度12位，Byte4低半字节/Byte5力矩12位，Byte6高两位模式、bit5故障、bit4告警，Byte6低半字节/Byte7温度0.1℃
 - 手册印刷页 52：FC使能、FD停止、FB清错，前三者的前7字节都是FF；清错返回正常状态，不发送另一布局的故障查询
 - 故障期间停止出力，每500ms自动尝试清错，收到fault=0反馈后且上层仍使能才恢复；clear_fault_count记录尝试次数，不代表成功恢复
 - 12位量化按4095换算；手册写作[0~4096]，量化约定待实机确认
+
+## X630（N630/P630）
+
+- CAN 协议、刻度与组帧同 M3508（C620），物理常数暂按 M3508 取值；无 `send_quick_set_id()`
+- HFI 静音：构造第二参数 `Mute`，重写 `set_current/set_torque`，设置后滞回判断，静音时 `current_ref/torque_ref` 置零
+- 目标电流 < `enter_current`（1 A）且转速 < `enter_speed`（10 rpm）进入静音，目标电流 > `exit_current`（2 A）才退出

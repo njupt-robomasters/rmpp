@@ -41,10 +41,13 @@ class Aim {
         float a0 = NAN;
     } insta360;
 
-    explicit Aim(const Config& config);
-    void update();
-
   private:
-    const Config config_;
-    Timer timer_vision_, timer_insta360_;
+    const Config config;
+
+    Timer vision_timer, insta360_timer;
+
+  public:
+    explicit Aim(const Config& config);
+
+    void update();
 };

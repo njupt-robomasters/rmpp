@@ -19,7 +19,7 @@
 
 ## 构造与启动
 
-- `Can`、`Uart`、`Cdc` 只保存编号 `id_`，构造 constexpr，可在全局创建且不访问硬件
+- `Can`、`Uart`、`Cdc` 只保存编号 `id`，构造 constexpr，可在全局创建且不访问硬件
 - 运行数据放在各板外设 `.cpp` 的文件私有 static 表（`CanContext`、`UartContext`、`CdcContext`），头文件不暴露；操作时按编号查表，中断回调按 HAL 句柄查表
 - 不存在的编号各操作静默返回
 - `Rgb`、`Buzzer` 无状态，可任意构造；`Imu` 持有温控配置和 PID 状态，由 app 创建唯一实例
@@ -71,6 +71,8 @@
 - 读取时短暂关中断，返回累计值加上未累加的 CYCCNT 差值；中断内可调用
 - 约束：关中断或在 SysTick 之上优先级阻塞不得超过一个 CYCCNT 周期（F407 168 MHz 约 25.5 s，H723 520 MHz 约 8.26 s）；调试暂停时两者同停
 - Cortex-M7 使能 DWT 前写 `DWT->LAR = 0xC5ACCE55`
+- `elapsed()`、`restart()` 返回原始间隔，不限幅；需要限幅的积分步长由调用方处理，超时判断不受影响
+- private 成员 `dt` 保存最后一次 `restart()` 返回的原始间隔（s），初值为 0，供 SWD 调试观察；`elapsed()` 不更新它
 
 ## 缓冲
 
@@ -94,6 +96,7 @@
 
 - 经典帧 1 Mbps；`HAL_FDCAN_ConfigGlobalFilter` 把标准帧和扩展帧都送入 RX FIFO0，远程帧拒收
 - 通知 `RX_FIFO0_NEW_MESSAGE | BUS_OFF`，IT0 中断由 CubeMX 开启；发送 `AddMessageToTxFifoQ`，队列满丢弃
+- 两板 CAN 均开启自动重发，按写入顺序发送（C 板 Transmit Fifo Priority = Enable，mc02 TX FIFO 模式）；仲裁失败和总线错误后重试。CAN ACK 由任一正常接收的节点回复，某个电机离线不会让帧积压；总线上没有其他节点时首帧一直重发、后续帧排队，满后新帧丢弃
 - 接收区按 64 字节准备：HAL 按 FD 长度表拷贝，经典帧 DLC 9–15 会拷贝超过 8 字节
 - bus-off 后硬件置位 `CCCR.INIT`；`HAL_FDCAN_ErrorStatusCallback` 计数并清除，经 129 × 11 个隐性位后自动重新入网
 
