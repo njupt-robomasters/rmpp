@@ -81,13 +81,11 @@ void Gimbal::handle_motion(const float dt) {
     if (!is_enable)
         return;
 
-    const Angle yaw_delta = yaw_speed * dt;
-    const Angle pitch_delta = pitch_speed * dt;
     if (mode == ECD_MODE) {
-        yaw.ecd.ref += yaw_delta;
-        pitch.ecd.ref += pitch_delta;
+        yaw.ecd.ref += yaw_speed * dt;
+        pitch.ecd.ref += pitch_speed * dt;
     } else if (mode == IMU_MODE) {
-        yaw.imu.ref += yaw_delta;
-        pitch.imu.ref += pitch_delta;
+        yaw.imu.ref += yaw_speed * dt;
+        pitch.imu.ref += pitch_speed * dt;
     }
 }

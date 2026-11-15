@@ -18,7 +18,7 @@ class Gimbal {
         const Pid::Config* pitch_position_pid_config;
         float pitch_min = 0;
         float pitch_max = 0;
-    };
+    } const config;
 
     // 云台模式
     enum Mode {
@@ -36,8 +36,6 @@ class Gimbal {
     } yaw, pitch;
 
   protected:
-    const Config config;
-
     // 指令
     Mode mode = IMU_MODE;
     float yaw_speed = 0, pitch_speed = 0; // 云台转动速度，rad/s

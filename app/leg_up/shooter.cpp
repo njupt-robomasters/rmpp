@@ -23,11 +23,4 @@ void shooter_loop() {
             if (std::fabs(rub->speed) < RUB_RELEASE_SPEED)
                 rub->set_current(0);
     }
-
-    // 发送 CAN 命令
-    CanFrame frame{.id = 0x200, .size = 8};
-    shoot.write_can_frame(frame);
-    Can(2).send(frame);
-    rub1.send();
-    rub2.send();
 }

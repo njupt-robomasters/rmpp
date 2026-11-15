@@ -22,7 +22,7 @@ inline Pid::Config yaw_position_pid = {
 };
 inline GM6020 yaw({
     .can = Can(2),
-    .tx_id = 0x1FF,
+    .tx_id = 0x1fe,
     .rx_id = 0x205,
     .is_invert = true,
     .offset = 5.048f,

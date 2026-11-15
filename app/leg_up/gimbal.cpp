@@ -9,6 +9,7 @@ void gimbal_loop() {
     attitude.update();
 
     gimbal.set_enable(vt13.is_connect && (vt13.mode == VT13::N || vt13.mode == VT13::S));
+    gimbal.set_mode(Gimbal::ECD_MODE);
 
     // 摇杆：射击开关打开时 pitch 摇杆改为调节弹频，不再控制云台
     const float yaw_speed = YAW_SPEED_MAX * (vt13.yaw + vt13.mouse.yaw);
@@ -31,10 +32,4 @@ void gimbal_loop() {
 
     // gimbal.set_chassis_wr(chassis.wr.measure);
     gimbal.update(attitude.yaw, attitude.pitch);
-
-    // 发送 CAN 命令
-    // CanFrame frame{.id = 0x1FF, .size = 8};
-    // yaw.write_can_frame(frame);
-    // pitch.write_can_frame(frame);
-    // Can(2).send(frame);
 }
