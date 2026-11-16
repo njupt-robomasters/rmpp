@@ -50,3 +50,34 @@ python agents/tasks/11-shooter_state/verify_gimbal.py --cxx g++
 ARM 对象编译通过且无警告：两个云台源码，以及 `leg_up`、`infantry`、`sentry`、`examples-gimbal` 的全部应用源码，共 16 个对象。clang-format 与 `git diff --check` 通过；本轮未执行完整固件链接和硬件操作。
 
 合并提交 `925e031`：解决两个基类文件的修改/删除冲突，保留其简化内容于独立类；leg_up 新增的编码器模式调用同步改为 `GimbalClassic::ECD_MODE`。合并后的主工作区对照 `8a42d69` 再次通过 12,000 周期、186,000 项比较，相关应用对象和格式检查通过；电机示例对象检查通过。日志和测试产物位于主工作区 `out/gimbal_standalone/`，外部 worktree 的对象编译日志归档至其中的 `external_worktree_logs/`。
+
+## GimbalClassic IMU 速度闭环
+
+已按确认方案删除 Classic ECD 模式，迁移 `infantry`、`leg_up`、`examples/gimbal` 调用；DualYaw 保持原实现。IMU 固连 pitch 随动部分，使用 ECD pitch 关节四元数将 gyro 旋转到上游 yaw 随动系，取 Z/Y 轴的绝对角速度作为反馈；电机速度仅保留观测。正负90度时 yaw 反馈分别为 `-gyro.x()`、`gyro.x()`，全程无余弦除法。角度外环可由固定配置 `use_angle_loop` 关闭，开启时采用最短四元数姿态误差的机械轴投影，保留初始化 roll 参考以连续越过竖直位置。
+
+yaw 速度误差按用户确认的方式计算：`yaw.speed_ref - yaw.speed_measure + (yaw.speed_ref - chassis_wr)`，全部进入同一个速度 PID。pitch 按 ECD 实测保护最终原生输出，保留回程方向，截断时对速度 PID `track(0)`；IMU 目标不再受 ECD 目标钳制。
+
+Classic 状态已展平为 `position_ref/position_measure`、`speed_ref/speed_measure`；速度目标包含目标变化率投影和角度环修正，yaw 相对速度前馈另行叠加。失能或离线时对应速度目标清零。ECD 反馈直接读取公开的 `motor`，删除重复缓存和 `imu_minus_ecd` 差值观测；步兵 UI、底盘跟随和掉头调用同步迁移。
+
+当前验证入口：
+
+```sh
+python agents/tasks/11-shooter_state/verify_gimbal_imu.py --arm
+```
+
+- 主机编译真实 Classic、Motor、PID，仅模拟时钟和反馈；6,374 项检查通过（同步扁平字段，增加速度目标、失能清零与反馈刷新检查，移除旧差值观测断言）。覆盖整圈关节转速恢复（含正负90度）、枪口自旋和底盘运动的轴向投影、倾斜姿态下四元数外环误差下降、正负90度初始化、反号等价四元数、穿过竖直位置的外环连续性、两种配置、目标积分与 dt 限幅、角度回绕、电机速度噪声隔离、前馈叠加、pitch 双向电流/力矩保护、安装反向、积分回算及失能/断联恢复
+- 真实 ARM 编译通过且无警告：Classic 源码，以及 infantry（5 个）、leg_up（3 个）、gimbal 示例（1 个）全部应用源码，共 10 个对象；日志和产物放在本任务 `out/gimbal_imu/`
+- 当前 Classic 头文件、源码和主机测试源码通过同版本 clang-format 检查，相关 diff 空白检查通过；此前三处 app 接口迁移已通过格式检查
+- 上节 `verify_gimbal.py` 是旧 ECD/IMU 接口的历史差分验证，复现时使用当时的提交；当前行为验证使用本节入口
+- 本轮未执行完整固件链接、烧录、复位或硬件测试；上车前核对 IMU 安装轴与 ECD pitch 零点、正方向。实际实例保留原 pitch 保护范围（负15度至正30度）；反馈和四元数外环在90度处可计算，输出仍受 ECD 保护范围约束
+
+## GimbalClassic 外环简化与 roll_ref 移除
+
+roll_ref 用于四元数姿态误差：目标四元数缺少 roll 时，底盘倾斜带来的 roll 误差会经投影漏进 yaw 轴（yaw 机械轴在 IMU 系有 `sin(pitch)` 的 X 分量），形成稳态偏差；roll_ref 只在初始化时取一次，底盘在斜坡上转动后可达 roll 随之变化，偏差仍会出现。改为直接对 ZYX 欧拉 yaw/pitch 误差闭环，输出世界角速率，与速度指令一起经 `pitch_joint * q⁻¹` 换算到电机轴，roll 不参与，roll_ref 与目标四元数一并删除。
+
+同时整理：`is_enable` 与在线状态集中为 `can_pitch`/`can_yaw`；`use_angle_loop` 只在一处与可控状态合并后交给私有成员 `update_angle_loop()`，它直接读写两轴状态与角度 PID，把外环修正叠加进 `speed_ref`；yaw 的 `chassis_wr` 前馈也并入 `speed_ref`，速度误差统一为 `speed_ref − speed_measure`；删除 `can_yaw_last/can_pitch_last`，不可控期间每周期同步目标即可覆盖恢复，首次 update 由 `has_update` 同步；`set_speed()` 为外部给出的电机轴速度，直接作为速度目标前馈，只有外环修正经姿态换算到电机轴；`position` 命名统一为 `angle`（`set_angle`、`angle_ref`、`*_angle_pid_config`），迁移 infantry、leg_up、examples/gimbal。
+
+验证：`python agents/tasks/11-shooter_state/verify_gimbal_imu.py --arm`
+
+- 主机测试重写为当前行为，3,280 项通过：水平底盘关节转速恢复与编码器噪声隔离、倾斜底盘角速度投影、倾斜底盘下速度指令保持电机轴、目标积分与 dt 限幅、yaw 回绕、两种配置、pitch 双向保护与积分回算、失能/断联恢复；新增倾斜底盘（roll ±0.25~0.3 rad）闭环运动学仿真，世界 yaw/pitch 收敛误差 < 1e-4 rad
+- ARM 对象 10 个编译通过且无警告；改动文件经 `tools/format_code.py` 格式化。未执行完整固件链接与硬件测试
