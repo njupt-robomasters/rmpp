@@ -95,8 +95,29 @@ void chassis_loop() {
     wr += vt13.wheel * WR_MAX + key_wr;
     chassis.set_speed(std::clamp(vx, -VXY_MAX, VXY_MAX), std::clamp(vy, -VXY_MAX, VXY_MAX), std::clamp(wr, -WR_MAX, WR_MAX));
 
-    // 前进正方向为云台方向；功率上限与缓冲能量来自裁判系统
+    // 前进正方向为云台方向
     chassis.set_gimbal_yaw(gimbal.yaw.ecd.measure);
+
+    // 超电：裁判离线或任一在线遥控器显式关闭时 OFF；比赛 BOOST，自检和倒计时 CHARGE
+    // 人工测试：FSi6X SWC 上/中/下、VT13 C/N/S 对应 OFF/CHARGE/BOOST
+    const bool is_cap_off = (fsi6x.is_connect && fsi6x.swc == FSi6X::UP) ||
+                            (vt13.is_connect && vt13.mode == VT13::C);
+    const auto progress = referee.game_status.game_progress;
+    SuperCap::Mode cap_mode = SuperCap::OFF;
+    if (!referee.is_connected || is_cap_off) {
+        cap_mode = SuperCap::OFF;
+    } else if (sentry_in_game()) {
+        cap_mode = SuperCap::BOOST;
+    } else if (progress == Referee::REFEREE_SELF_CHECK || progress == Referee::COUNTDOWN_5SEC) {
+        cap_mode = SuperCap::CHARGE;
+    } else if ((fsi6x.is_connect && fsi6x.swc == FSi6X::DOWN) || (vt13.is_connect && vt13.mode == VT13::S)) {
+        cap_mode = SuperCap::BOOST;
+    } else if ((fsi6x.is_connect && fsi6x.swc == FSi6X::MID) || (vt13.is_connect && vt13.mode == VT13::N)) {
+        cap_mode = SuperCap::CHARGE;
+    }
+    super_cap.set_mode(cap_mode);
+
+    // 功率上限与缓冲能量来自裁判系统；离线时沿用最后值，启动默认 120 W / 60 J
     super_cap.set_referee_limit(referee.robot_status.chassis_power_limit);
     super_cap.set_referee_energy(referee.power_heat_data.buffer_energy);
     super_cap.update();

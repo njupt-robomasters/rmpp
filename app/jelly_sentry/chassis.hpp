@@ -55,7 +55,7 @@ inline M3508 w4({
     .is_invert = IS_WHEEL_INVERT,
 });
 
-// 超级电容：未装，不调用 send()，按裁判缓冲能量做功率控制
+// 超级电容：CAN1，默认命令 ID 0x061、反馈 ID 0x051，100 Hz 持续发送
 inline SuperCap super_cap({.can = Can(1)});
 
 // 底盘：轮电机线间电阻 0.194 Ω 用于功率估计

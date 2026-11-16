@@ -52,3 +52,28 @@ g++ -std=c++23 -O2 -I../../../lib -I../../../lib/math power_sim.cpp ../../../lib
 - 模型低估 20%：CHARGE 稳态 `energy_local` 降到 51.8 J，底盘真实功率仍为 60 W、电容功率约 0；偏差由积分吃掉
 - BOOST 满额补偿约 140 W，电压降到 12 V 以下后补偿线性衰减；电容将空时 chassis_ref 平滑回落到 60 W
 - 切换无能量跳变；`chassis_ref` 的大跳变只在切入切出 BOOST 时，来自 boost_max 本身
+
+## jelly_sentry 接入（2026-11-16）
+
+用户确认超电已装在 CAN1，ID 保持默认。整车复用原有 SuperCap 和四轮力控链路，补充模式选择、100 Hz 持续发送；底盘调试入口提供独立 `cap_mode`，默认 OFF，固定裁判输入 120 W/60 J。模式与裁判失联处理见 `agents/docs/application.md` 的“jelly_sentry 超级电容”
+
+### 验证与复现
+
+- Arm GCC 14.3.1：整车 `app.cpp`、`chassis.cpp` 与底盘调试入口 `app.cpp` 对象局部编译通过，无编译警告
+- clang-format 22.1.0：通过 `tools/format_code.py` 格式化本次四个手写文件并检查；`git diff --check` 核对本次范围
+- `verify_jelly_sentry.py` 提取实际 C++ 模式条件并在主机求值，与独立策略表比较 750 种输入组合，覆盖两个遥控器并存、显式关闭、无效档位、裁判离线及残留比赛阶段、红蓝哨兵与其他机器人 ID
+- 模式检查属于条件求值检查；硬件时序、真实应答和供电行为待台架验证。本轮未完整链接或操作硬件
+
+```powershell
+& 'C:/Users/joushua/.local/bin/python3.12.exe' agents/tasks/06-super_cap_capacitance/verify_jelly_sentry.py
+& 'C:/Users/joushua/AppData/Local/stm32cube/bundles/cmake/4.4.0+st.1/bin/cmake.exe' --build build/jelly_sentry --target app/CMakeFiles/rmpp_app.dir/app.cpp.obj app/CMakeFiles/rmpp_app.dir/chassis.cpp.obj -j 4
+& 'C:/Users/joushua/AppData/Local/stm32cube/bundles/cmake/4.4.0+st.1/bin/cmake.exe' --build build/jelly_sentry_debug-chassis --target app/CMakeFiles/rmpp_app.dir/app.cpp.obj -j 4
+```
+
+### 用户审计后的台架步骤
+
+1. 使用底盘调试入口，保持 `is_enable=false`、`cap_mode=0`：观察超电反馈与功率，核对 0x061/0x051 及约 10 ms 请求/应答间隔
+2. 将 `cap_mode` 设为 1（CHARGE）：核对电容电压上升、电容充电功率为正；满电或负载变化时结合工况判断
+3. 在用户确认的底盘负载下设为 2（BOOST）：观察 `power_chassis_ref` 提升、电容放电功率为负，以及 12 V 至 10 V 的补偿衰减
+4. 检查超电反馈超时后取消 BOOST 补偿、重连恢复；整车再检查遥控显式 OFF、比赛阶段切换、遥控断联自主运行和裁判断联转 OFF
+5. 核对超电采样覆盖的供电支路，结合四轮 `power.estimate` 分析功率差异；实际 CAN 周期、稳定性和充放电量程均以板上结果记录

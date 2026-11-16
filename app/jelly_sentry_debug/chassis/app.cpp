@@ -8,28 +8,35 @@
 // 先设置目标速度，再将 is_enable 置 true；停止驱动时置 false
 // 默认失能、零速度；volatile 保证运行中每次循环都读取调试器写入的值
 // 功率按 120 W、缓冲能量 60 J 限制；确认前后、左右、旋转方向，不对则改 IS_WHEEL_INVERT 或单轮方向
+// 超电独立于底盘使能：cap_mode 默认 OFF，先检查反馈，再切 CHARGE 或 BOOST
 
 volatile bool is_enable = false;
 volatile float vx = 0; // 前正后负，m/s
 volatile float vy = 0; // 左正右负，m/s
 volatile float wr = 0; // 逆时针为正，rpm；首次测试建议 5 rpm
+volatile SuperCap::Mode cap_mode = SuperCap::OFF;
 
 static constexpr float VXY_MAX = 1.0f;    // 平移最大速度，m/s
 static constexpr float WR_MAX = 60 * rpm; // 旋转最大角速度，rad/s
 
 static uint8_t chassis_divider = 0;
+static uint32_t super_cap_send_count = 0;
 
 static void send_can_cmd() {
     // 与整车一致：底盘控制帧 500 Hz
-    if (++chassis_divider < 2)
-        return;
-    chassis_divider = 0;
-    CanFrame frame{.id = 0x200, .size = 8};
-    w1.write_can_frame(frame);
-    w2.write_can_frame(frame);
-    w3.write_can_frame(frame);
-    w4.write_can_frame(frame);
-    Can(1).send(frame);
+    if (++chassis_divider >= 2) {
+        chassis_divider = 0;
+        CanFrame frame{.id = 0x200, .size = 8};
+        w1.write_can_frame(frame);
+        w2.write_can_frame(frame);
+        w3.write_can_frame(frame);
+        w4.write_can_frame(frame);
+        Can(1).send(frame);
+    }
+
+    // 超电独立按 100 Hz 发送，OFF 和底盘失能时保持反馈
+    if (super_cap_send_count++ % 10 == 0)
+        super_cap.send();
 }
 
 extern "C" void app_main() {
@@ -46,6 +53,7 @@ extern "C" void app_main() {
 
         chassis.set_enable(is_enable);
         chassis.set_speed(std::clamp(float(vx), -VXY_MAX, VXY_MAX), std::clamp(float(vy), -VXY_MAX, VXY_MAX), std::clamp(wr * rpm, -WR_MAX, WR_MAX));
+        super_cap.set_mode(cap_mode);
         super_cap.update();
         chassis.set_power_ref(super_cap.power_chassis_ref);
         chassis.update();

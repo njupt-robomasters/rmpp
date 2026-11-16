@@ -44,12 +44,12 @@ inline Pid::Config yaw1_position_pid = {
 };
 inline DM4310 yaw1({
     .can = Can(1),
-    .tx_id = 0x10,
-    .rx_id = 0x20,
-    .is_invert = false,
+    .tx_id = 0x11,
+    .rx_id = 0x10,
+    .is_invert = true,
 });
 
-// 小 yaw：脉塔 RMD-L-7025，CAN2，电机 ID 1（控制帧 0x141，回复帧 0x241），电机只跑电流环
+// 小 yaw：脉塔 RMD-L-7025，CAN3，电机 ID 1（控制帧 0x141，回复帧 0x241），电机只跑电流环
 // 位置环 rad → rad/s，速度环 rad/s → A；偏心安装，重力与惯量前馈待评估
 inline Pid::Config yaw2_speed_pid = {
     .kp = (1.0f) / (100 * deg_s),
@@ -62,15 +62,15 @@ inline Pid::Config yaw2_position_pid = {
     .kp = 10.0f,
     .max_out = 720 * deg_s,
 };
-// TODO: 上车确认方向；offset 为小 yaw 回中时的原始角度，也可用上位机把当前位置写为电机零点
+// 大小 yaw 正方向与 IMU 航向一致；offset 为小 yaw 回中时的原始角度
 // 运行时可写发送周期，单位 ms；主循环约 1 ms，7025 建议取 2~99
 inline volatile uint32_t yaw2_send_period_ms = 2;
 inline RMDL7025 yaw2({
-    .can = Can(2),
+    .can = Can(3),
     .tx_id = 0x141,
     .rx_id = 0x241,
     .is_invert = false,
-    .offset = 0 * deg,
+    .offset = 5.31959f,
 });
 
 // pitch1：折叠关节，DM4310，CAN2，只用编码器闭环；位置环限速 90°/s 限制折叠、展开速度

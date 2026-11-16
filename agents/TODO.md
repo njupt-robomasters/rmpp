@@ -100,6 +100,11 @@
 - CHARGE 稳态 `power_cap` 不为负；若因 DCDC 损耗偏负再考虑充电余量；BOOST 在 10/12 V 的补偿衰减
 - infantry/sentry 未装超电（不调用 send，按 OFF）
 
+### jelly_sentry 超电待上车
+
+- 已按用户确认接入默认 CAN1 ID 0x061/0x051、人工三挡、自检充电和比赛 BOOST，人工 OFF 与裁判失联优先关闭；实现说明见 `docs/application.md`，验证与联调步骤见 `tasks/06-super_cap_capacitance/README.md`
+- 待用户审计：OFF 反馈、CHARGE 充电、BOOST 电压补偿衰减、断联与重连；结合实车供电支路核对超电实测和四轮模型功率。UI 能量显示待确定满电电压与可用能量范围
+
 ## 底盘深度重构、PID 回算、UI 下放
 
 状态：代码完成，受影响目标全部编译通过，待用户审计与上车。结论与上车核对项见 `tasks/03-quad_steer/README.md`

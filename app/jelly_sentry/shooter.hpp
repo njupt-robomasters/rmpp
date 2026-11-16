@@ -11,11 +11,11 @@
 #include "motor/vesc.hpp"
 #include "robot/shooter/shooter_17mm.hpp"
 
-// 摩擦轮：2×P630，CAN3，复用 Vesc 扩展帧协议，电机内部速度环
+// 摩擦轮：2×P630，CAN2，复用 Vesc 扩展帧协议，电机内部速度环
 // tx_id/rx_id 为电调节点 ID；set_speed() 接收输出轴 rad/s，Vesc 按 reduction（含极对数）换算 ERPM
 // 沿用节点 ID 0x21/0x22 与 Vesc 默认驱动参数，待实机核对极对数和安装方向；各 app 中发送暂时注释
 inline Vesc rub1({
-    .can = Can(3),
+    .can = Can(2),
     .tx_id = 0x21,
     .rx_id = 0x21,
     .max_current = 20.0f,
@@ -23,7 +23,7 @@ inline Vesc rub1({
     .reduction = 7.0f,
 });
 inline Vesc rub2({
-    .can = Can(3),
+    .can = Can(2),
     .tx_id = 0x22,
     .rx_id = 0x22,
     .max_current = 20.0f,

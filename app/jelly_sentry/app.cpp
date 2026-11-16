@@ -13,6 +13,7 @@ static Angle hurt_dir_imu; // 伤害方向，IMU 参考系
 static Timer hurt_timer;   // 自上次装甲受弹丸攻击以来的时间
 static bool has_hurt = false;
 static uint8_t chassis_divider = 0;
+static uint32_t super_cap_send_count = 0;
 static uint32_t yaw2_divider = 0;
 [[maybe_unused]] static uint32_t pitch1_divider = 0, pitch2_divider = 0, shoot_divider = 0;
 
@@ -32,31 +33,35 @@ static void send_can_cmd() {
     // CAN1：大 yaw DM4310
     yaw1.send();
 
-    // CAN2：pitch1 / pitch2 发送周期由 gimbal.hpp 的可写变量决定
-    // if (++pitch1_divider >= pitch1_send_period_ms) {
-    //     pitch1_divider = 0;
-    //     pitch1.send();
-    // }
-    // if (++pitch2_divider >= pitch2_send_period_ms) {
-    //     pitch2_divider = 0;
-    //     pitch2.send();
-    // }
+    // CAN1：超电 100 Hz 心跳；OFF、底盘失能与超电离线时也发送，保持反馈并支持重连
+    if (super_cap_send_count++ % 10 == 0)
+        super_cap.send();
 
-    // CAN2：小 yaw 7025 转矩与读角度交替，各占总发送频率的一半
+    // CAN2：pitch1 / pitch2 发送周期由 gimbal.hpp 的可写变量决定
+    if (++pitch1_divider >= pitch1_send_period_ms) {
+        pitch1_divider = 0;
+        pitch1.send();
+    }
+    if (++pitch2_divider >= pitch2_send_period_ms) {
+        pitch2_divider = 0;
+        pitch2.send();
+    }
+
+    // CAN3：小 yaw 7025 转矩与读角度交替，各占总发送频率的一半
     if (++yaw2_divider >= yaw2_send_period_ms) {
         yaw2_divider = 0;
         yaw2.send();
     }
 
-    //     // CAN3：摩擦轮 P630，VESC 速度模式；调试阶段暂不发送
-    //     // rub1.send();
-    //     // rub2.send();
+    // CAN2：摩擦轮 P630，VESC 速度模式；调试阶段暂不发送
+    // rub1.send();
+    // rub2.send();
 
-    //     // CAN2：EL05 发送周期由 shooter.hpp 的可写变量决定
-    //     if (++shoot_divider >= shoot_send_period_ms) {
-    //         shoot_divider = 0;
-    //         shoot.send();
-    //     }
+    // CAN2：EL05 发送周期由 shooter.hpp 的可写变量决定
+    if (++shoot_divider >= shoot_send_period_ms) {
+        shoot_divider = 0;
+        shoot.send();
+    }
 }
 
 // 摩擦轮状态：离线粉色，偏离目标弹速超过 1 m/s 橙色

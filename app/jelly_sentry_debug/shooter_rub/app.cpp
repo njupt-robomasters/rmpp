@@ -5,7 +5,7 @@
 
 // 哨兵双摩擦轮测试：VT13 S 挡或 FSi6X SWC 下开摩擦轮，目标转速按弹速与摩擦轮半径 3 cm 换算
 // 使能：VT13 N、S 挡，或 FSi6X SWC 中、下挡
-// P630 使用 CAN3 VESC 速度模式；发送暂时注释，保留状态接收与目标转速设置
+// P630 使用 CAN2 VESC 速度模式；发送暂时注释，保留状态接收与目标转速设置
 
 static constexpr float BULLET_SPEED = 20.0f;          // 弹速，m/s
 static constexpr float RUB_RADIUS = 3.0f * cm;        // 摩擦轮半径，m
