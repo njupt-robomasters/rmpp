@@ -112,6 +112,18 @@
 
 - VQF 姿态算法：原样引入官方 C++ 实现（确认单精度选项），封装 `Vqf` 与 `QuaternionEkf` 并列
 
+## Referee UART 与 app CAN 转发分层
+
+状态：规划，等待用户确认方案后在外部 worktree 实施
+
+- 用户要求：Referee 只使用 UART，UART-over-CAN 由 app 实现；实现位于外部 worktree
+- 当前 `infantry`、`sentry`、`examples/referee` 均经 CAN1 接入，默认 rx ID 0、tx ID 1；Referee 内部完成 CAN 字节流收发
+- 建议：Uart 增加应用侧实现的绑定入口，保留硬件编号构造；app 共用 UartOverCan 实现接收回调、发送缓冲和每次 update 最多 8 字节的发送推进，Referee 统一使用 Uart
+- Referee 删除 variant、CAN ID 与 CAN 分片进度；保留裁判解析、CRC、超时和交互频率限制；核对 UI 对发送忙状态的依赖
+- 待确认范围：Uart 绑定入口及两板 UART 分派适配、app 共用桥接实现、三处实例与循环迁移、模块文档
+- 拟用 worktree `../rmpp-referee-uart`、分支 `refactor/referee-uart`；实现开始时核对基线及并行改动
+- 验证：格式检查、相关文件对象编译，覆盖 UART/CAN 字节流、分片、忙时重试、缓冲所有权和裁判解析的主机测试
+
 ## 外部 worktree 类布局重构
 
 基线 `795e263`，类布局重构已并入 master，外部 worktree 随合并移除。完成成员尾下划线移除、实例配置与设备状态展平、SWD 排序、最小权限和声明与实现排序；保留主线暂存的轮腿 LQR 调整并完成适配。infantry 跳过编译验证。代码与验证结论见 `tasks/10-global_refactor/README.md`，待用户审计与上车。
