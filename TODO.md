@@ -2,3 +2,7 @@
 裁判系统适配
 set_mit接口
 offset适用于多圈计数
+position/angle
+referee只使用uart，app实现uart-over-can
+update_timer等定时器放在class的最后，update最后，其他的相对靠前
+pid config放在最前面

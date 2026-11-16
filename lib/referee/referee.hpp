@@ -4,9 +4,7 @@
 #include "bsp/timer.hpp"
 #include "bsp/uart.hpp"
 #include "protocol.hpp"
-#include <functional>
 #include <variant>
-#include <vector>
 
 class Referee {
   public:
@@ -15,7 +13,7 @@ class Referee {
         uint32_t rx_id = 0;   // CAN 转发接收 ID，UART 不使用
         uint32_t tx_id = 1;   // CAN 转发发送 ID，UART 不使用
         float timeout = 1.0f; // 连接超时，秒
-    };
+    } const config;
 
     // 回调在接收上下文执行，数据仅在回调期间有效；启动前注册
     using RxCallback = std::function<void(const uint8_t*, size_t)>;
@@ -29,7 +27,7 @@ class Referee {
         SETTLING
     };
 
-    bool is_connected = false;
+    bool is_connect = false;
     GameStatus game_status{};
     RobotStatus robot_status{};
     PowerHeatData power_heat_data{};
@@ -67,8 +65,6 @@ class Referee {
     RadarTeam radar_team{};
     RadarBuff radar_buff{};
     RadarKey radar_key{};
-
-    const Config config;
 
     // 每次有效伤害报文递增，避免依赖字段变化判断新事件
     uint32_t hurt_sequence = 0;

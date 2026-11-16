@@ -77,7 +77,7 @@ static void update_ui() {
     ui.robot.rub1 = ui.robot.rub3 = rub_color(rub1, shooter.rub_speed[0]); // 发射机构
     ui.robot.rub2 = ui.robot.rub4 = rub_color(rub2, shooter.rub_speed[1]);
     ui.robot.shoot = shoot.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-    ui.robot.referee = referee.is_connected ? RobotUi::GREEN : RobotUi::PINK; // 裁判系统
+    ui.robot.referee = referee.is_connect ? RobotUi::GREEN : RobotUi::PINK; // 裁判系统
     ui.robot.aim = aim.is_connect_vision ? RobotUi::GREEN : RobotUi::PINK;    // 自瞄
 
     ui.update();

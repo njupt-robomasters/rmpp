@@ -1,6 +1,6 @@
 #include "bsp/monitor.hpp"
 #include "math/angle.hpp"
-#include "motor/gm6020.hpp"
+#include "motor/m3508.hpp"
 #include "pid/pid.hpp"
 #include "rc/fsi6x.hpp"
 #include "rc/vt13.hpp"
@@ -11,18 +11,18 @@ static float speed_ref;
 static VT13 vt13({.uart = Uart(6)});
 static FSi6X fsi6x({.uart = Uart(3)});
 
-static GM6020 motor({
-    .can = Can(2),
-    .tx_id = 0x1fe,
-    .rx_id = 0x205,
-    .is_invert = true,
+static M3508 motor({
+    .can = Can(1),
+    .tx_id = 0x200,
+    .rx_id = 0x201,
+    .is_invert = false,
 });
 
 static Pid::Config speed_pid_config = {
     .kp = 0,
     .ki = 0,
-    .max_i = GM6020::MAX_CURRENT,
-    .max_out = GM6020::MAX_CURRENT,
+    .max_i = M3508::MAX_CURRENT,
+    .max_out = M3508::MAX_CURRENT,
 };
 
 static Pid speed_pid(&speed_pid_config);
@@ -45,14 +45,14 @@ static void loop() {
         const float current = speed_pid.calculate(dt, speed_ref - motor.speed);
         motor.set_current(current);
     } else {
-        motor.set_current(0);
         speed_pid.clear();
+        motor.set_current(0);
     }
 
     // 发送 CAN 命令
-    CanFrame frame{.id = 0x1fe, .size = 8};
+    CanFrame frame{.id = 0x200, .size = 8};
     motor.write_can_frame(frame);
-    Can(2).send(frame);
+    Can(1).send(frame);
     // motor.send();
 }
 

@@ -36,9 +36,9 @@ static RobotUi::Color rub_color(const Motor& motor, const float speed) {
 
 static void update_ui() {
     // 云台角度
-    ui.yaw_ecd = gimbal.yaw.ecd.measure; // 云台相对底盘角度
-    ui.yaw = gimbal.yaw.imu.measure;
-    ui.pitch = gimbal.pitch.imu.measure;
+    ui.yaw_ecd = gimbal.motor.yaw.position; // 云台相对底盘角度
+    ui.yaw = gimbal.yaw.angle_measure;
+    ui.pitch = gimbal.pitch.angle_measure;
 
     // 伤害方向
     ui.is_hurt = referee.hurt_timer.elapsed() < 0.2f;
@@ -64,8 +64,8 @@ static void update_ui() {
     ui.robot.rub1 = ui.robot.rub3 = rub_color(rub1, shooter.rub_speed[0]); // 发射机构
     ui.robot.rub2 = ui.robot.rub4 = rub_color(rub2, shooter.rub_speed[1]);
     ui.robot.shoot = shoot.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-    ui.robot.referee = referee.is_connected ? RobotUi::GREEN : RobotUi::PINK; // 裁判系统
-    ui.robot.aim = aim.is_connect_vision ? RobotUi::GREEN : RobotUi::PINK;    // 自瞄
+    ui.robot.referee = referee.is_connect ? RobotUi::GREEN : RobotUi::PINK; // 裁判系统
+    ui.robot.aim = aim.is_connect_vision ? RobotUi::GREEN : RobotUi::PINK;  // 自瞄
 
     ui.update();
 }

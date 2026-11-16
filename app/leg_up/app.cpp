@@ -1,5 +1,4 @@
 #include "app.hpp"
-#include "bsp/monitor.hpp"
 #include "gimbal.hpp"
 #include "melody/music/c5d5g5.hpp"
 #include "shooter.hpp"
@@ -18,19 +17,19 @@ static void loop() {
     // CAN 发送
     static uint32_t send_cnt = 0;
     if (send_cnt++ % 10 == 0) { // 摩擦轮 100Hz
-        rub1.send();
-        rub2.send();
+        // rub1.send();
+        // rub2.send();
     } else {
         // yaw、pitch
         CanFrame frame1ff{.id = 0x1fe, .size = 8};
         yaw.write_can_frame(frame1ff);
-        // pitch.write_can_frame(frame);
+        pitch.write_can_frame(frame1ff);
         Can(2).send(frame1ff);
 
         // shoot
-        CanFrame frame200{.id = 0x200, .size = 8};
-        shoot.write_can_frame(frame200);
-        Can(2).send(frame200);
+        // CanFrame frame200{.id = 0x200, .size = 8};
+        // shoot.write_can_frame(frame200);
+        // Can(2).send(frame200);
     }
 }
 
