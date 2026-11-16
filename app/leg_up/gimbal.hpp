@@ -18,9 +18,9 @@ inline Pid::Config yaw_speed_pid_config = {
     .max_out = GM6020::MAX_CURRENT,
 };
 inline Pid::Config yaw_angle_pid_config = {
-    .kp = 0.0f,
+    .kp = 30.0f,
     .kd = 0.0f,
-    .max_out = 360 * deg_s,
+    .max_out = 720 * deg_s,
 };
 inline GM6020 yaw({
     .can = Can(2),
@@ -32,17 +32,16 @@ inline GM6020 yaw({
 
 // pitch电机
 inline Pid::Config pitch_speed_pid_config = {
-    .kp = 0.0f,
-    .max_i = GM6020::MAX_CURRENT,
+    .kp = 5.0f,
     .max_out = GM6020::MAX_CURRENT,
 };
 inline Pid::Config pitch_angle_pid_config = {
     .kp = 0.0f,
-    .max_out = 360 * deg_s,
+    .max_out = 720 * deg_s,
 };
 inline GM6020 pitch({
     .can = Can(2),
-    .tx_id = 0x1ff,
+    .tx_id = 0x1fe,
     .rx_id = 0x206,
     .is_invert = true,
     .offset = 4.836f,
@@ -56,7 +55,7 @@ inline GimbalClassic gimbal({yaw, pitch}, {
                                               .pitch_angle_pid_config = &pitch_angle_pid_config,
                                               .pitch_min = -30 * deg,
                                               .pitch_max = 15 * deg,
-                                              .use_angle_loop = false,
+                                              .use_angle_loop = true,
                                           });
 
 void gimbal_loop();

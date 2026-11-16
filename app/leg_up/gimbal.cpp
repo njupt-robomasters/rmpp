@@ -2,7 +2,7 @@
 #include "app.hpp"
 
 // 操控参数
-static constexpr float YAW_SPEED_MAX = 720 * deg_s;   // yaw 最大角速度，rad/s
+static constexpr float YAW_SPEED_MAX = 360 * deg_s;   // yaw 最大角速度，rad/s
 static constexpr float PITCH_SPEED_MAX = 360 * deg_s; // pitch 最大角速度，rad/s
 
 void gimbal_loop() {
