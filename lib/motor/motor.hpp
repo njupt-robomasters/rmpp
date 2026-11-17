@@ -2,6 +2,7 @@
 
 #include "bsp/can.hpp"
 #include "bsp/timer.hpp"
+#include <optional>
 
 class Motor {
   public:
@@ -15,10 +16,15 @@ class Motor {
 
         bool is_invert = false;
         float offset = 0; // 电机侧零点，rad；单圈与多圈角度共用
+    } config;
+
+  protected:
+    // 电机侧原始反馈，由协议子类解析；帧内未携带的量留空
+    struct Feedback {
+        std::optional<float> current = {}, torque = {}, speed = {}, angle = {};
     };
 
-    Config config;
-
+  public:
     bool is_connect = false;
 
     // 安装方向与减速比修正后的输出轴反馈与目标
@@ -33,13 +39,10 @@ class Motor {
   protected:
     bool is_enable = false;
 
-    // 电机侧原始反馈，由协议子类解析
-    float raw_current = 0, raw_torque = 0, raw_speed = 0, raw_angle = 0;
-
   private:
-    // 多圈计数与反馈超时
+    // 电机侧原始角度、多圈计数与反馈超时
+    float raw_angle = 0;
     float raw_angle_multi = 0;
-    float raw_angle_last = 0;
     bool is_angle_initialized = false;
     Timer callback_timer;
 
@@ -56,8 +59,8 @@ class Motor {
   protected:
     Motor(const Config& config, float max_current, float max_torque, float reduction);
 
-    // 子类解析 raw 后调用；无角度的状态帧传 false，角度累计仅由有效角度帧推进
-    void can_callback(bool is_angle_frame = true);
+    // 子类解析后调用；电流与力矩只传其一时换算另一项，携带角度时推进多圈累计
+    void can_callback(const Feedback& feedback);
 
   public:
     // 每个控制周期调用，检查反馈是否超时

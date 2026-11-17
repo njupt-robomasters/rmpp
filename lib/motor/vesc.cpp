@@ -86,11 +86,11 @@ void Vesc::can_callback(const CanFrame& frame) {
 
     const auto status = static_cast<Status>(frame.id >> 8);
     const auto* data = frame.data;
+    Feedback feedback;
     switch (status) {
     case CAN_PACKET_STATUS:
-        raw_speed = static_cast<float>(read32(data)) * rpm;
-        raw_current = static_cast<float>(read16(data + 4)) / 10.0f;
-        raw_torque = raw_current / config.max_current * config.max_torque;
+        feedback.current = static_cast<float>(read16(data + 4)) / 10.0f;
+        feedback.speed = static_cast<float>(read32(data)) * rpm;
         duty_cycle = static_cast<float>(read16(data + 6)) / 1000.0f * pct;
         break;
     case CAN_PACKET_STATUS_2:
@@ -120,7 +120,9 @@ void Vesc::can_callback(const CanFrame& frame) {
     default:
         return;
     }
-    Motor::can_callback(false);
+
+    // 仅 STATUS 帧携带电流与转速，其余状态帧只刷新在线状态
+    Motor::can_callback(feedback);
 }
 
 void Vesc::set_int32(const Command command, const int32_t value) {

@@ -36,29 +36,36 @@ Motor::Motor(const Config& config, const float max_current, const float max_torq
         this->config.reduction = reduction;
 }
 
-void Motor::can_callback(const bool is_angle_frame) {
+void Motor::can_callback(const Feedback& feedback) {
     // 用于断联检测
     is_connect = true;
     callback_timer.restart();
 
-    // 首帧保留编码器零点，后续累计跨圈增量
-    if (is_angle_frame) {
-        if (is_angle_initialized)
-            raw_angle_multi += Angle(raw_angle - raw_angle_last);
-        else {
-            raw_angle_multi = raw_angle;
+    // 安装方向与减速比修正；电流与力矩只传其一时按量程换算另一项，未携带的量保持上次反馈
+    const float dir = config.is_invert ? -1.0f : 1.0f;
+    if (feedback.current)
+        current = dir * *feedback.current;
+    if (feedback.torque)
+        torque = dir * *feedback.torque;
+    if (feedback.current && !feedback.torque)
+        torque = current / config.max_current * config.max_torque;
+    if (feedback.torque && !feedback.current)
+        current = torque / config.max_torque * config.max_current;
+    if (feedback.speed)
+        speed = dir * *feedback.speed / config.reduction;
+
+    // 首个角度保留编码器零点，后续累计跨圈增量
+    if (feedback.angle) {
+        if (is_angle_initialized) {
+            raw_angle_multi += Angle(*feedback.angle - raw_angle);
+        } else {
+            raw_angle_multi = *feedback.angle;
             is_angle_initialized = true;
         }
-        raw_angle_last = raw_angle;
+        raw_angle = *feedback.angle;
     }
 
-    // 安装方向修正
-    const float dir = config.is_invert ? -1.0f : 1.0f;
-    current = dir * raw_current;
-    torque = dir * raw_torque;
-    speed = dir * raw_speed / config.reduction;
-
-    // 单圈与多圈反馈共用电机侧零点
+    // 单圈与多圈反馈共用电机侧零点，每次回调按当前 offset 刷新
     angle_multi = dir * (raw_angle_multi - config.offset) / config.reduction;
     if (config.reduction == 1)
         angle = Angle(dir * (raw_angle - config.offset));
