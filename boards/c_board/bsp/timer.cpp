@@ -14,6 +14,7 @@ static volatile uint32_t last_cyccnt = 0; // 上次累加时的 CYCCNT
 extern "C" void HAL_IncTick() {
     uwTick += uwTickFreq;
 
+    const IrqLock lock;
     const uint32_t now = DWT->CYCCNT;
     cycles = cycles + (now - last_cyccnt);
     last_cyccnt = now;
@@ -41,10 +42,12 @@ void Timer::delay(const float seconds) {
 }
 
 float Timer::elapsed() const {
+    const IrqLock lock;
     return static_cast<float>(read_cycles() - last_cycles) / static_cast<float>(SystemCoreClock);
 }
 
 float Timer::restart() {
+    const IrqLock lock;
     const uint64_t now = read_cycles();
     dt = static_cast<float>(now - last_cycles) / static_cast<float>(SystemCoreClock);
     last_cycles = now;

@@ -69,6 +69,8 @@
 
 - 两板同写法：BSP 覆盖弱定义 `HAL_IncTick`，照常累加 `uwTick`，再把 DWT CYCCNT 的增量累加到 64 位计数
 - 读取时短暂关中断，返回累计值加上未累加的 CYCCNT 差值；中断内可调用
+- `HAL_IncTick()` 在同一临界区更新累计周期数和 CYCCNT 基准，保证高优先级中断读取到一致状态
+- `elapsed()`、`restart()` 用同一临界区保护取时、时间差计算和实例状态访问，避免中断更新 `last_cycles` 后产生无符号下溢；嵌套 `IrqLock` 保持外层关中断状态
 - 约束：关中断或在 SysTick 之上优先级阻塞不得超过一个 CYCCNT 周期（F407 168 MHz 约 25.5 s，H723 520 MHz 约 8.26 s）；调试暂停时两者同停
 - Cortex-M7 使能 DWT 前写 `DWT->LAR = 0xC5ACCE55`
 - `elapsed()`、`restart()` 返回原始间隔，不限幅；需要限幅的积分步长由调用方处理，超时判断不受影响

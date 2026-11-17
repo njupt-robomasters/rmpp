@@ -36,7 +36,7 @@ inline Pid::Config pitch_speed_pid_config = {
     .max_out = GM6020::MAX_CURRENT,
 };
 inline Pid::Config pitch_angle_pid_config = {
-    .kp = 0.0f,
+    .kp = 30.0f,
     .max_out = 720 * deg_s,
 };
 inline GM6020 pitch({
