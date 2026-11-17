@@ -13,6 +13,10 @@ class GimbalClassic {
     static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s
 
   public:
+    struct Motors {
+        Motor &yaw, &pitch;
+    } motor;
+
     struct Config {
         // PID 参数
         const Pid::Config* yaw_speed_pid_config;
@@ -32,10 +36,6 @@ class GimbalClassic {
         Angle angle_ref, angle_measure;
         float speed_ref = 0, speed_measure = 0; // 目标含外环修正，yaw 另含底盘前馈；不可控时目标为 0
     } yaw, pitch;
-
-    struct Motors {
-        Motor &yaw, &pitch;
-    } motor;
 
   private:
     // 指令

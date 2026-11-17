@@ -2,8 +2,8 @@
 #include <algorithm>
 
 GimbalClassic::GimbalClassic(const Motors& motor, const Config& config)
-    : config(config),
-      motor(motor),
+    : motor(motor),
+      config(config),
       yaw_speed_pid(config.yaw_speed_pid_config),
       yaw_angle_pid(config.yaw_angle_pid_config),
       pitch_speed_pid(config.pitch_speed_pid_config),
