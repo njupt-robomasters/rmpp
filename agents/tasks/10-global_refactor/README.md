@@ -137,3 +137,18 @@ python agents/tasks/10-global_refactor/verify_angle_layout.py --source-root <原
 对象及逐文件日志位于 `out/angle_layout/arm/`，电机回归源码沿用 `motor_config_test.cpp`；云台与拨弹回归入口沿用任务 11 的 `verify_gimbal_imu.py` 和 `verify.py`。
 
 合并验证（2026-11-17）：主线快照 `c576037`、外部实现 `d888b40`、外部记录 `c48610b`，合并提交 `87ef1f8`，无冲突。合并后 82 个角度/布局 ARM 对象及两板 Timer 对象编译通过；电机配置与多圈角度、原生输出/拨弹、云台 IMU 3280 项检查通过。57 个相关工程源码格式检查与 diff 检查通过。外部日志归档至 `out/angle_layout/external_logs/`。未执行完整固件链接、硬件操作或推送。
+
+### 电机可选反馈 Feedback
+
+- `Motor::can_callback(const Feedback&)` 取代 `can_callback(bool is_angle_frame)`；protected `Feedback` 含 `std::optional<float>` current、torque、speed、angle（电机侧原始量），子类用指定成员初始化写出本帧携带的量
+- 基类每次回调刷新在线状态；有值的量修正方向与减速比，留空的量保持上次反馈；电流、力矩只传其一时按量程换算另一项；只有 angle 有值时推进多圈累计，角度输出每次按当前 offset 重算
+- 删除 protected `raw_current/raw_torque/raw_speed` 及 `raw_angle_last`；`raw_angle` 改为 private，兼作上次角度参与最短角差累计
+- 子类不再换算电流/力矩：DM 传 torque，DJI/X630/RM6623/RMD/VESC 传 current；RMD 0xA1 传 current/speed、0x94 只传 angle；VESC STATUS 传 current/speed，其余状态帧传 `{}`
+- 行为差异：RMD 断联清零后，若先收到 0x94 角度帧，电流/力矩保持 0，直到 0xA1 应答到达（原实现会用旧 raw_current 恢复旧值）
+- `Feedback` 成员带 `= {}` 默认初始化，避免主机 `-Wextra` 对省略的指定成员报 missing-field-initializers
+
+验证：`verify_motor_feedback.py` 复用 `build/` 下 8 个 C 板预设的编译数据库，编译全部 lib/、app/ 手写源码共 253 个 ARM 对象（含 DM 模板实例化），0 失败 0 警告；产物在 `out/motor_feedback/arm/`。`motor_config_test.cpp` 新增力矩单传换算、空反馈保持上次值的检查，与任务 11 原生输出/拨弹、GimbalClassic IMU 3280 项回归均通过。未链接固件，未操作硬件。
+
+```sh
+python agents/tasks/10-global_refactor/verify_motor_feedback.py
+```

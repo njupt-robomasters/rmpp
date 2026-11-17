@@ -1,4 +1,4 @@
-// 验证配置默认值、反馈换算、外部校零和超时
+// 验证配置默认值、可选反馈与电流/力矩换算、外部校零和超时
 #include "math/angle.hpp"
 #include "motor/motor.hpp"
 #include <cassert>
@@ -23,15 +23,15 @@ class TestMotor : public Motor {
         : Motor(config, 10, 2, 4) {}
 
     void feedback(const float angle = 0.6f) {
-        raw_current = 1;
-        raw_torque = 0.2f;
-        raw_speed = 8;
-        raw_angle = angle;
-        can_callback();
+        can_callback({.current = 1, .speed = 8, .angle = angle});
     }
 
     void status() {
-        can_callback(false);
+        can_callback({});
+    }
+
+    void torque_feedback(const float torque) {
+        can_callback({.torque = torque});
     }
 };
 
@@ -94,7 +94,10 @@ int main() {
     motor.set_torque(-3);
     assert(motor.current_ref == -10 && motor.torque_ref == -2);
     motor.feedback();
-    assert(motor.is_connect && near(motor.current, -1) && near(motor.speed, -2) && near(motor.angle, -0.125f));
+    assert(motor.is_connect && near(motor.current, -1) && near(motor.torque, -0.2f) && near(motor.speed, -2) &&
+           near(motor.angle, -0.125f));
+    motor.status();
+    assert(near(motor.current, -1) && near(motor.torque, -0.2f) && near(motor.speed, -2) && near(motor.angle, -0.125f));
     motor.config.offset += (motor.config.is_invert ? -motor.angle_multi : motor.angle_multi) * motor.config.reduction;
     motor.feedback();
     assert(near(motor.angle, 0));
@@ -104,6 +107,8 @@ int main() {
     TestMotor custom({.can = Can(2), .max_current = 20, .max_torque = 5, .reduction = 2});
     custom.set_torque(2.5f);
     assert(custom.config.reduction == 2 && near(custom.current_ref, 10));
+    custom.torque_feedback(1);
+    assert(near(custom.torque, 1) && near(custom.current, 4) && custom.speed == 0);
     for (const float reduction : {1.0f, 4.0f, 19.2f})
         for (const bool is_invert : {false, true})
             check_multi_turn(reduction, is_invert);
