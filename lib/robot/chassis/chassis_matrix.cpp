@@ -30,6 +30,30 @@ void ChassisMatrix::set_power_ref(const float power_ref) {
     this->power_ref = power_ref;
 }
 
+Vector3f ChassisMatrix::forward_speed(const Vector4f& v) const {
+    return j_pinv * v;
+}
+
+Vector4f ChassisMatrix::backward_speed(const Vector3f& v) const {
+    return j * v;
+}
+
+Vector3f ChassisMatrix::forward_force(const Vector4f& f) const {
+    return j.transpose() * f;
+}
+
+Vector4f ChassisMatrix::backward_force(const Vector3f& f) const {
+    return j_pinv.transpose() * f;
+}
+
+ChassisMatrix::ChassisMatrix(const std::array<Motor*, 4>& wheel, const Config& config)
+    : config(config),
+      j(Eigen::Map<const Eigen::Matrix<float, 4, 3, Eigen::RowMajor>>(config.kinematics[0])),
+      j_pinv((j.transpose() * j).inverse() * j.transpose()),
+      wheel{wheel[0], wheel[1], wheel[2], wheel[3]},
+      // 列满秩，左伪逆 (JᵀJ)⁻¹Jᵀ
+      follow_pid(config.follow_pid_config) {}
+
 void ChassisMatrix::update() {
     const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
 
@@ -59,30 +83,6 @@ void ChassisMatrix::update() {
 
     control(dt);
 }
-
-Vector3f ChassisMatrix::forward_speed(const Vector4f& v) const {
-    return j_pinv * v;
-}
-
-Vector4f ChassisMatrix::backward_speed(const Vector3f& v) const {
-    return j * v;
-}
-
-Vector3f ChassisMatrix::forward_force(const Vector4f& f) const {
-    return j.transpose() * f;
-}
-
-Vector4f ChassisMatrix::backward_force(const Vector3f& f) const {
-    return j_pinv.transpose() * f;
-}
-
-ChassisMatrix::ChassisMatrix(const std::array<Motor*, 4>& wheel, const Config& config)
-    : config(config),
-      j(Eigen::Map<const Eigen::Matrix<float, 4, 3, Eigen::RowMajor>>(config.kinematics[0])),
-      j_pinv((j.transpose() * j).inverse() * j.transpose()),
-      wheel{wheel[0], wheel[1], wheel[2], wheel[3]},
-      // 列满秩，左伪逆 (JᵀJ)⁻¹Jᵀ
-      follow_pid(config.follow_pid_config) {}
 
 ChassisMatrixSpeed::ChassisMatrixSpeed(const std::array<Motor*, 4>& wheel, const Config& config)
     : ChassisMatrix(wheel, config),

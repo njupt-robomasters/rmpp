@@ -22,46 +22,6 @@ void SuperCap::set_referee_energy(const float referee_energy) {
     energy_referee = referee_energy;
 }
 
-void SuperCap::update() {
-    const float dt = std::min(update_timer.restart(), DT_MAX);
-
-    // 断联检测
-    if (callback_timer.elapsed() > config.timeout)
-        is_connect = false;
-
-    // BOOST 补偿：电容电压在截止与满额之间线性
-    if (is_connect && mode == BOOST) {
-        const float cap_ratio = std::clamp((voltage_cap - config.boost_voltage_cutoff) / (config.boost_voltage_full - config.boost_voltage_cutoff), 0.0f, 1.0f);
-        power_boost_max = config.boost_max_current * voltage_cap * cap_ratio;
-    } else {
-        power_boost_max = 0;
-    }
-
-    // 裁判不限功率时缓冲能量也异常，不限制
-    if (referee_limit == UNLIMITED) {
-        power_battery_ref = power_chassis_ref = std::numeric_limits<float>::infinity();
-        energy_local = energy_referee;
-        return;
-    }
-
-    // 电池侧目标：裁判上限按裁判缓冲能量折算；实测偏小时裁判缓冲能量下降、目标随之降低
-    power_battery_ref = referee_limit * buffer_gain(energy_referee);
-
-    // 底盘供给与虚拟缓冲能量
-    // DCDC 使能：供给为电池侧目标加电容补偿；底盘超出供给（电容额外放电或电池超用）时扣除，低于时增加
-    // 否则：供给为裁判上限，虚拟缓冲能量跟随裁判值，切入 DCDC 时不跳变
-    float supply = referee_limit;
-    if (is_dcdc_enable()) {
-        supply = power_battery_ref + power_boost_max;
-        energy_local = std::clamp(energy_local + (supply - power_chassis) * dt, 0.0f, BUFFER_FULL);
-    } else {
-        energy_local = energy_referee;
-    }
-
-    // 底盘功率目标；DCDC 未使能时等于电池侧目标
-    power_chassis_ref = supply * buffer_gain(energy_local);
-}
-
 void SuperCap::send() const {
     // data[0].bit0 使能 DCDC；data[1..2] 电池侧目标功率，0.01 W/LSB，大端；不限功率时限幅到协议最大值
     const auto command = static_cast<int16_t>(std::clamp(power_battery_ref, -327.68f, 327.67f) * 100.0f);
@@ -150,4 +110,44 @@ void SuperCap::update_capacitance(const float current_cap, const float dt) {
     rls.current = current_cap;
     rls.charge = 0;
     rls.time = 0;
+}
+
+void SuperCap::update() {
+    const float dt = std::min(update_timer.restart(), DT_MAX);
+
+    // 断联检测
+    if (callback_timer.elapsed() > config.timeout)
+        is_connect = false;
+
+    // BOOST 补偿：电容电压在截止与满额之间线性
+    if (is_connect && mode == BOOST) {
+        const float cap_ratio = std::clamp((voltage_cap - config.boost_voltage_cutoff) / (config.boost_voltage_full - config.boost_voltage_cutoff), 0.0f, 1.0f);
+        power_boost_max = config.boost_max_current * voltage_cap * cap_ratio;
+    } else {
+        power_boost_max = 0;
+    }
+
+    // 裁判不限功率时缓冲能量也异常，不限制
+    if (referee_limit == UNLIMITED) {
+        power_battery_ref = power_chassis_ref = std::numeric_limits<float>::infinity();
+        energy_local = energy_referee;
+        return;
+    }
+
+    // 电池侧目标：裁判上限按裁判缓冲能量折算；实测偏小时裁判缓冲能量下降、目标随之降低
+    power_battery_ref = referee_limit * buffer_gain(energy_referee);
+
+    // 底盘供给与虚拟缓冲能量
+    // DCDC 使能：供给为电池侧目标加电容补偿；底盘超出供给（电容额外放电或电池超用）时扣除，低于时增加
+    // 否则：供给为裁判上限，虚拟缓冲能量跟随裁判值，切入 DCDC 时不跳变
+    float supply = referee_limit;
+    if (is_dcdc_enable()) {
+        supply = power_battery_ref + power_boost_max;
+        energy_local = std::clamp(energy_local + (supply - power_chassis) * dt, 0.0f, BUFFER_FULL);
+    } else {
+        energy_local = energy_referee;
+    }
+
+    // 底盘功率目标；DCDC 未使能时等于电池侧目标
+    power_chassis_ref = supply * buffer_gain(energy_local);
 }

@@ -18,7 +18,7 @@ inline Imu imu({.orientation = euler_to_quaternion({.yaw = 180 * deg, .pitch = 0
 inline QuaternionEkf attitude(imu, {});
 
 // 关节 DM8009：CAN2；面向输出轴逆时针为正，不反向
-// offset 取外部工程 pos = wrap(raw + c) 中 c 的相反数，使 position 零位对应 A 杆方位角 π、E 杆 0
+// offset 取外部工程 pos = wrap(raw + c) 中 c 的相反数，使 angle 零位对应 A 杆方位角 π、E 杆 0
 inline DM8009 left_front({
     .can = Can(2),
     .tx_id = 0x11,

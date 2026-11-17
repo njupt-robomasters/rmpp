@@ -18,7 +18,7 @@ void gimbal_loop() {
     attitude.update();
 
     // IMU 在底盘上：云台朝向 = 底盘航向 + 电机相对底盘角度
-    yaw_measure = attitude.yaw + yaw.position;
+    yaw_measure = attitude.yaw + yaw.angle;
 
     // SWA 下挡且电机在线时使能；未使能时目标跟随测量并清空 PID
     const bool is_enable = fsi6x.is_connect && fsi6x.swa == FSi6X::DOWN && yaw.is_connect;

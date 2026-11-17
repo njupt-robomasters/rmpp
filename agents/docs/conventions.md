@@ -73,8 +73,8 @@
 
 ### 电机与闭环
 
-- `Motor` 只负责反馈、在线状态和电流/力矩设置，状态字段直接使用 `current/current_ref`、`torque/torque_ref`、`speed`、`position`、`position_multi`
-- `Motor::update()` 只维护连接状态，不执行闭环控制；速度和位置 PID 由底盘、云台、发射机构持有
+- `Motor` 只负责反馈、在线状态和电流/力矩设置，状态字段直接使用 `current/current_ref`、`torque/torque_ref`、`speed`、`angle`、`angle_multi`
+- `Motor::update()` 只维护连接状态，不执行闭环控制；速度和角度 PID 由底盘、云台、发射机构持有
 - PID 实现在 `lib/pid/pid.hpp` 与 `lib/pid/pid.cpp`，机构配置直接传入 PID 参数指针，不提供隐式默认 PID 参数
 - 电机型号在具体类中保留 `MAX_CURRENT`、`MAX_TORQUE`、`REDUCTION` 常量，构造时作为默认值传给 `Motor`；不使用 kt，电流与力矩按二者之比换算
 - PID 由持有方传入 `dt`；不使用的分支调用 `clear()`，clear 后首帧不差分
@@ -92,14 +92,14 @@
 ### 类与文件
 
 - static constexpr 数据常量放在 class 最前面，public 常量优先，其余按最小权限
-- 类型按依赖声明；变量全部放在函数前，按 SWD 观察顺序组织：关键测量与输出、配置与设备、指令、跨周期状态、计时器
+- 类型按依赖声明；变量全部放在函数前，按 SWD 观察顺序组织：配置、关键测量与输出、设备、指令、跨周期状态、计时器；配置成员（含 Pid 的配置指针）放在实例变量最前
 - 变量可穿插 public、protected、private；权限不改变观察顺序；当前无外部访问的使用 private
-- 函数统一放在底部，顺序为 public、必要的 protected、private；can_callback 存在时放在 private 函数区第一项
+- 函数统一放在变量之后：构造、设置、发送和辅助函数靠前，update() 放在 class 最后并保留原访问权限；其余函数按 public、必要的 protected、private 排列，can_callback 放在 private 函数区第一项
 - .cpp 和 .tpp 的函数定义按 .hpp 声明排序；构造初始化列表跟随成员声明顺序
 - 结构体只有一个成员实例时，变量直接跟在声明后；复用的构造输入、协议载荷与返回类型按实际用途保留
 - 电机实例不嵌套状态结构体；超级电容实例仅保留 RLS 嵌套组
 - Config 内的字段按相似含义分组，组内紧邻，组间空行并用简短中文注释分隔
-- timer 和跨周期维护状态放在变量区末尾；固定绑定尽量 const，独立辅助运算尽量 static
+- 跨周期维护状态靠后，所有 Timer 成员集中在变量区最后；固定绑定尽量 const，独立辅助运算尽量 static
 - 创建时确定的结构体优先指定成员初始化，顺序与声明一致
 
 ### 单位

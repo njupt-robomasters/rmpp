@@ -34,9 +34,9 @@ class TestMotor : public Motor {
             set_current(output);
     }
 
-    void feedback(const float position, const float speed = 0) {
+    void feedback(const float angle, const float speed = 0) {
         const float dir = config.is_invert ? -1.0f : 1.0f;
-        raw_position = dir * position;
+        raw_angle = dir * angle;
         raw_speed = dir * speed;
         can_callback();
     }

@@ -43,6 +43,10 @@ class ChassisMatrix {
         const Pid::Config* follow_pid_config = nullptr; // 跟随 PID，误差 rad，输出 rad/s；为空时跟随模式不旋转
     };
 
+  protected:
+    const Config config;
+
+  public:
     // 底盘模式
     enum Mode {
         DETACH_MODE, // 分离模式
@@ -72,8 +76,6 @@ class ChassisMatrix {
         float estimate = 0;
         MotorPower::Gain gain;
     } power;
-
-    const Config config;
 
   private:
     const Eigen::Matrix<float, 4, 3> j;
@@ -112,9 +114,6 @@ class ChassisMatrix {
     // 设置底盘功率目标，W；通常取超电 power_chassis_ref，未设置时为零、电机不出力
     void set_power_ref(float power_ref);
 
-    // 每个控制周期调用；失能时也更新测量与功率
-    void update();
-
     // 运动学，底盘系 (x, y, z)，均为纯函数
     Vector3f forward_speed(const Vector4f& v) const; // 轮线速度 → 底盘速度
 
@@ -129,6 +128,10 @@ class ChassisMatrix {
 
     // 控制：底盘目标 → 电机输出；每周期调用，失能时清空 PID；dt 为控制周期，s
     virtual void control(float dt) = 0;
+
+  public:
+    // 每个控制周期调用；失能时也更新测量与功率
+    void update();
 };
 
 // 矩阵四轮底盘，速度控制：速度逆解为各轮线速度，轮速 PID 输出电流

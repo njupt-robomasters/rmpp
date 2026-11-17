@@ -30,7 +30,7 @@ void chassis_loop() {
     const bool is_gimbal_front = (is_spin || is_follow) && yaw.is_connect;
     chassis.set_enable(is_enable);
     chassis.set_mode(is_follow && yaw.is_connect ? ChassisMatrix::FOLLOW_MODE : ChassisMatrix::DETACH_MODE);
-    chassis.set_gimbal_yaw(is_gimbal_front ? yaw.position : 0.0f);
+    chassis.set_gimbal_yaw(is_gimbal_front ? yaw.angle : 0.0f);
     chassis.set_speed(vx, vy, wr);
 
     // 超电模式：SWC 上 OFF、中 CHARGE、下 BOOST，遥控断联时 OFF；底盘失能时仍可充电

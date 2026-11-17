@@ -12,14 +12,6 @@ VT13::VT13(const Config& config)
     });
 }
 
-void VT13::update() {
-    // 断联检测
-    if (callback_timer.elapsed() > config.timeout) {
-        callback_timer.restart();
-        reset_data();
-    }
-}
-
 void VT13::callback(const uint8_t data[], const size_t size) {
     for (size_t i = 0; i < size; i++) {
         if (rx_size == sizeof(rx_buf))
@@ -113,4 +105,12 @@ float VT13::get_joy_stick(const uint16_t value) const {
     if (std::fabs(ret) < config.deadline)
         ret = 0.0f;
     return ret;
+}
+
+void VT13::update() {
+    // 断联检测
+    if (callback_timer.elapsed() > config.timeout) {
+        callback_timer.restart();
+        reset_data();
+    }
 }

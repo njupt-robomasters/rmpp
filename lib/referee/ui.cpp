@@ -152,29 +152,6 @@ void UiControl::clear_queue() {
     count = 0;
 }
 
-void UiControl::update() {
-    if (count == 0)
-        return;
-    const auto sender = robot_id();
-    // 只有文档列出的选手端允许自动映射
-    if (!((sender >= 1 && sender <= 6) || (sender >= 101 && sender <= 106)))
-        return;
-    const uint16_t receiver = sender + 0x0100;
-    const auto& request = queue[head];
-    uint8_t data[111]{};
-    data[0] = static_cast<uint8_t>(request.content_id);
-    data[1] = static_cast<uint8_t>(request.content_id >> 8);
-    data[2] = static_cast<uint8_t>(sender);
-    data[3] = static_cast<uint8_t>(sender >> 8);
-    data[4] = static_cast<uint8_t>(receiver);
-    data[5] = static_cast<uint8_t>(receiver >> 8);
-    std::memcpy(data + 6, request.data, request.size);
-    if (referee.send(0x0301, data, request.size + 6)) {
-        head = (head + 1) % QUEUE_CAPACITY;
-        count--;
-    }
-}
-
 UiControl::Graphic UiControl::make_graphic(const uint32_t name, const uint8_t layer, const Color color, const uint16_t width, const uint16_t x, const uint16_t y, const Type type) {
     return {.name = {static_cast<uint8_t>(name), static_cast<uint8_t>(name >> 8), static_cast<uint8_t>(name >> 16)},
             .operation = NONE,
@@ -223,23 +200,34 @@ bool UiControl::enqueue(const Request& request) {
     return true;
 }
 
+void UiControl::update() {
+    if (count == 0)
+        return;
+    const auto sender = robot_id();
+    // 只有文档列出的选手端允许自动映射
+    if (!((sender >= 1 && sender <= 6) || (sender >= 101 && sender <= 106)))
+        return;
+    const uint16_t receiver = sender + 0x0100;
+    const auto& request = queue[head];
+    uint8_t data[111]{};
+    data[0] = static_cast<uint8_t>(request.content_id);
+    data[1] = static_cast<uint8_t>(request.content_id >> 8);
+    data[2] = static_cast<uint8_t>(sender);
+    data[3] = static_cast<uint8_t>(sender >> 8);
+    data[4] = static_cast<uint8_t>(receiver);
+    data[5] = static_cast<uint8_t>(receiver >> 8);
+    std::memcpy(data + 6, request.data, request.size);
+    if (referee.send(0x0301, data, request.size + 6)) {
+        head = (head + 1) % QUEUE_CAPACITY;
+        count--;
+    }
+}
+
 void RobotUi::init() {
     clear_queue();
     initialized = false;
     enqueue_initial_layout();
     initialized = true;
-}
-
-void RobotUi::update() {
-    if (!initialized)
-        init();
-
-    if (dashboard_timer.elapsed() >= 1.0f / 30.0f) {
-        dashboard_timer.restart();
-        update_dashboard();
-    }
-
-    UiControl::update();
 }
 
 void RobotUi::update_dashboard() {
@@ -353,4 +341,16 @@ void RobotUi::enqueue_initial_layout() {
         line(0x003203, 3, green, 2, 298, 680, 323, 692),
     };
     draw(modules_tail, 4, ADD);
+}
+
+void RobotUi::update() {
+    if (!initialized)
+        init();
+
+    if (dashboard_timer.elapsed() >= 1.0f / 30.0f) {
+        dashboard_timer.restart();
+        update_dashboard();
+    }
+
+    UiControl::update();
 }

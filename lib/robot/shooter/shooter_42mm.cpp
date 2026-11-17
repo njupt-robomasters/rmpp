@@ -67,7 +67,7 @@ void Shooter42mm::update() {
         if (is_rub && motor.shoot.is_connect) { // 开摩擦轮
             state = SHAKE;
             shake_timer.restart();
-            shake_upper = motor.shoot.position;
+            shake_upper = motor.shoot.angle;
         }
     } break;
 
@@ -76,7 +76,7 @@ void Shooter42mm::update() {
         const float offset = shake_upper - a;
         const float t = shake_timer.elapsed();
         const Angle angle = a * std::cos(2 * pi * SHAKE_FREQ * t) + offset;
-        motor.shoot.set_output(shoot_pid.calculate(dt, angle - motor.shoot.position));
+        motor.shoot.set_output(shoot_pid.calculate(dt, angle - motor.shoot.angle));
 
         // 防止计时器溢出
         if (SHAKE_FREQ * t > 1)
@@ -93,10 +93,10 @@ void Shooter42mm::update() {
 
     case SHOOT: {
         const Angle target_angle = shake_upper + angle_per_bullet;
-        motor.shoot.set_output(shoot_pid.calculate(dt, target_angle - motor.shoot.position));
+        motor.shoot.set_output(shoot_pid.calculate(dt, target_angle - motor.shoot.angle));
 
         // 到位后回到抖动
-        if (std::fabs(target_angle - motor.shoot.position) < (1.0f - SHOOT_FINISH_RATIO) * angle_per_bullet) {
+        if (std::fabs(target_angle - motor.shoot.angle) < (1.0f - SHOOT_FINISH_RATIO) * angle_per_bullet) {
             state = SHAKE;
             shake_timer.restart();
             shake_upper = target_angle;
@@ -109,7 +109,7 @@ void Shooter42mm::update() {
             block_timer.restart();
             state = SHAKE;
             shake_timer.restart();
-            shake_upper = motor.shoot.position;
+            shake_upper = motor.shoot.angle;
         }
     } break;
     }

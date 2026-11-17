@@ -115,3 +115,23 @@ python agents/tasks/10-global_refactor/layout_regression.py --baseline 795e263
 - 新增 `motor_config_test.cpp`，覆盖默认值补齐、显式配置、电流/力矩限幅与换算、反向反馈、外部校零和超时；历史布局测试保留当时接口，本轮使用新测试及任务 11 的原生输出/拨弹测试
 
 验证：两板 timer.cpp ARM 对象编译通过；配置回归及任务 11 主机测试通过；24 个相关源码 ARM 对象编译通过，无警告。21 个工程源码及 DM 模板、新测试的格式检查与 `git diff --check` 通过。未执行完整固件链接或硬件操作；新增对象和测试产物位于本任务 `out/`，任务 11 验证产物沿用其 `out/`。
+
+### angle、多圈零点与配置优先布局
+
+基线 `da3f164`，外部 worktree `../rmpp-motor-angle`，分支 `refactor/motor-angle-layout`。主工作区的 TODO 修改独立保留；本轮修改留在外部 worktree，尚未合并。
+
+- 电机及调用点统一使用 `angle`、`raw_angle`；VESC 采用 `set_angle()`、`pid_angle`，双 yaw 采用 `*_angle_pid*`；底盘平移及导航坐标继续使用 position
+- 新增输出轴连续角度 `angle_multi`，计算为 `dir * (raw_angle_multi - config.offset) / config.reduction`，与单圈 angle 共用电机侧 offset；运行时修改 offset 后在下一次反馈刷新，原始累计不受校准影响
+- 首个有效角度帧直接保存原始角度，避免首帧大于 π 时丢失一圈；后续保持最短角差累计，离线保留累计。RMD 电流应答与 VESC 状态应答传入 `can_callback(false)`，避免无角度帧提前初始化计数
+- infantry/sentry 外部校零使用 angle_multi，同时清零单圈与连续角度，继续由 app 持久化 offset
+- Pid 配置指针及其他类配置成员移到实例变量最前；Timer 保持在变量区末尾；update 放在所属类最后，其他方法及对应定义提前，构造初始化列表同步排列。规则更新至 AGENTS.md 与 conventions.md
+
+验证：两板公共库、两板 IMU BSP、dummy/infantry/sentry/leg_down/leg_up/motor 示例/test 与 mc02 CDC 示例共 82 个真实 ARM 对象编译通过，启用 `-Werror=reorder`，无告警；复用数据库时跳过已删除的 examples/gimbal 源码。电机配置回归覆盖首帧角度大于 π、无角度应答先到、正反转跨圈、方向、三种减速比、连续校零、重复帧、offset 修改及离线恢复。任务 11 原生输出/拨弹回归与 GimbalClassic IMU 的 3280 项检查通过。此次仅编译对象和执行主机测试，未链接固件或操作硬件。
+
+复现 ARM 对象编译（source-root 提供已有编译数据库，mc02-build 为当前 worktree 的 mc02 配置目录）：
+
+```sh
+python agents/tasks/10-global_refactor/verify_angle_layout.py --source-root <原工作区> --mc02-build <mc02构建目录>
+```
+
+对象及逐文件日志位于 `out/angle_layout/arm/`，电机回归源码沿用 `motor_config_test.cpp`；云台与拨弹回归入口沿用任务 11 的 `verify_gimbal_imu.py` 和 `verify.py`。

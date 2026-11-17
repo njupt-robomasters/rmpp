@@ -11,6 +11,10 @@ class FSi6X {
         float deadline = 0.05f; // 摇杆死区，小于此值认为是0
     };
 
+  private:
+    const Config config;
+
+  public:
     enum Switch {
         DOWN,
         MID,
@@ -23,8 +27,6 @@ class FSi6X {
     Switch swa = ERR, swb = ERR, swc = ERR, swd = ERR; // 拨杆
 
   private:
-    const Config config;
-
     float vra = 0, vrb = 0; // 旋钮
 
     // 通道原始值
@@ -60,9 +62,6 @@ class FSi6X {
   public:
     FSi6X(const Config& config);
 
-    // 断联检测，需要在循环中调用；断联时数据复位为默认值
-    void update();
-
   private:
     // 串口接收回调
     void callback(const uint8_t data[], uint16_t size);
@@ -74,4 +73,8 @@ class FSi6X {
 
     // 解析拨杆值
     static Switch get_switch(uint16_t value);
+
+  public:
+    // 断联检测，需要在循环中调用；断联时数据复位为默认值
+    void update();
 };

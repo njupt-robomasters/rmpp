@@ -2,8 +2,8 @@
 #include <algorithm>
 
 GimbalClassic::GimbalClassic(const Motors& motor, const Config& config)
-    : motor(motor),
-      config(config),
+    : config(config),
+      motor(motor),
       yaw_speed_pid(config.yaw_speed_pid_config),
       yaw_angle_pid(config.yaw_angle_pid_config),
       pitch_speed_pid(config.pitch_speed_pid_config),
@@ -28,53 +28,6 @@ void GimbalClassic::set_angle(const Angle yaw, const Angle pitch) {
 
 void GimbalClassic::set_chassis_wr(const float chassis_wr) {
     this->chassis_wr = chassis_wr;
-}
-
-void GimbalClassic::update(const Quaternionf& q, const Vector3f& gyro) {
-    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
-
-    // 更新反馈：IMU 系经 pitch 关节旋转到 yaw 随动系
-    motor.yaw.update();
-    motor.pitch.update();
-    const auto euler = quaternion_to_euler(q);
-    yaw.angle_measure = euler.yaw;
-    pitch.angle_measure = euler.pitch;
-    const Quaternionf pitch_joint(Eigen::AngleAxisf(motor.pitch.position, Vector3f::UnitY()));
-    const Vector3f gyro_axis = pitch_joint * gyro;
-    yaw.speed_measure = gyro_axis.z();
-    pitch.speed_measure = gyro_axis.y();
-
-    // 可控状态；yaw 的轴系换算依赖 pitch 关节角
-    const bool can_pitch = is_enable && motor.pitch.is_connect;
-    const bool can_yaw = can_pitch && motor.yaw.is_connect;
-
-    // 速度目标：电机轴速度指令叠加角度外环修正，yaw 再叠加底盘转速前馈
-    yaw.speed_ref = yaw_speed - chassis_wr;
-    pitch.speed_ref = pitch_speed;
-    update_angle_loop(q, pitch_joint, can_yaw, can_pitch, dt);
-
-    // yaw 速度内环
-    if (can_yaw) {
-        motor.yaw.set_output(yaw_speed_pid.calculate(dt, yaw.speed_ref - yaw.speed_measure));
-    } else {
-        yaw.speed_ref = 0;
-        yaw_speed_pid.clear();
-        motor.yaw.set_output(0);
-    }
-
-    // pitch 速度内环，编码器越限时截断向外输出，保留回程
-    if (can_pitch) {
-        float output = pitch_speed_pid.calculate(dt, pitch.speed_ref - pitch.speed_measure);
-        if ((motor.pitch.position <= config.pitch_min && output < 0) || (motor.pitch.position >= config.pitch_max && output > 0)) {
-            output = 0;
-            pitch_speed_pid.track(output);
-        }
-        motor.pitch.set_output(output);
-    } else {
-        pitch.speed_ref = 0;
-        pitch_speed_pid.clear();
-        motor.pitch.set_output(0);
-    }
 }
 
 void GimbalClassic::update_angle_loop(const Quaternionf& q, const Quaternionf& pitch_joint, const bool can_yaw, const bool can_pitch, const float dt) {
@@ -106,4 +59,51 @@ void GimbalClassic::update_angle_loop(const Quaternionf& q, const Quaternionf& p
     const Vector3f axis_correction = pitch_joint * (q.conjugate() * world_correction);
     yaw.speed_ref += axis_correction.z();
     pitch.speed_ref += axis_correction.y();
+}
+
+void GimbalClassic::update(const Quaternionf& q, const Vector3f& gyro) {
+    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
+
+    // 更新反馈：IMU 系经 pitch 关节旋转到 yaw 随动系
+    motor.yaw.update();
+    motor.pitch.update();
+    const auto euler = quaternion_to_euler(q);
+    yaw.angle_measure = euler.yaw;
+    pitch.angle_measure = euler.pitch;
+    const Quaternionf pitch_joint(Eigen::AngleAxisf(motor.pitch.angle, Vector3f::UnitY()));
+    const Vector3f gyro_axis = pitch_joint * gyro;
+    yaw.speed_measure = gyro_axis.z();
+    pitch.speed_measure = gyro_axis.y();
+
+    // 可控状态；yaw 的轴系换算依赖 pitch 关节角
+    const bool can_pitch = is_enable && motor.pitch.is_connect;
+    const bool can_yaw = can_pitch && motor.yaw.is_connect;
+
+    // 速度目标：电机轴速度指令叠加角度外环修正，yaw 再叠加底盘转速前馈
+    yaw.speed_ref = yaw_speed - chassis_wr;
+    pitch.speed_ref = pitch_speed;
+    update_angle_loop(q, pitch_joint, can_yaw, can_pitch, dt);
+
+    // yaw 速度内环
+    if (can_yaw) {
+        motor.yaw.set_output(yaw_speed_pid.calculate(dt, yaw.speed_ref - yaw.speed_measure));
+    } else {
+        yaw.speed_ref = 0;
+        yaw_speed_pid.clear();
+        motor.yaw.set_output(0);
+    }
+
+    // pitch 速度内环，编码器越限时截断向外输出，保留回程
+    if (can_pitch) {
+        float output = pitch_speed_pid.calculate(dt, pitch.speed_ref - pitch.speed_measure);
+        if ((motor.pitch.angle <= config.pitch_min && output < 0) || (motor.pitch.angle >= config.pitch_max && output > 0)) {
+            output = 0;
+            pitch_speed_pid.track(output);
+        }
+        motor.pitch.set_output(output);
+    } else {
+        pitch.speed_ref = 0;
+        pitch_speed_pid.clear();
+        motor.pitch.set_output(0);
+    }
 }

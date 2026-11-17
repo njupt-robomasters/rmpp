@@ -5,9 +5,9 @@ GimbalDualYaw::GimbalDualYaw(const Motors& motor, const Config& config)
     : config(config),
       motor(motor),
       yaw_speed_pid(config.yaw_speed_pid_config),
-      yaw_position_pid(config.yaw_position_pid_config),
+      yaw_angle_pid(config.yaw_angle_pid_config),
       pitch_speed_pid(config.pitch_speed_pid_config),
-      pitch_position_pid(config.pitch_position_pid_config) {}
+      pitch_angle_pid(config.pitch_angle_pid_config) {}
 
 void GimbalDualYaw::set_enable(const bool is_enable) {
     this->is_enable = is_enable;
@@ -62,9 +62,9 @@ void GimbalDualYaw::update(const Angle imu_yaw, const Angle imu_pitch) {
     }
 
     // 从电机读取，离线电机保持最后一次反馈
-    yaw1.measure = motor.yaw1.position;
-    yaw2.measure = motor.yaw2.position;
-    pitch.ecd.measure = motor.pitch.position;
+    yaw1.measure = motor.yaw1.angle;
+    yaw2.measure = motor.yaw2.angle;
+    pitch.ecd.measure = motor.pitch.angle;
 
     // 合并大小yaw
     yaw.ecd.measure = yaw1.measure + yaw2.measure;
@@ -76,13 +76,13 @@ void GimbalDualYaw::update(const Angle imu_yaw, const Angle imu_pitch) {
         yaw.ecd.ref = yaw.ecd.measure;
         yaw.imu.ref = yaw.imu.measure;
         yaw_speed_pid.clear();
-        yaw_position_pid.clear();
+        yaw_angle_pid.clear();
     }
     if (!can_pitch || !is_pitch_ready) {
         pitch.ecd.ref = pitch.ecd.measure;
         pitch.imu.ref = pitch.imu.measure;
         pitch_speed_pid.clear();
-        pitch_position_pid.clear();
+        pitch_angle_pid.clear();
     }
     is_yaw_ready = can_yaw;
     is_pitch_ready = can_pitch;
@@ -112,7 +112,7 @@ void GimbalDualYaw::update(const Angle imu_yaw, const Angle imu_pitch) {
     // yaw 串级 PID，速度反馈取在线的大 yaw，否则取小 yaw；离线的一侧输出零，在线的一侧单独保持指向
     if (can_yaw) {
         const float speed = motor.yaw1.is_connect ? motor.yaw1.speed : motor.yaw2.speed;
-        const float speed_ref = yaw_position_pid.calculate(dt, yaw.ecd.ref - yaw.ecd.measure) - chassis_wr + yaw_speed;
+        const float speed_ref = yaw_angle_pid.calculate(dt, yaw.ecd.ref - yaw.ecd.measure) - chassis_wr + yaw_speed;
         const float output = yaw_speed_pid.calculate(dt, speed_ref - speed);
         motor.yaw1.set_output(motor.yaw1.is_connect ? output : 0.0f);
         motor.yaw2.set_output(motor.yaw2.is_connect ? output : 0.0f);
@@ -123,7 +123,7 @@ void GimbalDualYaw::update(const Angle imu_yaw, const Angle imu_pitch) {
 
     // pitch 串级 PID
     if (can_pitch) {
-        const float speed_ref = pitch_position_pid.calculate(dt, pitch.ecd.ref - pitch.ecd.measure) + pitch_speed;
+        const float speed_ref = pitch_angle_pid.calculate(dt, pitch.ecd.ref - pitch.ecd.measure) + pitch_speed;
         motor.pitch.set_output(pitch_speed_pid.calculate(dt, speed_ref - motor.pitch.speed));
     } else {
         motor.pitch.set_output(0);

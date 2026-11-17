@@ -36,7 +36,7 @@ static RobotUi::Color rub_color(const Motor& motor, const float speed) {
 
 static void update_ui() {
     // 云台角度
-    ui.yaw_ecd = gimbal.motor.yaw.position; // 云台相对底盘角度
+    ui.yaw_ecd = gimbal.motor.yaw.angle; // 云台相对底盘角度
     ui.yaw = gimbal.yaw.angle_measure;
     ui.pitch = gimbal.pitch.angle_measure;
 

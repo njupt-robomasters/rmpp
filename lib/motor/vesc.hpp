@@ -35,7 +35,7 @@ class Vesc : public Motor {
     float amp_hours_charged = 0;
     float watt_hours = 0;
     float watt_hours_charged = 0;
-    float pid_pos = 0;
+    float pid_angle = 0;
     float tachometer = 0;
     float adc1 = 0;
     float adc2 = 0;
@@ -62,7 +62,7 @@ class Vesc : public Motor {
     // 输出轴速度，rad/s；VESC 按 ERPM 闭环，reduction 含极对数
     void set_speed(float speed);
 
-    void set_position(float position);
+    void set_angle(float angle);
 
     void set_current_relative(float current);
 
