@@ -10,11 +10,6 @@ Steer::Steer(Motor& motor, const Pid::Config* pid_config)
     : motor(motor),
       pid(pid_config) {}
 
-void Steer::update() {
-    motor.update();
-    measure = motor.position;
-}
-
 float Steer::control(const float dt, const float vx, const float vy) {
     // 离线时清空，重连后从当前舵向开始，避免突然转舵
     if (!motor.is_connect) {
@@ -53,6 +48,11 @@ void Steer::clear() {
     has_ref = false;
 }
 
+void Steer::update() {
+    motor.update();
+    measure = motor.angle;
+}
+
 void ChassisSteer::set_enable(const bool is_enable) {
     this->is_enable = is_enable;
     for (Motor* wheel : this->wheel)
@@ -81,43 +81,6 @@ void ChassisSteer::set_gimbal_yaw(const Angle gimbal_yaw) {
 
 void ChassisSteer::set_power_ref(const float power_ref) {
     this->power_ref = power_ref;
-}
-
-void ChassisSteer::update() {
-    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
-
-    // 离线检测与速度正解，离线轮反馈已清零
-    Vector4f v;
-    for (int i = 0; i < 4; i++) {
-        wheel[i]->update();
-        steer[i].update();
-        v[i] = wheel[i]->speed * config.wheel_radius;
-    }
-    const Vector3f measure = rotate(forward_speed(v), -gimbal_yaw);
-    vx.measure = measure.x();
-    vy.measure = measure.y();
-    vz.measure = measure.z();
-    wr.measure = vz.measure / config.chassis_radius;
-
-    // 轮电机功率估计供 SWD 与超电实测对照
-    power.estimate = MotorPower::estimate(wheel, config.wheel_resistance);
-
-    // 失能时清空舵向
-    if (!is_enable) {
-        for (Steer& s : steer)
-            s.clear();
-    }
-
-    // 旋转：用户输入优先，否则按模式分离或跟随；不跟随时清空跟随 PID
-    if (is_enable && wr.input == 0 && mode == FOLLOW_MODE) {
-        wr.ref = follow_pid.calculate(dt, gimbal_yaw);
-    } else {
-        follow_pid.clear();
-        wr.ref = is_enable ? wr.input : 0;
-    }
-    vz.ref = wr.ref * config.chassis_radius;
-
-    control(dt);
 }
 
 Vector3f ChassisSteer::forward_speed(const Vector4f& v) const {
@@ -160,6 +123,43 @@ Vector4f ChassisSteer::backward_force(const Vector3f& f) const {
         out[i] = fx * std::cosf(s) + fy * std::sinf(s);
     }
     return out;
+}
+
+void ChassisSteer::update() {
+    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
+
+    // 离线检测与速度正解，离线轮反馈已清零
+    Vector4f v;
+    for (int i = 0; i < 4; i++) {
+        wheel[i]->update();
+        steer[i].update();
+        v[i] = wheel[i]->speed * config.wheel_radius;
+    }
+    const Vector3f measure = rotate(forward_speed(v), -gimbal_yaw);
+    vx.measure = measure.x();
+    vy.measure = measure.y();
+    vz.measure = measure.z();
+    wr.measure = vz.measure / config.chassis_radius;
+
+    // 轮电机功率估计供 SWD 与超电实测对照
+    power.estimate = MotorPower::estimate(wheel, config.wheel_resistance);
+
+    // 失能时清空舵向
+    if (!is_enable) {
+        for (Steer& s : steer)
+            s.clear();
+    }
+
+    // 旋转：用户输入优先，否则按模式分离或跟随；不跟随时清空跟随 PID
+    if (is_enable && wr.input == 0 && mode == FOLLOW_MODE) {
+        wr.ref = follow_pid.calculate(dt, gimbal_yaw);
+    } else {
+        follow_pid.clear();
+        wr.ref = is_enable ? wr.input : 0;
+    }
+    vz.ref = wr.ref * config.chassis_radius;
+
+    control(dt);
 }
 
 ChassisSteerSpeed::ChassisSteerSpeed(const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)

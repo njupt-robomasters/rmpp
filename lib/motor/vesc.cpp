@@ -31,9 +31,9 @@ void Vesc::set_speed(const float speed) {
     set_int32(CAN_PACKET_SET_RPM, encode32(direction * speed / rpm * config.reduction, 1));
 }
 
-void Vesc::set_position(const float position) {
+void Vesc::set_angle(const float angle) {
     const float direction = config.is_invert ? -1.0f : 1.0f;
-    set_int32(CAN_PACKET_SET_POS, encode32(direction * position / deg * config.reduction, 1000000));
+    set_int32(CAN_PACKET_SET_POS, encode32(direction * angle / deg * config.reduction, 1000000));
 }
 
 void Vesc::set_current_relative(const float current) {
@@ -105,7 +105,7 @@ void Vesc::can_callback(const CanFrame& frame) {
         temp_fet = static_cast<float>(read16(data)) / 10.0f;
         temp_motor = static_cast<float>(read16(data + 2)) / 10.0f;
         current_in = static_cast<float>(read16(data + 4)) / 10.0f;
-        pid_pos = static_cast<float>(read16(data + 6)) / 50.0f * deg;
+        pid_angle = static_cast<float>(read16(data + 6)) / 50.0f * deg;
         break;
     case CAN_PACKET_STATUS_5:
         tachometer = static_cast<float>(read32(data)) / 6.0f * rev;
@@ -120,7 +120,7 @@ void Vesc::can_callback(const CanFrame& frame) {
     default:
         return;
     }
-    Motor::can_callback();
+    Motor::can_callback(false);
 }
 
 void Vesc::set_int32(const Command command, const int32_t value) {

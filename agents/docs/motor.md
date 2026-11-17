@@ -10,8 +10,17 @@
 - 外部经 `motor.config.max_current/max_torque` 读取量程，经 `motor.config.offset` 维护和存储零点；其余配置在构造后保持固定，CAN 回调仍注册在构造时的总线上
 - 不保存 kt，电流与力矩按 max_torque/max_current 换算；限流交给 PID max_out
 - 减速比与型号不同时同时给出 max_torque；自行发送的协议使用 tx_id/rx_id，DJI 组帧只需 rx_id
-- 原始反馈为 protected raw_current/raw_torque/raw_speed/raw_position；仅供 SWD 的温度等诊断字段使用 private
+- 原始反馈为 protected raw_current/raw_torque/raw_speed/raw_angle；仅供 SWD 的温度等诊断字段使用 private
 - 电机库不提供 `set_offset()`、`set_zero()`；校零策略由 app 维护，布局见 conventions.md
+
+## 角度与零点
+
+- 电机旋转量统一命名 angle：输出轴单圈反馈 `angle`（[-π, π)）、连续反馈 `angle_multi`，单位 rad；VESC 的角度设置接口为 `set_angle()`，云台角度 PID 使用 `*_angle_pid*`
+- 首个有效角度帧以原始编码器角度初始化多圈累计，后续按最短角差累加；相邻有效角度采样的位移须小于半圈，累计保留到实例销毁
+- RMD 的电流应答及 VESC 状态帧调用 `can_callback(false)`，只刷新反馈与在线状态；多圈初始化和累计由角度帧推进
+- `angle_multi = dir * (raw_angle_multi - config.offset) / config.reduction`；offset 为电机侧弧度，方向和减速比只在输出时修正
+- 减速比为 1 时单圈反馈直接修正 raw_angle，其他减速比将 angle_multi 归一化；外部修改 offset 后，两种反馈在下一次回调刷新，累计原始角度保持连续
+- 外部校零使用 `config.offset += dir * angle_multi * config.reduction`；断联保留单圈和多圈角度，恢复反馈后接续累计
 
 ## 基类与子类
 

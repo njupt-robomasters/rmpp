@@ -17,9 +17,9 @@ class QuaternionEkf : public Attitude {
     };
 
   private:
-    Vector2f bias = Vector2f::Zero(); // rad/s；不估计 Z 零偏
-
     const Config config;
+
+    Vector2f bias = Vector2f::Zero(); // rad/s；不估计 Z 零偏
 
     // 跨周期收敛状态
     bool initialized = false;               // 已由首个有效重力方向确定初始倾角

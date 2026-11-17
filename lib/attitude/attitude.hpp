@@ -16,10 +16,11 @@ class Attitude {
   public:
     explicit Attitude(Imu& imu);
 
-    // 更新 Imu 并推进一步解算；Imu 读取失败时使用其上次输出
-    void update();
-
   protected:
     // 用机体系 gyro（rad/s）、accel（m/s²）推进一步并更新 q
     virtual void solve(const Vector3f& gyro, const Vector3f& accel) = 0;
+
+  public:
+    // 更新 Imu 并推进一步解算；Imu 读取失败时使用其上次输出
+    void update();
 };

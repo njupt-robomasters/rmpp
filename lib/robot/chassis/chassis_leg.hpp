@@ -55,6 +55,8 @@ class ChassisLeg {
     };
 
   private:
+    const Config config;
+
     // 倒地与自救
     enum class Fall {
         UPRIGHT, // 车体正向
@@ -136,8 +138,6 @@ class ChassisLeg {
 
     bool is_motor_ok = false; // 全部电机在线且关节已使能无报错；否则全部电机输出零
 
-    const Config config;
-
     // 设备绑定
     struct Motors {
         DM8009 &left_front, &left_back, &right_back, &right_front; // 关节：面向输出轴逆时针为正；零位时 A 杆方位角 π、E 杆 0
@@ -191,10 +191,6 @@ class ChassisLeg {
     // 跳跃触发，上升沿且空闲时启动
     void set_trigger_jump(bool trigger_jump);
 
-    // 每个控制周期调用：q 为底盘机体到世界，gyro 为底盘机体系角速度 rad/s
-    // 计算并设置全部电机力矩，发送由调用方完成
-    void update(const Quaternionf& q, const Vector3f& gyro);
-
   private:
     // 反馈：电机在线状态、车体姿态、双腿几何与前馈力、轮速
     void update_feedback(const Quaternionf& q, const Vector3f& gyro);
@@ -224,4 +220,9 @@ class ChassisLeg {
 
     // 力映射：由 L、Fn 和机构极性的摆动力矩 Tt 更新 T_A、T_E
     void map_force(Leg& leg, float Tt) const;
+
+  public:
+    // 每个控制周期调用：q 为底盘机体到世界，gyro 为底盘机体系角速度 rad/s
+    // 计算并设置全部电机力矩，发送由调用方完成
+    void update(const Quaternionf& q, const Vector3f& gyro);
 };

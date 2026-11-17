@@ -14,8 +14,10 @@ class Motor {
         float max_current = 0, max_torque = 0, reduction = 0;
 
         bool is_invert = false;
-        float offset = 0;
+        float offset = 0; // 电机侧零点，rad；单圈与多圈角度共用
     };
+
+    Config config;
 
     bool is_connect = false;
 
@@ -25,20 +27,20 @@ class Motor {
     float torque = 0;
     float torque_ref = 0;
     float speed = 0;
-    float position = 0;
-
-    Config config;
+    float angle = 0;       // 单圈输出轴角度，[-π, π)
+    float angle_multi = 0; // 连续输出轴角度，rad
 
   protected:
     bool is_enable = false;
 
     // 电机侧原始反馈，由协议子类解析
-    float raw_current = 0, raw_torque = 0, raw_speed = 0, raw_position = 0;
+    float raw_current = 0, raw_torque = 0, raw_speed = 0, raw_angle = 0;
 
   private:
     // 多圈计数与反馈超时
-    float raw_position_multi = 0;
-    float raw_position_last = 0;
+    float raw_angle_multi = 0;
+    float raw_angle_last = 0;
+    bool is_angle_initialized = false;
     Timer callback_timer;
 
   public:
@@ -51,12 +53,13 @@ class Motor {
 
     virtual void set_torque(float torque);
 
-    // 每个控制周期调用，检查反馈是否超时
-    void update();
-
   protected:
     Motor(const Config& config, float max_current, float max_torque, float reduction);
 
-    // 子类校验并解析 raw 后调用，负责修正反馈和刷新在线状态；基类不注册回调
-    void can_callback();
+    // 子类解析 raw 后调用；无角度的状态帧传 false，角度累计仅由有效角度帧推进
+    void can_callback(bool is_angle_frame = true);
+
+  public:
+    // 每个控制周期调用，检查反馈是否超时
+    void update();
 };

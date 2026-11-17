@@ -11,8 +11,8 @@ class RM6623 : public Motor {
 
   private:
     // 反馈不含转速，由相邻两帧位置差分
-    float position_last = 0;
-    bool has_position = false;
+    float angle_last = 0;
+    bool has_angle = false;
     Timer speed_timer;
 
   public:

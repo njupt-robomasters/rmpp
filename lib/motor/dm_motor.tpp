@@ -47,7 +47,7 @@ void DmMotor<PMAX, VMAX, TMAX>::can_callback(const CanFrame& frame) {
     raw_torque = decode(((data[4] & 0x0f) << 8) | data[5], TMAX, 12);
     raw_current = raw_torque / config.max_torque * config.max_current;
     raw_speed = decode((data[3] << 4) | (data[4] >> 4), VMAX, 12);
-    raw_position = decode((data[1] << 8) | data[2], PMAX, 16);
+    raw_angle = decode((data[1] << 8) | data[2], PMAX, 16);
     Motor::can_callback();
 }
 

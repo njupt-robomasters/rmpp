@@ -86,8 +86,6 @@ class UiControl {
     // 丢弃尚未交给链路的旧绘制请求，用于显式重新绘制
     void clear_queue();
 
-    void update();
-
     bool is_pending() const {
         return count != 0 || referee.is_sending();
     }
@@ -102,6 +100,9 @@ class UiControl {
     static void encode(const Graphic& graphic, Operation operation, uint8_t* data);
 
     bool enqueue(const Request& request);
+
+  public:
+    void update();
 };
 
 class RobotUi : public UiControl {
@@ -113,6 +114,10 @@ class RobotUi : public UiControl {
         float max_shoot = 10.0f;
     };
 
+  private:
+    const float max_cap, max_wr, max_bullet, max_shoot;
+
+  public:
     Angle yaw_ecd, yaw, pitch;
     bool is_hurt = false;
     Angle hurt_dir;
@@ -129,7 +134,6 @@ class RobotUi : public UiControl {
     } robot;
 
   private:
-    const float max_cap, max_wr, max_bullet, max_shoot;
     bool initialized = false;
     Timer dashboard_timer;
 
@@ -144,10 +148,11 @@ class RobotUi : public UiControl {
 
     void init();
 
-    void update();
-
   private:
     void update_dashboard();
 
     void enqueue_initial_layout();
+
+  public:
+    void update();
 };

@@ -40,11 +40,11 @@ void RMDL7025::can_callback(const CanFrame& frame) {
         raw_speed = static_cast<int16_t>(data[4] | (data[5] << 8)) * deg_s;
     } else if (data[0] == 0x94) {
         // 单圈角度 0.01°/LSB，0~35999
-        raw_position = static_cast<uint16_t>(data[6] | (data[7] << 8)) * 0.01f * deg;
+        raw_angle = static_cast<uint16_t>(data[6] | (data[7] << 8)) * 0.01f * deg;
     } else {
         return;
     }
 
     // 调用上级回调
-    Motor::can_callback();
+    Motor::can_callback(data[0] == 0x94);
 }

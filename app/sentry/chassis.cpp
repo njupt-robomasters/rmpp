@@ -70,7 +70,7 @@ void chassis_loop() {
             if (referee.robot_status.current_HP >= GO_CENTER_HP)
                 chassis_state = GO_CENTER;
         }
-        std::tie(vx, vy) = rotate(nav.chassis_speed.vx, nav.chassis_speed.vy, yaw2.position);
+        std::tie(vx, vy) = rotate(nav.chassis_speed.vx, nav.chassis_speed.vy, yaw2.angle);
         const float speed = std::hypotf(vx, vy);
         wr = map(speed, 0.0f, VXY_MAX, WR_MAX, WR_MIN);
     } else {

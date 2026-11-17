@@ -52,35 +52,6 @@ void Melody::stop() {
     index = 0;
 }
 
-void Melody::update() {
-    // 复音：中断内播完并降到 0 后关闭采样流
-    if (stage == Stage::ENDED) {
-        stop();
-        return;
-    }
-    if (stage != Stage::DIRECT)
-        return;
-
-    // 普通：逐音符计时，首个音符立即开始
-    if (index > 0 && note_timer.elapsed() < static_cast<float>(direct[index - 1].len) * UNIT)
-        return;
-    if (index >= direct.size()) {
-        stop();
-        return;
-    }
-
-    // 只在音高切换时操作蜂鸣器
-    const uint8_t midi = direct[index].midi;
-    if (index == 0 || midi != direct[index - 1].midi) {
-        if (midi == 0)
-            buzzer.mute();
-        else
-            buzzer.set_tone(midi_to_hz(midi));
-    }
-    index++;
-    note_timer.restart();
-}
-
 // 采样流回调，在 DMA 中断内执行
 void Melody::fill(const std::span<float> duty) {
     monitor.begin();
@@ -158,6 +129,35 @@ float Melody::square(const float phase, const float dt) {
     return (phase < 0.5f ? 1.0f : -1.0f) + poly_blep(phase, dt) - poly_blep(half, dt);
 }
 
+void Melody::update() {
+    // 复音：中断内播完并降到 0 后关闭采样流
+    if (stage == Stage::ENDED) {
+        stop();
+        return;
+    }
+    if (stage != Stage::DIRECT)
+        return;
+
+    // 普通：逐音符计时，首个音符立即开始
+    if (index > 0 && note_timer.elapsed() < static_cast<float>(direct[index - 1].len) * UNIT)
+        return;
+    if (index >= direct.size()) {
+        stop();
+        return;
+    }
+
+    // 只在音高切换时操作蜂鸣器
+    const uint8_t midi = direct[index].midi;
+    if (index == 0 || midi != direct[index - 1].midi) {
+        if (midi == 0)
+            buzzer.mute();
+        else
+            buzzer.set_tone(midi_to_hz(midi));
+    }
+    index++;
+    note_timer.restart();
+}
+
 void Melody::VoiceSynth::start(const Voice voice, const Envelope& envelope, const float weight, const float dt) {
     this->voice = voice;
     this->envelope = envelope;
@@ -173,33 +173,6 @@ void Melody::VoiceSynth::start(const Voice voice, const Envelope& envelope, cons
     amplitude = 0;
     if (!is_done())
         enter();
-}
-
-float Melody::VoiceSynth::update() {
-    // 推进条目，剩余时间累加到下一条，误差不累积
-    left -= dt;
-    while (left <= 0 && !is_done()) {
-        index++;
-        if (!is_done())
-            enter();
-    }
-    amplitude = 0;
-    if (is_done())
-        return 0;
-
-    // 包络：衰减到 sustain 后保持；休止内上一个音淡出
-    decay *= decay_step;
-    amplitude = weight * (envelope.sustain + (1 - envelope.sustain) * decay);
-    if (midi == 0) {
-        fade = std::max(fade - fade_step, 0.0f);
-        amplitude *= fade;
-    }
-
-    // 方波，相位跨音符连续
-    phase += step;
-    if (phase >= 1)
-        phase -= 1;
-    return amplitude * square(phase, step);
 }
 
 // 进入 index 条目
@@ -229,6 +202,33 @@ void Melody::VoiceSynth::enter() {
     decay_step = std::exp(-dt / tau);
 }
 
+float Melody::VoiceSynth::update() {
+    // 推进条目，剩余时间累加到下一条，误差不累积
+    left -= dt;
+    while (left <= 0 && !is_done()) {
+        index++;
+        if (!is_done())
+            enter();
+    }
+    amplitude = 0;
+    if (is_done())
+        return 0;
+
+    // 包络：衰减到 sustain 后保持；休止内上一个音淡出
+    decay *= decay_step;
+    amplitude = weight * (envelope.sustain + (1 - envelope.sustain) * decay);
+    if (midi == 0) {
+        fade = std::max(fade - fade_step, 0.0f);
+        amplitude *= fade;
+    }
+
+    // 方波，相位跨音符连续
+    phase += step;
+    if (phase >= 1)
+        phase -= 1;
+    return amplitude * square(phase, step);
+}
+
 void Melody::PartSynth::start(const Part part, const float share, const Envelope& lead, const Envelope& inner,
                               const float inner_weight, const float dt) {
     count = std::min(part.size(), MAX_VOICES);
@@ -243,6 +243,10 @@ void Melody::PartSynth::start(const Part part, const float share, const Envelope
     level = 0;
 }
 
+bool Melody::PartSynth::is_done() const {
+    return std::all_of(voices, voices + count, [](const VoiceSynth& voice) { return voice.is_done(); });
+}
+
 float Melody::PartSynth::update(const bool should_update_gain, const float attack_step, const float release_step) {
     float out = 0, square_sum = 0;
     for (std::size_t k = 0; k < count; k++) {
@@ -255,8 +259,4 @@ float Melody::PartSynth::update(const bool should_update_gain, const float attac
         follow(gain, share / std::max(raw, 1.0f), attack_step, release_step);
     level = gain * raw;
     return gain * out;
-}
-
-bool Melody::PartSynth::is_done() const {
-    return std::all_of(voices, voices + count, [](const VoiceSynth& voice) { return voice.is_done(); });
 }

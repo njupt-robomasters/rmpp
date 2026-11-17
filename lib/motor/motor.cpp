@@ -26,14 +26,6 @@ void Motor::set_torque(float torque) {
     current_ref = torque / config.max_torque * config.max_current;
 }
 
-void Motor::update() {
-    // 断联检测：清零电流、力矩、速度反馈，保持位置
-    if (callback_timer.elapsed() > config.timeout) {
-        is_connect = false;
-        current = torque = speed = 0;
-    }
-}
-
 Motor::Motor(const Config& config, const float max_current, const float max_torque, const float reduction)
     : config(config) {
     if (this->config.max_current == 0)
@@ -44,14 +36,21 @@ Motor::Motor(const Config& config, const float max_current, const float max_torq
         this->config.reduction = reduction;
 }
 
-void Motor::can_callback() {
+void Motor::can_callback(const bool is_angle_frame) {
     // 用于断联检测
     is_connect = true;
     callback_timer.restart();
 
-    // 用于多圈计数
-    raw_position_multi += Angle(raw_position - raw_position_last);
-    raw_position_last = raw_position;
+    // 首帧保留编码器零点，后续累计跨圈增量
+    if (is_angle_frame) {
+        if (is_angle_initialized)
+            raw_angle_multi += Angle(raw_angle - raw_angle_last);
+        else {
+            raw_angle_multi = raw_angle;
+            is_angle_initialized = true;
+        }
+        raw_angle_last = raw_angle;
+    }
 
     // 安装方向修正
     const float dir = config.is_invert ? -1.0f : 1.0f;
@@ -59,10 +58,18 @@ void Motor::can_callback() {
     torque = dir * raw_torque;
     speed = dir * raw_speed / config.reduction;
 
-    // 减速比为1，使用单圈计数
-    // 减速比不为1，使用多圈计数归一化
+    // 单圈与多圈反馈共用电机侧零点
+    angle_multi = dir * (raw_angle_multi - config.offset) / config.reduction;
     if (config.reduction == 1)
-        position = Angle(dir * (raw_position - config.offset));
+        angle = Angle(dir * (raw_angle - config.offset));
     else
-        position = Angle(dir * (raw_position_multi - config.offset) / config.reduction);
+        angle = Angle(angle_multi);
+}
+
+void Motor::update() {
+    // 断联检测：清零电流、力矩、速度反馈，保持角度
+    if (callback_timer.elapsed() > config.timeout) {
+        is_connect = false;
+        current = torque = speed = 0;
+    }
 }

@@ -28,6 +28,10 @@ class Shooter42mm {
         uint16_t heat_protect = 0;           // 剩余热量保护阈值
     };
 
+  private:
+    const Config config;
+
+  public:
     // 弹速 (m/s)
     struct {
         float ref = 0, measure = 0;
@@ -37,8 +41,6 @@ class Shooter42mm {
     float rub_speed[4]{};
 
   private:
-    const Config config;
-
     // 设备绑定
     struct Motors {
         Vesc &rub1, &rub2, &rub3, &rub4; // 摩擦轮

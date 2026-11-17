@@ -12,6 +12,10 @@ class VT13 {
         uint16_t mouse_max = 500; // 鼠标xy最大速度
     };
 
+  private:
+    const Config config;
+
+  public:
     enum Mode {
         C,
         N,
@@ -41,8 +45,6 @@ class VT13 {
     } key;
 
   private:
-    const Config config;
-
     // 通道原始值
     struct __attribute__((packed)) {
         uint8_t sof_1 : 8;   // 0xA9
@@ -80,9 +82,6 @@ class VT13 {
   public:
     VT13(const Config& config);
 
-    // 断联检测，需要在循环中调用；断联时数据复位为默认值
-    void update();
-
   private:
     // 串口接收回调
     void callback(const uint8_t data[], size_t size);
@@ -93,4 +92,8 @@ class VT13 {
 
     // 解析摇杆值，归一化到±1
     float get_joy_stick(uint16_t value) const;
+
+  public:
+    // 断联检测，需要在循环中调用；断联时数据复位为默认值
+    void update();
 };

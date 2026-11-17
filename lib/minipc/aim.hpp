@@ -14,6 +14,10 @@ class Aim {
         float timeout = 100 * ms;
     };
 
+  private:
+    const Config config;
+
+  public:
     bool is_connect_vision = false;
 
     struct {
@@ -42,8 +46,6 @@ class Aim {
     } insta360;
 
   private:
-    const Config config;
-
     Timer vision_timer, insta360_timer;
 
   public:
