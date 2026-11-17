@@ -118,7 +118,7 @@ python agents/tasks/10-global_refactor/layout_regression.py --baseline 795e263
 
 ### angle、多圈零点与配置优先布局
 
-基线 `da3f164`，外部 worktree `../rmpp-motor-angle`，分支 `refactor/motor-angle-layout`。主工作区的 TODO 修改独立保留；本轮修改留在外部 worktree，尚未合并。
+基线 `da3f164`，外部 worktree `../rmpp-motor-angle`，分支 `refactor/motor-angle-layout`。主工作区的 TODO 修改随主线提交保存；2026-11-17 已合并至 master，外部 worktree 已移除，分支保留。
 
 - 电机及调用点统一使用 `angle`、`raw_angle`；VESC 采用 `set_angle()`、`pid_angle`，双 yaw 采用 `*_angle_pid*`；底盘平移及导航坐标继续使用 position
 - 新增输出轴连续角度 `angle_multi`，计算为 `dir * (raw_angle_multi - config.offset) / config.reduction`，与单圈 angle 共用电机侧 offset；运行时修改 offset 后在下一次反馈刷新，原始累计不受校准影响
@@ -135,3 +135,5 @@ python agents/tasks/10-global_refactor/verify_angle_layout.py --source-root <原
 ```
 
 对象及逐文件日志位于 `out/angle_layout/arm/`，电机回归源码沿用 `motor_config_test.cpp`；云台与拨弹回归入口沿用任务 11 的 `verify_gimbal_imu.py` 和 `verify.py`。
+
+合并验证（2026-11-17）：主线快照 `c576037`、外部实现 `d888b40`、外部记录 `c48610b`，合并提交 `87ef1f8`，无冲突。合并后 82 个角度/布局 ARM 对象及两板 Timer 对象编译通过；电机配置与多圈角度、原生输出/拨弹、云台 IMU 3280 项检查通过。57 个相关工程源码格式检查与 diff 检查通过。外部日志归档至 `out/angle_layout/external_logs/`。未执行完整固件链接、硬件操作或推送。
