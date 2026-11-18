@@ -50,6 +50,12 @@ class UiControl {
     explicit UiControl(Referee& referee)
         : referee(referee) {}
 
+    static void set_number(Graphic& graphic, int32_t value);
+
+    static void set_float(Graphic& graphic, float value);
+
+    static void set_arc(Graphic& graphic, float start_angle, float end_angle);
+
     // name 为 24 位标识，layer 为 0~9；坐标和线宽单位为像素
     static Graphic line(uint32_t name, uint8_t layer, Color color, uint16_t width, uint16_t x, uint16_t y, uint16_t end_x, uint16_t end_y);
 
@@ -67,12 +73,6 @@ class UiControl {
     static Graphic floating(uint32_t name, uint8_t layer, Color color, uint16_t width, uint16_t x, uint16_t y, uint16_t font_size, float value);
 
     static Graphic character(uint32_t name, uint8_t layer, Color color, uint16_t width, uint16_t x, uint16_t y, uint16_t font_size);
-
-    static void set_number(Graphic& graphic, int32_t value);
-
-    static void set_float(Graphic& graphic, float value);
-
-    static void set_arc(Graphic& graphic, float start_angle, float end_angle);
 
     // 最多 7 个图形；入队复制数据，满时不部分写入
     bool draw(const Graphic* graphics, size_t count, Operation operation);
@@ -94,15 +94,14 @@ class UiControl {
         return referee.robot_status.robot_id;
     }
 
+    void update();
+
   private:
     static Graphic make_graphic(uint32_t name, uint8_t layer, Color color, uint16_t width, uint16_t x, uint16_t y, Type type);
 
     static void encode(const Graphic& graphic, Operation operation, uint8_t* data);
 
     bool enqueue(const Request& request);
-
-  public:
-    void update();
 };
 
 class RobotUi : public UiControl {
@@ -139,20 +138,17 @@ class RobotUi : public UiControl {
 
   public:
     explicit RobotUi(Referee& referee)
-        : RobotUi(referee, {}
-
-          ) {}
+        : RobotUi(referee, {}) {}
 
     RobotUi(Referee& referee, const Config& config)
         : UiControl(referee), max_cap(config.max_cap), max_wr(config.max_wr), max_bullet(config.max_bullet), max_shoot(config.max_shoot) {}
 
     void init();
 
-  private:
-    void update_dashboard();
+    void update();
 
+  private:
     void enqueue_initial_layout();
 
-  public:
-    void update();
+    void update_dashboard();
 };

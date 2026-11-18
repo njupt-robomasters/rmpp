@@ -29,6 +29,8 @@ inline QuaternionEkf attitude(imu, {}); // 可选；第二参数覆盖 Quaternio
 
 `QuaternionEkf` 按值保存只读 `Config`，噪声和门限直接读取 `config`。`Imu` 保存安装、温控参数及可校准的 gyro_offset、gravity；温控 PID 借用内部配置，不应复制或移动。`Attitude` 保存 `Imu&`，`Imu` 须在其生命周期内有效。使用姿态解算时只调用 `attitude.update()`，不再单独调用 `imu.update()`。
 
+`Imu::temperature` 仅用于内部温控和 SWD 观察，保持 private；温控 PID 位于观察状态后、校准累计量前，计时器依次为 calibration_timer、update_timer。`Attitude` 的 Imu 绑定位于姿态输出前。
+
 ## 坐标与公开转换
 
 - 右手系，roll 绕 X、pitch 绕 Y、yaw 绕 Z；`R = Rz(yaw) Ry(pitch) Rx(roll)`

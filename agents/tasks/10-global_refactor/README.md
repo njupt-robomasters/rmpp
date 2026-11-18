@@ -152,3 +152,30 @@ python agents/tasks/10-global_refactor/verify_angle_layout.py --source-root <原
 ```sh
 python agents/tasks/10-global_refactor/verify_motor_feedback.py
 ```
+
+## 2026-11-17 成员六组排序、函数排序与最小权限
+
+基线 `ba752f6`；外部 worktree `../rmpp-class-order`，分支 `refactor/class-member-order`。主工作区已有 `app/leg_up/shooter.cpp`、`lib/robot/gimbal/gimbal_classic.{hpp,cpp}`、`lib/robot/shooter/shooter_17mm.hpp` 的未提交修改，本轮从提交基线工作，保留主工作区内容。
+
+- 类成员依次为构造参数、set 输入、SWD 观察状态、PID 组件、跨周期历史状态、Timer；构造参数按接口顺序，设备绑定靠前；Timer 按其他 timer、callback_timer、update_timer 排列
+- 函数依次为构造函数（含 protected 构造）、set_enable、其他 set 函数、其他公开接口、update、内部辅助函数；内部辅助函数按入口首次调用顺序深度优先排列，调用者在前、被调用者紧随；.cpp 与 .tpp 定义跟随声明顺序
+- 保留成对的 ref/measure 结构；状态机当前阶段位于 PID 前，历史标记与累计时间位于 PID 后；构造初始化列表同步声明顺序，保留原有计算与默认值
+- 类型与实例权限相同时保持结构体后直接声明实例；公开配置类型与私有配置副本分开。云台、17 mm 发射机构、裁判的配置副本、17 mm 设备绑定、42 mm 观察量、Imu 温度、Melody 监测量和无外部引用的型号常量收紧为 private；底盘 vx/vy 仅供派生类使用，收紧为 protected
+- 权限核对覆盖 app、公共库及现有测试调用；超电仿真读取的辨识/功率输出、双 yaw 差分回归读取的 yaw1/yaw2 保留 public；SWD 观察本身无需公开变量
+- 同步 AGENTS.md、conventions.md 与相关模块文档；主工作区、生成代码和第三方代码未改动
+
+验证结果：
+
+- 两板公共库、两板 IMU BSP、dummy/infantry/sentry/leg_down/leg_up/motor 示例/test 与 mc02 CDC 示例共 82 个真实 ARM 对象通过，开启 `-Werror=reorder`；最终两处权限整理涉及的四个对象补编通过
+- 原生电机输出与拨弹状态机回归通过；GimbalClassic IMU 3280 项检查通过
+- 复用现有测试，对比基线与当前电机可选反馈、超电容量辨识、超电功率仿真、蜂鸣器播放，四组输出逐字节一致
+- 30 个修改的手写代码文件格式检查与 git diff --check 通过，86 份 ARM 编译日志均为空；结束检查时主工作区另出现并行的根 TODO.md 修改，保持原样
+- 本轮仅编译对象与执行主机回归，未链接完整固件或操作硬件
+
+复现：mc02 配置目录为 `agents/tasks/10-global_refactor/out/class_order/mc02`，复用上方 `verify_angle_layout.py`；主机差分入口：
+
+```sh
+python agents/tasks/10-global_refactor/verify_class_order.py --baseline ba752f6
+python agents/tasks/11-shooter_state/verify.py
+python agents/tasks/11-shooter_state/verify_gimbal_imu.py
+```

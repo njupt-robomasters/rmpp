@@ -30,37 +30,6 @@ void GimbalClassic::set_chassis_wr(const float chassis_wr) {
     this->chassis_wr = chassis_wr;
 }
 
-void GimbalClassic::update_angle_loop(const Quaternionf& q, const Quaternionf& pitch_joint, const bool can_yaw, const bool can_pitch, const float dt) {
-    // 不可控、关闭外环或首帧时目标跟随实测，恢复后从当前姿态开始
-    const bool can_angle_loop = config.use_angle_loop && has_update;
-    has_update = true;
-
-    // 世界角度误差闭环，输出世界 yaw/pitch 角速率修正
-    float yaw_correction = 0, pitch_correction = 0;
-    if (can_yaw && can_angle_loop) {
-        yaw.angle_ref += yaw_speed * dt;
-        yaw_correction = yaw_angle_pid.calculate(dt, Angle(yaw.angle_ref - yaw.angle_measure));
-    } else {
-        yaw.angle_ref = yaw.angle_measure;
-        yaw_angle_pid.clear();
-    }
-    if (can_pitch && can_angle_loop) {
-        pitch.angle_ref += pitch_speed * dt;
-        pitch_correction = pitch_angle_pid.calculate(dt, Angle(pitch.angle_ref - pitch.angle_measure));
-    } else {
-        pitch.angle_ref = pitch.angle_measure;
-        pitch_angle_pid.clear();
-    }
-
-    // 修正换算到电机轴后叠加：yaw 绕世界 Z，pitch 绕枪口方位的水平横轴
-    const Vector3f world_correction(-std::sin(yaw.angle_measure) * pitch_correction,
-                                    std::cos(yaw.angle_measure) * pitch_correction,
-                                    yaw_correction);
-    const Vector3f axis_correction = pitch_joint * (q.conjugate() * world_correction);
-    yaw.speed_ref += axis_correction.z();
-    pitch.speed_ref += axis_correction.y();
-}
-
 void GimbalClassic::update(const Quaternionf& q, const Vector3f& gyro) {
     const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
 
@@ -106,4 +75,35 @@ void GimbalClassic::update(const Quaternionf& q, const Vector3f& gyro) {
         pitch_speed_pid.clear();
         motor.pitch.set_output(0);
     }
+}
+
+void GimbalClassic::update_angle_loop(const Quaternionf& q, const Quaternionf& pitch_joint, const bool can_yaw, const bool can_pitch, const float dt) {
+    // 不可控、关闭外环或首帧时目标跟随实测，恢复后从当前姿态开始
+    const bool can_angle_loop = config.use_angle_loop && has_update;
+    has_update = true;
+
+    // 世界角度误差闭环，输出世界 yaw/pitch 角速率修正
+    float yaw_correction = 0, pitch_correction = 0;
+    if (can_yaw && can_angle_loop) {
+        yaw.angle_ref += yaw_speed * dt;
+        yaw_correction = yaw_angle_pid.calculate(dt, Angle(yaw.angle_ref - yaw.angle_measure));
+    } else {
+        yaw.angle_ref = yaw.angle_measure;
+        yaw_angle_pid.clear();
+    }
+    if (can_pitch && can_angle_loop) {
+        pitch.angle_ref += pitch_speed * dt;
+        pitch_correction = pitch_angle_pid.calculate(dt, Angle(pitch.angle_ref - pitch.angle_measure));
+    } else {
+        pitch.angle_ref = pitch.angle_measure;
+        pitch_angle_pid.clear();
+    }
+
+    // 修正换算到电机轴后叠加：yaw 绕世界 Z，pitch 绕枪口方位的水平横轴
+    const Vector3f world_correction(-std::sin(yaw.angle_measure) * pitch_correction,
+                                    std::cos(yaw.angle_measure) * pitch_correction,
+                                    yaw_correction);
+    const Vector3f axis_correction = pitch_joint * (q.conjugate() * world_correction);
+    yaw.speed_ref += axis_correction.z();
+    pitch.speed_ref += axis_correction.y();
 }

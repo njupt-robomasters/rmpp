@@ -11,6 +11,13 @@ FSi6X::FSi6X(const Config& config)
     });
 }
 
+void FSi6X::update() {
+    if (callback_timer.elapsed() > config.timeout) {
+        callback_timer.restart();
+        reset_data();
+    }
+}
+
 void FSi6X::callback(const uint8_t data[], const uint16_t size) {
     // 长度检查
     if (size != 25)
@@ -72,11 +79,4 @@ FSi6X::Switch FSi6X::get_switch(const uint16_t value) {
     if (value == 1807)
         return DOWN;
     return ERR;
-}
-
-void FSi6X::update() {
-    if (callback_timer.elapsed() > config.timeout) {
-        callback_timer.restart();
-        reset_data();
-    }
 }

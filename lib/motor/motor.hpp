@@ -24,20 +24,20 @@ class Motor {
         std::optional<float> current = {}, torque = {}, speed = {}, angle = {};
     };
 
+    bool is_enable = false;
+
   public:
+    float current_ref = 0;
+    float torque_ref = 0;
+
     bool is_connect = false;
 
-    // 安装方向与减速比修正后的输出轴反馈与目标
+    // 安装方向与减速比修正后的输出轴反馈
     float current = 0;
-    float current_ref = 0;
     float torque = 0;
-    float torque_ref = 0;
     float speed = 0;
     float angle = 0;       // 单圈输出轴角度，[-π, π)
     float angle_multi = 0; // 连续输出轴角度，rad
-
-  protected:
-    bool is_enable = false;
 
   private:
     // 电机侧原始角度、多圈计数与反馈超时
@@ -45,6 +45,9 @@ class Motor {
     float raw_angle_multi = 0;
     bool is_angle_initialized = false;
     Timer callback_timer;
+
+  protected:
+    Motor(const Config& config, float max_current, float max_torque, float reduction);
 
   public:
     virtual void set_enable(bool is_enable);
@@ -56,13 +59,10 @@ class Motor {
 
     virtual void set_torque(float torque);
 
-  protected:
-    Motor(const Config& config, float max_current, float max_torque, float reduction);
-
-    // 子类解析后调用；电流与力矩只传其一时换算另一项，携带角度时推进多圈累计
-    void can_callback(const Feedback& feedback);
-
-  public:
     // 每个控制周期调用，检查反馈是否超时
     void update();
+
+  protected:
+    // 子类解析后调用；电流与力矩只传其一时换算另一项，携带角度时推进多圈累计
+    void can_callback(const Feedback& feedback);
 };

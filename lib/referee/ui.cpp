@@ -5,6 +5,45 @@
 #include <cstring>
 #include <limits>
 
+void UiControl::set_number(Graphic& graphic, const int32_t value) {
+    const auto bits = static_cast<uint32_t>(value);
+    graphic.details_c = bits & 0x3FF;
+    graphic.details_d = (bits >> 10) & 0x7FF;
+    graphic.details_e = bits >> 21;
+}
+
+void UiControl::set_float(Graphic& graphic, const float value) {
+    const double scaled = static_cast<double>(value) * 1000.0;
+    int32_t number = 0;
+    if (std::isfinite(scaled)) {
+        if (scaled >= std::numeric_limits<int32_t>::max())
+            number = std::numeric_limits<int32_t>::max();
+        else if (scaled <= std::numeric_limits<int32_t>::min())
+            number = std::numeric_limits<int32_t>::min();
+        else
+            number = static_cast<int32_t>(scaled);
+    }
+    set_number(graphic, number);
+}
+
+void UiControl::set_arc(Graphic& graphic, const float start_angle, const float end_angle) {
+    // 归一化到协议角度范围，正向整圈保留为360度
+    const float angles[] = {start_angle, end_angle};
+    uint16_t degrees[2]{};
+    for (size_t i = 0; i < 2; i++) {
+        if (!std::isfinite(angles[i]))
+            continue;
+        const float input = angles[i] / deg;
+        float angle = std::fmod(input, 360.0f);
+        if (angle < 0)
+            angle += 360;
+        const auto rounded = static_cast<uint16_t>(std::round(angle));
+        degrees[i] = rounded == 0 && input > 0 ? 360 : rounded % 360;
+    }
+    graphic.details_a = degrees[0];
+    graphic.details_b = degrees[1];
+}
+
 UiControl::Graphic UiControl::line(const uint32_t name, const uint8_t layer, const Color color, const uint16_t width, const uint16_t x, const uint16_t y, const uint16_t end_x, const uint16_t end_y) {
     auto graphic = make_graphic(name, layer, color, width, x, y, LINE);
     graphic.details_d = end_x;
@@ -56,45 +95,6 @@ UiControl::Graphic UiControl::character(const uint32_t name, const uint8_t layer
     auto graphic = make_graphic(name, layer, color, width, x, y, CHARACTER);
     graphic.details_a = font_size;
     return graphic;
-}
-
-void UiControl::set_number(Graphic& graphic, const int32_t value) {
-    const auto bits = static_cast<uint32_t>(value);
-    graphic.details_c = bits & 0x3FF;
-    graphic.details_d = (bits >> 10) & 0x7FF;
-    graphic.details_e = bits >> 21;
-}
-
-void UiControl::set_float(Graphic& graphic, const float value) {
-    const double scaled = static_cast<double>(value) * 1000.0;
-    int32_t number = 0;
-    if (std::isfinite(scaled)) {
-        if (scaled >= std::numeric_limits<int32_t>::max())
-            number = std::numeric_limits<int32_t>::max();
-        else if (scaled <= std::numeric_limits<int32_t>::min())
-            number = std::numeric_limits<int32_t>::min();
-        else
-            number = static_cast<int32_t>(scaled);
-    }
-    set_number(graphic, number);
-}
-
-void UiControl::set_arc(Graphic& graphic, const float start_angle, const float end_angle) {
-    // 归一化到协议角度范围，正向整圈保留为360度
-    const float angles[] = {start_angle, end_angle};
-    uint16_t degrees[2]{};
-    for (size_t i = 0; i < 2; i++) {
-        if (!std::isfinite(angles[i]))
-            continue;
-        const float input = angles[i] / deg;
-        float angle = std::fmod(input, 360.0f);
-        if (angle < 0)
-            angle += 360;
-        const auto rounded = static_cast<uint16_t>(std::round(angle));
-        degrees[i] = rounded == 0 && input > 0 ? 360 : rounded % 360;
-    }
-    graphic.details_a = degrees[0];
-    graphic.details_b = degrees[1];
 }
 
 bool UiControl::draw(const Graphic* graphics, const size_t count, const Operation operation) {
@@ -152,6 +152,29 @@ void UiControl::clear_queue() {
     count = 0;
 }
 
+void UiControl::update() {
+    if (count == 0)
+        return;
+    const auto sender = robot_id();
+    // 只有文档列出的选手端允许自动映射
+    if (!((sender >= 1 && sender <= 6) || (sender >= 101 && sender <= 106)))
+        return;
+    const uint16_t receiver = sender + 0x0100;
+    const auto& request = queue[head];
+    uint8_t data[111]{};
+    data[0] = static_cast<uint8_t>(request.content_id);
+    data[1] = static_cast<uint8_t>(request.content_id >> 8);
+    data[2] = static_cast<uint8_t>(sender);
+    data[3] = static_cast<uint8_t>(sender >> 8);
+    data[4] = static_cast<uint8_t>(receiver);
+    data[5] = static_cast<uint8_t>(receiver >> 8);
+    std::memcpy(data + 6, request.data, request.size);
+    if (referee.send(0x0301, data, request.size + 6)) {
+        head = (head + 1) % QUEUE_CAPACITY;
+        count--;
+    }
+}
+
 UiControl::Graphic UiControl::make_graphic(const uint32_t name, const uint8_t layer, const Color color, const uint16_t width, const uint16_t x, const uint16_t y, const Type type) {
     return {.name = {static_cast<uint8_t>(name), static_cast<uint8_t>(name >> 8), static_cast<uint8_t>(name >> 16)},
             .operation = NONE,
@@ -200,29 +223,6 @@ bool UiControl::enqueue(const Request& request) {
     return true;
 }
 
-void UiControl::update() {
-    if (count == 0)
-        return;
-    const auto sender = robot_id();
-    // 只有文档列出的选手端允许自动映射
-    if (!((sender >= 1 && sender <= 6) || (sender >= 101 && sender <= 106)))
-        return;
-    const uint16_t receiver = sender + 0x0100;
-    const auto& request = queue[head];
-    uint8_t data[111]{};
-    data[0] = static_cast<uint8_t>(request.content_id);
-    data[1] = static_cast<uint8_t>(request.content_id >> 8);
-    data[2] = static_cast<uint8_t>(sender);
-    data[3] = static_cast<uint8_t>(sender >> 8);
-    data[4] = static_cast<uint8_t>(receiver);
-    data[5] = static_cast<uint8_t>(receiver >> 8);
-    std::memcpy(data + 6, request.data, request.size);
-    if (referee.send(0x0301, data, request.size + 6)) {
-        head = (head + 1) % QUEUE_CAPACITY;
-        count--;
-    }
-}
-
 void RobotUi::init() {
     clear_queue();
     initialized = false;
@@ -230,35 +230,16 @@ void RobotUi::init() {
     initialized = true;
 }
 
-void RobotUi::update_dashboard() {
-    const auto green = GREEN;
-    const auto progress = std::clamp(cap / max_cap, 0.0f, 1.0f);
-    const auto speed = std::clamp(std::fabs(wr) / max_wr, 0.0f, 1.0f);
-    const auto bullet_ratio = std::clamp(bullet / max_bullet, 0.0f, 1.0f);
-    const auto shoot_ratio = std::clamp(std::fabs(shoot) / max_shoot, 0.0f, 1.0f);
-    const auto span = [](float ratio) { return static_cast<uint16_t>(1 + ratio * 38); };
-    Graphic arcs[7] = {
-        arc(0x000160, 1, robot.referee, 10, 960, 540, yaw_ecd - 20 * deg, yaw_ecd + 20 * deg, 85, 85),
-        arc(0x000161, 1, PINK, is_hurt ? 10 : 0, 960, 540, -hurt_dir - 20 * deg, -hurt_dir + 20 * deg, 85, 85),
-        arc(0x000162, 1, green, 14, 960, 540, 275 * deg, (275 + span(progress)) * deg, 387, 387),
-        arc(0x000163, 1, green, 14, 960, 540, (265 - span(speed)) * deg, 265 * deg, 387, 387),
-        arc(0x000164, 1, green, 14, 960, 540, 95 * deg, (95 + span(bullet_ratio)) * deg, 387, 387),
-        arc(0x000165, 1, green, 14, 960, 540, (85 - span(shoot_ratio)) * deg, 85 * deg, 387, 387),
-        circle(0x000166, 1, robot.aim, is_detect ? 21 : 0, 960, 540, 21),
-    };
-    set_arc(arcs[0], yaw_ecd - 20 * deg, yaw_ecd + 20 * deg);
-    set_arc(arcs[1], -hurt_dir - 20 * deg, -hurt_dir + 20 * deg);
-    draw(arcs, 7, MODIFY);
+void RobotUi::update() {
+    if (!initialized)
+        init();
 
-    Graphic numbers[6] = {
-        integer(0x000170, 2, WHITE, 2, 615, 565, 15, static_cast<int32_t>(cap / pct)),
-        integer(0x000171, 2, WHITE, 2, 615, 530, 15, static_cast<int32_t>(wr / rpm)),
-        integer(0x000172, 2, WHITE, 2, 1250, 530, 15, static_cast<int32_t>(bullet * (bullet_is_speed ? 10 : 1))),
-        integer(0x000173, 2, WHITE, 2, 1250, 565, 15, static_cast<int32_t>(shoot)),
-        integer(0x000174, 2, WHITE, 2, 970, 680, 15, static_cast<int32_t>(yaw / deg)),
-        integer(0x000175, 2, WHITE, 2, 780, 565, 15, static_cast<int32_t>(pitch / deg)),
-    };
-    draw(numbers, 6, MODIFY);
+    if (dashboard_timer.elapsed() >= 1.0f / 30.0f) {
+        dashboard_timer.restart();
+        update_dashboard();
+    }
+
+    UiControl::update();
 }
 
 void RobotUi::enqueue_initial_layout() {
@@ -343,14 +324,33 @@ void RobotUi::enqueue_initial_layout() {
     draw(modules_tail, 4, ADD);
 }
 
-void RobotUi::update() {
-    if (!initialized)
-        init();
+void RobotUi::update_dashboard() {
+    const auto green = GREEN;
+    const auto progress = std::clamp(cap / max_cap, 0.0f, 1.0f);
+    const auto speed = std::clamp(std::fabs(wr) / max_wr, 0.0f, 1.0f);
+    const auto bullet_ratio = std::clamp(bullet / max_bullet, 0.0f, 1.0f);
+    const auto shoot_ratio = std::clamp(std::fabs(shoot) / max_shoot, 0.0f, 1.0f);
+    const auto span = [](float ratio) { return static_cast<uint16_t>(1 + ratio * 38); };
+    Graphic arcs[7] = {
+        arc(0x000160, 1, robot.referee, 10, 960, 540, yaw_ecd - 20 * deg, yaw_ecd + 20 * deg, 85, 85),
+        arc(0x000161, 1, PINK, is_hurt ? 10 : 0, 960, 540, -hurt_dir - 20 * deg, -hurt_dir + 20 * deg, 85, 85),
+        arc(0x000162, 1, green, 14, 960, 540, 275 * deg, (275 + span(progress)) * deg, 387, 387),
+        arc(0x000163, 1, green, 14, 960, 540, (265 - span(speed)) * deg, 265 * deg, 387, 387),
+        arc(0x000164, 1, green, 14, 960, 540, 95 * deg, (95 + span(bullet_ratio)) * deg, 387, 387),
+        arc(0x000165, 1, green, 14, 960, 540, (85 - span(shoot_ratio)) * deg, 85 * deg, 387, 387),
+        circle(0x000166, 1, robot.aim, is_detect ? 21 : 0, 960, 540, 21),
+    };
+    set_arc(arcs[0], yaw_ecd - 20 * deg, yaw_ecd + 20 * deg);
+    set_arc(arcs[1], -hurt_dir - 20 * deg, -hurt_dir + 20 * deg);
+    draw(arcs, 7, MODIFY);
 
-    if (dashboard_timer.elapsed() >= 1.0f / 30.0f) {
-        dashboard_timer.restart();
-        update_dashboard();
-    }
-
-    UiControl::update();
+    Graphic numbers[6] = {
+        integer(0x000170, 2, WHITE, 2, 615, 565, 15, static_cast<int32_t>(cap / pct)),
+        integer(0x000171, 2, WHITE, 2, 615, 530, 15, static_cast<int32_t>(wr / rpm)),
+        integer(0x000172, 2, WHITE, 2, 1250, 530, 15, static_cast<int32_t>(bullet * (bullet_is_speed ? 10 : 1))),
+        integer(0x000173, 2, WHITE, 2, 1250, 565, 15, static_cast<int32_t>(shoot)),
+        integer(0x000174, 2, WHITE, 2, 970, 680, 15, static_cast<int32_t>(yaw / deg)),
+        integer(0x000175, 2, WHITE, 2, 780, 565, 15, static_cast<int32_t>(pitch / deg)),
+    };
+    draw(numbers, 6, MODIFY);
 }

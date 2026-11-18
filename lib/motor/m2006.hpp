@@ -3,7 +3,7 @@
 #include "motor/motor.hpp"
 
 class M2006 : public Motor {
-  public:
+  private:
     // 型号默认物理参数
     static constexpr float MAX_CURRENT = 10.0f;
     static constexpr float MAX_TORQUE = 1.8f;

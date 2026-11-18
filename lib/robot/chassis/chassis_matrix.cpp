@@ -2,6 +2,14 @@
 #include <algorithm>
 #include <cmath>
 
+ChassisMatrix::ChassisMatrix(const std::array<Motor*, 4>& wheel, const Config& config)
+    : wheel{wheel[0], wheel[1], wheel[2], wheel[3]},
+      config(config),
+      j(Eigen::Map<const Eigen::Matrix<float, 4, 3, Eigen::RowMajor>>(config.kinematics[0])),
+      j_pinv((j.transpose() * j).inverse() * j.transpose()),
+      // 列满秩，左伪逆 (JᵀJ)⁻¹Jᵀ
+      follow_pid(config.follow_pid_config) {}
+
 void ChassisMatrix::set_enable(const bool is_enable) {
     this->is_enable = is_enable;
     for (Motor* wheel : this->wheel)
@@ -45,14 +53,6 @@ Vector3f ChassisMatrix::forward_force(const Vector4f& f) const {
 Vector4f ChassisMatrix::backward_force(const Vector3f& f) const {
     return j_pinv.transpose() * f;
 }
-
-ChassisMatrix::ChassisMatrix(const std::array<Motor*, 4>& wheel, const Config& config)
-    : config(config),
-      j(Eigen::Map<const Eigen::Matrix<float, 4, 3, Eigen::RowMajor>>(config.kinematics[0])),
-      j_pinv((j.transpose() * j).inverse() * j.transpose()),
-      wheel{wheel[0], wheel[1], wheel[2], wheel[3]},
-      // 列满秩，左伪逆 (JᵀJ)⁻¹Jᵀ
-      follow_pid(config.follow_pid_config) {}
 
 void ChassisMatrix::update() {
     const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);

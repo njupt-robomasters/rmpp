@@ -8,10 +8,11 @@ class RMDL7025 : public Motor {
   public:
     // 型号默认物理参数：峰值电流、峰值转矩
     static constexpr float MAX_CURRENT = 8.5f;
+
+  private:
     static constexpr float MAX_TORQUE = 4.1f;
     static constexpr float REDUCTION = 1;
 
-  private:
     float temperature = 0;   // 电机温度，℃
     uint32_t send_count = 0; // 奇偶决定本次发送的报文
 

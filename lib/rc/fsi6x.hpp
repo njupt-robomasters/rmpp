@@ -62,6 +62,9 @@ class FSi6X {
   public:
     FSi6X(const Config& config);
 
+    // 断联检测，需要在循环中调用；断联时数据复位为默认值
+    void update();
+
   private:
     // 串口接收回调
     void callback(const uint8_t data[], uint16_t size);
@@ -73,8 +76,4 @@ class FSi6X {
 
     // 解析拨杆值
     static Switch get_switch(uint16_t value);
-
-  public:
-    // 断联检测，需要在循环中调用；断联时数据复位为默认值
-    void update();
 };

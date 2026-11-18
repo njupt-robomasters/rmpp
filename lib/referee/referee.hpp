@@ -13,8 +13,12 @@ class Referee {
         uint32_t rx_id = 0;   // CAN 转发接收 ID，UART 不使用
         uint32_t tx_id = 1;   // CAN 转发发送 ID，UART 不使用
         float timeout = 1.0f; // 连接超时，秒
-    } const config;
+    };
 
+  private:
+    const Config config;
+
+  public:
     // 回调在接收上下文执行，数据仅在回调期间有效；启动前注册
     using RxCallback = std::function<void(const uint8_t*, size_t)>;
 
@@ -97,13 +101,12 @@ class Referee {
         return tx_size != 0;
     }
 
-  private:
-    Referee& operator=(const Referee&) = delete;
+    void update();
 
+  private:
     void receive(const uint8_t* data, size_t size);
 
     bool deserialize(uint16_t cmd_id, const uint8_t* data, size_t size);
 
-  public:
-    void update();
+    Referee& operator=(const Referee&) = delete;
 };

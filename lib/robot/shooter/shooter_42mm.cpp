@@ -3,8 +3,8 @@
 #include <cmath>
 
 Shooter42mm::Shooter42mm(const Motors& motor, const Config& config)
-    : config(config),
-      motor(motor),
+    : motor(motor),
+      config(config),
       shoot_pid(config.shoot_pid_config) {}
 
 void Shooter42mm::set_enable(const bool is_enable) {

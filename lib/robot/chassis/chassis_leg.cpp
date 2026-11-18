@@ -4,8 +4,8 @@
 #include <cmath>
 
 ChassisLeg::ChassisLeg(const Motors& motor, const Config& config)
-    : config(config),
-      motor(motor),
+    : motor(motor),
+      config(config),
       leg_length_ref(config.leg_min),
       leg_length_pid{Pid(config.leg_length_pid), Pid(config.leg_length_pid)},
       leg_angle_pid{Pid(config.leg_angle_pid), Pid(config.leg_angle_pid)},
@@ -36,6 +36,55 @@ void ChassisLeg::set_allow_rescue(const bool allow_rescue) {
 
 void ChassisLeg::set_trigger_jump(const bool trigger_jump) {
     this->trigger_jump = trigger_jump;
+}
+
+void ChassisLeg::update(const Quaternionf& q, const Vector3f& gyro) {
+    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
+
+    update_feedback(q, gyro);
+
+    // 两侧均值为前向速度，右减左为航向角速度（逆时针正）
+    const float v_left = leg[0].v_wheel + leg[0].v_swing;
+    const float v_right = leg[1].v_wheel + leg[1].v_swing;
+    body.d_x = (v_left + v_right) / 2;
+    body.d_yaw_wheel = (v_right - v_left) / config.wheel_distance;
+
+    // 位移积分：停机、倒地、跳跃或有速度指令时清零，速度降到 0.1 m/s 内后开始积分
+    if (!is_enable || rescue.is_fallen || jump.is_active || std::fabs(d_x_ref) > 0.01f) {
+        body.x = 0;
+        is_position = false;
+    } else {
+        if (std::fabs(body.d_x) < 0.1f)
+            is_position = true;
+        if (is_position)
+            body.x = std::clamp(body.x + body.d_x * dt, -config.x_max, config.x_max);
+    }
+
+    update_rescue(dt);
+    update_jump(dt);
+    calc_force(dt);
+
+    // 力映射：右腿镜像安装，后摆力矩在机构中为反向
+    map_force(leg[0], leg[0].Tt);
+    map_force(leg[1], -leg[1].Tt);
+
+    // 电机异常时全部输出零：任一电机掉线或关节未处于使能态（含报错）
+    is_motor_ok = motor.left_back.is_connect && motor.left_back.err_code == DM8009::ENABLED &&
+                  motor.left_front.is_connect && motor.left_front.err_code == DM8009::ENABLED &&
+                  motor.right_front.is_connect && motor.right_front.err_code == DM8009::ENABLED &&
+                  motor.right_back.is_connect && motor.right_back.err_code == DM8009::ENABLED &&
+                  motor.left_wheel.is_connect && motor.right_wheel.is_connect;
+    if (!is_motor_ok) {
+        for (auto& l : leg)
+            l.Tw = l.Ta = l.Te = 0;
+    }
+
+    motor.left_back.set_torque(leg[0].Ta);
+    motor.left_front.set_torque(leg[0].Te);
+    motor.right_front.set_torque(leg[1].Ta);
+    motor.right_back.set_torque(leg[1].Te);
+    motor.left_wheel.set_torque(leg[0].Tw);
+    motor.right_wheel.set_torque(leg[1].Tw);
 }
 
 void ChassisLeg::update_feedback(const Quaternionf& q, const Vector3f& gyro) {
@@ -374,53 +423,4 @@ void ChassisLeg::map_force(Leg& leg, const float Tt) const {
     const float T2 = 0.5f * Tt;
     leg.Ta = T1 + T2;
     leg.Te = -T1 + T2;
-}
-
-void ChassisLeg::update(const Quaternionf& q, const Vector3f& gyro) {
-    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
-
-    update_feedback(q, gyro);
-
-    // 两侧均值为前向速度，右减左为航向角速度（逆时针正）
-    const float v_left = leg[0].v_wheel + leg[0].v_swing;
-    const float v_right = leg[1].v_wheel + leg[1].v_swing;
-    body.d_x = (v_left + v_right) / 2;
-    body.d_yaw_wheel = (v_right - v_left) / config.wheel_distance;
-
-    // 位移积分：停机、倒地、跳跃或有速度指令时清零，速度降到 0.1 m/s 内后开始积分
-    if (!is_enable || rescue.is_fallen || jump.is_active || std::fabs(d_x_ref) > 0.01f) {
-        body.x = 0;
-        is_position = false;
-    } else {
-        if (std::fabs(body.d_x) < 0.1f)
-            is_position = true;
-        if (is_position)
-            body.x = std::clamp(body.x + body.d_x * dt, -config.x_max, config.x_max);
-    }
-
-    update_rescue(dt);
-    update_jump(dt);
-    calc_force(dt);
-
-    // 力映射：右腿镜像安装，后摆力矩在机构中为反向
-    map_force(leg[0], leg[0].Tt);
-    map_force(leg[1], -leg[1].Tt);
-
-    // 电机异常时全部输出零：任一电机掉线或关节未处于使能态（含报错）
-    is_motor_ok = motor.left_back.is_connect && motor.left_back.err_code == DM8009::ENABLED &&
-                  motor.left_front.is_connect && motor.left_front.err_code == DM8009::ENABLED &&
-                  motor.right_front.is_connect && motor.right_front.err_code == DM8009::ENABLED &&
-                  motor.right_back.is_connect && motor.right_back.err_code == DM8009::ENABLED &&
-                  motor.left_wheel.is_connect && motor.right_wheel.is_connect;
-    if (!is_motor_ok) {
-        for (auto& l : leg)
-            l.Tw = l.Ta = l.Te = 0;
-    }
-
-    motor.left_back.set_torque(leg[0].Ta);
-    motor.left_front.set_torque(leg[0].Te);
-    motor.right_front.set_torque(leg[1].Ta);
-    motor.right_back.set_torque(leg[1].Te);
-    motor.left_wheel.set_torque(leg[0].Tw);
-    motor.right_wheel.set_torque(leg[1].Tw);
 }

@@ -32,6 +32,9 @@ class DmMotor : public Motor {
     float temp_motor = 0;
     Timer enable_timer;
 
+  protected:
+    DmMotor(const Config& config, float max_current, float max_torque, float reduction);
+
   public:
     // MIT 协议原生输出力矩，N·m
     void set_output(float output) override;
@@ -39,21 +42,18 @@ class DmMotor : public Motor {
     // 按状态发送失能、清错、周期使能或 MIT 力矩帧
     void send();
 
-  protected:
-    DmMotor(const Config& config, float max_current, float max_torque, float reduction);
-
   private:
     void can_callback(const CanFrame& frame);
 
-    void send_mit() const;
-
-    void send_enable() const;
+    static float decode(uint16_t value, float maximum, unsigned bits);
 
     void send_disable() const;
 
     void send_clear_err() const;
 
-    static float decode(uint16_t value, float maximum, unsigned bits);
+    void send_enable() const;
+
+    void send_mit() const;
 
     static uint16_t encode(float value, float maximum, unsigned bits);
 };

@@ -3,13 +3,12 @@
 #include "motor/motor.hpp"
 
 class RM6623 : public Motor {
-  public:
+  private:
     // 型号默认物理参数
     static constexpr float MAX_CURRENT = 5;
     static constexpr float MAX_TORQUE = 1.9f;
     static constexpr float REDUCTION = 1;
 
-  private:
     // 反馈不含转速，由相邻两帧位置差分
     float angle_last = 0;
     bool has_angle = false;
