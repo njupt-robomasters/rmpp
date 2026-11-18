@@ -59,6 +59,12 @@ class Melody {
   private:
     const Config config;
 
+    // 由 config 换算
+    const float dt;                        // 采样周期 s
+    const float attack_step, release_step; // 增益每次更新的跟随系数
+    const uint32_t hold, ramp_samples;     // 采样数
+    Buzzer buzzer;
+
     // 复音单声部：限带方波 + 衰减包络，每次 update 推进一个采样
     class VoiceSynth {
       public:
@@ -82,11 +88,10 @@ class Melody {
             return index >= voice.size();
         }
 
+        float update();
+
       private:
         void enter();
-
-      public:
-        float update();
     };
 
     // 复音声部组：组电平按各声部幅度平方和开方，超过 1 时组增益缩小，和弦加厚时本组响度基本不变
@@ -115,15 +120,8 @@ class Melody {
                        FADE_OUT,
                        ENDED };
 
-  public:
     Monitor monitor; // 复音合成中断的频率与占用
 
-  private:
-    // 由 config 换算
-    const float dt;                        // 采样周期 s
-    const float attack_step, release_step; // 增益每次更新的跟随系数
-    const uint32_t hold, ramp_samples;     // 采样数
-    Buzzer buzzer;
     volatile Stage stage = Stage::IDLE; // 复音阶段由中断推进
     std::size_t index = 0;
     float gain = 1;
@@ -153,23 +151,22 @@ class Melody {
         return stage != Stage::IDLE;
     }
 
+    // 主循环约 1 kHz 调用：普通模式到时切换音符，复音模式播完后关闭采样流
+    void update();
+
   private:
     void fill(std::span<float> duty);
 
     float next_sample();
 
-    static float midi_to_hz(uint8_t midi);
-
     // 增益平滑跟随：下降快、上升慢
     static void follow(float& gain, float target, float attack_step, float release_step);
 
-    // PolyBLEP 跳变校正：t 为距跳变的相位 [0, 1)，dt 为每采样相位增量
-    static float poly_blep(float t, float dt);
+    static float midi_to_hz(uint8_t midi);
 
     // 限带方波 ±1，相位 [0, 0.5) 为 1；抑制折回到可听频段的杂音
     static float square(float phase, float dt);
 
-  public:
-    // 主循环约 1 kHz 调用：普通模式到时切换音符，复音模式播完后关闭采样流
-    void update();
+    // PolyBLEP 跳变校正：t 为距跳变的相位 [0, 1)，dt 为每采样相位增量
+    static float poly_blep(float t, float dt);
 };

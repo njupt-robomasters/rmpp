@@ -2,6 +2,16 @@
 #include "math/angle.hpp"
 #include <algorithm>
 
+Motor::Motor(const Config& config, const float max_current, const float max_torque, const float reduction)
+    : config(config) {
+    if (this->config.max_current == 0)
+        this->config.max_current = max_current;
+    if (this->config.max_torque == 0)
+        this->config.max_torque = max_torque;
+    if (this->config.reduction == 0)
+        this->config.reduction = reduction;
+}
+
 void Motor::set_enable(const bool is_enable) {
     this->is_enable = is_enable;
 }
@@ -26,14 +36,12 @@ void Motor::set_torque(float torque) {
     current_ref = torque / config.max_torque * config.max_current;
 }
 
-Motor::Motor(const Config& config, const float max_current, const float max_torque, const float reduction)
-    : config(config) {
-    if (this->config.max_current == 0)
-        this->config.max_current = max_current;
-    if (this->config.max_torque == 0)
-        this->config.max_torque = max_torque;
-    if (this->config.reduction == 0)
-        this->config.reduction = reduction;
+void Motor::update() {
+    // 断联检测：清零电流、力矩、速度反馈，保持角度
+    if (callback_timer.elapsed() > config.timeout) {
+        is_connect = false;
+        current = torque = speed = 0;
+    }
 }
 
 void Motor::can_callback(const Feedback& feedback) {
@@ -71,12 +79,4 @@ void Motor::can_callback(const Feedback& feedback) {
         angle = Angle(dir * (raw_angle - config.offset));
     else
         angle = Angle(angle_multi);
-}
-
-void Motor::update() {
-    // 断联检测：清零电流、力矩、速度反馈，保持角度
-    if (callback_timer.elapsed() > config.timeout) {
-        is_connect = false;
-        current = torque = speed = 0;
-    }
 }

@@ -43,6 +43,34 @@ bool Referee::send(const uint16_t cmd_id, const uint8_t* data, const size_t size
     return true;
 }
 
+void Referee::update() {
+    if (frame_timer.elapsed() > config.timeout)
+        is_connect = false;
+    if (tx_size == 0)
+        return;
+
+    // 链路忙时保留待发帧，下次重试
+    if (const auto* can = std::get_if<Can>(&config.bus)) {
+        if (!can->can_send())
+            return;
+        const auto size = std::min<size_t>(8, tx_size - tx_pos);
+        CanFrame frame{.id = config.tx_id, .size = static_cast<uint8_t>(size)};
+        std::memcpy(frame.data, tx_buf + tx_pos, size);
+        can->send(frame);
+        tx_pos += size;
+    } else {
+        const auto& uart = std::get<Uart>(config.bus);
+        if (!uart.can_send())
+            return;
+        uart.send(tx_buf, tx_size);
+        tx_pos = tx_size;
+    }
+    if (tx_pos == tx_size) {
+        tx_size = 0;
+        tx_pos = 0;
+    }
+}
+
 void Referee::receive(const uint8_t* data, const size_t size) {
     // 正常帧内不会停顿 100 ms；丢失尾部后不让旧半包阻塞后续数据
     if (receive_timer.elapsed() > 0.1f)
@@ -352,33 +380,5 @@ bool Referee::deserialize(const uint16_t cmd_id, const uint8_t* data, const size
         return true;
     default:
         return false;
-    }
-}
-
-void Referee::update() {
-    if (frame_timer.elapsed() > config.timeout)
-        is_connect = false;
-    if (tx_size == 0)
-        return;
-
-    // 链路忙时保留待发帧，下次重试
-    if (const auto* can = std::get_if<Can>(&config.bus)) {
-        if (!can->can_send())
-            return;
-        const auto size = std::min<size_t>(8, tx_size - tx_pos);
-        CanFrame frame{.id = config.tx_id, .size = static_cast<uint8_t>(size)};
-        std::memcpy(frame.data, tx_buf + tx_pos, size);
-        can->send(frame);
-        tx_pos += size;
-    } else {
-        const auto& uart = std::get<Uart>(config.bus);
-        if (!uart.can_send())
-            return;
-        uart.send(tx_buf, tx_size);
-        tx_pos = tx_size;
-    }
-    if (tx_pos == tx_size) {
-        tx_size = 0;
-        tx_pos = 0;
     }
 }

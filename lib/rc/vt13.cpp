@@ -12,6 +12,14 @@ VT13::VT13(const Config& config)
     });
 }
 
+void VT13::update() {
+    // 断联检测
+    if (callback_timer.elapsed() > config.timeout) {
+        callback_timer.restart();
+        reset_data();
+    }
+}
+
 void VT13::callback(const uint8_t data[], const size_t size) {
     for (size_t i = 0; i < size; i++) {
         if (rx_size == sizeof(rx_buf))
@@ -85,6 +93,14 @@ void VT13::parse_raw() {
     key.b = raw.key & (1 << 15);
 }
 
+float VT13::get_joy_stick(const uint16_t value) const {
+    float ret = (static_cast<float>(value) - 1024.0f) / 660.0f;
+    ret = std::clamp(ret, -1.0f, 1.0f);
+    if (std::fabs(ret) < config.deadline)
+        ret = 0.0f;
+    return ret;
+}
+
 void VT13::reset_data() {
     is_connect = false;
 
@@ -97,20 +113,4 @@ void VT13::reset_data() {
     // 键鼠
     mouse = {};
     key = {};
-}
-
-float VT13::get_joy_stick(const uint16_t value) const {
-    float ret = (static_cast<float>(value) - 1024.0f) / 660.0f;
-    ret = std::clamp(ret, -1.0f, 1.0f);
-    if (std::fabs(ret) < config.deadline)
-        ret = 0.0f;
-    return ret;
-}
-
-void VT13::update() {
-    // 断联检测
-    if (callback_timer.elapsed() > config.timeout) {
-        callback_timer.restart();
-        reset_data();
-    }
 }

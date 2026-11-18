@@ -22,6 +22,7 @@ class ChassisMatrix {
         {+std::sqrt(0.5f), +std::sqrt(0.5f), 1},
     };
 
+  private:
     // 麦克纳姆轮
     static constexpr float MECANUM[4][3] = {
         {-1, +1, std::sqrt(2.0f)},
@@ -30,8 +31,10 @@ class ChassisMatrix {
         {+1, +1, std::sqrt(2.0f)},
     };
 
-  private:
     static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
+
+  protected:
+    Motor* const wheel[4]; // 轮电机：左前、左后、右后、右前
 
   public:
     struct Config {
@@ -46,6 +49,10 @@ class ChassisMatrix {
   protected:
     const Config config;
 
+  private:
+    const Eigen::Matrix<float, 4, 3> j;
+    const Eigen::Matrix<float, 3, 4> j_pinv;
+
   public:
     // 底盘模式
     enum Mode {
@@ -53,12 +60,22 @@ class ChassisMatrix {
         FOLLOW_MODE, // 跟随模式
     };
 
+  protected:
+    // 指令
+    bool is_enable = false;
+    Angle gimbal_yaw;
+    float power_ref = 0;         // 底盘功率目标，W
+    float reserve_wr = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转
+
+  private:
+    Mode mode = DETACH_MODE;
+
+  protected:
     // 移动速度，云台系，vx 前正后负，vy 左正右负
     struct {
         float ref = 0, measure = 0;
     } vx, vy;
 
-  protected:
     // 旋转线速度，逆时针为正
     struct {
         float ref = 0, measure = 0;
@@ -78,22 +95,11 @@ class ChassisMatrix {
     } power;
 
   private:
-    const Eigen::Matrix<float, 4, 3> j;
-    const Eigen::Matrix<float, 3, 4> j_pinv;
-
-  protected:
-    Motor* const wheel[4]; // 轮电机：左前、左后、右后、右前
-
-    // 指令
-    bool is_enable = false;
-    Angle gimbal_yaw;
-    float power_ref = 0;         // 底盘功率目标，W
-    float reserve_wr = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转
-
-  private:
-    Mode mode = DETACH_MODE;
     Pid follow_pid;
     Timer update_timer;
+
+  protected:
+    ChassisMatrix(const std::array<Motor*, 4>& wheel, const Config& config);
 
   public:
     // 使能/失能轮电机
@@ -123,15 +129,12 @@ class ChassisMatrix {
 
     Vector4f backward_force(const Vector3f& f) const; // 底盘牵引力 → 轮牵引力
 
-  protected:
-    ChassisMatrix(const std::array<Motor*, 4>& wheel, const Config& config);
-
-    // 控制：底盘目标 → 电机输出；每周期调用，失能时清空 PID；dt 为控制周期，s
-    virtual void control(float dt) = 0;
-
-  public:
     // 每个控制周期调用；失能时也更新测量与功率
     void update();
+
+  protected:
+    // 控制：底盘目标 → 电机输出；每周期调用，失能时清空 PID；dt 为控制周期，s
+    virtual void control(float dt) = 0;
 };
 
 // 矩阵四轮底盘，速度控制：速度逆解为各轮线速度，轮速 PID 输出电流

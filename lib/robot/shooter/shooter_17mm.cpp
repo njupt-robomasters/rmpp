@@ -3,7 +3,7 @@
 #include <cmath>
 
 Shooter17mm::Shooter17mm(const Motors& motor, const Config& config)
-    : config(config), motor(motor),
+    : motor(motor), config(config),
       shoot_pid(config.shoot_pid_config) {}
 
 void Shooter17mm::set_enable(const bool is_enable) {

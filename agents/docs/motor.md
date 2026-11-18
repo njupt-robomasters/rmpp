@@ -7,6 +7,7 @@
 - 各层使用平面的 Motor::Config 构造输入，按通信、量程与减速比、安装方向与零点分组
 - 实例按值保存一份公开的 `Config config`，通信、超时、量程、减速比、方向和零点直接读取 config，不再逐项保存同名成员；型号 MAX_CURRENT、MAX_TORQUE、REDUCTION 传入 Motor 构造函数补齐 config 中的零值
 - VESC 无固定型号，app 显式给出 max_current、max_torque、reduction；摩擦轮按 M3508 常量
+- 型号常量按当前调用保留权限：M3508 的三项物理常量、GM6020 的 MAX_CURRENT/KE、RMDL7025 的 MAX_CURRENT 供外部使用，其余型号常量为 private；构造绑定和 set 输入位于反馈前，多圈历史状态与计时器位于反馈后
 - 外部经 `motor.config.max_current/max_torque` 读取量程，经 `motor.config.offset` 维护和存储零点；其余配置在构造后保持固定，CAN 回调仍注册在构造时的总线上
 - 不保存 kt，电流与力矩按 max_torque/max_current 换算；限流交给 PID max_out
 - 减速比与型号不同时同时给出 max_torque；自行发送的协议使用 tx_id/rx_id，DJI 组帧只需 rx_id

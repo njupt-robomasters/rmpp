@@ -14,8 +14,12 @@ class Steer {
   public:
     Motor& motor;
 
+  private:
     // 舵向，0 朝前，逆时针为正
-    Angle ref, measure;
+    Angle ref;
+
+  public:
+    Angle measure;
 
   private:
     Pid pid; // 舵向误差 rad → 电流 A
@@ -42,6 +46,12 @@ class ChassisSteer {
   private:
     static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
 
+  protected:
+    Motor* const wheel[4]; // 轮电机
+
+  private:
+    Steer steer[4];
+
   public:
     struct Config {
         float chassis_radius = 0;                       // 底盘中心到轮的距离
@@ -62,12 +72,22 @@ class ChassisSteer {
         FOLLOW_MODE, // 跟随模式
     };
 
+  protected:
+    // 指令
+    bool is_enable = false;
+    Angle gimbal_yaw;
+    float power_ref = 0;         // 底盘功率目标，W
+    float reserve_wr = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转（力控制）
+
+  private:
+    Mode mode = DETACH_MODE;
+
+  protected:
     // 移动速度，云台系，vx 前正后负，vy 左正右负
     struct {
         float ref = 0, measure = 0;
     } vx, vy;
 
-  protected:
     // 旋转线速度，逆时针为正
     struct {
         float ref = 0, measure = 0;
@@ -87,21 +107,11 @@ class ChassisSteer {
     } power;
 
   private:
-    Steer steer[4];
-
-  protected:
-    Motor* const wheel[4]; // 轮电机
-
-    // 指令
-    bool is_enable = false;
-    Angle gimbal_yaw;
-    float power_ref = 0;         // 底盘功率目标，W
-    float reserve_wr = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转（力控制）
-
-  private:
-    Mode mode = DETACH_MODE;
     Pid follow_pid;
     Timer update_timer;
+
+  protected:
+    ChassisSteer(const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
 
   public:
     // 使能/失能轮与舵电机
@@ -127,8 +137,12 @@ class ChassisSteer {
 
     Vector3f forward_force(const Vector4f& f) const; // 轮牵引力 → 底盘牵引力
 
+    // 每个控制周期调用；失能时也更新测量与功率
+    void update();
+
   protected:
-    ChassisSteer(const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config);
+    // 控制：底盘目标 → 电机输出；每周期调用，失能时清空 PID；dt 为控制周期，s
+    virtual void control(float dt) = 0;
 
     // 轮 i 能否驱动：舵电机离线时舵向不可控，对应轮停转
     bool can_drive(size_t i) const;
@@ -138,13 +152,6 @@ class ChassisSteer {
 
     // 力学逆解：底盘系牵引力平分到各轮并投影到实测舵向
     Vector4f backward_force(const Vector3f& f) const;
-
-    // 控制：底盘目标 → 电机输出；每周期调用，失能时清空 PID；dt 为控制周期，s
-    virtual void control(float dt) = 0;
-
-  public:
-    // 每个控制周期调用；失能时也更新测量与功率
-    void update();
 };
 
 // 四舵轮底盘，速度控制：轮速 PID 输出电流，功率整体衰减

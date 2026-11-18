@@ -53,6 +53,12 @@ void Steer::update() {
     measure = motor.angle;
 }
 
+ChassisSteer::ChassisSteer(const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)
+    : wheel{wheel[0], wheel[1], wheel[2], wheel[3]},
+      steer{Steer(*steer[0], config.steer_pid_config), Steer(*steer[1], config.steer_pid_config), Steer(*steer[2], config.steer_pid_config), Steer(*steer[3], config.steer_pid_config)},
+      config(config),
+      follow_pid(config.follow_pid_config) {}
+
 void ChassisSteer::set_enable(const bool is_enable) {
     this->is_enable = is_enable;
     for (Motor* wheel : this->wheel)
@@ -96,35 +102,6 @@ Vector3f ChassisSteer::forward_force(const Vector4f& f) const {
     return forward_speed(f) * 4.0f;
 }
 
-ChassisSteer::ChassisSteer(const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)
-    : config(config),
-      steer{Steer(*steer[0], config.steer_pid_config), Steer(*steer[1], config.steer_pid_config), Steer(*steer[2], config.steer_pid_config), Steer(*steer[3], config.steer_pid_config)},
-      wheel{wheel[0], wheel[1], wheel[2], wheel[3]},
-      follow_pid(config.follow_pid_config) {}
-
-bool ChassisSteer::can_drive(const size_t i) const {
-    return wheel[i]->is_connect && steer[i].motor.is_connect;
-}
-
-Vector4f ChassisSteer::backward_speed(const float dt, const Vector3f& v) {
-    Vector4f out;
-    for (int i = 0; i < 4; i++)
-        out[i] = steer[i].control(dt, v.x() + v.z() * std::cosf(TANGENT[i]), v.y() + v.z() * std::sinf(TANGENT[i]));
-    return out;
-}
-
-Vector4f ChassisSteer::backward_force(const Vector3f& f) const {
-    // 各轮平分期望力，投影到实测舵向；自然包含就近转舵反向和转舵未到位时的衰减
-    Vector4f out;
-    for (int i = 0; i < 4; i++) {
-        const float fx = (f.x() + f.z() * std::cosf(TANGENT[i])) / 4.0f;
-        const float fy = (f.y() + f.z() * std::sinf(TANGENT[i])) / 4.0f;
-        const float s = steer[i].measure;
-        out[i] = fx * std::cosf(s) + fy * std::sinf(s);
-    }
-    return out;
-}
-
 void ChassisSteer::update() {
     const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
 
@@ -160,6 +137,29 @@ void ChassisSteer::update() {
     vz.ref = wr.ref * config.chassis_radius;
 
     control(dt);
+}
+
+bool ChassisSteer::can_drive(const size_t i) const {
+    return wheel[i]->is_connect && steer[i].motor.is_connect;
+}
+
+Vector4f ChassisSteer::backward_speed(const float dt, const Vector3f& v) {
+    Vector4f out;
+    for (int i = 0; i < 4; i++)
+        out[i] = steer[i].control(dt, v.x() + v.z() * std::cosf(TANGENT[i]), v.y() + v.z() * std::sinf(TANGENT[i]));
+    return out;
+}
+
+Vector4f ChassisSteer::backward_force(const Vector3f& f) const {
+    // 各轮平分期望力，投影到实测舵向；自然包含就近转舵反向和转舵未到位时的衰减
+    Vector4f out;
+    for (int i = 0; i < 4; i++) {
+        const float fx = (f.x() + f.z() * std::cosf(TANGENT[i])) / 4.0f;
+        const float fy = (f.y() + f.z() * std::sinf(TANGENT[i])) / 4.0f;
+        const float s = steer[i].measure;
+        out[i] = fx * std::cosf(s) + fy * std::sinf(s);
+    }
+    return out;
 }
 
 ChassisSteerSpeed::ChassisSteerSpeed(const std::array<Motor*, 4>& wheel, const std::array<Motor*, 4>& steer, const Config& config)

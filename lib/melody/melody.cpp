@@ -52,6 +52,35 @@ void Melody::stop() {
     index = 0;
 }
 
+void Melody::update() {
+    // 复音：中断内播完并降到 0 后关闭采样流
+    if (stage == Stage::ENDED) {
+        stop();
+        return;
+    }
+    if (stage != Stage::DIRECT)
+        return;
+
+    // 普通：逐音符计时，首个音符立即开始
+    if (index > 0 && note_timer.elapsed() < static_cast<float>(direct[index - 1].len) * UNIT)
+        return;
+    if (index >= direct.size()) {
+        stop();
+        return;
+    }
+
+    // 只在音高切换时操作蜂鸣器
+    const uint8_t midi = direct[index].midi;
+    if (index == 0 || midi != direct[index - 1].midi) {
+        if (midi == 0)
+            buzzer.mute();
+        else
+            buzzer.set_tone(midi_to_hz(midi));
+    }
+    index++;
+    note_timer.restart();
+}
+
 // 采样流回调，在 DMA 中断内执行
 void Melody::fill(const std::span<float> duty) {
     monitor.begin();
@@ -101,13 +130,19 @@ float Melody::next_sample() {
     return 0.5f + 0.5f * gain * mix;
 }
 
+// 增益平滑跟随：下降快、上升慢
+void Melody::follow(float& gain, const float target, const float attack_step, const float release_step) {
+    gain += (target < gain ? attack_step : release_step) * (target - gain);
+}
+
 float Melody::midi_to_hz(const uint8_t midi) {
     return 440.0f * std::exp2((static_cast<float>(midi) - 69.0f) / 12.0f);
 }
 
-// 增益平滑跟随：下降快、上升慢
-void Melody::follow(float& gain, const float target, const float attack_step, const float release_step) {
-    gain += (target < gain ? attack_step : release_step) * (target - gain);
+// 限带方波 ±1，相位 [0, 0.5) 为 1；抑制折回到可听频段的杂音
+float Melody::square(const float phase, const float dt) {
+    const float half = phase < 0.5f ? phase + 0.5f : phase - 0.5f;
+    return (phase < 0.5f ? 1.0f : -1.0f) + poly_blep(phase, dt) - poly_blep(half, dt);
 }
 
 // PolyBLEP 跳变校正：t 为距跳变的相位 [0, 1)，dt 为每采样相位增量
@@ -121,41 +156,6 @@ float Melody::poly_blep(float t, const float dt) {
         return t * t + t + t + 1;
     }
     return 0;
-}
-
-// 限带方波 ±1，相位 [0, 0.5) 为 1；抑制折回到可听频段的杂音
-float Melody::square(const float phase, const float dt) {
-    const float half = phase < 0.5f ? phase + 0.5f : phase - 0.5f;
-    return (phase < 0.5f ? 1.0f : -1.0f) + poly_blep(phase, dt) - poly_blep(half, dt);
-}
-
-void Melody::update() {
-    // 复音：中断内播完并降到 0 后关闭采样流
-    if (stage == Stage::ENDED) {
-        stop();
-        return;
-    }
-    if (stage != Stage::DIRECT)
-        return;
-
-    // 普通：逐音符计时，首个音符立即开始
-    if (index > 0 && note_timer.elapsed() < static_cast<float>(direct[index - 1].len) * UNIT)
-        return;
-    if (index >= direct.size()) {
-        stop();
-        return;
-    }
-
-    // 只在音高切换时操作蜂鸣器
-    const uint8_t midi = direct[index].midi;
-    if (index == 0 || midi != direct[index - 1].midi) {
-        if (midi == 0)
-            buzzer.mute();
-        else
-            buzzer.set_tone(midi_to_hz(midi));
-    }
-    index++;
-    note_timer.restart();
 }
 
 void Melody::VoiceSynth::start(const Voice voice, const Envelope& envelope, const float weight, const float dt) {
@@ -173,33 +173,6 @@ void Melody::VoiceSynth::start(const Voice voice, const Envelope& envelope, cons
     amplitude = 0;
     if (!is_done())
         enter();
-}
-
-// 进入 index 条目
-void Melody::VoiceSynth::enter() {
-    const Note& note = voice[index];
-    const float len = static_cast<float>(note.len) * UNIT;
-    left += len;
-
-    // 相邻同音继续发声，不重新起音
-    if (note.midi == midi)
-        return;
-
-    // 休止：上一个音在 NOTE_RELEASE 内淡出，不超过休止时长
-    if (note.midi == 0) {
-        midi = 0;
-        fade = 1;
-        fade_step = dt / std::min(NOTE_RELEASE, len);
-        return;
-    }
-
-    // 起音：衰减时间常数随音高缩放后限幅
-    const float hz = midi_to_hz(note.midi);
-    const float tau = std::clamp(envelope.decay * std::sqrt(440.0f / hz), TAU_MIN, TAU_MAX);
-    midi = note.midi;
-    step = hz * dt;
-    decay = 1;
-    decay_step = std::exp(-dt / tau);
 }
 
 float Melody::VoiceSynth::update() {
@@ -227,6 +200,33 @@ float Melody::VoiceSynth::update() {
     if (phase >= 1)
         phase -= 1;
     return amplitude * square(phase, step);
+}
+
+// 进入 index 条目
+void Melody::VoiceSynth::enter() {
+    const Note& note = voice[index];
+    const float len = static_cast<float>(note.len) * UNIT;
+    left += len;
+
+    // 相邻同音继续发声，不重新起音
+    if (note.midi == midi)
+        return;
+
+    // 休止：上一个音在 NOTE_RELEASE 内淡出，不超过休止时长
+    if (note.midi == 0) {
+        midi = 0;
+        fade = 1;
+        fade_step = dt / std::min(NOTE_RELEASE, len);
+        return;
+    }
+
+    // 起音：衰减时间常数随音高缩放后限幅
+    const float hz = midi_to_hz(note.midi);
+    const float tau = std::clamp(envelope.decay * std::sqrt(440.0f / hz), TAU_MIN, TAU_MAX);
+    midi = note.midi;
+    step = hz * dt;
+    decay = 1;
+    decay_step = std::exp(-dt / tau);
 }
 
 void Melody::PartSynth::start(const Part part, const float share, const Envelope& lead, const Envelope& inner,

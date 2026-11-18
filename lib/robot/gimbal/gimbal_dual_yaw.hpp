@@ -10,6 +10,10 @@ class GimbalDualYaw {
   private:
     static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s
 
+    struct Motors {
+        Motor &yaw1, &yaw2, &pitch;
+    } motor;
+
   public:
     struct Config {
         const Pid::Config* yaw_speed_pid_config;
@@ -18,14 +22,26 @@ class GimbalDualYaw {
         const Pid::Config* pitch_angle_pid_config;
         float pitch_min = 0;
         float pitch_max = 0;
-    } const config;
+    };
 
+  private:
+    const Config config;
+
+  public:
     // 云台模式
     enum Mode {
         ECD_MODE, // 编码器模式
         IMU_MODE, // 陀螺仪模式
     };
 
+  private:
+    // 指令
+    bool is_enable = false;
+    Mode mode = IMU_MODE;
+    float yaw_speed = 0, pitch_speed = 0; // 云台转动速度，rad/s
+    float chassis_wr = 0;                 // yaw 速度前馈，rad/s
+
+  public:
     // 云台角度
     struct {
         struct {
@@ -41,18 +57,8 @@ class GimbalDualYaw {
     } yaw1, yaw2;
 
   private:
-    struct Motors {
-        Motor &yaw1, &yaw2, &pitch;
-    } motor;
-
     Pid yaw_speed_pid, yaw_angle_pid, pitch_speed_pid, pitch_angle_pid;
 
-    // 指令
-    Mode mode = IMU_MODE;
-    float yaw_speed = 0, pitch_speed = 0; // 云台转动速度，rad/s
-    float chassis_wr = 0;                 // yaw 速度前馈，rad/s
-
-    bool is_enable = false;
     bool is_yaw_ready = false, is_pitch_ready = false;
     Timer update_timer;
 

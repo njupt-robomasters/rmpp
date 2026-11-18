@@ -14,6 +14,12 @@ class ChassisLeg {
   private:
     static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
 
+    // 设备绑定
+    struct Motors {
+        DM8009 &left_front, &left_back, &right_back, &right_front; // 关节：面向输出轴逆时针为正；零位时 A 杆方位角 π、E 杆 0
+        M3508 &left_wheel, &right_wheel;                           // 轮：转速与力矩均以车前进为正
+    } motor;
+
   public:
     struct Config {
         // 质量与几何
@@ -63,6 +69,13 @@ class ChassisLeg {
         HEAD,    // 头部着地
         TAIL,    // 尾部着地
     };
+
+    // 指令
+    bool is_enable = false;
+    float d_x_ref = 0, d_yaw_ref = 0;
+    float leg_length_ref;
+    bool allow_rescue = false;
+    bool trigger_jump = false;
 
     // 车体运动：姿态为传入 q 换算的标准 Z-Y-X 欧拉角，角速度取机体系 gyro；前向运动与 d_yaw_wheel 由轮腿运动学得出
     struct {
@@ -138,20 +151,6 @@ class ChassisLeg {
 
     bool is_motor_ok = false; // 全部电机在线且关节已使能无报错；否则全部电机输出零
 
-    // 设备绑定
-    struct Motors {
-        DM8009 &left_front, &left_back, &right_back, &right_front; // 关节：面向输出轴逆时针为正；零位时 A 杆方位角 π、E 杆 0
-        M3508 &left_wheel, &right_wheel;                           // 轮：转速与力矩均以车前进为正
-    } motor;
-
-    // 指令
-    bool is_enable = false;
-    float d_x_ref = 0, d_yaw_ref = 0;
-    float leg_length_ref;
-    bool allow_rescue = false;
-    bool is_position = false; // 速度降到阈值内后开始位移积分
-    bool trigger_jump = false, last_trigger_jump = false;
-
     struct {
         bool is_fallen = false;    // 倒地锁存，站起完成或失能时清除
         bool is_running = false;   // 自救运行中
@@ -169,8 +168,13 @@ class ChassisLeg {
         float hold_time = 0;    // 阶段 2、3 已保持时间，s
     } jump;
 
-    // 控制器与跨周期状态
+    // 控制器
     Pid leg_length_pid[2], leg_angle_pid[2], roll_pid;
+
+    // 跨周期状态
+    bool is_position = false; // 速度降到阈值内后开始位移积分
+    bool last_trigger_jump = false;
+
     Timer update_timer;
 
   public:
@@ -190,6 +194,10 @@ class ChassisLeg {
 
     // 跳跃触发，上升沿且空闲时启动
     void set_trigger_jump(bool trigger_jump);
+
+    // 每个控制周期调用：q 为底盘机体到世界，gyro 为底盘机体系角速度 rad/s
+    // 计算并设置全部电机力矩，发送由调用方完成
+    void update(const Quaternionf& q, const Vector3f& gyro);
 
   private:
     // 反馈：电机在线状态、车体姿态、双腿几何与前馈力、轮速
@@ -220,9 +228,4 @@ class ChassisLeg {
 
     // 力映射：由 L、Fn 和机构极性的摆动力矩 Tt 更新 T_A、T_E
     void map_force(Leg& leg, float Tt) const;
-
-  public:
-    // 每个控制周期调用：q 为底盘机体到世界，gyro 为底盘机体系角速度 rad/s
-    // 计算并设置全部电机力矩，发送由调用方完成
-    void update(const Quaternionf& q, const Vector3f& gyro);
 };

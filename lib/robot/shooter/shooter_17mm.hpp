@@ -10,6 +10,12 @@ class Shooter17mm {
   private:
     static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
 
+    // 设备绑定
+    struct Motors {
+        Vesc &rub1, &rub2; // 摩擦轮
+        Motor& shoot;      // 拨弹电机
+    } motor;
+
   public:
     // 发射机构配置
     struct Config {
@@ -19,14 +25,15 @@ class Shooter17mm {
         float block_time = 0.5f;             // 卡弹检测时间
         float reverse_time = 0.25f;          // 卡弹倒转时间
         uint16_t heat_protect = 0;           // 剩余热量保护阈值
-    } const config;
+    };
 
-    // 设备绑定
-    struct Motors {
-        Vesc &rub1, &rub2; // 摩擦轮
-        Motor& shoot;      // 拨弹电机
-    } motor;
+  private:
+    const Config config;
 
+    // 指令
+    bool is_enable = false;
+
+  public:
     // 弹速 (m/s)
     struct {
         float ref = 0, measure = 0;
@@ -43,22 +50,22 @@ class Shooter17mm {
     float rub_speed[2]{};
 
   private:
-    // 指令
-    bool is_enable = false;
     bool is_heat_protect = false; // 热量保护状态
 
-    // 拨弹状态与累计时间，s
+    // 拨弹状态机
     enum {
         STOP,
         FEED,
         REVERSE,
     } state = STOP;
 
+    // 拨弹闭环
+    Pid shoot_pid;
+
+    // 跨周期状态
     float block_elapsed = 0;
     float reverse_elapsed = 0;
 
-    // 拨弹闭环与卡弹检测
-    Pid shoot_pid;
     Timer update_timer;
 
   public:

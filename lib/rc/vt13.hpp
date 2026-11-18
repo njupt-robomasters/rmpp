@@ -82,18 +82,17 @@ class VT13 {
   public:
     VT13(const Config& config);
 
+    // 断联检测，需要在循环中调用；断联时数据复位为默认值
+    void update();
+
   private:
     // 串口接收回调
     void callback(const uint8_t data[], size_t size);
 
     void parse_raw();
 
-    void reset_data();
-
     // 解析摇杆值，归一化到±1
     float get_joy_stick(uint16_t value) const;
 
-  public:
-    // 断联检测，需要在循环中调用；断联时数据复位为默认值
-    void update();
+    void reset_data();
 };
