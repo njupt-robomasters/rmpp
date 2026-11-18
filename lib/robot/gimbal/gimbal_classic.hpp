@@ -24,7 +24,7 @@ class GimbalClassic {
         const Pid::Config* pitch_speed_pid_config;
         const Pid::Config* pitch_angle_pid_config;
 
-        // pitch 编码器保护范围，rad；越限时禁止继续向外输出
+        // pitch 编码器限位，rad；外环按 IMU 与编码器偏差换算后钳制世界目标，越限时禁止继续向外输出
         float pitch_min = 0;
         float pitch_max = 0;
 

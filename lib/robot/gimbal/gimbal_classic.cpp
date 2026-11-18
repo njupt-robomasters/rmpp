@@ -62,7 +62,7 @@ void GimbalClassic::update(const Quaternionf& q, const Vector3f& gyro) {
         motor.yaw.set_output(0);
     }
 
-    // pitch 速度内环，编码器越限时截断向外输出，保留回程
+    // pitch 速度内环，编码器越限时截断向外输出，保留回程；外环目标已钳在限位内，此处兜底超调
     if (can_pitch) {
         float output = pitch_speed_pid.calculate(dt, pitch.speed_ref - pitch.speed_measure);
         if ((motor.pitch.angle <= config.pitch_min && output < 0) || (motor.pitch.angle >= config.pitch_max && output > 0)) {
@@ -92,7 +92,16 @@ void GimbalClassic::update_angle_loop(const Quaternionf& q, const Quaternionf& p
         yaw_angle_pid.clear();
     }
     if (can_pitch && can_angle_loop) {
-        pitch.angle_ref += pitch_speed * dt;
+        // 编码器限位经 IMU 与编码器偏差换算到世界 pitch，钳制累加目标与 set_angle 目标
+        const float offset = pitch.angle_measure - motor.pitch.angle;
+        const float min = config.pitch_min + offset, max = config.pitch_max + offset;
+        const float ref = pitch.angle_ref + pitch_speed * dt;
+        pitch.angle_ref = std::clamp(ref, min, max);
+
+        // 目标钳在边界且速度指令向外时撤掉前馈，避免前馈把云台推出限位
+        if ((ref > max && pitch_speed > 0) || (ref < min && pitch_speed < 0))
+            pitch.speed_ref -= pitch_speed;
+
         pitch_correction = pitch_angle_pid.calculate(dt, Angle(pitch.angle_ref - pitch.angle_measure));
     } else {
         pitch.angle_ref = pitch.angle_measure;
