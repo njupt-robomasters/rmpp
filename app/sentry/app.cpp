@@ -58,9 +58,9 @@ static void update_ui() {
 
     // 提示条
     // 弹速或弹频由 shooter_loop 写入
-    ui.cap = 0.0f;              // 超级电容剩余能量比例
-    ui.wr = chassis.wr.measure; // 底盘旋转速度
-    ui.shoot = shoot.current;   // 拨弹电机电流
+    ui.cap = 0.0f;                                                      // 超级电容剩余能量比例
+    ui.wr = std::isfinite(chassis.wr.measure) ? chassis.wr.measure : 0; // UI 数值字段在反馈未知时显示 0
+    ui.shoot = shoot.current;                                           // 拨弹电机电流
 
     // 机器人状态
     ui.robot.w1 = w1.is_connect ? RobotUi::GREEN : RobotUi::PINK; // 底盘
@@ -78,7 +78,7 @@ static void update_ui() {
     ui.robot.rub2 = ui.robot.rub4 = rub_color(rub2, shooter.rub_speed[1]);
     ui.robot.shoot = shoot.is_connect ? RobotUi::GREEN : RobotUi::PINK;
     ui.robot.referee = referee.is_connect ? RobotUi::GREEN : RobotUi::PINK; // 裁判系统
-    ui.robot.aim = aim.is_connect_vision ? RobotUi::GREEN : RobotUi::PINK;    // 自瞄
+    ui.robot.aim = aim.is_connect_vision ? RobotUi::GREEN : RobotUi::PINK;  // 自瞄
 
     ui.update();
 }

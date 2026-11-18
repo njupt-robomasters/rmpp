@@ -90,22 +90,38 @@ void ChassisSteer::set_power_ref(const float power_ref) {
 }
 
 Vector3f ChassisSteer::forward_speed(const Vector4f& v) const {
-    Vector3f out = Vector3f::Zero();
+    // 无侧滑时每个有效轮提供 x、y 两个速度约束，缺失轮整组排除
+    Matrix3f normal = Matrix3f::Zero();
+    Vector3f rhs = Vector3f::Zero();
     for (int i = 0; i < 4; i++) {
+        if (!can_drive(i))
+            continue;
         const float s = steer[i].measure;
-        out += v[i] * Vector3f(std::cosf(s), std::sinf(s), std::cosf(s - TANGENT[i]));
+        const Vector3f x(1, 0, std::cosf(TANGENT[i]));
+        const Vector3f y(0, 1, std::sinf(TANGENT[i]));
+        normal += x * x.transpose() + y * y.transpose();
+        rhs += v[i] * (std::cosf(s) * x + std::sinf(s) * y);
     }
-    return out / 4.0f;
+    const Eigen::LDLT<Matrix3f> solver(normal);
+    if (solver.info() != Eigen::Success || solver.vectorD().minCoeff() <= 1e-5f * std::max(1.0f, normal.trace()))
+        return Vector3f::Constant(NAN);
+    return solver.solve(rhs);
 }
 
 Vector3f ChassisSteer::forward_force(const Vector4f& f) const {
-    return forward_speed(f) * 4.0f;
+    // 力按各轮作用求和，保持独立于速度最小二乘解算
+    Vector3f out = Vector3f::Zero();
+    for (int i = 0; i < 4; i++) {
+        const float s = steer[i].measure;
+        out += f[i] * Vector3f(std::cosf(s), std::sinf(s), std::cosf(s - TANGENT[i]));
+    }
+    return out;
 }
 
 void ChassisSteer::update() {
     const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
 
-    // 离线检测与速度正解，离线轮反馈已清零
+    // 离线检测与速度正解，轮或舵离线时该位置不参与解算
     Vector4f v;
     for (int i = 0; i < 4; i++) {
         wheel[i]->update();
@@ -203,26 +219,29 @@ ChassisSteerTorque::ChassisSteerTorque(const std::array<Motor*, 4>& wheel, const
       vz_pid(config.speed_pid_config) {}
 
 void ChassisSteerTorque::control(const float dt) {
-    // 力学正解，离线轮反馈已清零
+    // 总牵引力需要全部轮及舵向反馈，缺失时标为未知
     Vector4f f;
     for (int i = 0; i < 4; i++)
-        f[i] = wheel[i]->torque / config.wheel_radius;
+        f[i] = can_drive(i) ? wheel[i]->torque / config.wheel_radius : NAN;
     const Vector3f measure = rotate(forward_force(f), -gimbal_yaw);
     fx.measure = measure.x();
     fy.measure = measure.y();
     fz.measure = measure.z();
 
-    // 失能时清空 PID，电机已失能
-    if (!is_enable) {
+    // 舵向控制独立于轮反馈，轮离线时仍按速度目标保持对应舵向
+    if (is_enable)
+        backward_speed(dt, rotate({vx.ref, vy.ref, vz.ref}, gimbal_yaw));
+
+    // 失能或速度未知时清空 PID 并关闭轮输出
+    if (!is_enable || !std::isfinite(vx.measure) || !std::isfinite(vy.measure) || !std::isfinite(vz.measure)) {
         vx_pid.clear();
         vy_pid.clear();
         vz_pid.clear();
         fx.ref = fy.ref = fz.ref = 0;
+        for (Motor* drive : wheel)
+            drive->set_current(0);
         return;
     }
-
-    // 舵向由速度逆解决定
-    backward_speed(dt, rotate({vx.ref, vy.ref, vz.ref}, gimbal_yaw));
 
     // 速度 PID 输出牵引力，平移与旋转分别力逆解为轮电流；不能驱动的轮输出零
     const Vector3f force = rotate({vx_pid.calculate(dt, vx.ref - vx.measure), vy_pid.calculate(dt, vy.ref - vy.measure), 0}, gimbal_yaw);

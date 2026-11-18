@@ -37,10 +37,10 @@ void Motor::set_torque(float torque) {
 }
 
 void Motor::update() {
-    // 断联检测：清零电流、力矩、速度反馈，保持角度
+    // 断联检测：清零瞬时反馈，保留多圈角度及原始累计
     if (callback_timer.elapsed() > config.timeout) {
         is_connect = false;
-        current = torque = speed = 0;
+        current = torque = speed = angle = 0;
     }
 }
 

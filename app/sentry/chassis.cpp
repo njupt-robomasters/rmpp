@@ -6,7 +6,7 @@
 
 // 操控参数
 static constexpr float VXY_MAX = 5.0f;     // 平移最大速度，100W下2.3m/s，不限功率3.2m/s
-static constexpr float WR_MAX = 120 * rpm; // 旋转最大角速度，100W下107rpm，不限功率155rpm
+static constexpr float FSI6X_WR_MAX = 120 * rpm; // 旋转最大角速度，100W下107rpm，不限功率155rpm
 static constexpr float WR_MIN = 60 * rpm;  // 导航满速平移时的小陀螺角速度
 static constexpr float AXY = 100.0f;       // 键盘平移加速度，m/s^2
 static constexpr float DXY = 100.0f;       // 键盘平移减速度，m/s^2
@@ -50,7 +50,7 @@ void chassis_loop() {
     if (vt13.is_connect) {
         key_vx = key_speed(key_vx, vt13.key.w, vt13.key.s, VXY_MAX, AXY, DXY, dt);
         key_vy = key_speed(key_vy, vt13.key.a, vt13.key.d, VXY_MAX, AXY, DXY, dt);
-        key_wr = key_speed(key_wr, vt13.key.shift, vt13.key.ctrl, WR_MAX, AR, DR, dt);
+        key_wr = key_speed(key_wr, vt13.key.shift, vt13.key.ctrl, FSI6X_WR_MAX, AR, DR, dt);
     } else {
         key_vx = key_vy = key_wr = 0;
     }
@@ -72,7 +72,7 @@ void chassis_loop() {
         }
         std::tie(vx, vy) = rotate(nav.chassis_speed.vx, nav.chassis_speed.vy, yaw2.angle);
         const float speed = std::hypotf(vx, vy);
-        wr = map(speed, 0.0f, VXY_MAX, WR_MAX, WR_MIN);
+        wr = map(speed, 0.0f, VXY_MAX, FSI6X_WR_MAX, WR_MIN);
     } else {
         chassis_state = GO_CENTER;
         nav.target_position = {};
@@ -81,8 +81,8 @@ void chassis_loop() {
     // 叠加摇杆与键盘，断联时摇杆已复位为 0
     vx += (vt13.x + fsi6x.x) * VXY_MAX + key_vx;
     vy += (vt13.y + fsi6x.y) * VXY_MAX + key_vy;
-    wr += vt13.wheel * WR_MAX + key_wr;
-    chassis.set_speed(std::clamp(vx, -VXY_MAX, VXY_MAX), std::clamp(vy, -VXY_MAX, VXY_MAX), std::clamp(wr, -WR_MAX, WR_MAX));
+    wr += vt13.wheel * FSI6X_WR_MAX + key_wr;
+    chassis.set_speed(std::clamp(vx, -VXY_MAX, VXY_MAX), std::clamp(vy, -VXY_MAX, VXY_MAX), std::clamp(wr, -FSI6X_WR_MAX, FSI6X_WR_MAX));
 
     chassis.set_gimbal_yaw(gimbal.yaw.ecd.measure);
     super_cap.set_referee_limit(referee.robot_status.chassis_power_limit);

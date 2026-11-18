@@ -4,6 +4,9 @@
 #include "motor/gm6020.hpp"
 #include "robot/gimbal/gimbal_classic.hpp"
 
+static constexpr float YAW_SPEED_MAX = 360 * deg_s;   // yaw 最大角速度，rad/s
+static constexpr float PITCH_SPEED_MAX = 360 * deg_s; // pitch 最大角速度，rad/s
+
 // 惯性测量单元与姿态解算
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = 180 * deg, .pitch = 0 * deg, .roll = 0 * deg}),
                 .gyro_offset = Vector3f(0.00127f, 0.00077f, 0.000271f),

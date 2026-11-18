@@ -132,7 +132,7 @@ class ChassisSteer {
     // 设置底盘功率目标，W；通常取超电 power_chassis_ref，未设置时为零、电机不出力
     void set_power_ref(float power_ref);
 
-    // 运动学，底盘系 (x, y, z)；按实测舵向分解，速度取平均、力求和
+    // 运动学，底盘系 (x, y, z)；速度仅用轮舵均在线的位置最小二乘解算，约束不足返回 NaN；力求和
     Vector3f forward_speed(const Vector4f& v) const; // 轮线速度 → 底盘速度
 
     Vector3f forward_force(const Vector4f& f) const; // 轮牵引力 → 底盘牵引力

@@ -7,16 +7,23 @@
 VT13::VT13(const Config& config)
     : config(config) {
     // 注册串口回调
-    config.uart.add_rx_callback([this](const uint8_t* data, std::size_t size) {
-        callback(data, size);
-    });
+    config.uart.add_rx_callback([this](const uint8_t* data, std::size_t size) { callback(data, size); });
 }
 
 void VT13::update() {
     // 断联检测
     if (callback_timer.elapsed() > config.timeout) {
-        callback_timer.restart();
-        reset_data();
+        is_connect = false;
+
+        // 遥控器
+        x = y = pitch = yaw = 0.0f;
+        wheel = 0.0f;
+        mode = ERR;
+        pause = trigger = fn = photo = false;
+
+        // 键鼠
+        mouse = {};
+        key = {};
     }
 }
 
@@ -34,7 +41,7 @@ void VT13::callback(const uint8_t data[], const size_t size) {
             if (rx_size < sizeof(raw))
                 break;
 
-            const uint16_t crc16 = rx_buf[19] | (static_cast<uint16_t>(rx_buf[20]) << 8);
+            const uint16_t crc16 = rx_buf[19] | (static_cast<uint16_t>(rx_buf[20]) << 8u);
             if (!CRC16::verify(rx_buf, 19, crc16)) {
                 std::memmove(rx_buf, rx_buf + 1, --rx_size);
                 continue;
@@ -51,7 +58,6 @@ void VT13::callback(const uint8_t data[], const size_t size) {
 }
 
 void VT13::parse_raw() {
-
     // 解析摇杆
     y = -get_joy_stick(raw.ch_0);      // 右手水平
     x = get_joy_stick(raw.ch_1);       // 右手垂直
@@ -75,22 +81,22 @@ void VT13::parse_raw() {
     mouse.middle = raw.mouse_middle;
 
     // 解析键盘
-    key.w = raw.key & (1 << 0);
-    key.s = raw.key & (1 << 1);
-    key.a = raw.key & (1 << 2);
-    key.d = raw.key & (1 << 3);
-    key.shift = raw.key & (1 << 4);
-    key.ctrl = raw.key & (1 << 5);
-    key.q = raw.key & (1 << 6);
-    key.e = raw.key & (1 << 7);
-    key.r = raw.key & (1 << 8);
-    key.f = raw.key & (1 << 9);
-    key.g = raw.key & (1 << 10);
-    key.z = raw.key & (1 << 11);
-    key.x = raw.key & (1 << 12);
-    key.c = raw.key & (1 << 13);
-    key.v = raw.key & (1 << 14);
-    key.b = raw.key & (1 << 15);
+    key.w = raw.key & (1u << 0u);
+    key.s = raw.key & (1u << 1u);
+    key.a = raw.key & (1u << 2u);
+    key.d = raw.key & (1u << 3u);
+    key.shift = raw.key & (1u << 4u);
+    key.ctrl = raw.key & (1u << 5u);
+    key.q = raw.key & (1u << 6u);
+    key.e = raw.key & (1u << 7u);
+    key.r = raw.key & (1u << 8u);
+    key.f = raw.key & (1u << 9u);
+    key.g = raw.key & (1u << 10u);
+    key.z = raw.key & (1u << 11u);
+    key.x = raw.key & (1u << 12u);
+    key.c = raw.key & (1u << 13u);
+    key.v = raw.key & (1u << 14u);
+    key.b = raw.key & (1u << 15u);
 }
 
 float VT13::get_joy_stick(const uint16_t value) const {
@@ -99,18 +105,4 @@ float VT13::get_joy_stick(const uint16_t value) const {
     if (std::fabs(ret) < config.deadline)
         ret = 0.0f;
     return ret;
-}
-
-void VT13::reset_data() {
-    is_connect = false;
-
-    // 遥控器
-    x = y = pitch = yaw = 0.0f;
-    wheel = 0.0f;
-    mode = ERR;
-    pause = trigger = fn = photo = false;
-
-    // 键鼠
-    mouse = {};
-    key = {};
 }

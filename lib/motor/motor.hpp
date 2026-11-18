@@ -36,8 +36,8 @@ class Motor {
     float current = 0;
     float torque = 0;
     float speed = 0;
-    float angle = 0;       // 单圈输出轴角度，[-π, π)
-    float angle_multi = 0; // 连续输出轴角度，rad
+    float angle = 0;       // 单圈输出轴角度，[-π, π)，超时清零
+    float angle_multi = 0; // 连续输出轴角度，rad，超时保留
 
   private:
     // 电机侧原始角度、多圈计数与反馈超时

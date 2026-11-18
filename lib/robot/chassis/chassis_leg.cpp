@@ -1,15 +1,17 @@
 #include "chassis_leg.hpp"
 #include "math/angle.hpp"
+#include "power/motor_power.hpp"
 #include <algorithm>
 #include <cmath>
 
 ChassisLeg::ChassisLeg(const Motors& motor, const Config& config)
     : motor(motor),
       config(config),
-      leg_length_ref(config.leg_min),
+      leg_length(config.leg_min),
       leg_length_pid{Pid(config.leg_length_pid), Pid(config.leg_length_pid)},
       leg_angle_pid{Pid(config.leg_angle_pid), Pid(config.leg_angle_pid)},
-      roll_pid(config.roll_pid) {}
+      roll_pid(config.roll_pid),
+      follow_pid(config.follow_pid) {}
 
 void ChassisLeg::set_enable(const bool is_enable) {
     this->is_enable = is_enable;
@@ -21,15 +23,6 @@ void ChassisLeg::set_enable(const bool is_enable) {
     motor.right_wheel.set_enable(is_enable);
 }
 
-void ChassisLeg::set_speed(const float d_x, const float d_yaw) {
-    d_x_ref = d_x;
-    d_yaw_ref = d_yaw;
-}
-
-void ChassisLeg::set_leg_length(const float leg_length) {
-    leg_length_ref = std::clamp(leg_length, config.leg_min, config.leg_max);
-}
-
 void ChassisLeg::set_allow_rescue(const bool allow_rescue) {
     this->allow_rescue = allow_rescue;
 }
@@ -38,10 +31,35 @@ void ChassisLeg::set_trigger_jump(const bool trigger_jump) {
     this->trigger_jump = trigger_jump;
 }
 
+void ChassisLeg::set_speed(const float vx, const float wr) {
+    this->vx = vx;
+    this->wr = wr;
+}
+
+void ChassisLeg::set_gimbal_yaw(const float gimbal_yaw) {
+    this->gimbal_yaw = gimbal_yaw;
+}
+
+void ChassisLeg::set_leg_length(const float leg_length) {
+    this->leg_length = std::clamp(leg_length, config.leg_min, config.leg_max);
+}
+
+void ChassisLeg::set_power_ref(const float power_ref) {
+    this->power_ref = power_ref;
+}
+
 void ChassisLeg::update(const Quaternionf& q, const Vector3f& gyro) {
     const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
 
     update_feedback(q, gyro);
+
+    // 航向目标：无手动旋转时 PID 跟随云台相对航向，有手动旋转或失能时直接取 wr 并清空 PID
+    if (is_enable && wr == 0) {
+        d_yaw_ref = follow_pid.calculate(dt, this->gimbal_yaw);
+    } else {
+        follow_pid.clear();
+        d_yaw_ref = wr;
+    }
 
     // 两侧均值为前向速度，右减左为航向角速度（逆时针正）
     const float v_left = leg[0].v_wheel + leg[0].v_swing;
@@ -50,7 +68,7 @@ void ChassisLeg::update(const Quaternionf& q, const Vector3f& gyro) {
     body.d_yaw_wheel = (v_right - v_left) / config.wheel_distance;
 
     // 位移积分：停机、倒地、跳跃或有速度指令时清零，速度降到 0.1 m/s 内后开始积分
-    if (!is_enable || rescue.is_fallen || jump.is_active || std::fabs(d_x_ref) > 0.01f) {
+    if (!is_enable || rescue.is_fallen || jump.is_active || std::fabs(vx) > 0.01f) {
         body.x = 0;
         is_position = false;
     } else {
@@ -137,6 +155,11 @@ void ChassisLeg::update_feedback(const Quaternionf& q, const Vector3f& gyro) {
     // 轮速：电机安装方向已由 is_invert 修正为前进为正
     leg[0].v_wheel = motor.left_wheel.speed * config.wheel_radius;
     leg[1].v_wheel = motor.right_wheel.speed * config.wheel_radius;
+
+    // 轮电机功率估计，供 SWD 与超电实测对照
+    power.estimate = 0;
+    for (const M3508* wheel : {&motor.left_wheel, &motor.right_wheel})
+        power.estimate += wheel->torque * wheel->speed + 0.75f * config.wheel_resistance * wheel->current * wheel->current;
 }
 
 void ChassisLeg::solve_leg(Leg& leg) const {
@@ -236,9 +259,9 @@ void ChassisLeg::rescue_stand(const float dt) {
     }
 
     // 双腿均进入收腿阶段且反馈回正，判定站起完成
-    if (rescue.stand_step[0] == 1 && rescue.stand_step[1] == 1 &&
-        std::fabs(leg[0].rel_theta) < 23 * deg && std::fabs(leg[1].rel_theta) < 23 * deg)
+    if (rescue.stand_step[0] == 1 && rescue.stand_step[1] == 1 && std::fabs(leg[0].rel_theta) < 23 * deg && std::fabs(leg[1].rel_theta) < 23 * deg) {
         rescue = {};
+    }
 }
 
 void ChassisLeg::rescue_flip(const float side, const float dt) {
@@ -337,7 +360,7 @@ void ChassisLeg::calc_force(const float dt) {
     } else {
         // 轴向力
         if (!jump.is_active) {
-            balance_legs(dt, leg_length_ref);
+            balance_legs(dt, leg_length);
         } else if (jump.step == 0) { // 起跳：跳跃力叠加重力补偿
             for (auto& l : leg)
                 l.Fn = jump.force + l.Fg - l.Fs;
@@ -384,7 +407,7 @@ void ChassisLeg::calc_lqr() {
     // 状态误差，均为“目标减反馈”；航向角不跟随云台，误差恒为零
     const float err[10] = {
         std::clamp((0 - body.x) * 10, -config.x_err_max, config.x_err_max),                       // 前向位移，前进为正
-        d_x_ref - body.d_x,                                                                       // 前向速度，前进为正
+        vx - body.d_x,                                                                            // 前向速度，前进为正
         0,                                                                                        // 航向角，未启用
         d_yaw_ref - body.d_yaw_gyro,                                                              // 航向角速度，逆时针为正
         std::clamp(config.theta_ref - leg[0].theta, -config.theta_err_max, config.theta_err_max), // 左腿倾角，后摆为正
@@ -396,19 +419,41 @@ void ChassisLeg::calc_lqr() {
     };
 
     // 输出 [0/1] 左/右轮力矩，前进为正；[2/3] 左/右摆动力矩，后摆为正
-    float out[4]{};
+    // 轮力矩中位移、速度、航向项为驱动部分，腿倾角与俯仰项为平衡部分
+    float out[4]{}, drive[2]{};
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 10; j++) {
             float k = 0;
             for (int n = 0; n < 6; n++)
                 k += config.lqr_fit[i][j][n] * terms[n];
             out[i] += k * err[j];
+            if (i < 2 && j < 4)
+                drive[i] += k * err[j];
         }
     }
-    leg[0].Tw = out[0];
-    leg[1].Tw = out[1];
+
+    const float balance[2] = {out[0] - drive[0], out[1] - drive[1]};
+    limit_power(balance, drive);
     leg[0].Tt = out[2];
     leg[1].Tt = out[3];
+}
+
+void ChassisLeg::limit_power(const float balance[2], const float drive[2]) {
+    // 轮端 P = Σ(T·ω + 0.75·R·(T/kt)²)，T = 平衡 + gain·驱动
+    // 求预测功率不超过 power_ref 的最大 gain，平衡部分不衰减；不限功率时 power_ref 为无穷大，gain 为 1
+    const M3508* wheel[2] = {&motor.left_wheel, &motor.right_wheel};
+    float a = 0, b = 0, c = -power_ref;
+    for (int i = 0; i < 2; i++) {
+        const float kt = wheel[i]->config.max_torque / wheel[i]->config.max_current;
+        const float k = 0.75f * config.wheel_resistance / (kt * kt);
+        a += k * drive[i] * drive[i];
+        b += drive[i] * wheel[i]->speed + 2 * k * balance[i] * drive[i];
+        c += balance[i] * wheel[i]->speed + k * balance[i] * balance[i];
+    }
+    power.gain = MotorPower::solve_gain(a, b, c);
+
+    for (int i = 0; i < 2; i++)
+        leg[i].Tw = balance[i] + power.gain * drive[i];
 }
 
 void ChassisLeg::map_force(Leg& leg, const float Tt) const {

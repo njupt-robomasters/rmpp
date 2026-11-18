@@ -21,7 +21,7 @@
 - 只有 `Feedback.angle` 有值时推进多圈初始化和累计；RMD 0xA1 应答、VESC 状态帧不传 angle
 - `angle_multi = dir * (raw_angle_multi - config.offset) / config.reduction`；offset 为电机侧弧度，方向和减速比只在输出时修正
 - 减速比为 1 时单圈反馈直接修正 raw_angle，其他减速比将 angle_multi 归一化；外部修改 offset 后，两种反馈在下一次回调刷新，累计原始角度保持连续
-- 外部校零使用 `config.offset += dir * angle_multi * config.reduction`；断联保留单圈和多圈角度，恢复反馈后接续累计
+- 外部校零使用 `config.offset += dir * angle_multi * config.reduction`；update 检测超时后清零 angle，保留 angle_multi 和原始累计，恢复回调后重新计算角度并接续累计
 
 ## 基类与子类
 

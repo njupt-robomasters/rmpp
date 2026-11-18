@@ -146,7 +146,7 @@ void gimbal_loop() {
         gimbal.set_angle(target_yaw, target_pitch);
     else
         gimbal.set_speed(std::clamp(wyaw, -WYAW_MAX, WYAW_MAX), std::clamp(wpitch, -WPITCH_MAX, WPITCH_MAX));
-    gimbal.set_chassis_wr(chassis.wr.measure);
+    gimbal.set_chassis_wr(std::isfinite(chassis.wr.measure) ? chassis.wr.measure : 0);
     attitude.update();
     gimbal.update(attitude.yaw, attitude.pitch);
 }

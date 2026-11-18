@@ -1,24 +1,29 @@
 #include "chassis.hpp"
+#include "../leg_protocol.hpp"
 #include "app.hpp"
 
-// 操控参数
-static constexpr float VX_MAX = 3.0f;        // 前向速度上限，m/s
-static constexpr float WR_MAX = 180 * deg_s; // 航向角速度上限，rad/s
+// 上板指令，在 CAN 中断内解码
+static LegUpFrame up;
+static bool up_is_connect = false;
+static Timer callback_timer;
 
-static uint32_t send_count = 0; // CAN2 分时发送计数
+static void control_by_up() {
+    chassis.set_enable(up.is_enable);
+    chassis.set_allow_rescue(up.allow_rescue);
+    chassis.set_trigger_jump(up.trigger_jump);
+    chassis.set_speed(up.vx, up.wr);
+    chassis.set_gimbal_yaw(up.yaw);
+    chassis.set_leg_length(up.leg_length);
+    chassis.set_power_ref(up.power_ref);
+}
 
-void chassis_loop() {
-    attitude.update();
-
-    // FSi6X：SWA 下使能，SWB 下允许自救，SWC 选腿长，SWD 下跳跃；断联时拨杆为 ERR、摇杆为 0
+static void control_by_fsi6x() {
     chassis.set_enable(fsi6x.is_connect && fsi6x.swa == FSi6X::DOWN);
     chassis.set_allow_rescue(fsi6x.swb == FSi6X::DOWN);
-    if (fsi6x.is_connect) {
-        chassis.set_trigger_jump(fsi6x.swd == FSi6X::DOWN);
-    }
+    chassis.set_trigger_jump(fsi6x.swd == FSi6X::DOWN);
 
-    // 右摇杆：竖直 x 前推为正对应前进，水平 y 左推为正对应逆时针转向
-    chassis.set_speed(fsi6x.x * VX_MAX, fsi6x.y * WR_MAX);
+    chassis.set_speed(fsi6x.x * 3.0f, fsi6x.y * 360 * deg_s);
+    chassis.set_gimbal_yaw(0);
 
     if (fsi6x.swc == FSi6X::UP)
         chassis.set_leg_length(0.14f);
@@ -27,23 +32,36 @@ void chassis_loop() {
     else if (fsi6x.swc == FSi6X::DOWN)
         chassis.set_leg_length(0.33f);
 
-    super_cap.update();
+    chassis.set_power_ref(INFINITY);
+}
 
-    // CAN2 左右关节交替发送，每个关节 500 Hz；每周期不超过 3 帧，匹配 3 个发送邮箱
-    if (send_count++ % 10 == 0) { // 超电 100 Hz 发送
-        super_cap.send();
-    } else if (send_count % 2 == 0) {
-        // 姿态来自本板 IMU；换用虚拟 IMU 时传入换算后的底盘 q 与 gyro
-        chassis.update(attitude.q, imu.gyro);
+void chassis_loop() {
+    // 上板在线时由上板控制，断联时回退 FSi6X
+    if (callback_timer.elapsed() > LEG_TIMEOUT)
+        up_is_connect = false;
 
-        left_front.send();
-        left_back.send();
-        CanFrame frame{.id = 0x200, .size = 8};
-        left_wheel.write_can_frame(frame);
-        right_wheel.write_can_frame(frame);
-        Can(2).send(frame);
+    if (up_is_connect) {
+        control_by_up();
     } else {
-        right_back.send();
-        right_front.send();
+        control_by_fsi6x();
     }
+
+    // 姿态来自本板 IMU；换用虚拟 IMU 时传入换算后的底盘 q 与 gyro
+    chassis.update(attitude.q, imu.gyro);
+}
+
+void chassis_write_can_frame(CanFrame& frame) {
+    const LegDownFrame down{
+        .is_fallen = chassis.rescue.is_fallen,
+        .wr = chassis.body.d_yaw_gyro,
+    };
+    down.pack(frame);
+}
+
+void chassis_can_callback(const CanFrame& frame) {
+    if (!up.unpack(frame))
+        return;
+
+    callback_timer.restart();
+    up_is_connect = true;
 }

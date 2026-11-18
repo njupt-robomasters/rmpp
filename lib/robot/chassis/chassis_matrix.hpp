@@ -120,7 +120,7 @@ class ChassisMatrix {
     // 设置底盘功率目标，W；通常取超电 power_chassis_ref，未设置时为零、电机不出力
     void set_power_ref(float power_ref);
 
-    // 运动学，底盘系 (x, y, z)，均为纯函数
+    // 运动学，底盘系 (x, y, z)；速度正解只使用在线轮，约束不足返回 NaN
     Vector3f forward_speed(const Vector4f& v) const; // 轮线速度 → 底盘速度
 
     Vector4f backward_speed(const Vector3f& v) const; // 底盘速度 → 轮线速度

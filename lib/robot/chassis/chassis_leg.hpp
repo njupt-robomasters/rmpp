@@ -35,6 +35,7 @@ class ChassisLeg {
         const Pid::Config* leg_length_pid; // 腿长 PD：m → 轴向力 N，伸腿为正；微分取 -d_L，不含目标变化
         const Pid::Config* leg_angle_pid;  // 相对腿角 PD：rad → 摆动力矩 N·m，后摆为正
         const Pid::Config* roll_pid;       // 横滚 PD：rad → 腿长修正 m；右侧低时输出为负，左腿缩短、右腿伸长
+        const Pid::Config* follow_pid;     // 云台相对航向 rad → 底盘航向角速度 rad/s
 
         // LQR 增益与误差限幅
         const float (*lqr_fit)[10][6]; // LQR 增益拟合系数 [4 输出][10 状态][6 项]，项序 1、Ll、Lr、Ll²、Ll·Lr、Lr²
@@ -58,11 +59,12 @@ class ChassisLeg {
         float jump_retract_time = 0.2f;     // 收腿保持时间，s
         float jump_buffer_length = 0.22f;   // 落地缓冲目标腿长，m
         float jump_buffer_time = 0.5f;      // 落地缓冲时间，s
-    };
+
+        // 功率
+        float wheel_resistance = 0; // 轮电机线间电阻，Ω；功率控制只计轮电机，关节功耗由余量承担
+    } const config;
 
   private:
-    const Config config;
-
     // 倒地与自救
     enum class Fall {
         UPRIGHT, // 车体正向
@@ -72,21 +74,25 @@ class ChassisLeg {
 
     // 指令
     bool is_enable = false;
-    float d_x_ref = 0, d_yaw_ref = 0;
-    float leg_length_ref;
     bool allow_rescue = false;
     bool trigger_jump = false;
+    float vx = 0, wr = 0;
+    float gimbal_yaw = 0;
+    float leg_length;
+    float power_ref = 0; // 底盘功率目标，W
 
+  public:
     // 车体运动：姿态为传入 q 换算的标准 Z-Y-X 欧拉角，角速度取机体系 gyro；前向运动与 d_yaw_wheel 由轮腿运动学得出
     struct {
         float pitch = 0, d_pitch = 0; // rad、rad/s；低头为正（绕机体 +Y）；与外部工程 imu_pitch 同号
         float roll = 0, d_roll = 0;   // rad、rad/s；右侧低为正（绕机体 +X）；与外部工程 imu_roll 相反
-        float d_yaw_gyro = 0;         // 陀螺仪航向角速度，rad/s；俯视逆时针为正（绕机体 +Z）；与外部工程 imu_d_yaw 同号
+        float d_yaw_gyro = 0;         // 陀螺仪航向角速度，rad/s；俯视逆时针为正（绕机体 +Z）
         float d_yaw_wheel = 0;        // 轮速航向角速度，rad/s，右侧前向速度较大（逆时针）为正
         float x = 0;                  // 前向位移积分，m，前进为正；有速度指令或动作期间清零
         float d_x = 0;                // 前向速度，m/s，前进为正
     } body;
 
+  private:
     // 五连杆示意（站立姿态）：关节电机 A、E 同轴装于 O，A 驱动 AB、E 驱动 ED；C 为轮轴
     // 图中 x 向右、y 向下，杆方位角从 +x 向 +y（顺时针）为正；电机零位时 AB 指向 -x（phi1 = π）、ED 指向 +x（phi4 = 0）
     // 虚拟腿为 OC：L = |OC|，phi0 为 OC 方位角，正下方为 π/2
@@ -151,8 +157,10 @@ class ChassisLeg {
 
     bool is_motor_ok = false; // 全部电机在线且关节已使能无报错；否则全部电机输出零
 
+  public:
+    // 倒地与自救，外部只读 is_fallen
     struct {
-        bool is_fallen = false;    // 倒地锁存，站起完成或失能时清除
+        bool is_fallen = false;    // 倒地锁存，站起完成、失能或跳跃时清除
         bool is_running = false;   // 自救运行中
         Fall fall = Fall::UPRIGHT; // 启动时的倒地方向
         int flip_step[2]{};        // 翻转阶段：0 进入翻转区间、1 继续翻转、2 完成
@@ -160,6 +168,7 @@ class ChassisLeg {
         float target_theta[2]{};   // 目标相对腿角，rad，后摆为正
     } rescue;
 
+  private:
     // 跳跃
     struct {
         bool is_active = false; // 跳跃运行中
@@ -168,8 +177,15 @@ class ChassisLeg {
         float hold_time = 0;    // 阶段 2、3 已保持时间，s
     } jump;
 
+    // 功率：轮电机模型估计与本周期轮端驱动力矩衰减系数
+    struct {
+        float estimate = 0; // W
+        float gain = 1;     // [0, 1]
+    } power;
+
     // 控制器
-    Pid leg_length_pid[2], leg_angle_pid[2], roll_pid;
+    float d_yaw_ref = 0;
+    Pid leg_length_pid[2], leg_angle_pid[2], roll_pid, follow_pid;
 
     // 跨周期状态
     bool is_position = false; // 速度降到阈值内后开始位移积分
@@ -184,7 +200,10 @@ class ChassisLeg {
     void set_enable(bool is_enable);
 
     // 前向速度 m/s 前进为正；航向角速度 rad/s 俯视逆时针为正
-    void set_speed(float d_x, float d_yaw);
+    void set_speed(float vx, float wr);
+
+    // 云台相对底盘航向，rad；无云台或断联时传 0
+    void set_gimbal_yaw(float gimbal_yaw);
 
     // 双腿共用目标腿长，m，限幅到 [leg_min, leg_max]
     void set_leg_length(float leg_length);
@@ -195,12 +214,15 @@ class ChassisLeg {
     // 跳跃触发，上升沿且空闲时启动
     void set_trigger_jump(bool trigger_jump);
 
+    // 底盘功率目标，W；通常取超电 power_chassis_ref，未设置时为零，轮端只保留平衡力矩
+    void set_power_ref(float power_ref);
+
     // 每个控制周期调用：q 为底盘机体到世界，gyro 为底盘机体系角速度 rad/s
     // 计算并设置全部电机力矩，发送由调用方完成
     void update(const Quaternionf& q, const Vector3f& gyro);
 
   private:
-    // 反馈：电机在线状态、车体姿态、双腿几何与前馈力、轮速
+    // 反馈：电机在线状态、车体姿态、双腿几何与前馈力、轮速与功率估计
     void update_feedback(const Quaternionf& q, const Vector3f& gyro);
 
     // 五连杆正运动学：由 phi1、phi4 及角速度更新虚拟腿几何与速度
@@ -225,6 +247,9 @@ class ChassisLeg {
 
     // LQR 平衡：按腿长插值增益，计算轮端力矩 Tw 与摆动力矩 Tt
     void calc_lqr();
+
+    // 功率控制：按 power_ref 衰减轮端驱动力矩，更新 power.gain 与 Tw；balance、drive 为左右轮平衡与驱动力矩，N·m
+    void limit_power(const float balance[2], const float drive[2]);
 
     // 力映射：由 L、Fn 和机构极性的摆动力矩 Tt 更新 T_A、T_E
     void map_force(Leg& leg, float Tt) const;

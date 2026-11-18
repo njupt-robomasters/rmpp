@@ -39,7 +39,20 @@ void ChassisMatrix::set_power_ref(const float power_ref) {
 }
 
 Vector3f ChassisMatrix::forward_speed(const Vector4f& v) const {
-    return j_pinv * v;
+    // 离线轮不提供约束，仅用在线轮最小二乘求解三自由度速度
+    Matrix3f normal = Matrix3f::Zero();
+    Vector3f rhs = Vector3f::Zero();
+    for (int i = 0; i < 4; i++) {
+        if (!wheel[i]->is_connect)
+            continue;
+        const Vector3f row = j.row(i);
+        normal += row * row.transpose();
+        rhs += row * v[i];
+    }
+    const Eigen::LDLT<Matrix3f> solver(normal);
+    if (solver.info() != Eigen::Success || solver.vectorD().minCoeff() <= 1e-5f * std::max(1.0f, normal.trace()))
+        return Vector3f::Constant(NAN);
+    return solver.solve(rhs);
 }
 
 Vector4f ChassisMatrix::backward_speed(const Vector3f& v) const {
@@ -57,7 +70,7 @@ Vector4f ChassisMatrix::backward_force(const Vector3f& f) const {
 void ChassisMatrix::update() {
     const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
 
-    // 离线检测与速度正解，离线轮反馈已清零
+    // 离线检测与速度正解，缺失轮不参与解算；约束不足时反馈为 NaN
     Vector4f v;
     for (int i = 0; i < 4; i++) {
         wheel[i]->update();
@@ -130,21 +143,23 @@ ChassisMatrixTorque::ChassisMatrixTorque(const std::array<Motor*, 4>& wheel, con
       vz_pid(config.speed_pid_config) {}
 
 void ChassisMatrixTorque::control(const float dt) {
-    // 力学正解，离线轮反馈已清零
+    // 总牵引力需要全部轮的反馈，缺失时标为未知
     Vector4f f;
     for (int i = 0; i < 4; i++)
-        f[i] = wheel[i]->torque / config.wheel_radius;
+        f[i] = wheel[i]->is_connect ? wheel[i]->torque / config.wheel_radius : NAN;
     const Vector3f measure = rotate(forward_force(f), -gimbal_yaw);
     fx.measure = measure.x();
     fy.measure = measure.y();
     fz.measure = measure.z();
 
-    // 失能时清空 PID，电机已失能
-    if (!is_enable) {
+    // 失能或速度未知时清空 PID 并关闭轮输出
+    if (!is_enable || !std::isfinite(vx.measure) || !std::isfinite(vy.measure) || !std::isfinite(vz.measure)) {
         vx_pid.clear();
         vy_pid.clear();
         vz_pid.clear();
         fx.ref = fy.ref = fz.ref = 0;
+        for (Motor* drive : wheel)
+            drive->set_current(0);
         return;
     }
 

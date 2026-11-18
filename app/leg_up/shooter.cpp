@@ -2,10 +2,6 @@
 #include "app.hpp"
 #include <cmath>
 
-static constexpr float BULLET_SPEED = 25.0f;         // 弹速，m/s
-static constexpr float BULLET_FREQ = 10.0f;          // 弹频，发/秒
-static constexpr float RUB_RELEASE_SPEED = 30 * rpm; // 摩擦轮关闭后低于此转速释放
-
 void shooter_loop() {
     // N、S 挡使能，S 挡开摩擦轮，按住 trigger 时 pitch 摇杆作为弹频倍率，负值反转
     const bool is_enable = vt13.mode == VT13::N || vt13.mode == VT13::S;
