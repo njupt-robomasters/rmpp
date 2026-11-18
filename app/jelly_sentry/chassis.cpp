@@ -104,7 +104,7 @@ void chassis_loop() {
                             (vt13.is_connect && vt13.mode == VT13::C);
     const auto progress = referee.game_status.game_progress;
     SuperCap::Mode cap_mode = SuperCap::OFF;
-    if (!referee.is_connected || is_cap_off) {
+    if (!referee.is_connect || is_cap_off) {
         cap_mode = SuperCap::OFF;
     } else if (sentry_in_game()) {
         cap_mode = SuperCap::BOOST;

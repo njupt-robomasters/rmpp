@@ -1,6 +1,6 @@
 #include "referee/referee.hpp"
 
-// 哨兵裁判系统测试：在调试器中查看 referee 的各成员与 is_connected
+// 哨兵裁判系统测试：在调试器中查看 referee 的各成员与 is_connect
 // 与整车一致，经 CAN1 转发模块接入
 
 static Referee referee({.bus = Can(1)});

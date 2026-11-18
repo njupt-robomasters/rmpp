@@ -32,14 +32,6 @@
             }
         },
         {
-            "name": "examples-gimbal",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "examples/gimbal",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
             "name": "examples-kv_store",
             "inherits": "default",
             "cacheVariables": {

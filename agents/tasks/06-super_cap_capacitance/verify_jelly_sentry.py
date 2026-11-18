@@ -28,7 +28,7 @@ for connected, stage, robot_id, fs, vt in product(
     context = {
         "fsi6x": SimpleNamespace(is_connect=fs is not None, swc=fs),
         "vt13": SimpleNamespace(is_connect=vt is not None, mode=vt),
-        "referee": SimpleNamespace(is_connected=connected),
+        "referee": SimpleNamespace(is_connect=connected),
         "FSi6X": SimpleNamespace(UP="UP", MID="MID", DOWN="DOWN"),
         "VT13": SimpleNamespace(C="C", N="N", S="S"),
         "Referee": SimpleNamespace(REFEREE_SELF_CHECK="REFEREE_SELF_CHECK", COUNTDOWN_5SEC="COUNTDOWN_5SEC"),

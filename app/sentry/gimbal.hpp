@@ -63,12 +63,12 @@ inline GM6020 yaw2({
                    GM6020::KE); // 电压帧完整反电动势前馈
 
 // pitch电机
-inline Pid::Config pitch_speed_pid = {
+inline Pid::Config pitch_speed_pid_config = {
     .kp = (3) / (150 * deg_s),
     .max_out = 3,
     .err_fc = 10,
 };
-inline Pid::Config pitch_angle_pid = {
+inline Pid::Config pitch_angle_pid_config = {
     .kp = 20.0f,
     .max_out = 720 * deg_s,
 };
@@ -84,8 +84,8 @@ inline DM4310 pitch({
 inline GimbalDualYaw gimbal({yaw1, yaw2, pitch}, {
                                                      .yaw_speed_pid_config = &yaw2_speed_pid,
                                                      .yaw_position_pid_config = &yaw2_angle_pid,
-                                                     .pitch_speed_pid_config = &pitch_speed_pid,
-                                                     .pitch_position_pid_config = &pitch_angle_pid,
+                                                     .pitch_speed_pid_config = &pitch_speed_pid_config,
+                                                     .pitch_position_pid_config = &pitch_angle_pid_config,
                                                      .pitch_min = -22 * deg,
                                                      .pitch_max = 15 * deg,
                                                  });

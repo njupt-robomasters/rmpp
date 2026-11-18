@@ -8,10 +8,10 @@
 #include "bsp/imu.hpp"
 
 #include "attitude/quaternion_ekf.hpp"
+#include "gimbal_fold.hpp"
 #include "math/unit.hpp"
 #include "motor/dm4310.hpp"
 #include "motor/rmdl7025.hpp"
-#include "robot/gimbal/gimbal_fold.hpp"
 
 // 惯性测量单元与姿态解算：MC02 倒装在 pitch2 云台头上
 // orientation：传感器到机体的安装旋转，Z-Y-X 欧拉角
@@ -124,14 +124,12 @@ inline DM4310 pitch2({
 
 // 云台：限位均为各自编码器角度；重力补偿力矩为 0 表示不补偿，折叠关节负载大，建议标定
 inline GimbalFold gimbal({yaw1, yaw2, pitch1, pitch2}, {
-                                                           .gimbal = {
-                                                               .yaw_speed_pid_config = &yaw1_speed_pid,
-                                                               .yaw_position_pid_config = &yaw1_position_pid,
-                                                               .pitch_speed_pid_config = &pitch2_speed_pid,
-                                                               .pitch_position_pid_config = &pitch2_position_pid,
-                                                               .pitch_min = -22 * deg,
-                                                               .pitch_max = 25 * deg,
-                                                           },
+                                                           .yaw_speed_pid_config = &yaw1_speed_pid,
+                                                           .yaw_position_pid_config = &yaw1_position_pid,
+                                                           .pitch_speed_pid_config = &pitch2_speed_pid,
+                                                           .pitch_position_pid_config = &pitch2_position_pid,
+                                                           .pitch_min = -22 * deg,
+                                                           .pitch_max = 25 * deg,
                                                            .yaw2 = {
                                                                .speed_pid_config = &yaw2_speed_pid,
                                                                .position_pid_config = &yaw2_position_pid,

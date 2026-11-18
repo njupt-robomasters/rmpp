@@ -12,7 +12,7 @@ void gimbal_loop() {
 
     // 摇杆：射击开关打开时 pitch 摇杆改为调节弹频，不再控制云台
     const float yaw_speed = YAW_SPEED_MAX * (vt13.yaw + vt13.mouse.yaw);
-    const float pitch_speed = PITCH_SPEED_MAX * ((vt13.trigger ? 0.0f : vt13.pitch) + vt13.mouse.pitch);
+    const float pitch_speed = PITCH_SPEED_MAX * ((vt13.trigger ? 0.0f : -vt13.pitch) - vt13.mouse.pitch);
 
     // 自瞄：VT13 photo，识别到目标时跟随视觉角度
     // const bool is_auto_aim = vt13.photo || vt13.mouse.right;
@@ -24,17 +24,10 @@ void gimbal_loop() {
     // R 键掉头
     // static bool last_r = false;
     // if (vt13.key.r && !last_r) {
-    //     gimbal.yaw.ecd.ref += 180 * deg;
-    //     gimbal.yaw.imu.ref += 180 * deg;
+    //     gimbal.set_angle(gimbal.yaw.angle_ref + 180 * deg, gimbal.pitch.angle_ref);
     // }
     // last_r = vt13.key.r;
 
     // gimbal.set_chassis_wr(chassis.wr.measure);
-    gimbal.update(attitude.yaw, attitude.pitch);
-
-    // 发送 CAN 命令
-    // CanFrame frame{.id = 0x1FF, .size = 8};
-    // yaw.write_can_frame(frame);
-    // pitch.write_can_frame(frame);
-    // Can(2).send(frame);
+    gimbal.update(attitude.q, imu.gyro);
 }

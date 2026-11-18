@@ -31,8 +31,7 @@ void gimbal_loop() {
 
     // R 键掉头
     if (vt13.key.r && !last_r) {
-        gimbal.yaw.ecd.ref += 180 * deg;
-        gimbal.yaw.imu.ref += 180 * deg;
+        gimbal.set_angle(gimbal.yaw.angle_ref + 180 * deg, gimbal.pitch.angle_ref);
     }
     last_r = vt13.key.r;
 
@@ -63,5 +62,5 @@ void gimbal_loop() {
 
     gimbal.set_chassis_wr(chassis.wr.measure);
     attitude.update();
-    gimbal.update(attitude.yaw, attitude.pitch);
+    gimbal.update(attitude.q, imu.gyro);
 }

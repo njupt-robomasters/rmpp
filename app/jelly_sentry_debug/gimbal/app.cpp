@@ -41,7 +41,7 @@ extern "C" void app_main() {
         fsi6x.update();
 
         // 只给 pitch 转速，yaw 速度为零
-        gimbal.set_mode(is_imu_mode ? Gimbal::IMU_MODE : Gimbal::ECD_MODE);
+        gimbal.set_mode(is_imu_mode ? GimbalFold::IMU_MODE : GimbalFold::ECD_MODE);
         gimbal.set_enable(rc_enable());
         const float pitch_speed = std::clamp((vt13.pitch + fsi6x.pitch) * WPITCH_MAX, -WPITCH_MAX, WPITCH_MAX);
         gimbal.set_speed(0, pitch_speed);

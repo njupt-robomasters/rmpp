@@ -47,10 +47,8 @@ void gimbal_loop() {
     last_calib = calib;
 
     // R 键掉头
-    if (vt13.key.r && !last_r) {
-        gimbal.yaw.ecd.ref += 180 * deg;
-        gimbal.yaw.imu.ref += 180 * deg;
-    }
+    if (vt13.key.r && !last_r)
+        gimbal.turn_yaw(180 * deg);
     last_r = vt13.key.r;
 
     // 鼠标限制角加速度；断联时直接清零

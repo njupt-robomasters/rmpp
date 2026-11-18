@@ -63,3 +63,12 @@
 - clang-format 22.1.0 格式化并检查本次 16 个手写源码文件，`git diff --check` 检查任务改动
 - 编译命令与日志保存在 `out/compile_summary.json`、`out/*_compile.log`，工程对象产物仍使用默认 `build/`
 - 本轮仅对象编译与静态基线核对；未完整链接、运行控制算法测试或操作硬件。CAN2 重发/FIFO 的实际负载、7025 干扰与 EL05/4310 反馈需用户审计后上板核对
+
+## 合入上游 09766fa（2026-11-18）
+
+- 本地基线 `a220339`。继续工作区已开始的合并，保留两侧 TODO 和上游单份裁判配置，并保留折叠哨兵读取的受击记录、计数及实测弹速
+- 上游删除云台基类后，将 `GimbalFold` 移入 `app/jelly_sentry`。四轴控制独立执行，整车和两种云台调试目标共用实现。保留实机调参、CAN 绑定与发送调度
+- 迁移裁判在线字段 `is_connect`，移除与已删除示例对应的 `examples-gimbal` 预设
+- `python agents/tasks/12-upstream_merge_review/verify_gimbal_fold.py` 对比 `a220339`。本机用 Zig 0.15.2 的 `zig c++`，通过 `--cxx <zig.exe> c++` 指定。6,000 周期、144,000 项比较通过，覆盖模式切换、掉线恢复、限位、重力补偿和四轴电流与力矩输出。主机编译提示第三方 Eigen 和 GCC 专用 pragma 的兼容警告
+- `python agents/tasks/06-super_cap_capacitance/verify_jelly_sentry.py` 的 750 项超电策略检查通过
+- Arm GCC 局部编译通过，覆盖公共库及 jelly_sentry、三个相关调试目标、sentry、infantry、leg_up、examples-motor、test。两个云台调试目标对象部分链接后无未解析的 GimbalFold 符号。格式与 diff 检查通过，未做完整固件链接或硬件验证

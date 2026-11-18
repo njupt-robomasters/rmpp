@@ -3,30 +3,76 @@
 #include <cmath>
 
 GimbalFold::GimbalFold(const Motors& motor, const Config& config)
-    : Gimbal(config.gimbal), fold_config(config), motor(motor),
+    : config(config), motor(motor),
+      yaw_speed_pid(config.yaw_speed_pid_config), yaw_position_pid(config.yaw_position_pid_config),
+      pitch_speed_pid(config.pitch_speed_pid_config), pitch_position_pid(config.pitch_position_pid_config),
       yaw2_speed_pid(config.yaw2.speed_pid_config), yaw2_position_pid(config.yaw2.position_pid_config),
       pitch1_speed_pid(config.pitch1.speed_pid_config), pitch1_position_pid(config.pitch1.position_pid_config) {}
 
-void GimbalFold::set_pitch1_angle(const Angle angle) {
-    pitch1.ref = angle;
-}
-
-void GimbalFold::set_motors_enable(const bool is_enable) {
-    is_motors_enable = is_enable;
+void GimbalFold::set_enable(const bool is_enable) {
+    this->is_enable = is_enable;
     motor.yaw1.set_enable(is_enable);
     motor.yaw2.set_enable(is_enable);
     motor.pitch1.set_enable(is_enable);
     motor.pitch2.set_enable(is_enable);
 }
 
-void GimbalFold::update_motors() {
+void GimbalFold::set_mode(const Mode mode) {
+    this->mode = mode;
+}
+
+void GimbalFold::set_speed(const float yaw_speed, const float pitch_speed) {
+    this->yaw_speed = yaw_speed;
+    this->pitch_speed = pitch_speed;
+}
+
+void GimbalFold::set_angle(const Angle yaw, const Angle pitch) {
+    if (mode == ECD_MODE) {
+        this->yaw.ecd.ref = yaw;
+        this->pitch.ecd.ref = pitch;
+    } else if (mode == IMU_MODE) {
+        this->yaw.imu.ref = yaw;
+        this->pitch.imu.ref = pitch;
+    }
+    yaw_speed = pitch_speed = 0;
+}
+
+void GimbalFold::turn_yaw(const float delta) {
+    yaw.ecd.ref += delta;
+    yaw.imu.ref += delta;
+}
+
+void GimbalFold::set_chassis_wr(const float chassis_wr) {
+    this->chassis_wr = chassis_wr;
+}
+
+void GimbalFold::set_pitch1_angle(const Angle angle) {
+    pitch1.ref = angle;
+}
+
+void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
+    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
+
+    yaw.imu.measure = imu_yaw;
+    pitch.imu.measure = imu_pitch;
     motor.yaw1.update();
     motor.yaw2.update();
     motor.pitch1.update();
     motor.pitch2.update();
-}
 
-void GimbalFold::forward() {
+    // 按当前参考系积分目标转速
+    if (is_enable) {
+        const Angle yaw_delta = yaw_speed * dt;
+        const Angle pitch_delta = pitch_speed * dt;
+        if (mode == ECD_MODE) {
+            yaw.ecd.ref += yaw_delta;
+            pitch.ecd.ref += pitch_delta;
+        } else if (mode == IMU_MODE) {
+            yaw.imu.ref += yaw_delta;
+            pitch.imu.ref += pitch_delta;
+        }
+    }
+
     // 从电机读取，离线电机保持最后一次反馈
     yaw1.measure = motor.yaw1.position;
     yaw2.measure = motor.yaw2.position;
@@ -35,12 +81,25 @@ void GimbalFold::forward() {
 
     // 合并大小 yaw
     yaw.ecd.measure = yaw1.measure + yaw2.measure;
-}
 
-void GimbalFold::backward(const float dt) {
     // 云台轴：大小 yaw 任一在线即可控制 yaw 总目标，俯仰轴独立；失能或离线时目标跟随实测
-    check_yaw(motor.yaw1.is_connect || motor.yaw2.is_connect);
-    const bool can_pitch2 = check_pitch(motor.pitch2.is_connect);
+    const bool can_yaw = is_enable && (motor.yaw1.is_connect || motor.yaw2.is_connect);
+    if (!can_yaw || !is_yaw_ready) {
+        yaw.ecd.ref = yaw.ecd.measure;
+        yaw.imu.ref = yaw.imu.measure;
+        yaw_speed_pid.clear();
+        yaw_position_pid.clear();
+    }
+    is_yaw_ready = can_yaw;
+
+    const bool can_pitch2 = is_enable && motor.pitch2.is_connect;
+    if (!can_pitch2 || !is_pitch_ready) {
+        pitch.ecd.ref = pitch.ecd.measure;
+        pitch.imu.ref = pitch.imu.measure;
+        pitch_speed_pid.clear();
+        pitch_position_pid.clear();
+    }
+    is_pitch_ready = can_pitch2;
 
     // 各电机单独判断，离线电机输出零，不影响其他电机
     const bool can_yaw1 = check_motor(motor.yaw1, is_yaw1_ready, yaw_speed_pid, yaw_position_pid);
@@ -68,15 +127,14 @@ void GimbalFold::backward(const float dt) {
     // 分配大小 yaw：大 yaw 直接设为总目标，小 yaw 补偿大 yaw 尚未转到的部分并限位
     yaw1.ref = yaw.ecd.ref;
     const float yaw2_ref = Angle(yaw.ecd.ref - yaw1.measure);
-    yaw2.ref = std::clamp(yaw2_ref, fold_config.yaw2.min, fold_config.yaw2.max);
+    yaw2.ref = std::clamp(yaw2_ref, config.yaw2.min, config.yaw2.max);
     const bool is_yaw2_limit = float(yaw2.ref) != yaw2_ref;
 
     // 俯仰与折叠关节软件限位
-    float pitch2_ref = pitch.ecd.ref;
-    pitch2_ref = std::clamp(pitch2_ref, config.pitch_min, config.pitch_max);
+    const float pitch2_ref = std::clamp(float(pitch.ecd.ref), config.pitch_min, config.pitch_max);
     const bool is_pitch2_limit = pitch2_ref != float(pitch.ecd.ref);
     pitch.ecd.ref = pitch2_ref;
-    pitch1.ref = std::clamp(float(pitch1.ref), fold_config.pitch1.min, fold_config.pitch1.max);
+    pitch1.ref = std::clamp(float(pitch1.ref), config.pitch1.min, config.pitch1.max);
 
     // 大 yaw 串级 PID，圆周误差；速度前馈抵消底盘旋转并叠加云台转速
     if (can_yaw1) {
@@ -105,7 +163,7 @@ void GimbalFold::backward(const float dt) {
         if (!is_pitch2_limit)
             speed_ff = pitch_speed;
         const float speed_ref = pitch_position_pid.calculate(dt, pitch.ecd.ref - pitch.ecd.measure) + speed_ff;
-        const float gravity = gravity_output(fold_config.pitch2_gravity, pitch.imu.measure);
+        const float gravity = gravity_output(config.pitch2_gravity, pitch.imu.measure);
         const float output = pitch_speed_pid.calculate(dt, speed_ref - motor.pitch2.speed) + gravity;
         motor.pitch2.set_output(output);
         pitch_speed_pid.track(motor.pitch2.torque_ref - gravity);
@@ -116,7 +174,7 @@ void GimbalFold::backward(const float dt) {
     // 折叠关节串级 PID 叠加重力补偿
     if (can_pitch1) {
         const float speed_ref = pitch1_position_pid.calculate(dt, pitch1.ref - pitch1.measure);
-        const float gravity = gravity_output(fold_config.pitch1_gravity, pitch1.measure);
+        const float gravity = gravity_output(config.pitch1_gravity, pitch1.measure);
         const float output = pitch1_speed_pid.calculate(dt, speed_ref - motor.pitch1.speed) + gravity;
         motor.pitch1.set_output(output);
         pitch1_speed_pid.track(motor.pitch1.torque_ref - gravity);
@@ -130,7 +188,7 @@ void GimbalFold::backward(const float dt) {
 }
 
 bool GimbalFold::check_motor(const Motor& motor, bool& is_ready, Pid& speed_pid, Pid& position_pid) const {
-    const bool can_control = is_motors_enable && motor.is_connect;
+    const bool can_control = is_enable && motor.is_connect;
     if (can_control && is_ready)
         return true;
 

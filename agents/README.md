@@ -56,4 +56,4 @@ agents/
 - `09-leg_lqr/`：Python 复现 SOLDIER_LEG_4 轮腿 LQR（替代 MATLAB）；重心偏移下位移稳态误差与漂移分析、LQI 对比、首版 Q_s=60 参数实车对照
 - `10-global_refactor/`：全局优化（Timer/PID dt、电机默认参数与符号修复、持有与 update 约定、类布局）；外部 worktree 成员展平、SWD 排序与验证记录
 - `11-shooter_state/`：17 mm 拨弹状态机与 dt 累加计时、电机原生输出接口、云台与发射机构迁移及主机测试
-- `12-upstream_merge_review/`：上游合并预检与执行；保存本地基线、EL05/折叠云台接口迁移、CAN2 自动重发与 11 个应用入口局部编译
+- `12-upstream_merge_review/`：上游合并预检与执行；保存本地基线、EL05 适配、折叠云台移入 jelly_sentry 与局部编译验证

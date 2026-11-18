@@ -6,3 +6,5 @@ build/
 
 # AI 任务中间产物
 agents/tasks/**/out/
+
+logs/

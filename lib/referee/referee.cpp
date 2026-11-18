@@ -1,8 +1,6 @@
 #include "referee.hpp"
 #include "crc.hpp"
-#include <algorithm>
 #include <cstring>
-#include <utility>
 
 Referee::Referee(const Config& config)
     : config(config) {
@@ -24,7 +22,7 @@ void Referee::add_0311_callback(RxCallback callback) {
 
 void Referee::update() {
     if (frame_timer.elapsed() > config.timeout)
-        is_connected = false;
+        is_connect = false;
     if (tx_size == 0)
         return;
 
@@ -108,7 +106,7 @@ void Referee::receive(const uint8_t* data, const size_t size) {
             if (CRC16::verify(rx_buf, frame_size - 2, crc)) {
                 const uint16_t cmd = rx_buf[5] | (static_cast<uint16_t>(rx_buf[6]) << 8);
                 deserialize(cmd, rx_buf + 7, payload_size);
-                is_connected = true;
+                is_connect = true;
                 frame_timer.restart();
                 rx_size -= frame_size;
                 std::memmove(rx_buf, rx_buf + frame_size, rx_size);

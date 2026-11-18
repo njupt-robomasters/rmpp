@@ -16,12 +16,12 @@ inline Imu imu({.gyro_offset = Vector3f(0.00316276052f, -0.00411193585f, -0.0024
 inline QuaternionEkf attitude(imu, {});
 
 // yaw电机
-inline Pid::Config yaw_speed_pid = {
+inline Pid::Config yaw_speed_pid_config = {
     .kp = (3) / (120 * deg_s),
     .max_out = 3,
     .err_fc = 10,
 };
-inline Pid::Config yaw_angle_pid = {
+inline Pid::Config yaw_angle_pid_config = {
     .kp = 20.0f,
     .kd = 0.2,
     .max_out = 720 * deg_s,
@@ -33,12 +33,12 @@ inline GM6020 yaw({
 });
 
 // pitch电机
-inline Pid::Config pitch_speed_pid = {
+inline Pid::Config pitch_speed_pid_config = {
     .kp = (3) / (150 * deg_s),
     .max_out = 3,
     .err_fc = 10,
 };
-inline Pid::Config pitch_angle_pid = {
+inline Pid::Config pitch_angle_pid_config = {
     .kp = 20.0f,
     .max_out = 720 * deg_s,
 };
@@ -52,10 +52,10 @@ inline DM4310 pitch({
 
 // 云台
 inline GimbalClassic gimbal({yaw, pitch}, {
-                                              .yaw_speed_pid_config = &yaw_speed_pid,
-                                              .yaw_position_pid_config = &yaw_angle_pid,
-                                              .pitch_speed_pid_config = &pitch_speed_pid,
-                                              .pitch_position_pid_config = &pitch_angle_pid,
+                                              .yaw_speed_pid_config = &yaw_speed_pid_config,
+                                              .yaw_angle_pid_config = &yaw_angle_pid_config,
+                                              .pitch_speed_pid_config = &pitch_speed_pid_config,
+                                              .pitch_angle_pid_config = &pitch_angle_pid_config,
                                               .pitch_min = -15 * deg,
                                               .pitch_max = 30 * deg,
                                           });
