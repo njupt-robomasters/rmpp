@@ -30,7 +30,7 @@ def main():
     if not args.arm:
         return
     count = 0
-    for name in ["infantry", "leg_up", "examples-gimbal"]:
+    for name in ["infantry", "leg_up"]:
         rows = json.loads((ROOT / "build" / name / "compile_commands.json").read_text())
         selected = [row for row in rows if "/app/" in row["file"].replace("\\", "/")]
         if name == "leg_up":

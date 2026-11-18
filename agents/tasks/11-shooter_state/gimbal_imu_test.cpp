@@ -1,5 +1,6 @@
 // 编译真实云台、Motor、PID，仅模拟时钟和 CAN 电机反馈
 #include "robot/gimbal/gimbal_classic.hpp"
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -141,11 +142,55 @@ static void test_angle_loop() {
     f.step(euler_to_quaternion({.yaw = -pi + 0.01f}));
     check(f.gimbal.yaw.speed_ref, -0.02f, "shortest yaw error across wrap");
 
-    // pitch 越限只截断输出，保留 IMU 目标
-    f.gimbal.set_angle(0, 1.0f);
-    f.step(Quaternionf::Identity(), Vector3f::Zero(), 0.5f);
-    check(f.pitch.torque_ref, 0, "angle mode ECD upper protection");
-    check(f.gimbal.pitch.angle_ref, 1.0f, "output protection preserves IMU target");
+    // 编码器越限：目标钳回限位，向内回程输出保留
+    f.gimbal.set_angle(0, 0.5f);
+    f.step(euler_to_quaternion({.pitch = 0.4f}), Vector3f::Zero(), 0.6f);
+    check(f.gimbal.pitch.angle_ref, 0.3f, "upper ECD limit mapped to IMU target");
+    check(f.pitch.torque_ref, -0.1f, "angle mode retreats beyond ECD limit");
+}
+
+// pitch 编码器限位经 IMU 与编码器偏差钳制世界目标
+static void test_pitch_target_limit() {
+    // 水平底盘持续向外推杆，关节理想跟随：目标停在限位，撤掉向外前馈，累计超过 pi 也不反转
+    Fixture f(true, true, false);
+    f.angle_pid.kp = 10;
+    float theta = 0;
+    const auto step = [&]() {
+        f.step(euler_to_quaternion({.yaw = 0.1f, .pitch = theta}), Vector3f::Zero(), theta);
+        theta += f.gimbal.pitch.speed_ref * 0.001f;
+    };
+    step();
+    f.gimbal.set_speed(0, 1);
+    float theta_min = 1;
+    for (int i = 0; i < 10000; i++) {
+        step();
+        if (i >= 5000)
+            theta_min = std::min(theta_min, theta);
+    }
+    check(f.gimbal.pitch.angle_ref, 0.5f, "accumulated target held at upper limit");
+    check(theta, 0.5f, "pitch settles at upper limit", 1e-4f);
+    check(theta_min, 0.5f, "no reversal after long outward command", 1e-4f);
+    check(f.gimbal.pitch.speed_ref, 0, "outward feedforward removed at limit", 1e-3f);
+    f.gimbal.set_speed(0, -1);
+    step();
+    check(f.gimbal.pitch.angle_ref, 0.499f, "inward command leaves limit immediately", 1e-4f);
+
+    // 底盘前倾 0.1 rad：限位平移到世界 [-0.2, 0.6]，set_angle 越界目标同样钳制
+    const Quaternionf chassis = euler_to_quaternion({.pitch = 0.1f});
+    const auto pose = [&](const float joint) { return chassis * Quaternionf(Eigen::AngleAxisf(joint, Vector3f::UnitY())); };
+    f.gimbal.set_angle(0.1f, 1.0f);
+    f.step(pose(0.2f), Vector3f::Zero(), 0.2f);
+    check(f.gimbal.pitch.angle_ref, 0.6f, "tilted upper limit");
+    f.gimbal.set_angle(0.1f, -1.0f);
+    f.step(pose(0.2f), Vector3f::Zero(), 0.2f);
+    check(f.gimbal.pitch.angle_ref, -0.2f, "tilted lower limit");
+
+    // 界外目标被钳住时，向内的速度指令保留前馈
+    f.gimbal.set_angle(0.1f, -1.0f);
+    f.gimbal.set_speed(0, 0.2f);
+    f.step(pose(0.2f), Vector3f::Zero(), 0.2f);
+    check(f.gimbal.pitch.angle_ref, -0.2f, "inward command from clamped target");
+    check(f.gimbal.pitch.speed_ref, 0.2f + 10 * (-0.2f - 0.3f), "inward feedforward retained", 1e-4f);
 }
 
 // 倾斜底盘、关节理想跟随速度目标，世界 yaw/pitch 收敛到目标且无 roll 偏差
@@ -252,6 +297,7 @@ int main() {
     test_speed_feedback();
     test_angle_loop();
     test_tilted_convergence();
+    test_pitch_target_limit();
     test_pitch_protection();
     test_enable_and_connection();
     std::printf("GimbalClassic IMU: %d checks passed\n", checks);
