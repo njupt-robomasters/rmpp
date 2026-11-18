@@ -71,7 +71,9 @@
 
 状态：代码完成，`leg` 编译通过，待用户审计与上车。worktree `../rmpp-leg-chassis`，分支 `leg_chassis`；结论与上车核对项见 `tasks/04-leg_chassis/README.md`
 
-- 待做：虚拟 IMU（云台 IMU + 关节角）；云台跟随
+- 待做：虚拟 IMU（云台 IMU + 关节角）
+- 2026-11-18 上下板 CAN 通信（暂不含键鼠）、下板跟随与轮端功率控制已在主工作区实现，`leg_up`、`leg_down` 的 app 与 lib 对象编译通过，待用户审计与上车；结论见 `docs/application.md`“轮腿上下板通信”“轮腿功率控制”
+- 上车核对：follow 方向与 kp、`cos(yaw)` 投影方向、`power.estimate` 与 `super_cap.power_chassis` 对比、限功率时平衡是否稳定
 
 ## 超级电容 SuperCap
 

@@ -89,11 +89,11 @@ static void test_speed_feedback() {
         const Quaternionf q = euler_to_quaternion({.yaw = yaw0, .pitch = theta});
         const Vector3f gyro(-std::sin(theta) * 0.3f, 0.15f, std::cos(theta) * 0.3f);
         f.step(q, gyro, theta, i % 2 == 0 ? 80.0f : -90.0f);
-        check(f.gimbal.yaw.speed_measure, 0.3f, "joint yaw recovery");
+        check(f.gimbal.yaw.speed_measure, 0.3f - 0.4f, "joint yaw relative speed recovery");
         check(f.gimbal.pitch.speed_measure, 0.15f, "joint pitch recovery");
         check(f.gimbal.yaw.speed_ref, 0.7f - 0.4f, "yaw speed target includes chassis feedforward");
         check(f.gimbal.pitch.speed_ref, -0.2f, "pitch speed command on motor axis");
-        check(f.yaw.current_ref, 0.7f - 0.3f - 0.4f, "yaw error subtracts chassis wr");
+        check(f.yaw.current_ref, 0.7f - 0.3f, "yaw error preserves absolute speed command");
         check(f.pitch.torque_ref, -0.35f, "pitch IMU feedback");
         check(f.gimbal.yaw.angle_ref, f.gimbal.yaw.angle_measure, "speed mode yaw target follows measure");
         check(f.gimbal.pitch.angle_ref, f.gimbal.pitch.angle_measure, "speed mode pitch target follows measure");
@@ -126,6 +126,13 @@ static void test_speed_feedback() {
 static void test_angle_loop() {
     Fixture f(true);
     f.step();
+    // 枪口世界姿态保持时，底盘旋转对应 yaw 电机反转，闭环无额外误差
+    f.gimbal.set_chassis_wr(1.0f);
+    f.step();
+    check(f.gimbal.yaw.speed_ref, -1.0f, "rotating chassis requires reverse joint target");
+    check(f.gimbal.yaw.speed_measure, -1.0f, "stationary barrel has reverse joint feedback");
+    check(f.yaw.current_ref, 0, "rotating chassis adds no world aiming error");
+    f.gimbal.set_chassis_wr(0);
     f.gimbal.set_speed(0.5f, 0.25f);
     f.step();
     check(f.gimbal.yaw.angle_ref, 0.0005f, "angle mode integrates yaw");

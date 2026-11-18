@@ -78,9 +78,14 @@ static void check_multi_turn(const float reduction, const bool is_invert) {
     const float last = motor.angle_multi;
     now_cycles += 200000;
     motor.update();
-    assert(!motor.is_connect && motor.angle_multi == last);
+    assert(!motor.is_connect && motor.angle == 0 && motor.angle_multi == last);
+    motor.update();
+    assert(motor.angle == 0 && motor.angle_multi == last);
+    motor.status();
+    assert(motor.is_connect && near(motor.angle, Angle(last)) && motor.angle_multi == last);
     motor.feedback(raw + 0.1f);
     assert(near(motor.angle_multi, last + dir * 0.1f / reduction));
+    assert(near(motor.angle, Angle(motor.angle_multi)));
 }
 
 int main() {
