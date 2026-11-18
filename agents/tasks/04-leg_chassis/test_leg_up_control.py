@@ -252,9 +252,9 @@ int main() {
 
 
 def main():
-    up = ROOT / "app/leg_up"
-    down = ROOT / "app/leg_down"
-    assert (ROOT / "app/leg_protocol.hpp").exists()
+    up = ROOT / "app/leg/leg_up"
+    down = ROOT / "app/leg/leg_down"
+    assert (ROOT / "app/leg/leg_protocol.hpp").exists()
     assert not (up / "leg_protocol.hpp").exists()
     assert not (down / "leg_protocol.hpp").exists()
     assert '#include "../leg_protocol.hpp"' in (up / "chassis.hpp").read_text(encoding="utf-8")

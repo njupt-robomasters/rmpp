@@ -26,8 +26,8 @@ def main():
 
     count = 0
     for preset, sources in {
-        "leg_up": ["lib/motor/motor.cpp", "lib/robot/chassis/chassis_matrix.cpp",
-                   "lib/robot/chassis/chassis_steer.cpp", "app/leg_up/chassis.cpp"],
+        "leg-leg_up": ["lib/motor/motor.cpp", "lib/robot/chassis/chassis_matrix.cpp",
+                   "lib/robot/chassis/chassis_steer.cpp", "app/leg/leg_up/chassis.cpp"],
         "sentry": ["app/sentry/gimbal.cpp", "app/sentry/app.cpp"],
     }.items():
         rows = json.loads((ROOT / "build" / preset / "compile_commands.json").read_text(encoding="utf-8"))

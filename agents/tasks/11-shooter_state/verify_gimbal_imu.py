@@ -30,10 +30,10 @@ def main():
     if not args.arm:
         return
     count = 0
-    for name in ["infantry", "leg_up"]:
+    for name in ["infantry", "leg-leg_up"]:
         rows = json.loads((ROOT / "build" / name / "compile_commands.json").read_text())
         selected = [row for row in rows if "/app/" in row["file"].replace("\\", "/")]
-        if name == "leg_up":
+        if name == "leg-leg_up":
             selected += [row for row in rows if row["file"].endswith("/lib/robot/gimbal/gimbal_classic.cpp")]
         for row in selected:
             source = Path(row["file"]).relative_to(ROOT).as_posix()

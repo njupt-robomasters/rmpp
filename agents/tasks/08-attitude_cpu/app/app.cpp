@@ -18,7 +18,6 @@ static QuaternionEkf attitude(imu, {});
 
 static Cycles imu_cycles, attitude_cycles;
 static Timer phase_timer;
-static Monitor app_monitor;
 
 static void record(Cycles& c, const uint32_t cycles) {
     c.last = cycles;
@@ -37,6 +36,7 @@ extern "C" void app_main() {
             continue;
         app_timer.restart();
 
+        static Monitor app_monitor;
         app_monitor.begin();
         const uint32_t start = cyccnt;
         if (phase_timer.elapsed() < 10.0f) {

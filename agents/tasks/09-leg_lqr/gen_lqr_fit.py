@@ -1,4 +1,4 @@
-"""按 lqr_model.py 中的机体参数与 Q、R 生成 LQR/LQI 增益拟合系数，写入 app/leg_down/lqr_fit.hpp
+"""按 lqr_model.py 中的机体参数与 Q、R 生成 LQR/LQI 增益拟合系数，写入 app/leg/leg_down/lqr_fit.hpp
 
 LQR（Q_INT_S=0）：10 状态，增益矩阵 [4×10]，poly22 拟合为 [4][10][6]
 LQI（Q_INT_S>0）：增广 ∫s 第 11 状态，增益矩阵 [4×11]，拟合为 [4][11][6]，第 11 列为 K_∫s
@@ -13,7 +13,7 @@ import numpy as np
 from scipy.linalg import solve_continuous_are
 from lqr_model import BODY, LEG, Q, Q_INT_S, R, model, lqr, fit_eval
 
-OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[3] / "app/leg_down/lqr_fit.hpp"
+OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[3] / "app/leg/leg_down/lqr_fit.hpp"
 OUTPUTS = ["左轮力矩", "右轮力矩", "左摆动力矩", "右摆动力矩"]
 USE_LQI = Q_INT_S > 0
 N_STATES = 11 if USE_LQI else 10

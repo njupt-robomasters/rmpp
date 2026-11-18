@@ -14,7 +14,7 @@
 ## 验证
 
 ```sh
-python agents/tasks/11-shooter_state/verify.py --cxx g++ --arm-build build/leg_up
+python agents/tasks/11-shooter_state/verify.py --cxx g++ --arm-build build/leg-leg_up
 ```
 
 - 主机测试通过：连续卡弹检测、未饱和帧重置计时、退弹时长、正负弹频、热量保护/失能/零弹频/离线停止、恢复重新计时、长停顿的 dt 限幅

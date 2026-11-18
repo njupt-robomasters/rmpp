@@ -49,7 +49,7 @@ RMPP 是 STM32 机器人控制项目，人工入门见 `README.md`。
 - 布尔状态和判断优先用 `is_*`、`has_*`、`can_*`、`should_*`；配置开关、协议字段和 `last_*` 历史状态按实际语义命名
 - 计时器用 `<用途>_timer`，如 `update_timer`、`callback_timer`；HAL 句柄沿用 `hcan`、`huart`、`hspi`、`htim`
 - 手写代码使用全局作用域；类专用辅助函数放在 private `static` 成员中，与类无关的文件私有函数和变量用全局 `static`
-- 跨周期状态放在类成员中，app 状态放在文件作用域 `static`，保持类可多实例；函数内使用普通局部变量
+- 跨周期状态放在类成员中，app 状态通常放在文件作用域 `static`，保持类可多实例；`app_main()` 的 `app_timer`、`app_monitor` 在 `while (true)` 内对应使用处定义为局部 `static`
 - 仅在成员被同名参数或局部变量遮蔽时使用 `this->`
 - 多分支使用清晰的 `if`、`else if` 或提前返回
 - 定义中保持值不变的局部变量、按值参数尽量加 `const`；声明省去顶层 `const`，指针和引用按实际修改语义限定

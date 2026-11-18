@@ -1,10 +1,11 @@
 build/
-
-.vscode/
-.idea/
-.codex/
-
-# AI 任务中间产物
-agents/tasks/**/out/
-
 logs/
+
+# IDE
+.idea/
+.vscode/
+
+# AI
+.codex/
+.claude/
+agents/tasks/**/out/

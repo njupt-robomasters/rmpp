@@ -32,9 +32,9 @@ def main():
                "lib/robot/gimbal/gimbal_dual_yaw.cpp", "lib/robot/shooter/shooter_17mm.cpp",
                "lib/robot/shooter/shooter_42mm.cpp"]
     sources += [p.relative_to(ROOT).as_posix() for p in (ROOT / "lib/motor").glob("*.cpp")]
-    sources += ["app/leg_up/app.cpp", "app/leg_up/gimbal.cpp", "app/leg_up/shooter.cpp",
+    sources += ["app/leg/leg_up/app.cpp", "app/leg/leg_up/gimbal.cpp", "app/leg/leg_up/shooter.cpp",
                 "app/infantry/gimbal.cpp", "app/sentry/gimbal.cpp", "app/examples/gimbal/app.cpp"]
-    template = next(r for r in rows if r["file"].endswith("/app/leg_up/gimbal.cpp"))
+    template = next(r for r in rows if r["file"].endswith("/app/leg/leg_up/gimbal.cpp"))
     for source in sources:
         row = next((r for r in rows if r["file"].endswith("/" + source)), template)
         output = OUT / (source.replace("/", "_") + ".obj")

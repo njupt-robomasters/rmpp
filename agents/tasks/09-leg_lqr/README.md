@@ -7,13 +7,13 @@
 ## 复现
 
 - `lqr_model.py`：方程对加速度、角度、力矩线性，numpy 直接组装 A、B，`scipy` 求 Riccati，不需要 MATLAB/sympy；另给机体重心水平偏移 d 的扰动列 E
-- `gen_lqr_fit.py`：按 `lqr_model.py` 顶部的机体参数与 Q、R 生成 `app/leg_down/lqr_fit.hpp`（输出已与 clang-format 一致）；改参数后重跑即可替换
+- `gen_lqr_fit.py`：按 `lqr_model.py` 顶部的机体参数与 Q、R 生成 `app/leg/leg_down/lqr_fit.hpp`（输出已与 clang-format 一致）；改参数后重跑即可替换
 - `offset_analysis.py`：按本工程实际用法（C 拟合增益、`x_max`）求稳态
 
 ```sh
 python gen_lqr_fit.py
-python lqr_model.py ../../../app/leg_down/lqr_fit.hpp
-python offset_analysis.py ../../../app/leg_down/lqr_fit.hpp
+python lqr_model.py ../../../app/leg/leg_down/lqr_fit.hpp
+python offset_analysis.py ../../../app/leg/leg_down/lqr_fit.hpp
 ```
 
 ## 结论
@@ -40,7 +40,7 @@ python offset_analysis.py ../../../app/leg_down/lqr_fit.hpp
 
 - 用户确认恢复原始 C 系数后不抖；本次只替换 K，检验最初 Python 参数是否抖动
 - 首版依据 `8f01151:lqr_model.py`：Q = diag(60,20,12000,80,22000,20,22000,20,40000,300)，R = diag(60,60,6,6)，Q_INT_S=0；不是 5a14ef8 的 Q_s=50000 加硬版
-- `app/leg_down/lqr_fit.hpp` 独立保存 [4][10][6] 参数；`chassis.hpp` 引用，不再内嵌原系数
+- `app/leg/leg_down/lqr_fit.hpp` 独立保存 [4][10][6] 参数；`chassis.hpp` 引用，不再内嵌原系数
 - 控制逻辑保持不变：位移误差 ×10、x_max=0.1 m、x_err_max=6、theta_ref=0.07 rad、is_position_ 启动门槛均保留；未加入 LQI
 - L=0.18 m 时：单轮 K_s=-0.6408、K_v=-1.9732、K_pitch=-11.7438；单腿 K_s=0.9294。实际位置通道仍乘 10，不等于原始设计的完整 u=-Kx
 - 验证：BODY/LEG/Q/R 与初版一致，三组腿长 A/B/E 与初版逐元素一致；生成头尺寸正确；CLion clang-format 检查通过；按 build/leg_down/compile_commands.json 实际编译 app.cpp、chassis.cpp 通过，无告警

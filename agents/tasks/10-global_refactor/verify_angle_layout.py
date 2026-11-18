@@ -19,7 +19,7 @@ def main():
     source_root = args.source_root.resolve()
     OUT.mkdir(parents=True, exist_ok=True)
     selected = {}
-    for preset in ["dummy", "infantry", "sentry", "leg_down", "leg_up", "examples-motor", "examples-gimbal", "test"]:
+    for preset in ["dummy", "infantry", "sentry", "leg-leg_down", "leg-leg_up", "examples-motor", "examples-gimbal", "test"]:
         database = source_root / "build" / preset / "compile_commands.json"
         for row in json.loads(database.read_text(encoding="utf-8")):
             relative = Path(row["file"]).relative_to(source_root).as_posix()

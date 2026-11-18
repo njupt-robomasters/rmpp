@@ -32,14 +32,6 @@
             }
         },
         {
-            "name": "examples-gimbal",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "examples/gimbal",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
             "name": "examples-kv_store",
             "inherits": "default",
             "cacheVariables": {
@@ -88,26 +80,18 @@
             }
         },
         {
-            "name": "infantry",
+            "name": "leg-leg_down",
             "inherits": "default",
             "cacheVariables": {
-                "RMPP_APP": "infantry",
+                "RMPP_APP": "leg/leg_down",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
-            "name": "leg_down",
+            "name": "leg-leg_up",
             "inherits": "default",
             "cacheVariables": {
-                "RMPP_APP": "leg_down",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "leg_up",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "leg_up",
+                "RMPP_APP": "leg/leg_up",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },

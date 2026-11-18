@@ -8,7 +8,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 OUT = Path(__file__).resolve().parent / "out/motor_feedback/arm"
-PRESETS = ["dummy", "infantry", "sentry", "leg_down", "leg_up", "examples-motor", "examples-gimbal", "test"]
+PRESETS = ["dummy", "infantry", "sentry", "leg-leg_down", "leg-leg_up", "examples-motor", "examples-gimbal", "test"]
 
 
 def main():

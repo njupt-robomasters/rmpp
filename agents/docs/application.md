@@ -46,8 +46,8 @@
 ## 启动与循环
 
 - CubeMX 初始化后依次执行 `bsp_init()`、`app_main()`
-- `app.cpp` 分为 `setup()`、`loop()`、`app_main()`：`setup()` 放一次性初始化；`loop()` 依次轮询各设备与模块；`app_main()` 先调用 `setup()`，再用文件作用域 `static Timer app_timer` 按 1 kHz 调度 `loop()`，并用 `static Monitor app_monitor` 统计频率与占用（SWD 观察）
-- 计时器、分频计数等跨周期状态放在文件作用域 `static`，函数内不定义 `static` 变量
+- `app.cpp` 分为 `setup()`、`loop()`、`app_main()`：`setup()` 放一次性初始化；`loop()` 依次轮询各设备与模块；`app_main()` 先调用 `setup()`，再用循环内的局部 `static Timer app_timer` 按 1 kHz 调度 `loop()`，并用循环内的局部 `static Monitor app_monitor` 统计频率与占用（SWD 观察）
+- 计时器、分频计数等跨周期状态通常放在文件作用域 `static`；主循环的 `app_timer` 放在 `while (true)` 内“1 kHz 更新”注释后，`app_monitor` 放在“负载监控”注释后，均保留 `static`
 - 低于 1 kHz 的任务在 `loop()` 内用 `<用途>_timer` 分频后提前返回，如 cdc 示例的 `print_timer`
 - 自己调用 `Pid` 的 app 函数用 `update_timer` 计一次周期并限幅后传给各 PID
 - dummy 和 leg 用 `uint32_t` 计数递增、取余分频，无手动清零：dummy 的 yaw 每 2 次循环发送，超电每 10 次循环发送，模拟裁判每 100 次循环结算；leg_down 左右关节交替发送，每个关节 500 Hz，底盘只在发送左腿的一拍调用 `chassis_loop()`（500 Hz），保证计算时两侧关节反馈都已刷新，`attitude.update()` 仍在 `loop()` 每周期执行；leg 两板的发送计数 `send_cnt` 按用户要求为 `loop()` 内 `static`
@@ -59,7 +59,7 @@
 - 各模块在同名 `.hpp` 声明、`.cpp` 实现
 - 文件名不加 `_loop` 后缀
 - 配置和实例跟随所属模块
-- leg_down 的 LQR 系数独立放在 `app/leg_down/lqr_fit.hpp`，由 `agents/tasks/09-leg_lqr/gen_lqr_fit.py` 生成；`chassis.hpp` 只引用，当前参数与验证范围见任务 09
+- leg_down 的 LQR 系数独立放在 `app/leg/leg_down/lqr_fit.hpp`，由 `agents/tasks/09-leg_lqr/gen_lqr_fit.py` 生成；`chassis.hpp` 只引用，当前参数与验证范围见任务 09
 - 组件可独立使用
 - 整合管理器引用外部实例
 
@@ -80,7 +80,7 @@
 
 ## 轮腿上下板通信
 
-- 上下板 Can(1) 经滑环连接，与下板全部电机、上板管理的超电共用 CAN1；两板通过 `../leg_protocol.hpp` 引用共享文件 `app/leg_protocol.hpp`，包含按发送方命名的 `UP_ID = 0x02`、`DOWN_ID = 0x03` 和报文布局。上板控制帧 8 字节（使能、自救授权、跳跃、速度、yaw、腿长、功率目标），500 Hz；下板状态帧 3 字节（底盘倒地、实测航向角速度），500 Hz
+- 上下板 Can(1) 经滑环连接，与下板全部电机、上板管理的超电共用 CAN1；两板通过 `../leg_protocol.hpp` 引用共享文件 `app/leg/leg_protocol.hpp`，包含按发送方命名的 `UP_ID = 0x02`、`DOWN_ID = 0x03` 和报文布局。上板控制帧 8 字节（使能、自救授权、跳跃、速度、yaw、腿长、功率目标），500 Hz；下板状态帧 3 字节（底盘倒地、实测航向角速度），500 Hz
 - 共享协议文件统一定义 `LegUpFrame`、`LegDownFrame`、物理单位、`pack()` 与 `unpack()`；`Raw` 位域与解码后成员同序，编解码在 `pack()`、`unpack()` 内用局部 `Raw` 完成，不保存原始帧；位域按 arm-none-eabi-gcc 布局，主机 MinGW 测试加 `-mno-ms-bitfields`。解包先检查 ID 和长度，失败保持原数据。功率目标 11 位 0.25 W/LSB，范围 0..511.5 W，2047 表示不限功率。腿长为连续数值 `leg_length`（m），以 9 位无符号毫米数传输，范围 0..0.511 m；协议中没有腿长档位表。两板 `chassis.cpp` 保存协议结构体并调用编解码，负责控制与在线状态，发送仍在 `app.cpp` 的 `loop()` 分拍安排；回归测试检查共享文件引用与编解码
 - 暂不适配键鼠：上板只读 VT13，VT13 与下板均在线时 N、S 挡使能，默认低腿长 0.14 m。下板报告倒地时按 pause 授权自救，授权保持；站立时每次按 pause 按 0.14 → 0.22 → 0.33 → 0.14 m 切换。fn 直接透传，由下板检测上升沿。失能或下板断联清授权、复位低腿长；下板断联期间发送失能帧，恢复状态帧后按当前遥控挡位恢复使能。pause 持续记录前值
 - 右摇杆竖直为云台前向速度，拨轮为手动旋转；yaw 在线时默认跟随，离线角度发 0。上板直接保存解包后的 `down`，云台使用 `down.wr`，pause 分支使用 `down.is_fallen`，即下板 `chassis.rescue.is_fallen`（倒地锁存，站起完成、失能或跳跃时清除），断联 0.1 s 清空反馈。在线状态命名为 `up_is_connect`、`down_is_connect`
