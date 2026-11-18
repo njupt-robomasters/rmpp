@@ -128,7 +128,7 @@
 
 基线 `795e263`，类布局重构已并入 master，外部 worktree 随合并移除。完成成员尾下划线移除、实例配置与设备状态展平、SWD 排序、最小权限和声明与实现排序；保留主线暂存的轮腿 LQR 调整并完成适配。infantry 跳过编译验证。代码与验证结论见 `tasks/10-global_refactor/README.md`，待用户审计与上车。
 
-2026-11-17 新一轮成员排序与最小权限调整位于 `../rmpp-class-order`，分支 `refactor/class-member-order`，基线 `ba752f6`。代码与软件验证已完成，尚未提交或合并；六组顺序、权限核对与验证结果见 `tasks/10-global_refactor/README.md`。主工作区原有四个未提交文件保留。
+2026-11-18 新一轮成员六组排序、函数调用序排序与最小权限调整（基线 `ba752f6`，分支 `refactor/class-member-order`）已并入 master，外部工作区 `../rmpp-class-order` 已移除，主工作区未提交的 `GimbalClassic` pitch 目标限位与 `TODO.md` 修改已合并保留。验证结论见 `tasks/10-global_refactor/README.md`。
 
 ## 轮腿 LQR 首版参数对照
 

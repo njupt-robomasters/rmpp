@@ -179,3 +179,5 @@ python agents/tasks/10-global_refactor/verify_class_order.py --baseline ba752f6
 python agents/tasks/11-shooter_state/verify.py
 python agents/tasks/11-shooter_state/verify_gimbal_imu.py
 ```
+
+合并与一致性核对（2026-11-18）：一致性检查修正 `Melody` 限带方波与 PolyBLEP 错位注释、`GimbalDualYaw` 指令区 `is_enable` 顺序、`Steer` 舵向注释位置、`RobotUi` 委托构造空行及 `SuperCap::Config` 分组注释空行。外部分支提交 `987d002`、`f8bdfd2`，与主线 `93d1e49` 合并为 `d39e002`（解决 `Shooter17mm`、`GimbalClassic` 布局重叠，保留 `93d1e49` 摩擦轮释放阈值与 `TODO.md`），外部工作区 `../rmpp-class-order` 已删除；主工作区未提交的 `GimbalClassic` pitch 目标限位等 7 个文件原样保留未暂存状态并完成适配。合并后两板 82 个布局对象、C 板全预设 253 个 `lib/` 与 `app/` 对象、两板 19 个手写 BSP 对象真实 ARM 编译通过（0 失败 0 告警）；四组主机差分回归、原生输出与拨弹回归、云台 IMU 3289 项检查及全部修改源码格式检查通过。
