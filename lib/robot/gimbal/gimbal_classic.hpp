@@ -28,6 +28,10 @@ class GimbalClassic {
         float pitch_min = 0;
         float pitch_max = 0;
 
+        // 角度外环最大角加速度，rad/s²；无穷大时禁用加速度规划
+        float yaw_max_accel = INFINITY;
+        float pitch_max_accel = INFINITY;
+
         bool use_angle_loop = true; // false 时只有速度内环
     };
 
@@ -73,4 +77,7 @@ class GimbalClassic {
   private:
     // 角度外环：积分角度目标，修正量换算到电机轴后叠加到 speed_ref；不可控时目标跟随实测并清空 PID
     void update_angle_loop(const Quaternionf& q, const Quaternionf& pitch_joint, bool can_yaw, bool can_pitch, float dt);
+
+    // 按最大角加速度折算外环等效角度误差，大误差下走平方根制动曲线；无穷大时原样返回
+    static float plan_angle_error(float err, const Pid::Config* pid_config, float max_accel);
 };

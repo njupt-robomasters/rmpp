@@ -1,5 +1,6 @@
 #include "gimbal_classic.hpp"
 #include <algorithm>
+#include <cmath>
 
 GimbalClassic::GimbalClassic(const Motors& motor, const Config& config)
     : motor(motor),
@@ -86,7 +87,8 @@ void GimbalClassic::update_angle_loop(const Quaternionf& q, const Quaternionf& p
     float yaw_correction = 0, pitch_correction = 0;
     if (can_yaw && can_angle_loop) {
         yaw.angle_ref += yaw_speed * dt;
-        yaw_correction = yaw_angle_pid.calculate(dt, Angle(yaw.angle_ref - yaw.angle_measure));
+        const float err = plan_angle_error(Angle(yaw.angle_ref - yaw.angle_measure), config.yaw_angle_pid_config, config.yaw_max_accel);
+        yaw_correction = yaw_angle_pid.calculate(dt, err);
     } else {
         yaw.angle_ref = yaw.angle_measure;
         yaw_angle_pid.clear();
@@ -102,7 +104,8 @@ void GimbalClassic::update_angle_loop(const Quaternionf& q, const Quaternionf& p
         if ((ref > max && pitch_speed > 0) || (ref < min && pitch_speed < 0))
             pitch.speed_ref -= pitch_speed;
 
-        pitch_correction = pitch_angle_pid.calculate(dt, Angle(pitch.angle_ref - pitch.angle_measure));
+        const float err = plan_angle_error(Angle(pitch.angle_ref - pitch.angle_measure), config.pitch_angle_pid_config, config.pitch_max_accel);
+        pitch_correction = pitch_angle_pid.calculate(dt, err);
     } else {
         pitch.angle_ref = pitch.angle_measure;
         pitch_angle_pid.clear();
@@ -115,4 +118,18 @@ void GimbalClassic::update_angle_loop(const Quaternionf& q, const Quaternionf& p
     const Vector3f axis_correction = pitch_joint * (q.conjugate() * world_correction);
     yaw.speed_ref += axis_correction.z();
     pitch.speed_ref += axis_correction.y();
+}
+
+float GimbalClassic::plan_angle_error(const float err, const Pid::Config* const pid_config, const float max_accel) {
+    if (!std::isfinite(max_accel) || pid_config == nullptr || pid_config->kp <= 0)
+        return err;
+    if (max_accel <= 0)
+        return 0;
+
+    // 超过线性区阈值 e0 = a_max / kp² 后切换为恒减速度平方根曲线，使 kp·e_eq = ±√(2·a_max·(|e| − e0/2))
+    const float e0 = max_accel / (pid_config->kp * pid_config->kp);
+    const float abs_err = std::fabs(err);
+    if (abs_err <= e0)
+        return err;
+    return std::copysign(std::sqrt(e0 * (2 * abs_err - e0)), err);
 }

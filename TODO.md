@@ -2,5 +2,4 @@
 裁判系统适配
 set_mit接口
 referee只使用uart，app实现uart-over-can，使用 >> << 并支持用户自定义流
-云台位置环过冲（位置规划器加速度限幅）
 上下板通信
