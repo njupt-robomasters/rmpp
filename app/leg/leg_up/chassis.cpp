@@ -1,6 +1,7 @@
 #include "chassis.hpp"
 #include "app.hpp"
 #include "gimbal.hpp"
+#include "referee.hpp"
 
 // 下发指令，chassis_loop() 写入、chassis_write_can_frame() 组帧
 static LegUpFrame up;
@@ -8,8 +9,10 @@ static bool down_is_connect = false;
 static Timer callback_timer;
 
 void chassis_loop() {
-    // 超级电容
+    // 超级电容：保持 OFF，按裁判功率上限与缓冲能量折算底盘功率目标；裁判离线时沿用最后值，启动默认 120 W / 60 J
     super_cap.set_mode(SuperCap::OFF);
+    super_cap.set_referee_limit(referee.robot_status.chassis_power_limit);
+    super_cap.set_referee_energy(referee.power_heat_data.buffer_energy);
     super_cap.update();
 
     // 下板断联检测
@@ -28,20 +31,17 @@ void chassis_loop() {
     static bool last_pause = false;
     if (!up.is_enable) {
         up.allow_rescue = false;
-        up.leg_length = 0.14f;
+        up.leg_length = LEG_LENGTH_LOW;
     } else {
         // pause：倒地时授权自救并保持，站立时切换腿长
         if (vt13.rc.pause && !last_pause) {
-            if (down.is_fallen) {
-                up.allow_rescue = true;
-            } else {
-                if (up.leg_length < 0.22f)
-                    up.leg_length = 0.22f;
-                else if (up.leg_length < 0.33f)
-                    up.leg_length = 0.33f;
-                else
-                    up.leg_length = 0.14f;
-            }
+            up.allow_rescue = true;
+            if (up.leg_length < LEG_LENGTH_MID)
+                up.leg_length = LEG_LENGTH_MID;
+            else if (up.leg_length < LEG_LENGTH_HIGH)
+                up.leg_length = LEG_LENGTH_HIGH;
+            else
+                up.leg_length = LEG_LENGTH_LOW;
         }
     }
     last_pause = vt13.rc.pause;

@@ -356,7 +356,7 @@ def write_wav(path, samples):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("midi", nargs="?", default=str(ROOT / "reference/midi/always_with_me.mid"))
-    parser.add_argument("--out", default=str(Path(__file__).resolve().parent / "out"))
+    parser.add_argument("--out", default=str(Path(__file__).resolve().parents[3] / "agents/out/02-buzzer_timbre"))
     parser.add_argument("--start", type=float, default=0.0, help="输出起点 s")
     parser.add_argument("--seconds", type=float, default=0.0, help="输出时长 s，0 为到结尾")
     parser.add_argument("--f0", type=float, default=4000.0, help="蜂鸣器谐振频率 Hz")

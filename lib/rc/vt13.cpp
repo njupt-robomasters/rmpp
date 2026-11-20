@@ -47,7 +47,7 @@ void VT13::update() {
     // 发射：trigger 时 pitch 摇杆为最高弹频倍率，负值反转；否则鼠标左键按最高弹频
     if (rc.trigger)
         bullet_freq = rc.pitch * config.bullet_freq;
-    else if (mouse.left)
+    else if (rc.mode == S && mouse.left)
         bullet_freq = config.bullet_freq;
     else
         bullet_freq = 0;

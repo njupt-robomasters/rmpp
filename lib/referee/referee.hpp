@@ -36,6 +36,9 @@ class Referee {
     GameStatus game_status{};
     RobotStatus robot_status{};
     PowerHeatData power_heat_data{};
+    HurtData hurt_data{};
+    ShootData shoot_data{};
+    uint32_t hurt_sequence = 0; // 收到 0x0206 时递增，供 app 判断新的受击事件
 
   private:
     GameResult game_result{};
@@ -45,8 +48,6 @@ class Referee {
     DartInfo dart_info{};
     RobotPos robot_pos{};
     Buff buff{};
-    HurtData hurt_data{};
-    ShootData shoot_data{};
     ProjectileAllowance projectile_allowance{};
     RfidStatus rfid_status{};
     DartClientCmd dart_client_cmd{};
@@ -59,10 +60,6 @@ class Referee {
 
     Fifo<uint8_t, RX_CAPACITY> rx; // 未解析字节，CAN 接收中断写入
 
-  public:
-    Timer hurt_timer; // 收到 0x0206 时重新开始
-
-  private:
     Timer connect_timer, receive_timer;
 
   public:

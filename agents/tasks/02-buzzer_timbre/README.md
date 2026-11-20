@@ -10,7 +10,7 @@ python -I agents/tasks/02-buzzer_timbre/simulate.py --raw
 python -I agents/tasks/02-buzzer_timbre/simulate.py --start 30 --seconds 20 --mix-gain 0.6 --slot 0.02
 ```
 
-默认 MIDI 为 `reference/midi/always_with_me.mid`，输出到 `out/`（不入库），全曲约 20 s。依赖 `mido`、`numpy`、`scipy`，单音转换直接复用 `tools/midi_to_music.py`
+默认 MIDI 为 `reference/midi/always_with_me.mid`，输出到 `agents/out/02-buzzer_timbre/`（不入库），全曲约 20 s。依赖 `mido`、`numpy`、`scipy`，单音转换直接复用 `tools/midi_to_music.py`
 
 ## 输出
 

@@ -7,7 +7,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
-OUT = TASK / "out/class_order/regression"
+OUT = ROOT / "agents/out/10-global_refactor/class_order/regression"
 
 
 def main():

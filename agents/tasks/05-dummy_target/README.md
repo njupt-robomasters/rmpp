@@ -54,5 +54,5 @@ cmake --build build/dummy --parallel 8
 复现分析：
 
 ```sh
-python agents/tasks/05-dummy_target/analyze_follow_pid.py agents/tasks/05-dummy_target/out/follow_pid/20261111_180613.csv
+python agents/tasks/05-dummy_target/analyze_follow_pid.py agents/out/05-dummy_target/follow_pid/20261111_180613.csv
 ```

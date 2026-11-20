@@ -8,7 +8,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
-OUT = TASK / "out/gimbal_imu"
+OUT = ROOT / "agents/out/11-shooter_state/gimbal_imu"
 
 
 def main():

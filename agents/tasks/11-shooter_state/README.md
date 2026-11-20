@@ -1,12 +1,21 @@
 # 拨弹状态机与电机原生输出
 
+## PID 输出饱和判卡弹（2026-11-20）
+
+- 删除 Config.block_torque；FEED 用上一周期拨弹 PID 输出（成员 shoot_output，update() 末尾保存，失能为 0）与 shoot_pid_config->max_out 比较，饱和持续 block_time 后反转。阈值与输出同单位，DJI 为 A、EL05 为 N·m，三台车统一
+- 纯 P 参数堵转输出为 kp×目标转速：sentry ≥4.9 Hz、leg_up ≥3.1 Hz、jelly_sentry ≥22.5 Hz 才饱和；用户将另行给拨弹 PID 加积分整定
+- block_time 默认值沿用合并后的 0.2 s（合并前 0.5 s），sentry、leg_up 用默认值
+- 主机测试替换独立阈值用例为：PID max_out 低于电机限幅时按 PID 饱和检测、判定周期仍按原方向输出、下一周期反转；P 输出低于 max_out 时持续前进。g++ 编译运行通过，产物在 agents/out/11-shooter_state/
+- jelly_sentry、sentry、leg_up 的 shooter_17mm、gimbal_fold 与相关 app 对象 ARM 编译通过且零警告；jelly_sentry 在 agents/out/build 完整链接通过；clang-format 检查通过
+
 ## 已确认需求
 
 - 17 mm 拨弹状态机直接在 `Shooter17mm::update()` 展开，使用 STOP、FEED、REVERSE
 - 删除 `is_block`、`block_timer`；`block_elapsed`、`reverse_elapsed` 分别累加限幅后的 dt
-- 连续命令电流饱和达到 block_time 后反向运行 reverse_time；STOP 清两个累计时间，使能时保持零速度闭环，失能时输出零电流并清 PID，恢复时当周期拨弹
+- 拨弹 PID 输出连续饱和（达到 max_out）并持续block_time后反向运行reverse_time。STOP 清两个累计时间，使能时保持零速度闭环，失能时输出零电流并清 PID，恢复时当周期拨弹
 - 负弹频正常反转，退弹方向和速度跟随当前有符号弹频；保留拨弹独立于摩擦轮的现有修改
-- 状态机先确定目标速度，再统一执行速度 PID；卡弹检测读取上一周期命令电流，切换到 REVERSE/FEED 后下一周期改变目标速度，主机测试已同步并通过
+- 状态机先确定目标速度，再统一执行速度 PID；卡弹检测读取上一周期 PID 输出，切换到 REVERSE/FEED 后下一周期改变目标速度。2026-11-20 按用户要求由力矩目标阈值改为 PID 输出饱和
+- 该次调整的 Shooter17mm 与整车应用对象编译、格式检查通过。主机复用现有状态机场景验证卡滞计时、反转、停止和 dt 限幅，通过；Zig 主机编译副本省略独立的 DM 浮点模板输出测试，日志在 `out/torque_state_compile.log`
 - `Motor::set_output(float)` 返回 void，基类调用虚函数 set_current，DM 系列覆盖为 set_torque
 - 云台和 17/42 mm 发射机构删除 PidOutput 配置和外部输出跟踪；PID 单位与限幅由 app 负责
 - 保留显式 set_current、set_torque 及 VESC 命令、X630 静音处理
@@ -22,7 +31,7 @@ python agents/tasks/11-shooter_state/verify.py --cxx g++ --arm-build build/leg-l
 - 基类引用输出分派、DM 力矩、VESC 电流报文和 X630 静音测试通过
 - 19 个源码的 ARM 对象编译通过，无警告：8 个电机源码、5 个云台/发射机构源码，以及 leg_up 三个源码、infantry/sentry 云台、gimbal 示例入口
 - 修改源码的 clang-format 检查及 git diff --check 通过
-- 未执行完整固件链接或硬件操作；产物在 out/，不入库
+- 未执行完整固件链接或硬件操作；产物在 `agents/out/11-shooter_state/`，不入库
 
 ## 实车核对
 

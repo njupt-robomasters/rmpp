@@ -24,12 +24,12 @@
 ## 上板测量（`app/` + `measure.sh`，C 板）
 
 `app/` 前 10 s 只调 `imu.update()`，之后调 `attitude.update()`，DWT 计周期。`EKF_OPTIONS` 只给 `quaternion_ekf.cpp` 追加选项。
-构建（输出在 `out/`）：
+构建（输出在 `agents/out/08-attitude_cpu/`）：
 
 ```sh
 CM="/d/JetBrains/CLion 2026.2.2/bin/cmake/win/x64/bin/cmake.exe"
 APP=../agents/tasks/08-attitude_cpu/app
-"$CM" -S . -B agents/tasks/08-attitude_cpu/out/og -G Ninja -DRMPP_APP=$APP -DCMAKE_BUILD_TYPE=Debug
+"$CM" -S . -B agents/out/08-attitude_cpu/og -G Ninja -DRMPP_APP=$APP -DCMAKE_BUILD_TYPE=Debug
 # og_nodebug: -DCMAKE_C_FLAGS=-DEIGEN_NO_DEBUG；og_ekf_o2: -DEKF_OPTIONS=-O2；o2: -DCMAKE_BUILD_TYPE=Release
 sh agents/tasks/08-attitude_cpu/measure.sh og og_nodebug og_ekf_o2 o2
 ```

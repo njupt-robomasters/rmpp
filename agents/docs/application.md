@@ -8,17 +8,17 @@
 - lib 接收句柄或引用
 - 板卡 BSP 实现外设
 - 校准组合键、断联保持使能等车型策略在 app 展开
-- yaw 校零与偏移持久化在 app 直接操作电机和 KvStore：infantry 使用 yaw，sentry 使用 yaw1；启动将 `yaw_offset` 读入 `motor.config.offset`，校准时按连续输出轴角度 angle_multi、方向与减速比更新 offset，使单圈与多圈反馈同时归零，随后保存；两处 yaw 减速比均为 1
+- yaw 校零与偏移持久化在 app 直接操作电机和 KvStore：infantry 使用 yaw，steer_sentry、jelly_sentry 使用 yaw1；启动将 `yaw_offset` 读入 `motor.config.offset`，校准时按连续输出轴角度 angle_multi、方向与减速比更新 offset，使单圈与多圈反馈同时归零，随后保存；两处 yaw 减速比均为 1
 - lib 不为车型策略保留开关或流程
 - 发射机构、底盘、超级电容、FSi6X、裁判通信与 MiniPC 通信按值保存只读 `Config`，直接读取配置字段；PID 状态、运动学矩阵、校准值与其他运行状态独立保存，超级电容 RLS 的固定参数读取 `config.rls`
 - 云台、17 mm 发射机构及裁判通信的配置副本为 private；17 mm 的 motor 与 42 mm 的弹速、摩擦轮速度仅供类内及 SWD 使用。矩阵与舵轮底盘的 vx/vy 供派生类控制使用，权限为 protected；应用读取的 wr 保持 public
 - `GimbalClassic` 与 `GimbalDualYaw` 独立实现，控制流程在各自 `update()` 中展开，按值保存只读 `Config`；Classic 固定采用电机轴 IMU 速度内环，通过 `use_angle_loop` 选择世界角度外环，DualYaw 保留 ECD/IMU 模式和编码器目标限位
 - Classic 的 `pitch_min`、`pitch_max` 经 IMU 与编码器偏差换算后钳制世界 pitch 目标，并按编码器实测角度保护最终输出；DualYaw 用它们钳制编码器目标
 - 云台和 17/42 mm 发射机构通过 `Motor::set_output()` 设置原生输出，PID 单位和限幅由 app 按电机配置；PID 自身的输出限幅与积分回算保留，Classic 的 pitch ECD 保护截断输出后额外调用 `track(0)` 回算积分
-- 双 yaw 共用速度 PID 输出，各电机按自身原生单位接收同一数值；sentry 的 DM4310 为 N·m、GM6020 为 A，参数待实车整定
+- 双 yaw 共用速度 PID 输出，各电机按自身原生单位接收同一数值；steer_sentry 的 DM4310 为 N·m、GM6020 为 A，参数待实车整定
 - 17 mm 拨弹在 `update()` 内使用 STOP/FEED/REVERSE 状态机，失能、热量保护、零弹频或拨弹离线优先停止；拨弹独立于摩擦轮开关和在线状态
-- 卡弹检测与退弹分别用 `block_elapsed`、`reverse_elapsed` 累加限幅后的 `dt`；连续命令电流饱和达到 `block_time` 后反向运行 `reverse_time`，方向和速度跟随当前有符号弹频；STOP 清累计时间，使能时保持零速度闭环，失能时输出零电流并清 PID
-- 17 mm 拨弹先由状态机确定目标速度，再统一计算速度 PID；FEED 使用上一周期命令电流检测卡弹，状态切换在下一周期改变目标速度
+- 卡弹检测与退弹分别用 `block_elapsed`、`reverse_elapsed` 累加限幅后的 `dt`；上一周期拨弹 PID 输出绝对值达到 `shoot_pid_config->max_out`（饱和）并持续 `block_time` 后反向运行 `reverse_time`，阈值与输出同单位（随电机 `set_output()`：DJI 为 A、EL05 为 N·m）；纯 P 参数下堵转输出为 kp×目标转速，低于 max_out 时检测不到，需靠积分推到饱和。方向和速度跟随当前有符号弹频；STOP 清累计时间，使能时保持零速度闭环，失能时输出零电流并清 PID
+- 17 mm 拨弹先由状态机确定目标速度，再统一计算速度 PID；FEED 使用上一周期 `torque_ref` 检测卡弹，状态切换在下一周期改变目标速度
 
 ## 底盘离线反馈
 
@@ -26,7 +26,7 @@
 - 舵轮仅在轮、舵均在线时允许对应轮输出；仅轮离线时，舵仍跟随速度逆解得到的目标角，零速度时保持目标角
 - 速度正解排除离线位置：全向轮／麦轮按有效运动学行最小二乘求解，通常至少 3 轮；舵轮在无侧滑假设下按有效位置的 x/y 速度约束求解，至少 2 个不同位置。正常四轮舵轮解算与原均值算法等价，缺轮时重新求解平移与旋转，避免偏置
 - 约束不足或秩亏时 vx/vy/vz/wr.measure 为 NaN；力控清空底盘速度 PID 并关闭轮输出，舵向控制继续；轮速控制仍按在线轮执行。恢复足够反馈后自动恢复解算
-- 总牵引力反馈需要全部轮数据，缺失时 fx/fy/fz.measure 为 NaN；输出力求和与 PID 回算保持独立。sentry 对未知 wr 关闭云台转速前馈，现有 UI 数字字段显示 0，底盘测量本身保留 NaN
+- 总牵引力反馈需要全部轮数据，缺失时 fx/fy/fz.measure 为 NaN；输出力求和与 PID 回算保持独立。两台哨兵对未知 wr 关闭云台转速前馈，现有 UI 数字字段显示 0，底盘测量本身保留 NaN
 - leg_up 直接下发 yaw.angle，离线清零由 Motor::update() 统一完成
 
 ## GimbalClassic 控制与观测
@@ -46,16 +46,18 @@
 ## 启动与循环
 
 - CubeMX 初始化后依次执行 `bsp_init()`、`app_main()`
-- `app.cpp` 分为 `setup()`、`loop()`、`app_main()`：`setup()` 放一次性初始化；`loop()` 依次轮询各设备与模块；`app_main()` 先调用 `setup()`，再用循环内的局部 `static Timer app_timer` 按 1 kHz 调度 `loop()`，并用循环内的局部 `static Monitor app_monitor` 统计频率与占用（SWD 观察）
+- `app.cpp` 分为 `setup()`、`loop()`、`send()`、`app_main()`：`setup()` 放一次性初始化；`loop()` 依次更新共享设备（RGB、蜂鸣器、遥控器、姿态、裁判）与各模块；`send()` 集中安排全部 CAN 发送与 `referee_sender.send()`，模块 `*_loop()` 内不发送；`app_main()` 先调用 `setup()`，再用循环内的局部 `static Timer app_timer` 按 1 kHz 依次调度 `loop()`、`send()`，并用循环内的局部 `static Monitor app_monitor` 统计频率与占用（SWD 观察）。示例程序无发送时只保留 `setup()`、`loop()`
 - 计时器、分频计数等跨周期状态通常放在文件作用域 `static`；主循环的 `app_timer` 放在 `while (true)` 内“1 kHz 更新”注释后，`app_monitor` 放在“负载监控”注释后，均保留 `static`
 - 低于 1 kHz 的任务在 `loop()` 内用 `<用途>_timer` 分频后提前返回，如 cdc 示例的 `print_timer`
 - 自己调用 `Pid` 的 app 函数用 `update_timer` 计一次周期并限幅后传给各 PID
-- dummy 和 leg 用 `uint32_t` 计数递增、取余分频，无手动清零：dummy 的 yaw 每 2 次循环发送，超电每 10 次循环发送，模拟裁判每 100 次循环结算；leg_down 左右关节交替发送，每个关节 500 Hz，底盘只在发送左腿的一拍调用 `chassis_loop()`（500 Hz），保证计算时两侧关节反馈都已刷新，`attitude.update()` 仍在 `loop()` 每周期执行；leg 两板的发送计数 `send_cnt` 按用户要求为 `loop()` 内 `static`
+- 发送分频用 `uint32_t send_cnt` 递增取余，无手动清零，通常为 `send()` 内 `static`：dummy 的 yaw 每 2 拍、超电每 10 拍发送，模拟裁判每 100 次循环结算；leg_down 左右关节交替发送，每个关节 500 Hz，底盘只在发送左腿的一拍调用 `chassis_loop()`（500 Hz），保证计算时两侧关节反馈都已刷新，`attitude.update()` 仍在 `loop()` 每周期执行；leg_down 的 `loop()` 需读取同一拍数，`send_cnt` 为文件作用域 `static`，在 `send()` 末尾递增。jelly_sentry 运行时可写周期的电机另用 `send()` 内 `static` 分频计数，周期 0、1 均为每拍发送
+- C 板 CAN 只有 3 个发送邮箱、无软件队列，满时丢弃；每路每拍至多 3 帧。steer_sentry 的 CAN1 每拍发大 yaw 与 0x1FF（小 yaw、拨弹、舵 1/2），第 3 帧由 0x200（轮）、0x2FF（舵 3/4）、裁判发送按 `send_cnt % 3` 轮流，各约 333 Hz；底盘电机回传 125 Hz。leg_up 的 CAN1 奇拍发底盘控制帧（500 Hz），偶拍中每 10 拍发超电（100 Hz），其余偶拍交给裁判发送（至多 400 Hz）；mc02 的 FDCAN 带发送 FIFO，jelly_sentry 不受此限
 - 使用普通 loop，不引入操作系统或整车包装类
 
 ## 文件组织
 
-- 公共内容放在 `app.hpp`
+- 公共内容放在 `app.hpp`：共享设备（蜂鸣器、RGB、KvStore、遥控器、上位机）与多模块共用判断；各模块 `.cpp` 先包含自身头文件，再按需包含 `app.hpp` 与其他模块头文件；不设 `misc` 文件，RGB 在 `app.cpp` 的 `loop()` 内更新
+- 裁判系统与 UI 放在 app 层 `referee.hpp`、`referee.cpp`：头文件定义 `referee`、`referee_sender`、`ui` 实例并声明 `referee_loop()`；`referee_loop()` 依次 `referee.update()`、`set_robot_id()`，F 键按下沿 `ui.init()`，锁存受击方向并填写 `ui.update()`；`referee_sender.send()` 在 `send()` 中调用。dummy 的 `referee.*` 为模拟裁判功率结算
 - 各模块在同名 `.hpp` 声明、`.cpp` 实现
 - 文件名不加 `_loop` 后缀
 - 配置和实例跟随所属模块
@@ -70,9 +72,18 @@
 - 云台为摇杆叠加鼠标，无斜坡，限幅到满量程；pitch 抬头为负，与 Classic 云台一致。按住 trigger 时 pitch 摇杆改为弹频倍率（负值反转），否则鼠标左键按最高弹频；S 挡输出配置弹速；photo 或鼠标右键为自瞄
 - 断联时原始量、键盘斜坡与操控量全部清零，挡位为 ERR
 - 图传链路的裁判帧与遥控帧混在 VT13 串口：VT13 同一缓冲区按帧头分别校验，0xA5 帧只处理 0x0311（载荷至多 60 B），在串口接收中断内依序调用 `add_0311_callback()` 注册的回调，回调在启动前注册；0x0311 不影响 `is_connect`。机器人发往自定义终端的 0x0310 同样走图传串口，目前未提供发送接口；Referee 不再收发图传链路报文
-- VT13 的 `Config` 公开且可修改，下次 `update()` 生效，如 sentry 的 C、Z 键增减 `config.bullet_freq`；各 app 在实例处给出满量程、加减速度、弹速与弹频
-- sentry 只用 VT13，已移除 FSi6X；底盘、云台叠加自主导航和扫描速度后按 VT13 满量程限幅，射击在 VT13 弹频基础上加自瞄开火许可、右键双击强制开火和自主视觉开火
-- 其余 FSi6X 操作（leg_down 断联回退、示例）在对应 `.cpp` 直接读取
+- VT13 的 `Config` 公开且可修改，下次 `update()` 生效，如 steer_sentry 的 C、Z 键增减 `config.bullet_freq`；各 app 在实例处给出满量程、加减速度、弹速与弹频
+- steer_sentry（VT13 接 USART6）与 jelly_sentry（VT13 接 USART1）只用 VT13，已移除 FSi6X；控制方式见下节“哨兵控制”。jelly_sentry 云台 pitch 取 `-vt13.pitch_speed`，保持迁移前摇杆上推目标增大的方向；步兵身份下 C、Z 键修改 `vt13.config.bullet_freq`
+- FSi6X 只保留在 dummy、leg_down 断联回退与 `examples/rc`，在对应 `.cpp` 直接读取
+
+## 哨兵控制
+
+- steer_sentry 与 jelly_sentry 结构一致：`app.hpp` 提供 `rc_fn()`、`sentry_in_game()`、`sentry_active()`、`sentry_enable()`；chassis、gimbal、shooter 各有 `control_by_vt13()` 与 `control_by_auto()`，`*_loop()` 先设置使能，再按 `sentry_active()`（哨兵身份比赛中，或 VT13 N/S 挡按 fn 锁存测试，pause 清除）二选一，最后完成公共输入与 `update()`；自主时不叠加 VT13 操控量
+- 使能：在线 VT13 的 C 挡优先失能；否则 VT13 N/S 挡，或裁判自检、倒计时、比赛中保持使能。发射机构另在 N 挡失能
+- 底盘 VT13：分离模式，摇杆叠加键盘斜坡。底盘自主：导航速度为大 yaw 雷达系，经 `rotate(v, −gimbal.yaw2.measure)` 转到云台系并按 VT13 满量程限幅；flag 0 跟随模式不旋转（steer_sentry 未配跟随 PID，只平移），flag 1 分离模式小陀螺，平移 0→满量程时转速 `wr_max`→60 rpm；Nav 或任一 yaw 离线时停止
+- 云台 VT13：摇杆叠加鼠标，R 键按下沿 `turn_yaw(180°)`，photo 或右键自瞄且识别到目标时跟随视觉角度；裁判自检阶段 yaw 叠加 180°/s 旋转。云台自主：5 m 内识别到目标且血量高于 120 时锁定视觉角度，脱锁 0.5 s 或低血量回到扫描（yaw 180°/s，pitch 在 IMU −22°~0° 往返 60°/s）；退出自主时复位为向下扫描。已删除全景相机（insta360）检查
+- 发射 VT13：S 挡开摩擦轮，trigger 或左键给弹频，自瞄时需视觉开火许可，右键双击强制开火；C、Z 键调最高弹频（jelly_sentry 仅步兵身份）。发射自主：摩擦轮常开，视觉开火许可时按最高弹频。热量剩余量由裁判 `shooter_barrel_heat_limit − shooter_17mm_barrel_heat` 设置
+- yaw 校零：VT13 C 挡按住 fn 与 photo 的按下沿，按大 yaw `angle_multi` 更新 offset 并写入 KvStore；steer_sentry 沿用改名前的 KvStore 标记 `"sentry"`，保留已标定零位
 - 操控参数和跨周期状态使用文件内 `static`
 
 ## 持有与更新
@@ -84,6 +95,60 @@
 - 模块间不互相引用状态
 - 多模块共用判断放在 `app.hpp`
 
+## jelly_sentry 超级电容
+
+- 已装超电，CAN1，沿用 `SuperCap` 默认命令 ID 0x061、反馈 ID 0x051；复用 dummy 的协议和虚拟缓冲算法，整车输入使用真实裁判功率上限与缓冲能量
+- `chassis_loop()` 每周期设置模式、裁判输入并更新超电，再把 `power_chassis_ref` 交给四轮力控底盘；发送在 `app.cpp::send()` 独立按 10 拍分频，目标 100 Hz，OFF、底盘失能和超电离线时持续发送
+- 模式优先级：裁判离线或在线 VT13 C 挡 → OFF；VT13 N/S 挡、或正赛且机器人 ID 为 7/107 → BOOST；自检/倒计时 → CHARGE；其余 OFF。BOOST 工况下用电池侧余量充电，负载升高时允许电容补偿。比赛自主运行可在遥控断联后继续使用超电，仍受裁判连接状态约束
+- 裁判连接超时由现有 `Referee` 的 1 s 检测决定，超电转 OFF 后底盘继续使用最后功率上限与缓冲能量；上电未收到裁判时为默认 120 W/60 J，超电 OFF
+- 超电实测功率覆盖范围按实车供电支路核对，四轮模型只估计轮电机功率；首轮保留现有参数和 `ui.cap=0`，能量显示待确定满电电压与可用能量范围后接入
+- 实施与验证记录见 `agents/tasks/06-super_cap_capacitance/README.md`，硬件联调由用户审计后决定
+
+## jelly_sentry 双传送带驱动
+
+- 在线 VT13 的 C 挡使整车失能，优先于比赛阶段的自动使能；N 挡只允许底盘和云台使能，摩擦轮与拨弹目标均归零，发射机构失能
+- 用户说明 rub1/rub2 为工业传送带转动机构，工程沿用摩擦轮命名。VT13 在线时只按 VT13 手动控制：S 挡运行两路电机（`vt13.bullet_speed`），拨盘取 `vt13.bullet_freq`（trigger 时 pitch 摇杆乘最高弹频，负值反转；否则鼠标左键按最高弹频），人工自瞄需视觉开火许可，右键双击强制开火除外；自主时双传送带常开、视觉开火许可时按最高弹频
+- 两个 P630 由 app 定义为 `Vesc`，绑定 CAN2，节点 ID 沿用 `0x21/0x22`，共用现有 VESC 扩展帧收发实现
+- `Shooter17mm::update()` 通过 `set_speed()` 设置输出轴目标角速度（rad/s），由 Vesc 换算为 ERPM，使用电调内部速度环
+- 整车每1 ms发送两路VESC指令，使能时速度扩展帧ID为0x321/0x322、4字节大端ERPM，失能时发送零电流帧
+- 当前显式保存迁移前Vesc参数：20 A、20 Nm、reduction为7（包含极对数）；按合并前实机文件保留rub1方向true、rub2默认false，同步修正速度指令与反馈方向，实际极对数待核对
+
+## jelly_sentry EL05
+
+- 拨弹 EL05 绑定 CAN2，按 old 分支移植私有扩展帧协议，电机节点0x12、主机节点0x22；使能ID 0x03002212、停止ID 0x04002212、无故障运行反馈ID 0x02801222。两路pitch仍用原标准帧协议
+- 电机端配套参数：CAN_ID=18、CAN_MASTER=34、protocol_1=0、CAN_TIMEOUT=20000（约1秒）；此前上位机写入记录为protocol_1=2，需用户核对并改为0后断电重启，主控不在线改参
+- 整车shoot实例控制计算保持1ms，EL05按shoot_send_period_ms发送（默认2ms、500Hz）；失能停止帧、使能帧和周期控制帧均请求状态应答
+- 按用户实测反向要求，shoot在shooter.hpp中显式配置is_invert=true，同步反向力矩指令和位置/速度/力矩反馈；三路方向可分别观察rub1.config.is_invert、rub2.config.is_invert和shoot.config.is_invert
+- 卡滞参数在shooter.hpp的shooter配置中显式设置：block_time=0.2 s、reverse_time=0.25 s；检测阈值为拨弹PID的5 N·m输出限幅，现有纯P参数（kp≈0.318 N·m/(rad/s)）在约22.5 Hz以下堵转不饱和，待加积分整定
+
+## jelly_sentry 上游接口适配
+
+- `GimbalFold` 位于 `lib/robot/gimbal/gimbal_fold.*`，目前仅 jelly_sentry 使用；四轴控制在独立的 `update()` 中执行。app 每周期更新 attitude，并通过 `gimbal.update(attitude.yaw, attitude.pitch)` 传入姿态，yaw1 零点由 app 经 KvStore 持久化
+- 大 yaw、pitch1、pitch2 经电机原生 `set_output()` 接收 Nm，小 yaw 7025 接收 A；折叠云台保留电机限幅后的 PID 跟踪及重力补偿，独立于上游普通云台的简化策略
+- 底盘由 app 更新超电后传入 `power_chassis_ref`
+- 受击方向显示与实测弹速读取裁判公开只读的 `hurt_data`、`hurt_sequence`（收到 0x0206 递增）、`shoot_data`；受击时按装甲 ID 换算到 IMU 参考系锁存 1 s。UI 在 app 层 `referee_loop()` 经 `RobotUi::update(referee_sender, {...})` 每周期填写，两台哨兵与 leg_up 写法一致
+
+## jelly_sentry 导航与 pitch1
+
+- CDC1 留给 Aim，CDC2 接 Nav 的 17 字节导航下行帧；主循环先执行 nav.update()，再执行 chassis_loop()
+- 导航按大 yaw 雷达系速度接入，经负小 yaw 角转换到云台系；flag=0 随 IMU 头，flag=1 不随头并使用小陀螺。人工底盘输入优先接管，导航超时或 yaw 反馈离线停止自主运动
+- pitch1 当前全程失能，GimbalFold 的总使能接口和每次 update 固定关闭该轴，清 PID 并写零输出，保留反馈与失能帧发送；其余三轴正常控制
+- 协议、坐标公式、flag 和离线处理详见 `minipc.md`；验证见 `../tasks/15-minipc_nav/README.md`
+
+## jelly_sentry CAN 发送调度
+
+- 总线分配：CAN2 为 pitch1、pitch2、EL05 和两个 P630，CAN3 为小 yaw 7025；协议、ID 和发送周期保留原值
+- 大yaw DM4310使用CAN1，当前命令ID 0x11、反馈ID 0x10；CAN2自动重发当前开启，用户生成的fdcan.c与.ioc均为ENABLE，发送FIFO模式保留
+- 小 yaw 中位原始角度由用户实测为 5.31959 rad，`yaw2.config.offset` 已按该值配置；更新固件后核对中位 `yaw2.angle` 接近 0
+- EmberProbe 实测 IMU 航向与大小 yaw 合成角方向相反；按用户确认将大 yaw 设为 `is_invert=true`、小 yaw 设为 `false`，同步翻转位置、速度反馈和输出，使合成角与 IMU 航向方向一致，保留原始 offset；待更新固件后低输出复核
+
+- 整车控制计算保持1kHz；pitch1、pitch2和yaw2的发送周期可写变量放在gimbal.hpp各电机实例旁，EL05的shoot_send_period_ms放在shooter.hpp的shoot实例旁
+- 默认周期：pitch1_send_period_ms=4（250Hz）、pitch2_send_period_ms=1（1000Hz）、yaw2_send_period_ms=2（500Hz，A1/94各250Hz）、shoot_send_period_ms=2（500Hz）
+- 当前整车启用底盘、大小yaw、pitch2、EL05、双传送带及超电控制帧发送；pitch1 保留发送且始终发送失能帧。EL05默认2 ms周期调用，合并后需用户更新固件核对在线状态
+- 各变量为inline volatile uint32_t，运行时通过调试器写入，下一个发送判断使用新值，不清零已有计数。计数器保留在cpp，不作为调频入口；周期0等效每主循环发送，超过100ms可能触发主控反馈离线，7025建议周期至少2ms
+- 失能、使能和清错帧替换当次发送，不额外增加发送频率；CAN2 和 CAN3 分别核算负载，P630 扩展帧和状态上报按实际电调设置统计
+- 频率是按1ms主循环计算的目标值，真实周期、反馈频率与7025断联是否改善仍需上板测量
+
 ## 轮腿上下板通信
 
 - 上下板 Can(1) 经滑环连接，与下板全部电机、上板管理的超电共用 CAN1；两板通过 `../leg_protocol.hpp` 引用共享文件 `app/leg/leg_protocol.hpp`，包含按发送方命名的 `UP_ID = 0x02`、`DOWN_ID = 0x03` 和报文布局。上板控制帧 8 字节（使能、自救授权、跳跃、速度、yaw、腿长、功率目标），500 Hz；下板状态帧 3 字节（底盘倒地、实测航向角速度），250 Hz
@@ -94,7 +159,8 @@
 - 超电实例、更新和收发由上板负责，接 Can(1)，`chassis_loop()` 每周期设 OFF 并更新，100 Hz 持续发送关闭指令，未接裁判时沿用默认 120 W 上限和 60 J 缓冲能量。OFF 关闭 DCDC，底盘仍按裁判功率与缓冲能量折算目标
 - 上板将 `power_chassis_ref` 随控制帧下发：8 字节小端位域，bit0/1/2 为使能/自救/跳跃，bit3..15 前向速度（有符号 13 位，1e-3 m/s，±4.096 m/s），bit16..30 手动角速度（有符号 15 位，1e-3 rad/s，±16.384 rad/s，约 156 rpm），bit31..43 yaw（有符号 13 位，1e-3 rad），bit44..52 腿长，bit53..63 功率（11 位，0.25 W/LSB，四舍五入，有限值最高 511.5 W，2047 表示不限功率）。下板状态帧 bit0 为倒地，bit1..16 为实测航向角速度（int16，1e-3 rad/s），bit17..23 保留。下板移除 SuperCap，只调用 `set_power_ref()`
 - 下板 Can(1) 每拍 3 帧，匹配 3 个发送邮箱：偶拍左腿两关节与双轮 0x200，奇拍右腿两关节加第 3 帧，第 3 帧由 0x003 状态帧与 `referee_relay.send()` 轮流使用，各 250 Hz
-- 裁判系统接下板 USART1（115200），`app.hpp` 的 `RefereeRelay referee_relay` 原样转发字节流：CAN ID 与 leg_protocol 一样按发送板命名，0x00 为下板发送、0x01 为上板发送，类内按本板视角写作 `tx_id`、`rx_id`（与 Referee 对应）。串口收到的字节切成至多 8 字节的 0x00 帧，每次 `send()` 发 1 帧，容量 2 kB/s，约为 2027 协议常规链路定频报文的 2 倍；收到的 0x01 帧载荷拼接后在串口空闲时一次发出。缓冲区 `to_can` 1024 B（1 Hz 定频报文与触发报文叠加的最坏突发约 500 B）、`to_uart` 256 B（两次 `send()` 间至多积压 32 B），满时丢弃并计入 `to_can_drop`、`to_uart_drop`。上板用 `Referee({.can = Can(1)})` 接收（默认 `rx_id = 0`）、`RefereeSender({.can = Can(1)})` 发送（默认 `tx_id = 1`）；sentry 主循环在 `referee.update()` 后调用 `referee_sender.set_robot_id()` 与 `send()`，每拍至多 1 帧
+- 裁判系统接下板 USART1（115200），`app.hpp` 的 `RefereeRelay referee_relay` 原样转发字节流：CAN ID 与 leg_protocol 一样按发送板命名，0x00 为下板发送、0x01 为上板发送，类内按本板视角写作 `tx_id`、`rx_id`（与 Referee 对应）。串口收到的字节切成至多 8 字节的 0x00 帧，每次 `send()` 发 1 帧，容量 2 kB/s，约为 2027 协议常规链路定频报文的 2 倍；收到的 0x01 帧载荷拼接后在串口空闲时一次发出。缓冲区 `to_can` 1024 B（1 Hz 定频报文与触发报文叠加的最坏突发约 500 B）、`to_uart` 256 B（两次 `send()` 间至多积压 32 B），满时丢弃并计入 `to_can_drop`、`to_uart_drop`。上板用 `Referee({.can = Can(1)})` 接收（默认 `rx_id = 0`）、`RefereeSender({.can = Can(1)})` 发送（默认 `tx_id = 1`）；leg_up 的 `referee_loop()` 在 `referee.update()` 后调用 `referee_sender.set_robot_id()` 并填写 UI，`send()` 在偶拍空闲槽调用 `referee_sender.send()`，每次至多 1 帧
+- leg_up 接入裁判：超电保持 OFF，按裁判功率上限与缓冲能量折算 `power_chassis_ref` 随控制帧下发；发射机构按裁判热量设置剩余热量，`heat_protect = 80` 待整定；UI 的 yaw 相对角取 `yaw.angle`，世界 yaw/pitch 取 GimbalClassic 的 `angle_measure`，受击方向按“云台世界 yaw − yaw 电机角”换算底盘航向后锁存，底盘转速显示下板回传的 `down.wr`；底盘电机在下板、状态未上传，UI 底盘状态保持默认
 
 ## 轮腿功率控制
 

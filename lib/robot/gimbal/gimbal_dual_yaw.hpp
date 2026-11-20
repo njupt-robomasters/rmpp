@@ -77,6 +77,9 @@ class GimbalDualYaw {
     // 设置角度，rad
     void set_angle(Angle yaw, Angle pitch);
 
+    // yaw 编码器与 IMU 目标同时转过 delta，rad；如 R 键掉头
+    void turn_yaw(float delta);
+
     // 设置底盘旋转速度，用于 yaw 轴前馈，rad/s
     void set_chassis_wr(float chassis_wr);
 

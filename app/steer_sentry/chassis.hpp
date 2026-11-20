@@ -1,8 +1,5 @@
 #pragma once
 
-#include "bsp/can.hpp"
-
-#include "math/unit.hpp"
 #include "motor/gm6020.hpp"
 #include "motor/m3508.hpp"
 #include "power/super_cap.hpp"

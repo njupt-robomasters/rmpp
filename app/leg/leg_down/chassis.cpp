@@ -37,10 +37,12 @@ static void control_by_fsi6x() {
 
 void chassis_loop() {
     // 上板在线时由上板控制，断联时回退 FSi6X
-    if (callback_timer.elapsed() > LEG_TIMEOUT)
+    if (callback_timer.elapsed() > LEG_TIMEOUT) {
         up_is_connect = false;
+        up = {};
+    }
 
-    if (up_is_connect) {
+    if (up_is_connect && up.is_enable) {
         control_by_up();
     } else {
         control_by_fsi6x();

@@ -102,6 +102,11 @@
 - CHARGE 稳态 `power_cap` 不为负；若因 DCDC 损耗偏负再考虑充电余量；BOOST 在 10/12 V 的补偿衰减
 - infantry/sentry 未装超电（不调用 send，按 OFF）
 
+### jelly_sentry 超电待上车
+
+- 已接入默认 CAN1 ID 0x061/0x051，在线 VT13 的 C 挡优先失能，N/S 挡启用超电 BOOST。N 挡双传送带与拨盘停转，S 挡运行双传送带，拨盘取 VT13 弹频（trigger 加 pitch 摇杆或鼠标左键）。人工 OFF 与裁判失联优先关闭超电，实现和验证见 `docs/application.md` 与 `tasks/06-super_cap_capacitance/README.md`
+- 待用户审计：OFF 反馈、CHARGE 充电、BOOST 电压补偿衰减、断联与重连；结合实车供电支路核对超电实测和四轮模型功率。UI 能量显示待确定满电电压与可用能量范围
+
 ## 底盘深度重构、PID 回算、UI 下放
 
 状态：代码完成，受影响目标全部编译通过，待用户审计与上车。结论与上车核对项见 `tasks/03-quad_steer/README.md`
@@ -113,6 +118,17 @@
 ## 后续任务
 
 - VQF 姿态算法：原样引入官方 C++ 实现（确认单精度选项），封装 `Vqf` 与 `QuaternionEkf` 并列
+
+## jelly_sentry 并入 master
+
+状态：2026-11-20 从 rmpp-czk（HEAD 65b91de 加其未提交的 Nav 与 pitch1 失能改动）并入，jelly_sentry、sentry 的 app 与 lib 对象编译通过，待用户审计与上车；jelly_sentry_debug 按用户要求未并入。行为变化与上车核对项见 `tasks/16-jelly_sentry_merge/README.md`
+
+## jelly_sentry EL05 / CAN2 调试
+
+- 7025 + PCAN 独立总线出现部分 ID 引起反馈间隔从稳定 2 ms 跳至十几 ms：PCAN 交替发送电流控制和位置查询；用户确认干扰帧仅改变 ID，其他发送配置相同、一次只测一个 ID。待核对总线上真实请求间隔、分命令应答数与错误帧；优先对照 CANID 滤波器开关。V4.3 协议 0x20/index=0x02 为滤波器，示例文字误写 0x01（实际为清零）；尚未发送设置或确认根因
+- EL05 已参考用户指定 old 分支改为 CAN2 私有扩展帧，电机/主机节点保留0x12/0x22；电机侧需核对 protocol_1=0（之前记录为2），详见 tasks/01-mc02_bsp/README.md
+- 两个4310在接入EL05后丢反馈的实机原因未确认；EmberProbe仍从旧工作区uart2can-master查找桥接，需同步会话工作目录到rmpp后读取总线错误状态
+- 本轮未完整链接、烧录、复位或硬件验证；待用户审计与台架测试
 
 ## Referee UART 与 app CAN 转发分层
 
@@ -140,3 +156,16 @@
 
 - 用户确认原系数不抖；恢复最初 Python 模型（8f01151，Q_s=60、无 LQI）并独立为 lqr_fit.hpp，仅换 K，保留当前控制逻辑，待实车对照
 - 允许车体倾斜、优先定位的控制目标只分析，不实施
+
+## MiniPC 双 CDC 与导航控制协议
+
+状态：2026-11-20 已在当前工作区实施，协议/底盘/pitch1 主机检查及相关 ARM 对象编译通过，待用户审计和上板；结论见 `docs/minipc.md`，复现见 `tasks/15-minipc_nav/README.md`
+
+- jelly_sentry 使用 CDC1 自瞄、CDC2 导航；flag=0 随 IMU 头，flag=1 小陀螺；pitch1 全程失能并发送失能帧
+- 上板核对：两路 CDC 枚举及隔离、雷达与大 yaw 的安装偏角、负小 yaw 坐标转换方向、随头方向、人工接管和超时停止、pitch1 实际失能状态
+- yaw 字段当前解析保存，具体控制用途待上位机约定；Aim 收发及导航状态/目标点上行协议后续补充
+- pitch1 折叠/展开功能暂缓，后续启用时再确定目标角、编码器零点和动作流程
+
+## app 结构统一与哨兵控制拆分
+
+状态：2026-11-20 代码与文档完成，jelly_sentry、steer_sentry、leg-leg_up、leg-leg_down、dummy、examples-motor 的 app 与 lib 对象编译通过，待用户审计与上车。行为变化、修复与上车核对项见 `tasks/17-app_unify/README.md`

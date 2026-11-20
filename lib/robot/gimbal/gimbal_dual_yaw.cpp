@@ -36,6 +36,11 @@ void GimbalDualYaw::set_angle(const Angle yaw, const Angle pitch) {
     yaw_speed = pitch_speed = 0;
 }
 
+void GimbalDualYaw::turn_yaw(const float delta) {
+    yaw.ecd.ref += delta;
+    yaw.imu.ref += delta;
+}
+
 void GimbalDualYaw::set_chassis_wr(const float chassis_wr) {
     this->chassis_wr = chassis_wr;
 }

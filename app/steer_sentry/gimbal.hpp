@@ -1,12 +1,6 @@
 #pragma once
 
-#include "pid/pid.hpp"
-
-#include "bsp/can.hpp"
-#include "bsp/imu.hpp"
-
 #include "attitude/quaternion_ekf.hpp"
-#include "math/unit.hpp"
 #include "motor/dm4310.hpp"
 #include "motor/gm6020.hpp"
 #include "robot/gimbal/gimbal_dual_yaw.hpp"
@@ -17,26 +11,8 @@ inline Imu imu({.orientation = euler_to_quaternion({.yaw = -90 * deg}),
                 .gravity = 9.54711819f});
 inline QuaternionEkf attitude(imu, {});
 
-// 用于Ozone调参
-// #define yaw1_pid angle_pid
-// #define yaw1 motor
-//
-// #define yaw2_speed_pid speed_pid
-// #define yaw2_angle_pid angle_pid
-// #define yaw2 motor
-//
-// #define pitch_speed_pid speed_pid
-// #define pitch_angle_pid angle_pid
-// #define pitch motor
-
-// 大yaw电机：由 MF9025 换为 DM4310，CAN ID、PID 与安装方向待实车整定
-// 共用 yaw PID 输出：大 yaw 按 N·m、小 yaw 按 A 解释，参数待实车整定
-inline Pid::Config yaw1_pid = {
-    .kp = (9) / (1.8 * deg),
-    .kd = (9) / (18 * deg_s),
-    .max_out = 9,
-    .err_fc = 10,
-};
+// 大yaw电机：由 MF9025 换为 DM4310，CAN ID 与安装方向待实车整定
+// 大小 yaw 共用下方小 yaw PID 输出：大 yaw 按 N·m、小 yaw 按 A 解释，参数待实车整定
 inline DM4310 yaw1({
     .can = Can(1),
     .tx_id = 0x12,

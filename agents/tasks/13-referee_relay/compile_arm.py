@@ -6,7 +6,7 @@ import shlex
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
-OUT = Path(__file__).resolve().parent / "out" / "arm"
+OUT = ROOT / "agents/out/13-referee_relay/arm"
 
 # 构建目录 → 待编译文件；模板取同目标（lib 或 app）中已有条目的参数
 JOBS = {
@@ -14,7 +14,7 @@ JOBS = {
                      "lib/referee/robot_ui.cpp", "lib/rc/vt13.cpp",
                      "app/leg/leg_down/app.cpp", "app/leg/leg_down/chassis.cpp"],
     "leg-leg_up": ["app/leg/leg_up/app.cpp", "app/leg/leg_up/chassis.cpp", "app/leg/leg_up/gimbal.cpp", "app/leg/leg_up/shooter.cpp"],
-    "sentry": ["app/sentry/app.cpp", "app/sentry/chassis.cpp", "app/sentry/gimbal.cpp", "app/sentry/shooter.cpp",
+    "steer_sentry": ["app/steer_sentry/app.cpp", "app/steer_sentry/chassis.cpp", "app/steer_sentry/gimbal.cpp", "app/steer_sentry/shooter.cpp",
                "app/examples/referee/app.cpp"],
 }
 

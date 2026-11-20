@@ -1,4 +1,4 @@
-"""比较类布局重构前后的电机输出和超电仿真，产物放在任务 out/。"""
+"""比较类布局重构前后的电机输出和超电仿真，产物放在agents/out/10-global_refactor/。"""
 
 import argparse
 from pathlib import Path
@@ -7,7 +7,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
-OUT = TASK / "out/layout_regression"
+OUT = ROOT / "agents/out/10-global_refactor/layout_regression"
 
 
 def main():

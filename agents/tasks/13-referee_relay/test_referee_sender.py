@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
-OUT = Path(__file__).resolve().parent / "out" / "referee_sender"
+OUT = ROOT / "agents/out/13-referee_relay/referee_sender"
 
 STUBS = r"""
 #include "bsp/can.hpp"

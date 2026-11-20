@@ -120,6 +120,33 @@ int main() {
         assert(motor.current_ref > 0);
     }
 
+    // PID 输出饱和即计卡弹：max_out 低于电机限幅时，按 PID 限幅检测并按配置反转
+    const Pid::Config saturate_pid = {.kp = 5, .max_out = 5};
+    Shooter17mm saturate({rub, rub, motor}, {.shoot_pid_config = &saturate_pid, .bullet_per_angle = 1, .block_time = 0.0025f, .reverse_time = 0.0015f});
+    saturate.set_enable(true);
+    saturate.set_bullet_freq(2);
+    for (int i = 0; i < 7; i++) {
+        now_us += 1000;
+        motor.feedback();
+        saturate.update();
+        assert(std::fabs(motor.current_ref) == 5);
+        assert((motor.current_ref > 0) == (i < 4 || i == 6));
+    }
+
+    // 堵转时 P 输出低于 max_out 则不饱和，持续前进
+    saturate.set_bullet_freq(0.5f);
+    for (int i = 0; i < 4; i++) {
+        now_us += 1000;
+        motor.feedback();
+        saturate.update();
+    }
+    for (int i = 0; i < 10; i++) {
+        now_us += 1000;
+        motor.feedback();
+        saturate.update();
+        assert(motor.current_ref == 2.5f);
+    }
+
     // 基类引用分派：默认电流与 DM 力矩
     Motor& current_motor = motor;
     current_motor.set_output(2);

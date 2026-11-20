@@ -43,7 +43,7 @@
 python tools/check_builds.py --cmake <CLion cmake> --ninja <CLion ninja>
 ```
 
-`out/` 下为一次性编辑脚本，不入库
+`agents/out/10-global_refactor/` 下为一次性编辑脚本，不入库
 
 ## 外部 worktree 类布局重构
 
@@ -90,7 +90,7 @@ python agents/tasks/10-global_refactor/layout_regression.py --baseline 795e263
 - 应用对象编译：dummy、examples-attitude/cdc/gimbal/kv_store/melody/motor/rc/referee/rgb、leg_down、leg_up、sentry、test，共 14 个预设
 - 公共库与手写 BSP：dummy 覆盖 C 板，examples-cdc 覆盖 mc02
 - 主机差分回归：layout_motor_regression.cpp 验证八类电机反馈、限幅、零点、离线处理、CAN 命令及 17 mm 发射机构电流/力矩输出；sim.cpp 验证超电容量/ESR；power_sim.cpp 验证功率与虚拟缓冲能量；layout_melody_regression.cpp 比较直驱音符时序、带伴奏和纯旋律的复音浮点采样。分别编译基线与当前实现，要求输出逐字节一致
-- `layout_regression.py` 只读取指定 Git 基线，提取文件与构建产物放在本任务 out/layout_regression；包含生成和第三方目录的工程文件未改动
+- `layout_regression.py` 只读取指定 Git 基线，提取文件与构建产物放在`agents/out/10-global_refactor/layout_regression/`；包含生成和第三方目录的工程文件未改动
 - 保留的应用告警：motor 示例两个未使用函数；leg_up/gimbal.cpp 的 is_auto_aim 未使用
 - 构建日志和差分结果位于 out/；最终状态以本节对应执行结果为准，早期失败尝试也保留在 out/ 便于追溯
 
@@ -114,7 +114,7 @@ python agents/tasks/10-global_refactor/layout_regression.py --baseline 795e263
 - 删除原来供 `set_zero()` 读取的 `position_multi` 成员，多圈位置换算直接在反馈处理中完成；功率计算和发射机构读取量程的调用点同步迁移
 - 新增 `motor_config_test.cpp`，覆盖默认值补齐、显式配置、电流/力矩限幅与换算、反向反馈、外部校零和超时；历史布局测试保留当时接口，本轮使用新测试及任务 11 的原生输出/拨弹测试
 
-验证：两板 timer.cpp ARM 对象编译通过；配置回归及任务 11 主机测试通过；24 个相关源码 ARM 对象编译通过，无警告。21 个工程源码及 DM 模板、新测试的格式检查与 `git diff --check` 通过。未执行完整固件链接或硬件操作；新增对象和测试产物位于本任务 `out/`，任务 11 验证产物沿用其 `out/`。
+验证：两板 timer.cpp ARM 对象编译通过；配置回归及任务 11 主机测试通过；24 个相关源码 ARM 对象编译通过，无警告。21 个工程源码及 DM 模板、新测试的格式检查与 `git diff --check` 通过。未执行完整固件链接或硬件操作；新增对象和测试产物位于 `agents/out/10-global_refactor/`，任务 11 验证产物沿用 `agents/out/11-shooter_state/`。
 
 ### angle、多圈零点与配置优先布局
 
@@ -172,7 +172,7 @@ python agents/tasks/10-global_refactor/verify_motor_feedback.py
 - 30 个修改的手写代码文件格式检查与 git diff --check 通过，86 份 ARM 编译日志均为空；结束检查时主工作区另出现并行的根 TODO.md 修改，保持原样
 - 本轮仅编译对象与执行主机回归，未链接完整固件或操作硬件
 
-复现：mc02 配置目录为 `agents/tasks/10-global_refactor/out/class_order/mc02`，复用上方 `verify_angle_layout.py`；主机差分入口：
+复现：mc02 配置目录为 `agents/out/10-global_refactor/class_order/mc02`，复用上方 `verify_angle_layout.py`；主机差分入口：
 
 ```sh
 python agents/tasks/10-global_refactor/verify_class_order.py --baseline ba752f6

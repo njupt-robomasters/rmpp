@@ -135,7 +135,7 @@ bool Referee::parse(const uint16_t cmd_id, const uint8_t* data, const size_t siz
         if (size != sizeof(hurt_data))
             return false;
         std::memcpy(&hurt_data, data, size);
-        hurt_timer.restart();
+        hurt_sequence++;
         return true;
     case 0x0207:
         if (size != sizeof(shoot_data))

@@ -7,7 +7,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
-OUT = TASK / "out/offline"
+OUT = ROOT / "agents/out/03-quad_steer/offline"
 
 
 def main():
@@ -28,7 +28,7 @@ def main():
     for preset, sources in {
         "leg-leg_up": ["lib/motor/motor.cpp", "lib/robot/chassis/chassis_matrix.cpp",
                    "lib/robot/chassis/chassis_steer.cpp", "app/leg/leg_up/chassis.cpp"],
-        "sentry": ["app/sentry/gimbal.cpp", "app/sentry/app.cpp"],
+        "steer_sentry": ["app/steer_sentry/gimbal.cpp", "app/steer_sentry/app.cpp"],
     }.items():
         rows = json.loads((ROOT / "build" / preset / "compile_commands.json").read_text(encoding="utf-8"))
         for source in sources:

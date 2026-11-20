@@ -12,16 +12,14 @@ inline Vesc rub1({
     .tx_id = 0x30,
     .rx_id = 0x30,
     .max_current = M3508::MAX_CURRENT,
-    .max_torque = M3508::MAX_TORQUE,
-    .reduction = M3508::REDUCTION,
+    .reduction = 7,
 });
 inline Vesc rub2({
     .can = Can(2),
     .tx_id = 0x31,
     .rx_id = 0x31,
     .max_current = M3508::MAX_CURRENT,
-    .max_torque = M3508::MAX_TORQUE,
-    .reduction = M3508::REDUCTION,
+    .reduction = 7,
 });
 
 // 拨弹电机
@@ -42,6 +40,7 @@ inline Shooter17mm shooter({rub1, rub2, shoot},
                            {
                                .shoot_pid_config = &shoot_pid_config,
                                .bullet_per_angle = 10.0f / 56.0f * 22.0f / rev,
+                               .heat_protect = 80, // 剩余热量低于此值停止拨弹，待整定
                            });
 
 void shooter_loop();

@@ -152,8 +152,8 @@ flowchart LR
 ## 编译接口
 
 - `Can` 没有默认构造，硬件编号由应用显式指定；电机型号以 `static constexpr` 保存电流与转矩量程、默认减速比，按实际外部调用决定是否公开，具体权限见 motor.md
-- MiniPC 当前只保留 `Aim`、`Nav` 的状态和定时更新接口，通信协议由后续实现
-- 应用显式向 MiniPC 传入 `Cdc(1)`，为后续协议实现保留板卡通道绑定
+- Nav 已接入 17 字节 MODBUS CRC 导航下行协议，设备独立于 Config 传入；Aim 的协议收发待实现
+- jelly_sentry 使用 CDC1 自瞄、CDC2 导航；C 板 sentry 继续共用 CDC1。接口与坐标转换见 `minipc.md`
 
 ## 验证记录
 

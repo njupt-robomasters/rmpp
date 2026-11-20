@@ -8,7 +8,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
-OUT = TASK / "out"
+OUT = ROOT / "agents/out/11-shooter_state"
 
 
 def main():
@@ -33,7 +33,7 @@ def main():
                "lib/robot/shooter/shooter_42mm.cpp"]
     sources += [p.relative_to(ROOT).as_posix() for p in (ROOT / "lib/motor").glob("*.cpp")]
     sources += ["app/leg/leg_up/app.cpp", "app/leg/leg_up/gimbal.cpp", "app/leg/leg_up/shooter.cpp",
-                "app/infantry/gimbal.cpp", "app/sentry/gimbal.cpp", "app/examples/gimbal/app.cpp"]
+                "app/infantry/gimbal.cpp", "app/steer_sentry/gimbal.cpp", "app/examples/gimbal/app.cpp"]
     template = next(r for r in rows if r["file"].endswith("/app/leg/leg_up/gimbal.cpp"))
     for source in sources:
         row = next((r for r in rows if r["file"].endswith("/" + source)), template)

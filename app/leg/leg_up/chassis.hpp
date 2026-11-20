@@ -3,6 +3,11 @@
 #include "../leg_protocol.hpp"
 #include "power/super_cap.hpp"
 
+// 腿长档位，m
+inline constexpr float LEG_LENGTH_LOW = 0.14f;
+inline constexpr float LEG_LENGTH_MID = 0.22f;
+inline constexpr float LEG_LENGTH_HIGH = 0.33f;
+
 // 超级电容
 inline SuperCap super_cap({.can = Can(1)});
 

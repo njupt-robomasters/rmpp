@@ -5,7 +5,6 @@
 #include "math/angle.hpp"
 #include "math/unit.hpp"
 #include "referee/referee.hpp"
-#include <cmath>
 
 class Aim {
   public:
@@ -41,12 +40,8 @@ class Aim {
         float distance = 0;
     } vision;
 
-    struct {
-        float a0 = NAN;
-    } insta360;
-
   private:
-    Timer vision_timer, insta360_timer;
+    Timer vision_timer;
 
   public:
     explicit Aim(const Config& config);

@@ -27,7 +27,7 @@ inline GM6020 yaw({
     .tx_id = 0x1fe,
     .rx_id = 0x205,
     .is_invert = true,
-    .offset = 5.048f,
+    .offset = 5.06981f,
 });
 
 // pitch电机
@@ -44,7 +44,7 @@ inline GM6020 pitch({
     .tx_id = 0x1fe,
     .rx_id = 0x206,
     .is_invert = true,
-    .offset = 4.836f,
+    .offset = 0.05522f,
 });
 
 // 云台

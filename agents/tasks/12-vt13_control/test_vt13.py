@@ -4,7 +4,7 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
-OUT = Path(__file__).resolve().parent / "out" / "vt13"
+OUT = ROOT / "agents/out/12-vt13_control/vt13"
 
 STUBS = r"""
 #include "bsp/timer.hpp"
@@ -201,19 +201,28 @@ int main() {
     step();
     assert(near(vt13.bullet_freq, -5.0f) && near(vt13.pitch_speed, -1.5f));
 
-    // 鼠标左键按最高弹频；trigger 优先
+    // N 挡鼠标左键不发弹；trigger 保持原行为
     in = {};
     in.left = true;
     send(in);
     step();
-    assert(near(vt13.bullet_freq, 10.0f));
+    assert(vt13.bullet_freq == 0);
     in.trigger = true;
     send(in);
     step();
     assert(vt13.bullet_freq == 0);
 
+    // S 挡鼠标左键按最高弹频
+    in = {};
+    in.mode = 2;
+    in.left = true;
+    send(in);
+    step();
+    assert(near(vt13.bullet_freq, 10.0f));
+
     // app 修改最高弹频后下次 update 生效
     in = {};
+    in.mode = 2;
     in.left = true;
     send(in);
     vt13.config.bullet_freq = 15.0f;

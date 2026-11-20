@@ -3,3 +3,4 @@
 set_mit接口
 6020改成write_voltage和write_current
 use_angle_loop不要，位置环参数为0可以实现相同效果
+send()放在loop()里面

@@ -60,7 +60,8 @@ void Shooter17mm::update() {
         break;
 
     case FEED:
-        if (std::fabs(motor.shoot.current_ref) < motor.shoot.config.max_current) {
+        // 上一周期 PID 输出未饱和时清零计时，饱和持续 block_time 后反转
+        if (std::fabs(shoot_output) < config.shoot_pid_config->max_out) {
             block_elapsed = 0;
         } else {
             block_elapsed += dt;
@@ -83,9 +84,10 @@ void Shooter17mm::update() {
 
     // 拨弹速度闭环与失能处理
     if (is_enable) {
-        motor.shoot.set_output(shoot_pid.calculate(dt, shoot_speed - motor.shoot.speed));
+        shoot_output = shoot_pid.calculate(dt, shoot_speed - motor.shoot.speed);
     } else {
-        motor.shoot.set_output(0);
+        shoot_output = 0;
         shoot_pid.clear();
     }
+    motor.shoot.set_output(shoot_output);
 }

@@ -1,17 +1,8 @@
 #pragma once
 
-#include "pid/pid.hpp"
-
-#include "bsp/can.hpp"
-
-#include "math/unit.hpp"
 #include "motor/m3508.hpp"
 #include "motor/vesc.hpp"
 #include "robot/shooter/shooter_17mm.hpp"
-
-// 用于Ozone调参
-// #define shoot_pid motor_speed_pid
-// #define shoot motor
 
 // 摩擦轮
 inline Vesc rub1({
