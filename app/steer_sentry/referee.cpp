@@ -80,13 +80,12 @@ void referee_loop() {
     ui.s2 = motor_color(s2.status(MOTOR_OVERHEAT));
     ui.s3 = motor_color(s3.status(MOTOR_OVERHEAT));
     ui.s4 = motor_color(s4.status(MOTOR_OVERHEAT));
-    ui.base = motor_color(yaw1.status(MOTOR_OVERHEAT)); // 云台
-    ui.yaw = motor_color(yaw2.status(MOTOR_OVERHEAT));
-    ui.pitch = motor_color(pitch.status(MOTOR_OVERHEAT));
+    ui.yaw1 = motor_color(yaw1.status(MOTOR_OVERHEAT)); // 云台
+    ui.yaw2 = motor_color(yaw2.status(MOTOR_OVERHEAT));
+    ui.pitch1 = motor_color(pitch.status(MOTOR_OVERHEAT));
     ui.rub_left_stage1 = ui.rub_left_stage2 = motor_color(rub1.status(MOTOR_OVERHEAT, shooter.bullet_speed.ref != 0)); // 发射机构
     ui.rub_right_stage1 = ui.rub_right_stage2 = motor_color(rub2.status(MOTOR_OVERHEAT, shooter.bullet_speed.ref != 0));
     ui.shoot = motor_color(shoot.status(MOTOR_OVERHEAT));
-    ui.referee = status_color(referee.is_connect); // 裁判系统
-    ui.aim = status_color(aim.is_connect_vision);  // 自瞄
+    ui.aim = status_color(aim.is_connect_vision); // 自瞄
     ui.update(referee_sender);
 }

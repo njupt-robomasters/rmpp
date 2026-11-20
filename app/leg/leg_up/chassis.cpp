@@ -3,11 +3,6 @@
 #include "gimbal.hpp"
 #include "referee.hpp"
 
-// 下发指令，chassis_loop() 写入、chassis_write_can_frame() 组帧
-static LegUpFrame up;
-bool down_is_connect = false;
-static Timer callback_timer;
-
 void chassis_loop() {
     // 超级电容：保持 OFF，按裁判功率上限与缓冲能量折算底盘功率目标；裁判离线时沿用最后值，启动默认 120 W / 60 J
     super_cap.set_mode(SuperCap::OFF);
@@ -16,45 +11,41 @@ void chassis_loop() {
     super_cap.update();
 
     // 下板断联检测
-    if (callback_timer.elapsed() > LEG_TIMEOUT) {
-        down_is_connect = false;
-        down = {};
-    }
+    leg_protocol.update();
 
-    up.is_enable = vt13.is_enable && down_is_connect;
-    up.trigger_jump = vt13.rc.fn;
-    up.vx = vt13.vx * std::cos(yaw.angle);
-    up.wr = vt13.wr;
-    up.yaw = yaw.angle;
-    up.power_ref = super_cap.power_chassis_ref;
-
+    // 使能后首次按下 pause 才下发底盘使能，防止误触；之后 pause 切换腿长，失能或下板断联复位
     static bool last_pause = false;
-    if (!up.is_enable) {
-        up.allow_rescue = false;
-        up.leg_length = LEG_LENGTH_LOW;
-    } else {
-        // pause：倒地时授权自救并保持，站立时切换腿长
+    static bool is_leg_length_rising = true;
+    if (vt13.is_enable && leg_protocol.is_connect) {
         if (vt13.rc.pause && !last_pause) {
-            up.allow_rescue = true;
-            if (up.leg_length < LEG_LENGTH_MID)
-                up.leg_length = LEG_LENGTH_MID;
-            else if (up.leg_length < LEG_LENGTH_HIGH)
-                up.leg_length = LEG_LENGTH_HIGH;
-            else
-                up.leg_length = LEG_LENGTH_LOW;
+            if (!leg_protocol.is_enable) {
+                leg_protocol.is_enable = true;
+            } else if (is_leg_length_rising) {
+                if (leg_protocol.leg_length < LEG_LENGTH_MID) {
+                    leg_protocol.leg_length = LEG_LENGTH_MID;
+                } else {
+                    leg_protocol.leg_length = LEG_LENGTH_HIGH;
+                    is_leg_length_rising = false;
+                }
+            } else {
+                if (leg_protocol.leg_length > LEG_LENGTH_MID) {
+                    leg_protocol.leg_length = LEG_LENGTH_MID;
+                } else {
+                    leg_protocol.leg_length = LEG_LENGTH_LOW;
+                    is_leg_length_rising = true;
+                }
+            }
         }
+    } else {
+        leg_protocol.is_enable = false;
+        leg_protocol.leg_length = LEG_LENGTH_LOW;
+        is_leg_length_rising = true;
     }
     last_pause = vt13.rc.pause;
-}
 
-void chassis_write_can_frame(CanFrame& frame) {
-    up.pack(frame);
-}
-
-void chassis_can_callback(const CanFrame& frame) {
-    if (!down.unpack(frame))
-        return;
-
-    callback_timer.restart();
-    down_is_connect = true;
+    leg_protocol.trigger_jump = vt13.rc.fn;
+    leg_protocol.vx = vt13.vx * std::cos(yaw.angle);
+    leg_protocol.wr = vt13.wr;
+    leg_protocol.yaw = yaw.angle;
+    leg_protocol.power_ref = super_cap.power_chassis_ref;
 }

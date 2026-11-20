@@ -26,7 +26,6 @@ VT13 vt13({
 static void setup() {
     melody.play(C5D5G5);
     ui.init(referee_sender);
-    Can(1).add_rx_callback(chassis_can_callback);
 }
 
 static void send() {
@@ -35,9 +34,7 @@ static void send() {
 
     // CAN1：奇拍底盘控制帧 500 Hz；偶拍超电 100 Hz，其余偶拍裁判发送（UI）至多 400 Hz
     if (send_cnt % 2 == 1) {
-        CanFrame frame;
-        chassis_write_can_frame(frame);
-        Can(1).send(frame);
+        leg_protocol.send();
     } else if (send_cnt % 10 == 0) {
         super_cap.send();
     } else {

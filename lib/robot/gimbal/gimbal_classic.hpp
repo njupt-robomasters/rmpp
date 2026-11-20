@@ -31,8 +31,6 @@ class GimbalClassic {
         // 角度外环最大角加速度，rad/s²；无穷大时禁用加速度规划
         float yaw_max_accel = INFINITY;
         float pitch_max_accel = INFINITY;
-
-        bool use_angle_loop = true; // false 时只有速度内环
     };
 
   private:

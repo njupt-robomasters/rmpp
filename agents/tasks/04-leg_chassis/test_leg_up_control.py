@@ -9,24 +9,37 @@ OUT = ROOT / "agents/out/04-leg_chassis/leg_up_control"
 CAN_STUB = r"""
 #pragma once
 #include <cstdint>
+#include <functional>
 struct CanFrame {
     uint32_t id = 0;
     unsigned size = 0;
     uint8_t data[8]{};
 };
+// 回调与发送帧共享，便于测试注入状态帧、读取控制帧
+struct Can {
+    explicit Can(int) {}
+    void add_rx_callback(const std::function<void(const CanFrame&)>& callback) const { this->rx = callback; }
+    void send(const CanFrame&) const {}
+    inline static std::function<void(const CanFrame&)> rx;
+};
 """
 
-STUBS = r"""
-#include <cassert>
-#include "leg_protocol.hpp"
-
-constexpr float deg_s = 3.14159265358979323846f / 180;
+TIMER_STUB = r"""
+#pragma once
 struct Timer {
     inline static float now = 0;
     float start = 0;
     float elapsed() const { return now - start; }
     void restart() { start = now; }
 };
+"""
+
+STUBS = r"""
+#include <cassert>
+#include <cmath>
+#include "leg_protocol.hpp"
+
+constexpr float deg_s = 3.14159265358979323846f / 180;
 struct VT13 {
     struct {
         bool fn = false, pause = false;
@@ -35,32 +48,32 @@ struct VT13 {
     float vx = 0, wr = 0;
 } vt13;
 struct { bool is_connect = true; float angle = 0; } yaw;
-LegDownFrame down;
+struct {
+    struct { float chassis_power_limit = 120; } robot_status;
+    struct { float buffer_energy = 60; } power_heat_data;
+} referee;
 struct SuperCap {
     enum Mode { OFF };
     float power_chassis_ref = 132;
     unsigned updates = 0;
     void set_mode(Mode) {}
+    void set_referee_limit(float) {}
+    void set_referee_energy(float) {}
     void update() { updates++; }
 } super_cap;
-"""
-
-DOWN_STUBS = r"""
-LegUpFrame received_up;
-bool up_is_connect = false;
-Timer down_callback_timer;
+LegUpProtocol leg_protocol(Can(1));
 """
 
 TESTS = r"""
-void report(const bool is_fallen) {
+void report(const bool is_fallen, const bool is_enable = false) {
     CanFrame frame;
-    LegDownFrame{.is_fallen = is_fallen}.pack(frame);
-    chassis_can_callback(frame);
+    LegDownFrame{.is_fallen = is_fallen, .is_enable = is_enable}.pack(frame);
+    Can::rx(frame);
 }
 CanFrame cycle() {
     chassis_loop();
     CanFrame frame;
-    chassis_write_can_frame(frame);
+    leg_protocol.pack(frame);
     return frame;
 }
 LegUpFrame command() {
@@ -76,34 +89,32 @@ void press_pause() {
 }
 uint64_t field(const CanFrame& frame, const unsigned offset, const unsigned bits) {
     uint64_t value = 0;
-    std::memcpy(&value, frame.data, sizeof(value));
+    std::memcpy(&value, frame.data, frame.size);
     return value >> offset & ((uint64_t(1) << bits) - 1);
 }
 int main() {
     // 首次状态帧到达前保持失能与低腿长
     vt13.is_enable = true;
-    assert(!command().is_enable && up.leg_length == 0.14f);
-    // 倒地使能：pause 授权自救并保持，腿长不变
+    assert(!command().is_enable && leg_protocol.leg_length == 0.14f);
+
+    // 下板在线后仍需首次 pause 才给使能
     report(true);
     auto frame = cycle();
     assert(frame.id == UP_ID && frame.size == 8);
-    assert(up.is_enable && !up.allow_rescue && up.leg_length == 0.14f);
+    assert(!leg_protocol.is_enable && leg_protocol.leg_length == 0.14f);
     assert(super_cap.updates == 2);
     press_pause();
-    assert(up.allow_rescue && up.leg_length == 0.14f);
-    press_pause();
-    assert(command().leg_length == 0.14f && up.allow_rescue);
+    assert(leg_protocol.is_enable && leg_protocol.leg_length == 0.14f);
 
-    // 站起后 pause 切换腿长，授权保持
-    report(false);
-    assert(command().leg_length == 0.14f);
+    // 之后 pause 在低、中、高之间往返
     press_pause();
-    assert(command().leg_length == 0.22f);
-    assert(command().leg_length == 0.22f);
+    assert(leg_protocol.leg_length == 0.22f);
     press_pause();
-    assert(command().leg_length == 0.33f);
+    assert(leg_protocol.leg_length == 0.33f);
     press_pause();
-    assert(command().leg_length == 0.14f && up.allow_rescue);
+    assert(leg_protocol.leg_length == 0.22f);
+    press_pause();
+    assert(leg_protocol.leg_length == 0.14f);
 
     // 跳跃上升沿
     vt13.rc.fn = true;
@@ -124,45 +135,43 @@ int main() {
     yaw.angle = 0; // Motor::update() 在实际云台循环中清零离线角度
     assert(command().yaw == 0);
 
-    // 失能清授权，fn 保持直接透传
+    // 失能清使能，重新使能需再按 pause
     vt13.is_enable = false;
     vt13.rc.fn = true;
-    assert(!command().is_enable && !up.allow_rescue && up.trigger_jump);
+    assert(!command().is_enable && leg_protocol.trigger_jump);
     vt13.is_enable = true;
-    assert(command().is_enable && up.trigger_jump && !up.allow_rescue);
-    assert(command().trigger_jump);
+    assert(!command().is_enable && leg_protocol.trigger_jump);
+    cycle();
     vt13.rc.fn = false;
-    cycle();
-    vt13.rc.fn = true;
-    assert(command().trigger_jump && !up.allow_rescue);
-
-    // 下板断联清反馈与授权、复位腿长
-    report(true);
     press_pause();
-    assert(up.allow_rescue);
-    up.leg_length = 0.33f;
+    assert(command().is_enable && !leg_protocol.trigger_jump);
+
+    // 下板断联清反馈与使能、复位腿长
+    leg_protocol.leg_length = 0.33f;
     Timer::now = 0.2f;
-    down.wr = 1;
+    leg_protocol.received.wr = 1;
+    leg_protocol.received.is_enable = true;
     cycle();
-    assert(!down_is_connect && down.wr == 0 && !down.is_fallen);
-    assert(!up.is_enable && !up.allow_rescue && up.leg_length == 0.14f);
+    assert(!leg_protocol.is_connect && leg_protocol.received.wr == 0 && !leg_protocol.received.is_fallen && !leg_protocol.received.is_enable);
+    assert(!leg_protocol.is_enable && leg_protocol.leg_length == 0.14f);
 
-    // 站立使能时直接切换腿长
+    // 重新连接后需再按 pause 使能
     report(false);
-    assert(command().is_enable && !up.allow_rescue && up.leg_length == 0.14f);
+    assert(!command().is_enable && leg_protocol.leg_length == 0.14f);
     press_pause();
-    assert(command().leg_length == 0.22f && !up.allow_rescue);
-    report(true);
+    assert(command().is_enable && leg_protocol.leg_length == 0.14f);
     press_pause();
-    assert(command().allow_rescue && up.leg_length == 0.22f);
-    CanFrame invalid{.id = DOWN_ID, .size = 2};
-    chassis_can_callback(invalid);
-    assert(down.is_fallen);
+    assert(command().leg_length == 0.22f);
 
-    // 上板帧位布局：开关 0..2、vx 3..15、wr 16..30、yaw 31..43、腿长 44..52、功率 53..63
+    // 非法帧保持原数据
+    report(true, true);
+    assert(leg_protocol.received.is_fallen && leg_protocol.received.is_enable);
+    chassis_loop(); // 未超时，数据保留
+    assert(leg_protocol.received.is_fallen && leg_protocol.received.is_enable);
+
+    // 上板帧位布局：使能 0、跳跃 1、vx 2..14、wr 15..29、yaw 30..42、腿长 43..51、功率 52..63
     const LegUpFrame layout{
         .is_enable = true,
-        .allow_rescue = false,
         .trigger_jump = true,
         .vx = -1.234f,
         .wr = 2.345f,
@@ -171,43 +180,70 @@ int main() {
         .power_ref = 100.25f,
     };
     layout.pack(frame);
-    assert(field(frame, 0, 1) == 1 && field(frame, 1, 1) == 0 && field(frame, 2, 1) == 1);
-    assert(field(frame, 3, 13) == ((1u << 13) - 1234));
-    assert(field(frame, 16, 15) == 2345);
-    assert(field(frame, 31, 13) == ((1u << 13) - 3000));
-    assert(field(frame, 44, 9) == 257);
-    assert(field(frame, 53, 11) == 401);
+    assert(field(frame, 0, 1) == 1 && field(frame, 1, 1) == 1);
+    assert(field(frame, 2, 13) == ((1u << 13) - 1234));
+    assert(field(frame, 15, 15) == 2345);
+    assert(field(frame, 30, 13) == ((1u << 13) - 3000));
+    assert(field(frame, 43, 9) == 257);
+    assert(field(frame, 52, 12) == 802);
 
-    // 下板帧位布局：倒地 0、wr 1..16、保留 17..23
-    LegDownFrame{.is_fallen = true, .wr = -1.234f}.pack(frame);
-    assert(frame.size == 3 && (frame.data[0] & 1) == 1);
-    assert((((frame.data[0] | frame.data[1] << 8 | frame.data[2] << 16) >> 1) & 0xFFFF) == 0x10000 - 1234);
-    assert((frame.data[2] >> 1) == 0);
+    // 下板帧位布局：倒地 0、使能 1、wr 2..17、6 个电机 18..29、保留 30..31
+    LegDownFrame status;
+    status.is_fallen = true;
+    status.is_enable = true;
+    status.wr = -1.234f;
+    status.motor[0] = LegDownFrame::MotorState::NORMAL;   // 左前
+    status.motor[1] = LegDownFrame::MotorState::OVERHEAT; // 左后
+    status.motor[2] = LegDownFrame::MotorState::ERROR;    // 右后
+    status.motor[3] = LegDownFrame::MotorState::OFFLINE;  // 右前
+    status.motor[4] = LegDownFrame::MotorState::ERROR;    // 左轮
+    status.motor[5] = LegDownFrame::MotorState::NORMAL;   // 右轮
+    status.pack(frame);
+    assert(frame.size == 4);
+    assert(field(frame, 0, 1) == 1 && field(frame, 1, 1) == 1);
+    assert(field(frame, 2, 16) == ((1u << 16) - 1234));
+    assert(field(frame, 18, 2) == 0 && field(frame, 20, 2) == 1);
+    assert(field(frame, 22, 2) == 2 && field(frame, 24, 2) == 3);
+    assert(field(frame, 26, 2) == 2 && field(frame, 28, 2) == 0);
+    assert(field(frame, 30, 2) == 0);
+
+    // 下板状态帧编解码与接收
+    LegDownFrame feedback;
+    assert(feedback.unpack(frame));
+    assert(std::fabs(feedback.wr + 1.234f) < 0.00001f && feedback.is_fallen && feedback.is_enable);
+    assert(feedback.motor[1] == LegDownFrame::MotorState::OVERHEAT && feedback.motor[3] == LegDownFrame::MotorState::OFFLINE);
+    Can::rx(frame);
+    assert(std::fabs(leg_protocol.received.wr + 1.234f) < 0.00001f && leg_protocol.received.is_fallen && leg_protocol.received.is_enable);
+    assert(leg_protocol.received.motor[2] == LegDownFrame::MotorState::ERROR && leg_protocol.received.motor[5] == LegDownFrame::MotorState::NORMAL);
+    frame.id = UP_ID;
+    assert(!feedback.unpack(frame));
+    frame.id = DOWN_ID;
+    frame.size = 3;
+    assert(!feedback.unpack(frame));
+    assert(feedback.is_fallen && feedback.is_enable);
 
     // 腿长与功率编解码
+    LegUpFrame received_up;
     for (unsigned length = 0; length <= 511; length++) {
-        up.leg_length = length / 1000.0f;
+        leg_protocol.leg_length = length / 1000.0f;
         super_cap.power_chassis_ref = 133;
         frame = cycle();
-        down_callback(frame);
-        assert(up_is_connect && received_up.power_ref == 133);
+        assert(received_up.unpack(frame));
+        assert(received_up.power_ref == 133);
         assert(received_up.leg_length == length / 1000.0f);
-        assert(received_up.is_enable && received_up.allow_rescue);
+        assert(received_up.is_enable);
     }
     super_cap.power_chassis_ref = INFINITY;
     frame = cycle();
-    assert(field(frame, 53, 11) == 2047);
-    down_callback(frame);
-    assert(std::isinf(received_up.power_ref));
+    assert(field(frame, 52, 12) == 4095);
+    assert(received_up.unpack(frame) && std::isinf(received_up.power_ref));
     super_cap.power_chassis_ref = 0;
     frame = cycle();
-    down_callback(frame);
-    assert(received_up.power_ref == 0);
+    assert(received_up.unpack(frame) && received_up.power_ref == 0);
     super_cap.power_chassis_ref = 2000;
     frame = cycle();
-    assert(field(frame, 53, 11) == 2046);
-    down_callback(frame);
-    assert(received_up.power_ref == 511.5f);
+    assert(field(frame, 52, 12) == 4094);
+    assert(received_up.unpack(frame) && received_up.power_ref == 511.75f);
 
     // 错误 ID 或长度保持原数据
     frame.id = DOWN_ID;
@@ -215,7 +251,7 @@ int main() {
     frame.id = UP_ID;
     frame.size = 7;
     assert(!received_up.unpack(frame));
-    assert(received_up.power_ref == 511.5f && received_up.is_enable);
+    assert(received_up.power_ref == 511.75f && received_up.is_enable);
 
     // 速度、角度、腿长限幅
     for (const float speed : {-20.0f, -16.384f, -4.096f, -3.0f, -0.001f, 0.0f, 0.001f, 3.0f, 4.095f, 16.383f, 20.0f}) {
@@ -232,21 +268,6 @@ int main() {
         assert(decoded.unpack(frame));
         assert(std::fabs(decoded.leg_length - std::clamp(length, 0.0f, 0.511f)) <= 0.000501f);
     }
-
-    // 下板状态帧编解码
-    const LegDownFrame status{.is_fallen = true, .wr = -1.234f};
-    status.pack(frame);
-    LegDownFrame feedback;
-    assert(feedback.unpack(frame));
-    assert(std::fabs(feedback.wr + 1.234f) < 0.00001f && feedback.is_fallen);
-    chassis_can_callback(frame);
-    assert(std::fabs(down.wr + 1.234f) < 0.00001f && down.is_fallen);
-    frame.id = UP_ID;
-    assert(!feedback.unpack(frame));
-    frame.id = DOWN_ID;
-    frame.size = 2;
-    assert(!feedback.unpack(frame));
-    assert(feedback.is_fallen);
 }
 """
 
@@ -258,7 +279,7 @@ def main():
     assert not (up / "leg_protocol.hpp").exists()
     assert not (down / "leg_protocol.hpp").exists()
     assert '#include "../leg_protocol.hpp"' in (up / "chassis.hpp").read_text(encoding="utf-8")
-    assert '#include "../leg_protocol.hpp"' in (down / "chassis.cpp").read_text(encoding="utf-8")
+    assert '#include "../leg_protocol.hpp"' in (down / "chassis.hpp").read_text(encoding="utf-8")
     for path in down.glob("*.cpp"):
         assert "Can(2)" not in path.read_text(encoding="utf-8")
     assert "Can(2)" not in (down / "chassis.hpp").read_text(encoding="utf-8")
@@ -268,17 +289,13 @@ def main():
     source = (up / "chassis.cpp").read_text(encoding="utf-8")
     source = "\n".join(line for line in source.splitlines() if not line.startswith("#include"))
     constants = "\n".join(line for line in (up / "chassis.hpp").read_text(encoding="utf-8").splitlines()
-                          if line.startswith("static constexpr"))
-    down_source = (down / "chassis.cpp").read_text(encoding="utf-8")
-    decoder = down_source[down_source.index("void chassis_can_callback("):]
-    decoder = decoder.replace("chassis_can_callback", "down_callback")
-    decoder = decoder.replace("callback_timer", "down_callback_timer")
-    decoder = decoder.replace("up.unpack", "received_up.unpack")
+                          if line.startswith("inline constexpr float LEG_LENGTH"))
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "bsp").mkdir(exist_ok=True)
     (OUT / "bsp/can.hpp").write_text(CAN_STUB, encoding="utf-8")
+    (OUT / "bsp/timer.hpp").write_text(TIMER_STUB, encoding="utf-8")
     generated = OUT / "test.cpp"
-    generated.write_text(STUBS + constants + "\n" + source + DOWN_STUBS + decoder + TESTS, encoding="utf-8")
+    generated.write_text(STUBS + constants + "\n" + source + TESTS, encoding="utf-8")
     executable = OUT / "test.exe"
     subprocess.run(["g++", "-std=c++20", "-mno-ms-bitfields", "-Wall", "-Wextra", "-Werror", "-I", str(OUT), "-I", str(ROOT / "app/leg"),
                     str(generated), "-o", str(executable)], check=True)

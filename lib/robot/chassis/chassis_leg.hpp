@@ -73,7 +73,6 @@ class ChassisLeg {
     };
 
     // 指令
-    bool is_enable = false;
     bool allow_rescue = false;
     bool trigger_jump = false;
     float vx = 0, wr = 0;
@@ -158,6 +157,8 @@ class ChassisLeg {
     bool is_motor_ok = false; // 全部电机在线且关节已使能无报错；否则全部电机输出零
 
   public:
+    bool is_enable = false; // 底盘使能状态，由 set_enable() 更新
+
     // 倒地与自救，外部只读 is_fallen
     struct {
         bool is_fallen = false;    // 倒地锁存，站起完成、失能或跳跃时清除

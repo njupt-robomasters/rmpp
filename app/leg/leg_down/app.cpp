@@ -8,7 +8,6 @@ static uint32_t send_cnt = 0;
 
 static void setup() {
     melody.play(C5D5G5);
-    Can(1).add_rx_callback(chassis_can_callback);
 }
 
 static void send() {
@@ -26,9 +25,7 @@ static void send() {
 
         // 第 3 帧：底盘状态帧 0x003 与下板裁判帧 0x00 轮流，各 250 Hz
         if (send_cnt % 4 == 1) {
-            CanFrame frame;
-            chassis_write_can_frame(frame);
-            Can(1).send(frame);
+            leg_protocol.send();
         } else {
             referee_relay.send();
         }

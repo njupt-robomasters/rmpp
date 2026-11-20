@@ -66,7 +66,7 @@ void RobotUi::draw_car(RefereeSender& sender, const RefereeSender::Operation ope
         RefereeSender::arc(0x003000, 3, operation == RefereeSender::ADD ? WHITE : w1, 2, 290, 551, 90 * deg, 217 * deg, 30, 25),
         RefereeSender::arc(0x003001, 3, operation == RefereeSender::ADD ? WHITE : w2, 2, 142, 551, 90 * deg, 217 * deg, 30, 25),
         RefereeSender::arc(0x003002, 3, operation == RefereeSender::ADD ? WHITE : w3, 2, 100, 546, 90 * deg, 270 * deg, 30, 25),
-        RefereeSender::arc(0x003003, 3, operation == RefereeSender::ADD ? WHITE : w4, 2, 250, 546, 90 * deg, 270 * deg, 30, 25),
+        RefereeSender::arc(0x003003, 3, operation == RefereeSender::ADD ? WHITE : w4, 2, 248, 545, 90 * deg, 270 * deg, 30, 25),
         RefereeSender::rectangle(0x003004, 3, operation == RefereeSender::ADD ? WHITE : s1, 2, 280, 551, 320, 571),
         RefereeSender::rectangle(0x003005, 3, operation == RefereeSender::ADD ? WHITE : s2, 2, 132, 551, 172, 571),
         RefereeSender::rectangle(0x003006, 3, operation == RefereeSender::ADD ? WHITE : s3, 2, 70, 546, 130, 571),
@@ -75,13 +75,14 @@ void RobotUi::draw_car(RefereeSender& sender, const RefereeSender::Operation ope
 
     // 图层 3 整车示意图：车身与云台
     const Figure modules[] = {
-        RefereeSender::rectangle(0x003100, 3, operation == RefereeSender::ADD ? WHITE : s4, 2, 220, 546, 280, 571),
+        RefereeSender::rectangle(0x003100, 3, operation == RefereeSender::ADD ? WHITE : s4, 2, 218, 546, 278, 571),
         RefereeSender::rectangle(0x003101, 3, operation == RefereeSender::ADD ? WHITE : cap, 2, 163, 588, 223, 608),
-        RefereeSender::rectangle(0x003102, 3, operation == RefereeSender::ADD ? WHITE : base, 2, 56, 573, 331, 623),
-        RefereeSender::rectangle(0x003103, 3, operation == RefereeSender::ADD ? WHITE : yaw, 2, 116, 639, 241, 689),
-        RefereeSender::rectangle(0x003104, 3, operation == RefereeSender::ADD ? WHITE : pitch, 2, 243, 648, 323, 678),
+        RefereeSender::rectangle(0x003102, 3, operation == RefereeSender::ADD ? WHITE : yaw1, 2, 56, 573, 331, 623),
+        RefereeSender::rectangle(0x003103, 3, operation == RefereeSender::ADD ? WHITE : yaw2, 2, 116, 639, 241, 689),
+        RefereeSender::rectangle(0x003104, 3, operation == RefereeSender::ADD ? WHITE : pitch1, 2, 243, 648, 323, 678),
         RefereeSender::rectangle(0x003105, 3, operation == RefereeSender::ADD ? WHITE : rub_left_stage1, 2, 257, 664, 269, 676),
         RefereeSender::rectangle(0x003106, 3, operation == RefereeSender::ADD ? WHITE : rub_right_stage1, 2, 257, 650, 269, 662),
+        RefereeSender::rectangle(0x003107, 3, operation == RefereeSender::ADD ? WHITE : pitch2, 2, 243, 680, 283, 690),
     };
     sender.draw(modules, 7, operation);
 
@@ -102,9 +103,9 @@ void RobotUi::update(RefereeSender& sender) {
     const auto bullet_span = span(bullet_freq / config.bullet_freq_max);
     const auto shoot_span = span(std::fabs(shoot_output) / config.shoot_output_max);
 
-    // 图层 1：云台朝向 ±20 度弧（裁判在线色）、受击方向弧、四角提示条、识别时准星圆（自瞄在线色）
+    // 图层 1：云台朝向 ±20 度弧、受击方向弧、四角提示条、识别时准星圆（自瞄在线色）
     const Figure arcs[] = {
-        RefereeSender::arc(0x000160, 1, referee, 10, 960, 540, yaw_ecd - 20 * deg, yaw_ecd + 20 * deg, 85, 85),
+        RefereeSender::arc(0x000160, 1, GREEN, 10, 960, 540, yaw_ecd - 20 * deg, yaw_ecd + 20 * deg, 85, 85),
         RefereeSender::arc(0x000161, 1, PINK, is_hurt ? 10 : 0, 960, 540, -hurt_dir - 20 * deg, -hurt_dir + 20 * deg, 85, 85),
         RefereeSender::arc(0x000162, 1, cap, 14, 960, 540, 275 * deg, (275 + cap_span) * deg, 387, 387),
         RefereeSender::arc(0x000163, 1, GREEN, 14, 960, 540, (265 - wr_span) * deg, 265 * deg, 387, 387),

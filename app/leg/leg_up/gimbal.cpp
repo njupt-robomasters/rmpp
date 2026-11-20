@@ -20,6 +20,6 @@ void gimbal_loop() {
     // }
     // last_r = vt13.key.r;
 
-    gimbal.set_chassis_wr(down.wr);
+    gimbal.set_chassis_wr(leg_protocol.received.wr);
     gimbal.update(attitude.q, imu.gyro);
 }

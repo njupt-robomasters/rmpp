@@ -11,14 +11,7 @@ inline constexpr float LEG_LENGTH_HIGH = 0.33f;
 // 超级电容
 inline SuperCap super_cap({.can = Can(1)});
 
-// 上下板通信
-inline LegDownFrame down;
-extern bool down_is_connect;
+// 上下板 CAN1 经滑环连接，协议见 ../leg_protocol.hpp；接收回调在构造时注册
+inline LegUpProtocol leg_protocol(Can(1));
 
 void chassis_loop();
-
-// 组 0x002 控制帧
-void chassis_write_can_frame(CanFrame& frame);
-
-// 接收 0x003 状态帧，由 setup() 注册到 Can(1)
-void chassis_can_callback(const CanFrame& frame);

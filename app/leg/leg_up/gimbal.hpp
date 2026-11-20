@@ -55,7 +55,6 @@ inline GimbalClassic gimbal({yaw, pitch}, {
                                               .pitch_angle_pid_config = &pitch_angle_pid_config,
                                               .pitch_min = -30 * deg,
                                               .pitch_max = 15 * deg,
-                                              .use_angle_loop = true,
                                           });
 
 void gimbal_loop();

@@ -4,9 +4,9 @@
 #include "referee.hpp"
 
 // 操控参数
-static constexpr float VXY_MAX = 3.0f;           // 平移最大速度，m/s
-static constexpr float FSI6X_WR_MAX = 150 * rpm; // 手动旋转最大角速度
-static constexpr float SPIN_WR = 60 * rpm;       // 小陀螺角速度
+static constexpr float VXY_MAX = 3.0f;     // 平移最大速度，m/s
+static constexpr float WR_MAX = 150 * rpm; // 手动旋转最大角速度
+static constexpr float SPIN_WR = 60 * rpm; // 小陀螺角速度
 
 void chassis_loop() {
     const bool is_enable = fsi6x.swa == FSi6X::DOWN; // SWA 下挡使能
@@ -21,7 +21,7 @@ void chassis_loop() {
         if (is_spin)
             wr = SPIN_WR;
         else if (!is_follow)
-            wr = fsi6x.yaw * FSI6X_WR_MAX;
+            wr = fsi6x.yaw * WR_MAX;
     }
 
     // 底盘控制：小陀螺或跟随时以云台为前方，小陀螺角速度优先于跟随；云台离线时不跟随，以底盘原始前方

@@ -79,8 +79,8 @@ void GimbalClassic::update(const Quaternionf& q, const Vector3f& gyro) {
 }
 
 void GimbalClassic::update_angle_loop(const Quaternionf& q, const Quaternionf& pitch_joint, const bool can_yaw, const bool can_pitch, const float dt) {
-    // 不可控、关闭外环或首帧时目标跟随实测，恢复后从当前姿态开始
-    const bool can_angle_loop = config.use_angle_loop && has_update;
+    // 不可控或首帧时目标跟随实测，恢复后从当前姿态开始
+    const bool can_angle_loop = has_update;
     has_update = true;
 
     // 世界角度误差闭环，输出世界 yaw/pitch 角速率修正

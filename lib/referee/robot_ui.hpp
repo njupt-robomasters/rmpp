@@ -36,12 +36,12 @@ class RobotUi {
     // 电容电压，V；底盘转速，rad/s；设定弹频，Hz；拨弹实测电流或力矩，A 或 N·m
     float super_cap_voltage = 0, chassis_wr = 0, bullet_freq = 0, shoot_output = 0;
 
-    // 设备状态颜色；base 为轮腿下板或双 yaw 的底层转轴
+    // 设备状态颜色；yaw1 为底层转轴或轮腿下板，yaw2 为小 yaw，pitch1、pitch2 为俯仰关节，未使用的槽位保持白色
     Color w1 = WHITE, w2 = WHITE, w3 = WHITE, w4 = WHITE;
     Color s1 = WHITE, s2 = WHITE, s3 = WHITE, s4 = WHITE;
-    Color base = WHITE, yaw = WHITE, pitch = WHITE;
+    Color yaw1 = WHITE, yaw2 = WHITE, pitch1 = WHITE, pitch2 = WHITE;
     Color rub_left_stage1 = WHITE, rub_left_stage2 = WHITE, rub_right_stage1 = WHITE, rub_right_stage2 = WHITE;
-    Color shoot = WHITE, referee = WHITE, aim = WHITE, cap = WHITE;
+    Color shoot = WHITE, aim = WHITE, cap = WHITE;
 
     explicit RobotUi(const Config& config);
 

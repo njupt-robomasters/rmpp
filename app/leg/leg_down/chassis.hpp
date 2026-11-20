@@ -1,5 +1,6 @@
-#pragma once
+﻿#pragma once
 
+#include "../leg_protocol.hpp"
 #include "attitude/quaternion_ekf.hpp"
 #include "lqr_fit.hpp"
 #include "motor/dm8009.hpp"
@@ -96,9 +97,5 @@ inline ChassisLeg chassis({left_front, left_back, right_back, right_front, left_
 // 底盘计算，每 2 次循环调用一次（500 Hz）
 void chassis_loop();
 
-// 上下板 CAN1 经滑环连接，协议见 ../leg_protocol.hpp
-// 组 0x003 状态帧
-void chassis_write_can_frame(CanFrame& frame);
-
-// 接收 0x002 控制帧，由 setup() 注册到 Can(1)
-void chassis_can_callback(const CanFrame& frame);
+// 上下板 CAN1 经滑环连接，协议见 ../leg_protocol.hpp；接收回调在构造时注册
+inline LegDownProtocol leg_protocol(Can(1));

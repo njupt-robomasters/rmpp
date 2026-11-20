@@ -12,7 +12,7 @@
 - lib 不为车型策略保留开关或流程
 - 发射机构、底盘、超级电容、FSi6X、裁判通信与 MiniPC 通信按值保存只读 `Config`，直接读取配置字段；PID 状态、运动学矩阵、校准值与其他运行状态独立保存，超级电容 RLS 的固定参数读取 `config.rls`
 - 云台、17 mm 发射机构及裁判通信的配置副本为 private；17 mm 的 motor 与 42 mm 的弹速、摩擦轮速度仅供类内及 SWD 使用。矩阵与舵轮底盘的 vx/vy 供派生类控制使用，权限为 protected；应用读取的 wr 保持 public
-- `GimbalClassic` 与 `GimbalDualYaw` 独立实现，控制流程在各自 `update()` 中展开，按值保存只读 `Config`；Classic 固定采用电机轴 IMU 速度内环，通过 `use_angle_loop` 选择世界角度外环，DualYaw 保留 ECD/IMU 模式和编码器目标限位
+- `GimbalClassic` 与 `GimbalDualYaw` 独立实现，控制流程在各自 `update()` 中展开，按值保存只读 `Config`；Classic 固定采用电机轴 IMU 速度内环并叠加世界角度外环，DualYaw 保留 ECD/IMU 模式和编码器目标限位
 - Classic 的 `pitch_min`、`pitch_max` 经 IMU 与编码器偏差换算后钳制世界 pitch 目标，并按编码器实测角度保护最终输出；DualYaw 用它们钳制编码器目标
 - 云台和 17/42 mm 发射机构通过 `Motor::set_output()` 设置原生输出，PID 单位和限幅由 app 按电机配置；PID 自身的输出限幅与积分回算保留，Classic 的 pitch ECD 保护截断输出后额外调用 `track(0)` 回算积分
 - 双 yaw 共用速度 PID 输出，各电机按自身原生单位接收同一数值；steer_sentry 的 DM4310 为 N·m、GM6020 为 A，参数待实车整定
@@ -36,7 +36,7 @@
 - 外环：`angle_ref/angle_measure` 为枪口世界 yaw/pitch（ZYX 欧拉角）。ZYX 的 yaw/pitch 完整描述枪口指向，roll 只是绕枪口自旋，两轴机构无法也无需控制，因此外环直接对欧拉角误差闭环（yaw 误差经 `Angle` 回绕），省去目标四元数与 roll 参考
 - 外环加速度规划：`Config` 的 `yaw_max_accel`、`pitch_max_accel` 默认 `INFINITY`（原样传入误差，等效禁用规划）；设为有限正数时，在线性区阈值 `e0 = max_accel / kp²` 内保持原误差，超出后经 `plan_angle_error()` 折算为 `±√(e0·(2|e| − e0))` 再送入角度 PID，使比例项沿恒减速度平方根制动曲线 `±√(2·max_accel·(|e| − e0/2))` 平滑收敛，在 `e0` 处值与斜率连续，消除阶跃目标与外力大扰动下的制动饱和超调
 - `set_speed()` 为电机轴速度，直接作为 `speed_ref` 的前馈；外环开启时同时积分到世界角度目标（底盘水平时两者一致，倾斜时的差异由外环修正）。外环输出的世界 yaw/pitch 角速率修正合成 `ψ̇·Z + θ̇·(−sinψ, cosψ, 0)` 后经 `pitch_joint * q⁻¹` 换算到电机轴再叠加，底盘倾斜时消除轴间耦合，roll 不引入稳态偏差。pitch 接近 ±90 度时世界 yaw 奇异，实际实例由 pitch 保护范围避开
-- `use_angle_loop = false` 只保留速度内环；角度目标跟随实测，`set_angle()` 仅清零速度指令
+- 不需要关闭角度外环的开关：角度 PID 的 `kp` 设为 0 时外环修正为零，等效只有速度内环，角度目标仍随速度指令积分
 - 使能与在线判断集中为 `can_pitch = is_enable && pitch 在线`、`can_yaw = can_pitch && yaw 在线`（yaw 换算依赖 pitch 关节角）。外环由私有成员 `update_angle_loop()` 直接读写两轴状态和角度 PID：不可控、关闭外环或首次 `update()` 时目标跟随实测并清空角度 PID，恢复后自然从当前姿态开始，无需上周期状态；速度内环不可控时清零目标、清空 PID、输出 0
 - `angle_ref/angle_measure`、`speed_ref/speed_measure` 即两级闭环的最终目标与反馈：`speed_ref` = 电机轴绝对速度指令 + 换算后的外环修正；yaw 目标与 IMU 反馈同时减 `chassis_wr`，统一为相对底盘的电机转速。速度误差为 `speed_ref − speed_measure`，两处底盘转速相消，保持绝对速度指令与世界角度闭环
 - pitch 目标限位：外环每周期取 `offset = pitch.angle_measure − motor.pitch.angle`，把编码器限位平移为世界 pitch 范围 `[pitch_min + offset, pitch_max + offset]`，钳制速度积分后的目标，`set_angle()` 的越界目标在下一次 `update()` 同样钳制；目标停在边界后不再累积，避免误差经 `Angle` 回绕后反转到另一侧。目标被钳住且 `pitch_speed` 向外时从 `speed_ref` 撤掉该前馈，否则平衡点会冲出限位约 `pitch_speed / kp`；向内指令保留前馈。底盘倾斜时世界 pitch 与关节角的二阶非线性由每周期刷新的 offset 吸收
@@ -127,7 +127,7 @@
 - 大 yaw、pitch1、pitch2 经电机原生 `set_output()` 接收 Nm，小 yaw 7025 接收 A；折叠云台保留电机限幅后的 PID 跟踪及重力补偿，独立于上游普通云台的简化策略
 - 底盘由 app 更新超电后传入 `power_chassis_ref`
 - 受击方向显示与实测弹速读取裁判公开只读的 `hurt_data`、`hurt_sequence`（收到 0x0206 递增）、`shoot_data`；受击时按装甲 ID 换算到 IMU 参考系锁存 1 s。两台哨兵与 leg_up 在 `referee_loop()` 直接填写 `ui` 的公开字段，再调用 `ui.update(referee_sender)`
-- 整车图 ADD 时全白。`base`、`yaw` 在轮腿上对应下板通信、yaw 电机，在双 yaw 哨兵上对应 yaw1、yaw2。电机状态由电机对象提供，各车 `referee.cpp` 配置过热阈值（默认 80 ℃）并选色；离线粉、主动失能白、过热橙、正常绿。摩擦轮上排对应左侧、下排对应右侧；图上左列为 1 级、右列为 2 级，单级同侧共用状态。轮腿无自瞄连接源，`aim` 保持白色。超电离线粉、OFF 白、CHARGE 青、BOOST 绿
+- 整车图 ADD 时全白，中心弧固定绿色，不再显示裁判断连。槽位按关节命名：`yaw1` 在轮腿上为下板、在双 yaw 哨兵上为大 yaw，`yaw2` 为小 yaw，`pitch1`、`pitch2` 为俯仰关节，未使用的槽位保持白色（steer_sentry 无 `pitch2`）。电机状态由电机对象提供，各车 `referee.cpp` 配置过热阈值（默认 80 ℃）并选色；离线粉、主动失能白、过热橙、达妙错误黄、正常绿。轮腿的 6 个底盘电机状态由下板状态帧回传：`yaw1` 显示下板断联粉、未使能白、倒地青、正常绿，`w1`~`w4` 为左前、左后、右后、右前关节，`s1`、`s2` 为左轮，`s3`、`s4` 为右轮。摩擦轮上排对应左侧、下排对应右侧；图上左列为 1 级、右列为 2 级，单级同侧共用状态。轮腿无自瞄连接源，`aim` 保持白色。超电离线粉、OFF 白、CHARGE 青、BOOST 绿
 - 超电处于 BOOST 但电压达到或低于配置的放电补偿截止值时显示青色，高于截止值时显示绿色
 - 独立 `examples-motor` 台架示例通过 SWD 查看 `motor_status_color`：断连粉、失能或零目标白、过热橙；其余状态下转速偏差超过 5 rpm 为青，达标为绿。该观察量不参与电机控制或实车 HUD
 
@@ -154,16 +154,17 @@
 
 ## 轮腿上下板通信
 
-- 上下板 Can(1) 经滑环连接，与下板全部电机、上板管理的超电共用 CAN1；两板通过 `../leg_protocol.hpp` 引用共享文件 `app/leg/leg_protocol.hpp`，包含按发送方命名的 `UP_ID = 0x02`、`DOWN_ID = 0x03` 和报文布局。上板控制帧 8 字节（使能、自救授权、跳跃、速度、yaw、腿长、功率目标），500 Hz；下板状态帧 3 字节（底盘倒地、实测航向角速度），250 Hz
-- 共享协议文件统一定义 `LegUpFrame`、`LegDownFrame`、物理单位、`pack()` 与 `unpack()`；`Raw` 位域与解码后成员同序，编解码在 `pack()`、`unpack()` 内用局部 `Raw` 完成，不保存原始帧；位域按 arm-none-eabi-gcc 布局，主机 MinGW 测试加 `-mno-ms-bitfields`。解包先检查 ID 和长度，失败保持原数据。功率目标 11 位 0.25 W/LSB，范围 0..511.5 W，2047 表示不限功率。腿长为连续数值 `leg_length`（m），以 9 位无符号毫米数传输，范围 0..0.511 m；协议中没有腿长档位表。两板 `chassis.cpp` 保存协议结构体并调用编解码，负责控制与在线状态，发送仍在 `app.cpp` 的 `loop()` 分拍安排；回归测试检查共享文件引用与编解码
-- 上板只读 VT13 操控量：VT13 与下板均在线时 `is_enable`，默认低腿长 0.14 m。下板报告倒地时按 pause 授权自救，授权保持；站立时每次按 pause 按 0.14 → 0.22 → 0.33 → 0.14 m 切换。fn 直接透传，由下板检测上升沿。失能或下板断联清授权、复位低腿长；下板断联期间发送失能帧，恢复状态帧后按当前遥控挡位恢复使能。pause 持续记录前值
+- 上下板 Can(1) 经滑环连接，与下板全部电机、上板管理的超电共用 CAN1；两板通过 `../leg_protocol.hpp` 引用共享文件 `app/leg/leg_protocol.hpp`，包含按发送方命名的 `UP_ID = 0x02`、`DOWN_ID = 0x03` 和报文布局。上板控制帧 8 字节（使能、跳跃、速度、yaw、腿长、功率目标），500 Hz；下板状态帧 4 字节（底盘倒地、下板使能、实测航向角速度、6 个电机状态），250 Hz
+- 共享协议文件统一定义 `LegUpFrame`、`LegDownFrame`、物理单位、`pack()` 与 `unpack()`；`Raw` 位域与解码后成员同序，编解码在 `pack()`、`unpack()` 内用局部 `Raw` 完成，不保存原始帧；位域按 arm-none-eabi-gcc 布局，主机 MinGW 测试加 `-mno-ms-bitfields`。解包先检查 ID 和长度，失败保持原数据。功率目标 12 位 0.125 W/LSB，范围 0..511.875 W，4095 表示不限功率。腿长为连续数值 `leg_length`（m），以 9 位无符号毫米数传输，范围 0..0.511 m；协议中没有腿长档位表。`LegProtocol<TxFrame, RxFrame>` 封装发送帧、接收帧、在线状态与超时：构造时向 Can 注册回调，`update()` 超时清接收数据，`send()` 组帧发送；上板用 `LegUpProtocol`、下板用 `LegDownProtocol`，两板 `chassis_loop()` 直接读写 `leg_protocol` 字段，发送仍按 `app.cpp` 的拍数调用 `leg_protocol.send()`；回归测试检查共享文件引用与编解码
+- 上板只读 VT13 操控量：VT13 与下板均在线时允许使能，但使能后首次按下 pause 才把 `leg_protocol.is_enable` 置位，之前持续发送失能帧防止误触；之后每次按 pause 按 0.14 → 0.22 → 0.33 → 0.22 → 0.14 m 往返切换腿长，默认低腿长 0.14 m。fn 直接透传，由下板检测上升沿。失能或下板断联清使能锁存、复位低腿长；下板断联期间发送失能帧，恢复状态帧后重新等待 pause。pause 持续记录前值
 - `vt13.vx`（右摇杆竖直叠加 W/S）为云台前向速度，`vt13.wr`（拨轮叠加 Shift/Ctrl）为手动旋转；yaw 在线时默认跟随，离线角度发 0。上板直接保存解包后的 `down`，云台使用 `down.wr`，pause 分支使用 `down.is_fallen`，即下板 `chassis.rescue.is_fallen`（倒地锁存，站起完成、失能或跳跃时清除），断联 0.1 s 清空反馈。在线状态命名为 `up_is_connect`、`down_is_connect`
-- 下板执行策略：上板在线时透传自救、跳跃和腿长，前向速度按 `cos(yaw)` 投影；`ChassisLeg` 持有 follow PID，使用本类 dt，使能且无手动旋转时跟随经 `set_gimbal_yaw()` 设置的云台相对航向（为 0 时 P 输出 0），手动旋转或失能时清 PID；断联 0.1 s（`LEG_TIMEOUT`）回退 FSi6X 并将云台航向设为 0，保留 FSi6X 原有拨杆操作，功率目标设为 `INFINITY` 不限功率，保留 LQR 速度与位移反馈
+- 下板执行策略：FSi6X 在线时优先接管，避免上板协议错误导致误动作；否则透传上板跳跃与腿长，前向速度按 `cos(yaw)` 投影，上板断联 0.1 s（`LEG_TIMEOUT`）后按已清零的指令失能。`ChassisLeg` 持有 follow PID，使用本类 dt，使能且无手动旋转时跟随经 `set_gimbal_yaw()` 设置的云台相对航向（为 0 时 P 输出 0），手动旋转或失能时清 PID；FSi6X 路径保留拨杆操作，云台航向设为 0，功率目标设为 `INFINITY` 不限功率，保留 LQR 速度与位移反馈
+- 自救授权仍由下板决定：控制帧删除自救位，上板控制时 `control_by_up()` 固定 `set_allow_rescue(true)`，FSi6X 控制时保持 SWB 下挡授权；底盘使能、倒地且已授权空闲时启动自救，站起完成、失能或跳跃时清除锁存
 - 超电实例、更新和收发由上板负责，接 Can(1)，`chassis_loop()` 每周期设 OFF 并更新，100 Hz 持续发送关闭指令，未接裁判时沿用默认 120 W 上限和 60 J 缓冲能量。OFF 关闭 DCDC，底盘仍按裁判功率与缓冲能量折算目标
-- 上板将 `power_chassis_ref` 随控制帧下发：8 字节小端位域，bit0/1/2 为使能/自救/跳跃，bit3..15 前向速度（有符号 13 位，1e-3 m/s，±4.096 m/s），bit16..30 手动角速度（有符号 15 位，1e-3 rad/s，±16.384 rad/s，约 156 rpm），bit31..43 yaw（有符号 13 位，1e-3 rad），bit44..52 腿长，bit53..63 功率（11 位，0.25 W/LSB，四舍五入，有限值最高 511.5 W，2047 表示不限功率）。下板状态帧 bit0 为倒地，bit1..16 为实测航向角速度（int16，1e-3 rad/s），bit17..23 保留。下板移除 SuperCap，只调用 `set_power_ref()`
+- 上板将 `power_chassis_ref` 随控制帧下发：8 字节小端位域，bit0 为使能，bit1 为跳跃，bit2..14 前向速度（有符号 13 位，1e-3 m/s，±4.096 m/s），bit15..29 手动角速度（有符号 15 位，1e-3 rad/s，±16.384 rad/s，约 156 rpm），bit30..42 yaw（有符号 13 位，1e-3 rad），bit43..51 腿长，bit52..63 功率（12 位，0.125 W/LSB，四舍五入，有限值最高 511.875 W，4095 表示不限功率）。下板状态帧 4 字节：bit0 倒地，bit1 使能，bit2..17 实测航向角速度（int16，1e-3 rad/s），bit18..29 为左前、左后、右后、右前、左轮、右轮的 2 位状态（0 正常、1 过热、2 达妙错误、3 离线），bit30..31 保留。下板移除 SuperCap，只调用 `set_power_ref()`
 - 下板 Can(1) 每拍 3 帧，匹配 3 个发送邮箱：偶拍左腿两关节与双轮 0x200，奇拍右腿两关节加第 3 帧，第 3 帧由 0x003 状态帧与 `referee_relay.send()` 轮流使用，各 250 Hz
 - 裁判系统接下板 USART1（115200），`app.hpp` 的 `RefereeRelay referee_relay` 原样转发字节流：CAN ID 与 leg_protocol 一样按发送板命名，0x00 为下板发送、0x01 为上板发送，类内按本板视角写作 `tx_id`、`rx_id`（与 Referee 对应）。串口收到的字节切成至多 8 字节的 0x00 帧，每次 `send()` 发 1 帧，容量 2 kB/s，约为 2027 协议常规链路定频报文的 2 倍；收到的 0x01 帧载荷拼接后在串口空闲时一次发出。缓冲区 `to_can` 1024 B（1 Hz 定频报文与触发报文叠加的最坏突发约 500 B）、`to_uart` 256 B（两次 `send()` 间至多积压 32 B），满时丢弃并计入 `to_can_drop`、`to_uart_drop`。上板用 `Referee({.can = Can(1)})` 接收（默认 `rx_id = 0`）、`RefereeSender({.can = Can(1)})` 发送（默认 `tx_id = 1`）；leg_up 的 `referee_loop()` 在 `referee.update()` 后调用 `referee_sender.set_robot_id()` 并填写 UI，`send()` 在偶拍空闲槽调用 `referee_sender.send()`，每次至多 1 帧
-- leg_up 接入裁判：超电保持 OFF，按裁判功率上限与缓冲能量折算 `power_chassis_ref` 随控制帧下发；发射机构按裁判热量设置剩余热量，`heat_protect = 80` 待整定；UI 的 yaw 相对角取 `yaw.angle`，世界 yaw/pitch 取 GimbalClassic 的 `angle_measure`，受击方向按“云台世界 yaw − yaw 电机角”换算底盘航向后锁存，底盘转速显示下板回传的 `down.wr`；底盘电机在下板、状态未上传，UI 底盘状态保持默认
+- leg_up 接入裁判：超电保持 OFF，按裁判功率上限与缓冲能量折算 `power_chassis_ref` 随控制帧下发；发射机构按裁判热量设置剩余热量，`heat_protect = 80` 待整定；UI 的 yaw 相对角取 `yaw.angle`，世界 yaw/pitch 取 GimbalClassic 的 `angle_measure`，受击方向按“云台世界 yaw − yaw 电机角”换算底盘航向后锁存，底盘转速显示下板回传的 `down.wr`；下板通信、使能与倒地显示在 `yaw1`，6 个底盘电机状态显示在 `w1`~`w4`、`s1`~`s4`
 
 ## 轮腿功率控制
 
