@@ -121,6 +121,21 @@ int main() {
         assert(motor.current_ref > 0);
     }
 
+    // 独立阈值低于电机最大力矩，未达到电机限幅也能检测并按配置反转
+    const Pid::Config threshold_pid = {.kp = 5, .max_out = 20};
+    Shooter17mm threshold({rub, rub, motor}, {.shoot_pid_config = &threshold_pid, .bullet_per_angle = 1, .block_torque = 1, .block_time = 0.0025f, .reverse_time = 0.0015f});
+    threshold.set_enable(true);
+    threshold.set_bullet_freq(1);
+    motor.set_output(0);
+    for (int i = 0; i < 7; i++) {
+        now_us += 1000;
+        motor.feedback();
+        threshold.update();
+        assert(std::fabs(motor.torque_ref) < motor.config.max_torque);
+        assert(std::fabs(motor.torque_ref) > 1);
+        assert((motor.current_ref > 0) == (i < 4 || i == 6));
+    }
+
     // 基类引用分派：默认电流与 DM 力矩
     Motor& current_motor = motor;
     current_motor.set_output(2);

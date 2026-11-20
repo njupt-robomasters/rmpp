@@ -1,9 +1,9 @@
 #include "app.hpp"
-#include <algorithm>
 #include "bsp/timer.hpp"
+#include <algorithm>
 
 // 操控参数
-static constexpr float BULLET_SPEED = 20.0f;         // 弹速，m/s
+static constexpr float BULLET_SPEED = 5.0f;          // 弹速，m/s
 static constexpr float BULLET_FREQ_INIT = 20.0f;     // 初始基础弹频，发/秒
 static constexpr float BULLET_FREQ_STEP = 5.0f;      // C、Z 键每次增减的基础弹频，发/秒
 static constexpr float BULLET_FREQ_MIN = 5.0f;       // 基础弹频下限，发/秒
@@ -17,17 +17,17 @@ static bool has_click = false, is_force_shoot = false;
 static bool last_left = false, last_z = false, last_c = false;
 
 void shooter_loop() {
-    shooter.set_enable(sentry_enable());
+    const bool is_shooter_enable = sentry_enable() && !(vt13.is_connect && vt13.mode == VT13::N);
+    shooter.set_enable(is_shooter_enable);
 
-    // 遥控器：VT13 S 挡或 FSi6X SWC 下开摩擦轮，VT13 trigger 或 FSi6X SWB 下射击
-    const bool radio_rub = vt13.mode == VT13::S || fsi6x.swc == FSi6X::DOWN;
-    const bool radio_shoot = vt13.trigger || fsi6x.swb == FSi6X::DOWN;
-    const bool radio_auto_aim = vt13.photo || fsi6x.swd == FSi6X::DOWN;
+    // VT13 在线时按三挡手动控制；S 挡按住扳机后，左摇杆上下控制拨盘
+    const bool is_vt13_feed = vt13.is_connect && vt13.mode == VT13::S && vt13.trigger;
+    const bool radio_rub = fsi6x.swc == FSi6X::DOWN;
+    const bool radio_shoot = fsi6x.swb == FSi6X::DOWN;
+    const bool radio_auto_aim = fsi6x.swd == FSi6X::DOWN;
 
     // 遥控器射击时 pitch 摇杆作为弹频倍率，各遥控器只按自身射击开关决定 pitch 用途
     float radio_rate = 0;
-    if (vt13.trigger)
-        radio_rate += vt13.pitch;
     if (fsi6x.swb == FSi6X::DOWN)
         radio_rate += fsi6x.pitch;
 
@@ -51,10 +51,13 @@ void shooter_loop() {
     }
     last_left = mouse.left;
 
-    // 遥控器优先并按 pitch 倍率射击，键鼠次之，最后为自主模式视觉开火，后两者按基础弹频
-    // 人工自瞄时需视觉开火许可，右键双击强制开火除外；不射击时倍率为 0，负倍率反转拨弹
+    // VT13 在线时由扳机和左摇杆决定拨盘目标；其余入口沿用 FSi6X、键鼠与自主模式
+    // 无运行请求时倍率为 0，负倍率反转拨盘
     float rate = 0;
-    if (radio_shoot && (!radio_auto_aim || aim.vision.is_fire))
+    if (vt13.is_connect) {
+        if (is_vt13_feed)
+            rate = std::clamp(vt13.pitch, -1.0f, 1.0f);
+    } else if (radio_shoot && (!radio_auto_aim || aim.vision.is_fire))
         rate = radio_rate;
     else if (mouse.left && (!mouse.right || is_force_shoot || aim.vision.is_fire))
         rate = 1;
@@ -71,9 +74,9 @@ void shooter_loop() {
     last_z = vt13.key.z;
 
     // 比赛中自主模式常开摩擦轮
-    const bool is_rub = radio_rub || (sentry_active() && sentry_in_game());
-    shooter.set_bullet_speed(is_rub ? BULLET_SPEED : 0.0f);
-    shooter.set_bullet_freq(bullet_freq * rate);
+    const bool is_rub = vt13.is_connect ? vt13.mode == VT13::S : radio_rub || (sentry_active() && sentry_in_game());
+    shooter.set_bullet_speed(is_shooter_enable && is_rub ? BULLET_SPEED : 0.0f);
+    shooter.set_bullet_freq(is_shooter_enable ? bullet_freq * rate : 0.0f);
     shooter.set_heat_remain(static_cast<int32_t>(referee.robot_status.shooter_barrel_heat_limit) -
                             referee.power_heat_data.shooter_17mm_barrel_heat);
     shooter.update();

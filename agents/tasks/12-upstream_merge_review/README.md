@@ -1,5 +1,18 @@
 # 上游合并与接口适配
 
+## 最新合并预检（2026-11-20，待执行）
+
+- 已fetch origin；本地HEAD为c8a791fd67bbc44489e0b29c6cb2c881094df199，上游master为7e57d2b396af1b7fe72804dce86a7ba9795dc191，共同祖先09766fa。本地独有5提交、上游独有20提交
+- 当前有20个已跟踪文件未提交；新增EL05协议测试需随成果保存，.agents/、.clangd、.settings/及out产物保留在本机。未跟踪文件与上游没有同路径覆盖
+- 用独立裸仓库和索引模拟：只合并HEAD有CMakePresets.json及agents/docs/application.md两项冲突；纳入当前已跟踪修改后，新增agents/README.md，共3项文本冲突。原工作区、分支和真实索引均未切入合并
+- CMakePresets需保留jelly_sentry及其调试入口，接纳上游leg/leg_down、leg/leg_up路径和leg-leg_down、leg-leg_up名称，删除已被上游移除的infantry预设；两个文档冲突按本地调试成果及上游模块改动整合
+- 上游Motor将position改为angle/angle_multi，超时清零单圈angle、保留angle_multi；移除raw_current/raw_torque/raw_speed/raw_position，改用can_callback(const Feedback&)的可选测量。EL05需按新接口传入反馈，保持私有扩展帧、节点18/34、力矩输出与方向不变
+- GimbalFold保持jelly_sentry独立逻辑；4轴角度读取、yaw零位校准与gimbal_motor调试需迁移angle接口，并审计掉线角度归零后的恢复行为。imu_calib直接读取的Imu::temperature已被上游改为private，需要适配现有校准流程
+- 类布局/最小权限调整同时覆盖SuperCap、Shooter17mm、遥控、裁判等，需更新依赖类内部布局的主机测试与Ember观察路径；本地EL05协议测试的Motor回调同样需迁移。VT13 C/N/S、扳机+左摇杆逻辑与超电控制保留
+- 本地block_torque与block_time=0.2、reverse_time=0.25在候选树自动保留；本地CAN2 AutoRetransmission=ENABLE的.ioc与fdcan.c一致且未发生冲突。实机方向与其他参数按当前文件快照保留，包括rub1反向、rub2默认方向、shoot反向
+- 新增check_candidate.py：在out内展开候选树，复用当前ARM编译参数做-fsyntax-only检查，不改工程源码。7个文件中EL05因旧raw字段/无参回调失败，gimbal_fold及gimbal.cpp因position接口失败；shooter_17mm.cpp、app.cpp、chassis.cpp、shooter.cpp通过。未运行完整构建或硬件操作
+- 结果在out/summary.json、working_merge.txt及candidate_compile.json，候选树16fdccba7c7b9931ea560cb3f2a7cb2446ec34a7。下一步先保存当前成果，再解决3项文本冲突、迁移接口并执行相关ARM对象编译和行为回归；当前结论为可合并、需要适配后验证
+
 2026-11-15：按用户要求先提交当前成果，再合并上游、启用 CAN2 自动重发并迁移接口。以下预检基线保留用于复核，实施结果见末节
 
 ## 基线与复现

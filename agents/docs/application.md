@@ -16,8 +16,8 @@
 - 云台和 17/42 mm 发射机构通过 `Motor::set_output()` 设置原生输出，PID 单位和限幅由 app 按电机配置；PID 自身的输出限幅与积分回算保留，Classic 的 pitch ECD 保护截断输出后额外调用 `track(0)` 回算积分
 - 双 yaw 共用速度 PID 输出，各电机按自身原生单位接收同一数值；sentry 的 DM4310 为 N·m、GM6020 为 A，参数待实车整定
 - 17 mm 拨弹在 `update()` 内使用 STOP/FEED/REVERSE 状态机，失能、热量保护、零弹频或拨弹离线优先停止；拨弹独立于摩擦轮开关和在线状态
-- 卡弹检测与退弹分别用 `block_elapsed`、`reverse_elapsed` 累加限幅后的 `dt`；连续命令电流饱和达到 `block_time` 后反向运行 `reverse_time`，方向和速度跟随当前有符号弹频；STOP 清累计时间，使能时保持零速度闭环，失能时输出零电流并清 PID
-- 17 mm 拨弹先由状态机确定目标速度，再统一计算速度 PID；FEED 使用上一周期命令电流检测卡弹，状态切换在下一周期改变目标速度
+- 卡弹检测与退弹分别用 `block_elapsed`、`reverse_elapsed` 累加限幅后的 `dt`；目标力矩绝对值连续达到 `config.block_torque` 并持续 `block_time` 后反向运行 `reverse_time`，阈值为0时沿用电机最大力矩。方向和速度跟随当前有符号弹频；STOP 清累计时间，使能时保持零速度闭环，失能时输出零电流并清 PID
+- 17 mm 拨弹先由状态机确定目标速度，再统一计算速度 PID；FEED 使用上一周期 `torque_ref` 检测卡弹，状态切换在下一周期改变目标速度
 
 ## GimbalClassic 控制与观测
 
@@ -70,26 +70,30 @@
 
 - 已装超电，CAN1，沿用 `SuperCap` 默认命令 ID 0x061、反馈 ID 0x051；复用 dummy 的协议和虚拟缓冲算法，整车输入使用真实裁判功率上限与缓冲能量
 - `chassis_loop()` 每周期设置模式、裁判输入并更新超电，再把 `power_chassis_ref` 交给四轮力控底盘；发送在 `app.cpp::send_can_cmd()` 独立按 10 个主循环分频，目标 100 Hz，OFF、底盘失能和超电离线时持续发送
-- 模式优先级：裁判离线或任一在线遥控器显式 OFF → OFF；正赛且机器人 ID 为 7/107 → BOOST；自检/倒计时 → CHARGE；其余阶段按人工请求选择 BOOST、CHARGE，均无请求时 OFF
-- 人工映射：FSi6X SWC 上/中/下为 OFF/CHARGE/BOOST，VT13 C/N/S 对应同样模式；两个遥控器同时在线时 OFF 优先，其他人工请求中 BOOST 优先。比赛自主运行可在遥控断联后继续使用超电，仍受裁判连接状态约束
+- 模式优先级：裁判离线或任一在线遥控器显式 OFF → OFF；在线 VT13 N/S 挡、或正赛且机器人 ID 为 7/107 → BOOST；自检/倒计时 → CHARGE；其余按人工请求选择 BOOST、CHARGE，均无请求时 OFF
+- 人工映射：FSi6X SWC 上/中/下为 OFF/CHARGE/BOOST，VT13 C/N/S 为 OFF/BOOST/BOOST。BOOST 工况下用电池侧余量充电，负载升高时允许电容补偿。比赛自主运行可在遥控断联后继续使用超电，仍受裁判连接状态约束
 - 裁判连接超时由现有 `Referee` 的 1 s 检测决定，超电转 OFF 后底盘继续使用最后功率上限与缓冲能量；上电未收到裁判时为默认 120 W/60 J，超电 OFF
 - `jelly_sentry_debug/chassis` 固定输入 120 W/60 J，提供 `volatile SuperCap::Mode cap_mode`（0 OFF、1 CHARGE、2 BOOST），默认 OFF；独立于底盘 `is_enable`，超电同样持续按 100 Hz 发送
 - 超电实测功率覆盖范围按实车供电支路核对，四轮模型只估计轮电机功率；首轮保留现有参数和 `ui.cap=0`，能量显示待确定满电电压与可用能量范围后接入
 - 实施与验证记录见 `agents/tasks/06-super_cap_capacitance/README.md`，硬件联调由用户审计后决定
 
-## jelly_sentry 摩擦轮
+## jelly_sentry 双传送带驱动
 
+- 在线 VT13 的 C 挡使整车失能，优先于比赛阶段的自动使能；N 挡只允许底盘和云台使能，摩擦轮与拨弹目标均归零，发射机构失能
+- 用户说明 rub1/rub2 为工业传送带转动机构，工程沿用摩擦轮命名。在线 VT13 的 S 挡运行两路电机，按住扳机后，左摇杆上下按比例给拨盘速度，负值反转；松开扳机或摇杆回中，拨盘目标归零
 - 两个 P630 由 app 定义为 `Vesc`，绑定 CAN2，节点 ID 沿用 `0x21/0x22`，共用现有 VESC 扩展帧收发实现
 - `Shooter17mm::update()` 通过 `set_speed()` 设置输出轴目标角速度（rad/s），由 Vesc 换算为 ERPM，使用电调内部速度环
-- 整车、`jelly_sentry_debug/shooter` 与 `shooter_rub` 的摩擦轮 `send()` 暂时注释，继续接收反馈；其他电机保持原发送行为
-- 当前显式保存迁移前 Vesc 参数：20 A、20 Nm、reduction 为 7（包含极对数），节点 ID、实际极对数及两侧安装方向需在启用发送前核对
+- 两路每1 ms发送的VESC接口已接入，使能时速度扩展帧ID为0x321/0x322、4字节大端ERPM，失能时发送零电流帧；当前整车调试暂停两路send()调用。`jelly_sentry_debug/shooter` 与 `shooter_rub` 为独立调试入口，仍保留各自的发送开关
+- 当前显式保存迁移前 Vesc 参数：20 A、20 Nm、reduction 为 7（包含极对数）；按用户实测反向要求，rub1/rub2在shooter.hpp中均显式配置is_invert=true，同步修正速度指令与反馈方向，实际极对数待核对
 - 2026-11-12：整车 app 及三个发射调试入口的相关对象文件经 Arm GCC 局部编译通过，无新增编译警告；未完整链接、烧录或硬件验证。`git diff --check` 通过，本机未找到 clang-format，未完成工具格式检查
 
 ## jelly_sentry EL05
 
-- 拨弹 EL05 绑定 CAN2，MIT 标准帧控制ID 0x12、反馈ID 0x22，反馈Byte0必须为0x12；与pitch1的0x10/0x20、pitch2的0x11/0x21无ID重复
-- 电机端参数由用户写入并断电重启：CAN_ID=18、CAN_MASTER=34、protocol_1=2、CAN_TIMEOUT=20000（约1秒）；主控不在线改参
+- 拨弹 EL05 绑定 CAN2，按 old 分支移植私有扩展帧协议，电机节点0x12、主机节点0x22；使能ID 0x03002212、停止ID 0x04002212、无故障运行反馈ID 0x02801222。两路pitch仍用原标准帧协议
+- 电机端配套参数：CAN_ID=18、CAN_MASTER=34、protocol_1=0、CAN_TIMEOUT=20000（约1秒）；此前上位机写入记录为protocol_1=2，需用户核对并改为0后断电重启，主控不在线改参
 - 整车和发射调试入口共用shoot实例，控制计算保持1ms，EL05按shoot_send_period_ms发送（默认2ms、500Hz）；失能停止帧、使能帧和周期控制帧均请求状态应答
+- 按用户实测反向要求，shoot在shooter.hpp中显式配置is_invert=true，同步反向力矩指令和位置/速度/力矩反馈；三路方向可分别观察rub1.config.is_invert、rub2.config.is_invert和shoot.config.is_invert
+- 卡滞参数在shooter.hpp的shooter配置中显式设置：block_torque=5 N·m、block_time=0.2 s、reverse_time=0.25 s；检测阈值独立于电机与PID的5 N·m输出限幅，修改配置后重新构建并更新固件
 
 ## jelly_sentry 上游接口适配
 
@@ -107,7 +111,7 @@
 
 - 整车控制计算保持1kHz；pitch1、pitch2和yaw2的发送周期可写变量放在gimbal.hpp各电机实例旁，EL05的shoot_send_period_ms放在shooter.hpp的shoot实例旁
 - 默认周期：pitch1_send_period_ms=4（250Hz）、pitch2_send_period_ms=1（1000Hz）、yaw2_send_period_ms=2（500Hz，A1/94各250Hz）、shoot_send_period_ms=2（500Hz）
-- 当前整车启用底盘、大 yaw、小 yaw、pitch1、pitch2、EL05 及超电发送；摩擦轮发送继续注释关闭，上述可写周期用于对应电机的发送调度
+- 当前整车调试启用底盘、大yaw、EL05及超电发送；小yaw、pitch1、pitch2和双传送带的发送保持注释。11月19日已恢复EL05默认2 ms周期调用，等待用户构建并更新固件核对在线状态
 - 各变量为inline volatile uint32_t，运行时通过调试器写入，下一个发送判断使用新值，不清零已有计数。计数器保留在cpp，不作为调频入口；周期0等效每主循环发送，超过100ms可能触发主控反馈离线，7025建议周期至少2ms
 - 失能、使能和清错帧替换当次发送，不额外增加发送频率；CAN2 和 CAN3 分别核算负载，P630 扩展帧和状态上报按实际电调设置统计
 - 频率是按1ms主循环计算的目标值，真实周期、反馈频率与7025断联是否改善仍需上板测量

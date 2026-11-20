@@ -19,13 +19,13 @@ void EL05::send() {
             clear_fault_timer.restart();
         }
 
-        // 手册第 52 页指令 5：F_CMD=FB 清错，应答为正常状态帧
+        // 私有协议通信类型 4，Byte0=1 停止并清错
         if (clear_fault_timer.elapsed() >= 0.5f) {
             clear_fault_timer.restart();
-            send_command(0xFB);
+            send_command(STOP, true);
             clear_fault_count++;
         } else {
-            send_command(0xFD);
+            send_command(STOP);
         }
         return;
     }
@@ -33,14 +33,14 @@ void EL05::send() {
 
     if (!is_enable) {
         enable_sent = false;
-        send_command(0xFD);
+        send_command(STOP);
         return;
     }
 
     if (!enable_sent || enable_timer.elapsed() >= 0.1f) {
         enable_timer.restart();
         enable_sent = true;
-        send_command(0xFC);
+        send_command(ENABLE);
         return;
     }
 
@@ -49,20 +49,20 @@ void EL05::send() {
 }
 
 void EL05::can_callback(const CanFrame& frame) {
-    if (frame.is_extend || frame.is_remote || frame.size != 8 ||
-        frame.id != config.rx_id || frame.data[0] != config.tx_id)
+    if (!frame.is_extend || frame.is_remote || frame.size != 8 ||
+        ((frame.id >> 24) & 0x1F) != FEEDBACK ||
+        ((frame.id >> 8) & 0xFF) != config.tx_id || (frame.id & 0xFF) != config.rx_id)
         return;
 
-    // 手册第 51 页应答指令 1，12 位速度/力矩，状态与温度共用 Byte6
+    // 手册第 30 页通信类型 2：状态在扩展 ID，反馈三项均为 16 位大端
     const auto* data = frame.data;
-    mode = static_cast<Mode>((data[6] >> 6) & 0x03);
-    fault = (data[6] >> 5) & 0x01;
-    warning = (data[6] >> 4) & 0x01;
-    raw_position = decode((data[1] << 8) | data[2], P_MAX, 16);
-    raw_speed = decode((data[3] << 4) | (data[4] >> 4), V_MAX, 12);
-    raw_torque = decode(((data[4] & 0x0F) << 8) | data[5], T_MAX, 12);
+    mode = static_cast<Mode>((frame.id >> 22) & 0x03);
+    fault = (frame.id >> 16) & 0x3F;
+    raw_position = decode((data[0] << 8) | data[1], P_MAX);
+    raw_speed = decode((data[2] << 8) | data[3], V_MAX);
+    raw_torque = decode((data[4] << 8) | data[5], T_MAX);
     raw_current = raw_torque / config.max_torque * config.max_current;
-    temperature = static_cast<float>(((data[6] & 0x0F) << 8) | data[7]) / 10.0f;
+    temperature = static_cast<float>((data[6] << 8) | data[7]) / 10.0f;
 
     Motor::can_callback();
 }
@@ -72,31 +72,32 @@ void EL05::send_torque() const {
     if (is_connect && mode == MOTOR_MODE && fault == 0 && std::isfinite(torque_ref))
         torque = config.is_invert ? -torque_ref : torque_ref;
 
-    // 手册第 52 页指令 3：p16、v12、kp12、kd12、t12，MIT Kp/Kd 为零
-    const uint16_t p = encode(0, P_MAX, 16);
-    const uint16_t v = encode(0, V_MAX, 12);
-    const uint16_t t = encode(torque, T_MAX, 12);
+    // 私有协议通信类型 1：力矩编码在 ID bit23~8，数据区 p/v/kp/kd 为零
+    const uint16_t p = encode(0, P_MAX);
+    const uint16_t v = encode(0, V_MAX);
+    const uint16_t t = encode(torque, T_MAX);
     config.can.send({
-        .id = config.tx_id,
+        .id = (static_cast<uint32_t>(TORQUE) << 24) | (static_cast<uint32_t>(t) << 8) | config.tx_id,
+        .is_extend = true,
         .size = 8,
         .data = {static_cast<uint8_t>(p >> 8), static_cast<uint8_t>(p),
-                 static_cast<uint8_t>(v >> 4), static_cast<uint8_t>((v & 0x0F) << 4),
-                 0, 0, static_cast<uint8_t>(t >> 8), static_cast<uint8_t>(t)},
+                 static_cast<uint8_t>(v >> 8), static_cast<uint8_t>(v), 0, 0, 0, 0},
     });
 }
 
-void EL05::send_command(const uint8_t command) const {
+void EL05::send_command(const Command command, const bool clear_fault) const {
     config.can.send({
-        .id = config.tx_id,
+        .id = (static_cast<uint32_t>(command) << 24) | (config.rx_id << 8) | config.tx_id,
+        .is_extend = true,
         .size = 8,
-        .data = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, command},
+        .data = {static_cast<uint8_t>(clear_fault), 0, 0, 0, 0, 0, 0, 0},
     });
 }
 
-float EL05::decode(const uint16_t value, const float maximum, const uint8_t bits) {
-    return static_cast<float>(value) * (2 * maximum) / ((1U << bits) - 1U) - maximum;
+float EL05::decode(const uint16_t value, const float maximum) {
+    return static_cast<float>(value) * (2 * maximum) / 65535.0f - maximum;
 }
 
-uint16_t EL05::encode(const float value, const float maximum, const uint8_t bits) {
-    return static_cast<uint16_t>((std::clamp(value, -maximum, maximum) + maximum) * ((1U << bits) - 1U) / (2 * maximum));
+uint16_t EL05::encode(const float value, const float maximum) {
+    return static_cast<uint16_t>((std::clamp(value, -maximum, maximum) + maximum) * 65535.0f / (2 * maximum));
 }

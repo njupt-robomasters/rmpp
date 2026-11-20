@@ -1,12 +1,20 @@
 # 拨弹状态机与电机原生输出
 
+## 独立力矩阈值与应用参数（2026-11-19）
+
+- 新增Config.block_torque（N·m），0沿用电机最大力矩以保留现有其他应用行为；jelly_sentry/shooter.hpp显式设置block_torque=5、block_time=0.2、reverse_time=0.25，保留用户已修改的0.2秒检测时间
+- 检测使用目标力矩torque_ref，阈值与输出限幅独立；这些参数为构建配置，修改后重新构建烧录生效
+- 主机状态机测试新增未饱和时跨越独立阈值并按指定时长反转的覆盖，原有停止/清计时/正负方向测试通过；Zig主机副本略过不支持的DM浮点模板实例，实际机构源码参与测试
+- 整车及三个shooter调试入口的应用与机构源码ARM局部编译通过，零警告；格式和diff空白检查通过，未完整链接或操作硬件
+
 ## 已确认需求
 
 - 17 mm 拨弹状态机直接在 `Shooter17mm::update()` 展开，使用 STOP、FEED、REVERSE
 - 删除 `is_block`、`block_timer`；`block_elapsed`、`reverse_elapsed` 分别累加限幅后的 dt
-- 连续命令电流饱和达到 block_time 后反向运行 reverse_time；STOP 清两个累计时间，使能时保持零速度闭环，失能时输出零电流并清 PID，恢复时当周期拨弹
+- 目标力矩绝对值连续达到block_torque并持续block_time后反向运行reverse_time；阈值0沿用电机max_torque。STOP 清两个累计时间，使能时保持零速度闭环，失能时输出零电流并清 PID，恢复时当周期拨弹
 - 负弹频正常反转，退弹方向和速度跟随当前有符号弹频；保留拨弹独立于摩擦轮的现有修改
-- 状态机先确定目标速度，再统一执行速度 PID；卡弹检测读取上一周期命令电流，切换到 REVERSE/FEED 后下一周期改变目标速度，主机测试已同步并通过
+- 状态机先确定目标速度，再统一执行速度 PID；卡弹检测读取上一周期 torque_ref，切换到 REVERSE/FEED 后下一周期改变目标速度。2026-11-18 按用户要求由等比例换算的电流目标改为直接比较力矩目标
+- 该次调整的 Shooter17mm 与整车应用对象编译、格式检查通过。主机复用现有状态机场景验证卡滞计时、反转、停止和 dt 限幅，通过；Zig 主机编译副本省略独立的 DM 浮点模板输出测试，日志在 `out/torque_state_compile.log`
 - `Motor::set_output(float)` 返回 void，基类调用虚函数 set_current，DM 系列覆盖为 set_torque
 - 云台和 17/42 mm 发射机构删除 PidOutput 配置和外部输出跟踪；PID 单位与限幅由 app 负责
 - 保留显式 set_current、set_torque 及 VESC 命令、X630 静音处理

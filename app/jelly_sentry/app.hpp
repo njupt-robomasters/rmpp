@@ -44,8 +44,11 @@ inline bool sentry_active() {
     return sentry_in_game() || rc_fn();
 }
 
-// 自检、倒计时和比赛中遥控器断联也保持使能
+// 在线 VT13 的 C 挡优先失能；自检、倒计时和比赛中遥控器断联也保持使能
 inline bool sentry_enable() {
+    if (vt13.is_connect && vt13.mode == VT13::C)
+        return false;
+
     const auto progress = referee.game_status.game_progress;
     return rc_enable() || progress == Referee::REFEREE_SELF_CHECK || progress == Referee::COUNTDOWN_5SEC || progress == Referee::GAMING;
 }

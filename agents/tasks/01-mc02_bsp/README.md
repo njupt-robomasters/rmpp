@@ -108,3 +108,64 @@ done
 - 诊断时实时方向为 yaw1=false、yaw2=true，offset 分别 0.332255、5.319590 rad；用户随后确认修改，已将源码方向设为 yaw1=true、yaw2=false，与 IMU 航向统一，保留原始零点与大 yaw 的 KvStore 加载逻辑；待更新固件后人工低输出测试
 - 最后一次读取已失能；调试访问无目标状态修改。实时多变量读取存在跨控制周期时间差，相关性按整段数据统计
 - 方向修改后整车与 gimbal、gimbal_motor 调试入口的 rmpp_app 局部编译通过，无编译警告；git diff --check 通过。未找到 clang-format，人工核对修改行格式；未完整链接、烧录或执行硬件操作
+
+### EL05 按 old 分支恢复私有扩展帧（2026-11-18）
+
+- 用户指定参考 https://github.com/Joushua233/rmpp/tree/old；已 fetch 核对 old@e7bbcb74a9acb41d673ff5b8c167fbd4f1bc3ab0 的 `rmpp/lib/motor/EL05.*` 和 `rmpp/app/sentry/gimbal.hpp`。该分支实例名为 pitch，使用私有协议、1 Mbps 扩展帧，默认电机/主机节点为0x7F/0xFD
+- 当前 EL05 收发改为同一私有协议，保留本工程 CAN2、电机节点0x12、主机节点0x22、5 Nm限幅和原方向；未移植旧云台 PID、零点、行程或默认节点。使能ID为0x03002212、停止为0x04002212、无故障Motor模式反馈为0x02801222
+- 运控类型1把16位力矩放入扩展ID，数据区为16位零位置、16位零速度和零Kp/Kd；反馈类型2按16位位置/速度/力矩及0.1℃温度解析，模式和六位故障从扩展ID取得。删除MIT专用warning字段
+- 保留当前100 ms使能刷新、断联/未运行时零力矩、500 ms故障清理；私有清错采用类型4停止帧Byte0=1。旧分支的额外力矩反向开关为false，当前沿用config.is_invert即可
+- 配套电机参数为CAN_ID=18、CAN_MASTER=34、protocol_1=0；之前写入记录是protocol_1=2，需用户在电机上位机核对并调整后断电重启。本轮未通过探针修改电机参数或操作硬件，实际协议和运转结果待台架核对
+- ARM局部编译通过且无编译警告：整车el05.cpp、app.cpp、shooter.cpp，以及shooter、shooter_rub、shooter_shoot三个调试入口rmpp_app。未完整链接或烧录
+- 新增 `el05_protocol_test.cpp`，编译真实EL05与Motor源码，只模拟CAN与时钟。通过标准帧/错误节点/错误类型/远程帧/长度筛选、16位反馈与温度解析、正负力矩及5 Nm限幅、非有限输入、未连接/未运行/超时保护、周期使能、六位故障与清错、恢复和方向反转检查。主机Zig/Clang编译有4条Eigen与C++23库的既有弃用警告；ARM编译零警告
+- 本次手写代码经clang-format 22.1.0整理，格式检查和diff空白检查通过；测试可执行文件位于本任务out/，未入库
+
+主机测试复现（支持C++23的主机编译器）：
+
+```sh
+c++ -std=c++23 -O0 -DEIGEN_DONT_VECTORIZE -Wno-unknown-pragmas -Ilib -Ilib/third_party/eigen-3.4.0 agents/tasks/01-mc02_bsp/el05_protocol_test.cpp lib/motor/el05.cpp lib/motor/motor.cpp -o agents/tasks/01-mc02_bsp/out/el05_protocol_test.exe
+agents/tasks/01-mc02_bsp/out/el05_protocol_test.exe
+```
+
+### EL05 上位机能打开适配器但搜不到电机（2026-11-19）
+
+- 用户确认失败环节为设备搜索。工作区整车app.cpp的CAN发送已由用户注释，保留该修改；实际已烧录固件与电机侧协议待核对
+- 本地手册印刷页37第4.2.4节说明：切换为MIT后，需通过CAN盒发送MIT指令8切回协议。结合此前protocol_1=2记录，优先验证该方向
+- 印刷页53指令8：按之前电机CAN_ID=18，使用1 Mbps、经典标准数据帧、ID 0x12、DLC8、`FF FF FF FF FF FF 00 FD`，其中第7字节0表示私有协议，重新上电生效。建议断电后将总线简化为单EL05与CAN适配器，再发送一次并给电机断电重启后重新搜索
+- 指令待用户通过CAN工具执行；本轮只核对手册和代码，未发CAN命令、改参、烧录、复位或操作硬件。若恢复后仍搜不到，需原始收发帧与错误计数继续核对波特率、终端和连接
+
+### EL05 私有协议下单片机离线（2026-11-19）
+
+- 用户已确认上位机可连接、protocol_1=0，CAN_ID=18、CAN_MASTER=34，与MCU配置相同
+- 已观察：EmberProbe通过现有采样连接只读检查，所选ELF为build/jelly_sentry/rmpp.elf，SHA256 `bf4d34766c2349d043723f7b23025cf964c1cf70b72053915e184410c1883330`，构建时间11月18日23:40:40；Bridge报告与最后烧录记录匹配（11月18日23:41:05），未执行Flash逐字节比对
+- 现场值：shoot.is_connect=0、callback_timer.last_cycles=0，mode/温度/原始反馈均0；CAN2已注册包括EL05在内的5个接收回调，HAL状态为2（BUSY）、ErrorCode=0、bus_off_count=0，位时序Prescaler=5、Seg1=19、Seg2=5；VT13在线C挡
+- 已定位的代码原因：整车send_can_cmd()内shoot.send()被注释；当前ELF保留EL05接收回调，EL05::send()及发送周期/分频符号被链接裁剪。默认未主动上报时，缺少周期命令将使EL05反馈在线检测无法建立；恢复发送后的实际应答还需新固件验证
+- 已仅恢复EL05按shoot_send_period_ms（默认2 ms）发送，保留pitch1/pitch2、yaw2和rub1/rub2的现有发送注释。C挡下发送停止帧仍应获得状态反馈
+- 验证：整车app.cpp ARM对象编译成功、格式检查与diff空白检查通过；编译存在用户注释yaw2发送后留下的1条yaw2_divider未使用警告。本轮未完整链接、烧录、复位、halt或修改硬件变量，现有采样保持原状
+- 下一步：用户构建并更新固件后，读取shoot.is_connect及反馈计时器，核对实际收到的私有扩展帧；无故障复位状态反馈预期0x02001222，Motor模式预期0x02801222
+
+### EL05 与双 rub 方向调整（2026-11-19）
+
+- 用户实测EL05及rub1/rub2均运行反向，要求在hpp显式暴露is_invert配置；已在shooter.hpp的三个实例中均配置is_invert=true，rub1/rub2从默认false改为显式true，shoot由false改为true
+- 复用现有方向修正：EL05发送力矩与Motor反馈同步反号，Vesc速度指令与Motor反馈同步反号；观察入口为三个实例各自的config.is_invert。保留协议、节点、PID及现有发送开关
+- 验证：整车与shooter、shooter_rub、shooter_shoot三个调试入口的rmpp_app局部编译成功，7个对象无编译警告；头文件格式及diff空白检查通过。未完整链接、烧录或通过探针改写运行参数，实际方向待用户更新固件核对
+
+### EL05 再次停转只读诊断（2026-11-19）
+
+- 当前所选ELF构建时间20:39:44，SHA256 `98522f09a1e867b4ac430ecce3ae0b63bb193f546b6caddc4a703b2d7c5b3618`，Bridge报告匹配20:39:57最后烧录记录；经临时探针连接读取，未修改共享采样开关
+- 已观察：初次VT13为S挡、trigger=1、pitch=0，机构已使能但目标频率/力矩均0，EL05离线、mode=RESET、fault=0；原始位置和22℃温度保留历史反馈。随后12点采样中EL05反馈计时固定为90518763301，使能计时持续更新，CAN2接收计时持续更新，说明EL05有效反馈中断而主循环仍在运行
+- 后段30点、100 ms间隔采样中EL05全部在线，反馈间隔约1.85~2.15 ms，mode=RESET、fault=0；VT13处于N后转C，trigger/pitch/目标频率/力矩均0，符合停转输入。两路pitch该段离线，EL05与其他设备反馈的变化需结合现场接线、供电与上位机是否连接继续核对
+- CAN2的HAL错误码与bus_off_count采样均0；AutoRetransmission实测为0（关闭）。尚未取得总线原始帧或错误计数寄存器，不把反馈中断归因为具体CAN故障
+- 运行时shoot.config.is_invert=0，rub1/rub2均1；当前源码shoot的显式is_invert已由用户移除，保留该修改。方向配置与先前提交请求后的源码有变化，本轮未再次改方向
+- 标量采样归档out/el05_no_turn_20261119.csv；已请求用户确认上位机是否断开，并在可运行时保持S挡、扳机与左摇杆以继续定位。该操作状态尚未获得回复
+- 最后一次采样OpenOCD启动失败；查询sampling_status为stopped后重试一次variables_read仍返回OPENOCD_START_FAILED，USB枚举仍能看到Horco CMSIS-DAP v2序列号d8cd1ad9。停止重复连接，待恢复探针/目标连接再核对持杆状态。本轮未改工程代码、烧录、复位、halt或改写内存/寄存器
+
+### USB-CAN 断开后的持杆与C挡对照（2026-11-19）
+
+- 用户确认USB-CAN已断开，并保持S挡、扳机及左摇杆；Ember重新读取成功，所选ELF与上节同一SHA，Bridge仍报告匹配。期间未执行复位；新读数中的系统累计周期比上节小，只按当前每段数据分析
+- S挡30点/100 ms采样：trigger持续1，pitch达到+1及-1，bullet_freq.ref达到+20及-20，机构/电机使能为1，heat_protect=0；EL05全程is_connect=0、state=STOP、torque_ref=0。有效反馈计时固定10774699819，使能刷新计时持续更新。已定位直接停转条件为有效反馈超时触发机构STOP与驱动零力矩保护
+- 同轮单次读数两路pitch在线、反馈时间持续推进；CAN2状态BUSY，HAL ErrorCode=0，bus_off_count=0，AutoRetransmission=0。当前源码同时启用pitch1 250 Hz、pitch2 1000 Hz、rub1/rub2各1000 Hz、EL05 500 Hz请求
+- 用户随后切C挡，30点采样仍为EL05离线、两路pitch在线；EL05最后反馈时间已更新到64739511907、mode=Motor(2)、fault=0，随后整段不再更新。EL05应答呈间歇状态，C挡本轮未稳定恢复
+- 优先待验证方向：关闭自动重发时仲裁丢失可取消EL05请求或使能帧。Bosch M_CAN User Manual v3.3.1第3.1.7节说明DAR下仲裁失败/发送错误后取消发送：https://www.bosch-semiconductors.com/media/ip_modules/pdf_2/m_can/mcan_users_manual_v331.pdf 。现有HAL错误码和bus-off计数不覆盖该类仲裁取消；尚未读取TXBTO/TXBCF或取得总线trace，根因保留待验证
+- 进一步寄存器只读诊断需在Ember绑定匹配SVD，当前svd为空，未调用寄存器读写、修改配置或绕过工具。对照可由用户在CubeMX启用FDCAN2 Auto Retransmission并生成、更新固件后进行；.ioc及生成代码保持由用户操作
+- 采样归档out/el05_held_and_C_20261119.csv。本轮仅只读诊断与记录，未改工程代码、烧录、复位、halt或改写运行参数；现有共享采样状态未主动改变

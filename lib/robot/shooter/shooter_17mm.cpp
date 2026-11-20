@@ -60,7 +60,8 @@ void Shooter17mm::update() {
         break;
 
     case FEED:
-        if (std::fabs(motor.shoot.current_ref) < motor.shoot.config.max_current) {
+        if (std::fabs(motor.shoot.torque_ref) <
+            (config.block_torque > 0 ? config.block_torque : motor.shoot.config.max_torque)) {
             block_elapsed = 0;
         } else {
             block_elapsed += dt;

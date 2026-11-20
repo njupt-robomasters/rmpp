@@ -43,10 +43,10 @@ for connected, stage, robot_id, fs, vt in product(
             break
 
     # 按已确认的优先级生成独立期望表；ERR 与断联均无人工模式请求
-    manual_requests = {"UP": "OFF", "C": "OFF", "MID": "CHARGE", "N": "CHARGE", "DOWN": "BOOST", "S": "BOOST"}
+    manual_requests = {"UP": "OFF", "C": "OFF", "MID": "CHARGE", "N": "BOOST", "DOWN": "BOOST", "S": "BOOST"}
     requests = {manual_requests.get(fs), manual_requests.get(vt)}
     phase_mode = {"REFEREE_SELF_CHECK": "CHARGE", "COUNTDOWN_5SEC": "CHARGE"}.get(stage)
-    if stage == "GAMING" and robot_id in (7, 107):
+    if vt in ("N", "S") or (stage == "GAMING" and robot_id in (7, 107)):
         phase_mode = "BOOST"
     expected = "OFF"
     if connected and "OFF" not in requests:

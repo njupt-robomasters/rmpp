@@ -47,15 +47,15 @@ static void send_can_cmd() {
         pitch2.send();
     }
 
-    // CAN3：小 yaw 7025 转矩与读角度交替，各占总发送频率的一半
+    // // CAN3：小 yaw 7025 转矩与读角度交替，各占总发送频率的一半
     if (++yaw2_divider >= yaw2_send_period_ms) {
         yaw2_divider = 0;
         yaw2.send();
     }
 
-    // CAN2：摩擦轮 P630，VESC 速度模式；调试阶段暂不发送
-    // rub1.send();
-    // rub2.send();
+    // // CAN2：两路 P630 ，VESC 速度模式；失能时驱动发送零电流
+    rub1.send();
+    rub2.send();
 
     // CAN2：EL05 发送周期由 shooter.hpp 的可写变量决定
     if (++shoot_divider >= shoot_send_period_ms) {

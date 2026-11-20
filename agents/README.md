@@ -44,7 +44,7 @@ agents/
 
 ## 任务索引
 
-- `01-mc02_bsp/`：mc02 BSP 适配、C 板外设类重构、CherryUSB、`lib/attitude`；复现构建、EL05 MIT 接入、CAN2 降载、7025/PCAN ID 干扰分析、7025/P630 总线调整与待上板验证项
+- `01-mc02_bsp/`：mc02 BSP 适配、C 板外设类重构、CherryUSB、`lib/attitude`；复现构建、EL05 私有扩展帧适配与协议回归测试、CAN2 降载、7025/PCAN ID 干扰分析、7025/P630 总线调整与待上板验证项
 - `02-buzzer_timbre/`：蜂鸣器复音 PWM-DAC 音色探索与样机归档；正式实现在 `lib/melody`
 - `03-quad_steer/`：底盘重构（四舵移植、矩阵底盘、统一功率控制）、PID 回算、UI 下放、机构库掉线处理；已确认决定与上车核对项
 - `04-leg_chassis/`：轮腿底盘从 SOLDIER_LEG_4 迁移；IMU 极性核查、电机映射与虚拟 IMU 方案
@@ -55,5 +55,5 @@ agents/
 - `08-attitude_cpu/`：attitude 示例 -Og 下 Eigen 不内联导致 CPU 超时；编译变体统计与上板周期测量
 - `09-leg_lqr/`：Python 复现 SOLDIER_LEG_4 轮腿 LQR（替代 MATLAB）；重心偏移下位移稳态误差与漂移分析、LQI 对比、首版 Q_s=60 参数实车对照
 - `10-global_refactor/`：全局优化（Timer/PID dt、电机默认参数与符号修复、持有与 update 约定、类布局）；外部 worktree 成员展平、SWD 排序与验证记录
-- `11-shooter_state/`：17 mm 拨弹状态机与 dt 累加计时、电机原生输出接口、云台与发射机构迁移及主机测试
+- `11-shooter_state/`：17 mm 拨弹状态机、目标力矩卡滞检测与 dt 累加计时、电机原生输出接口、云台迁移及主机测试
 - `12-upstream_merge_review/`：上游合并预检与执行；保存本地基线、EL05 适配、折叠云台移入 jelly_sentry 与局部编译验证
