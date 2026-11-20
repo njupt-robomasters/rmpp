@@ -173,19 +173,42 @@ int main() {
     // RobotUi：init() 排入 11 个初始布局，update 每周期排入的仪表只保留最新 2 份，按 30 Hz 全部发出
     RefereeSender ui_sender({.can = Can(2)});
     RobotUi ui({});
+    ui.rub_left_stage2 = ui.CYAN;
     ui.init(ui_sender);
-    for (int i = 0; i < 1000; i++)
-        ui.update(ui_sender, {.yaw = 30 * deg, .pitch = -10 * deg, .wr = 60 * rpm, .bullet = static_cast<float>(i % 20)});
+    ui.yaw_angle = 30 * deg;
+    ui.pitch_angle = -10 * deg;
+    ui.chassis_wr = 60 * rpm;
+    ui.rub_left_stage1 = ui.ORANGE;
+    ui.rub_right_stage1 = ui.PINK;
+    ui.rub_right_stage2 = ui.GREEN;
+    for (int i = 0; i < 1000; i++) {
+        ui.bullet_freq = static_cast<float>(i % 20);
+        ui.update(ui_sender);
+    }
     ui_sender.set_robot_id(3);
-    frames = run(ui_sender, 600);
-    assert(frames.size() == 13);
+    frames = run(ui_sender, 1000);
+    assert(frames.size() == 16);
     std::vector<uint16_t> ids;
     for (const auto& frame : frames) {
         assert(frame.cmd_id == 0x0301 && u16(frame.payload, 2) == 3 && u16(frame.payload, 4) == 0x0103);
         ids.push_back(u16(frame.payload, 0));
     }
-    const std::vector<uint16_t> expected_ids = {0x0103, 0x0104, 0x0110, 0x0110, 0x0110, 0x0110, 0x0104, 0x0104, 0x0104, 0x0104, 0x0103, 0x0104, 0x0104};
+    const std::vector<uint16_t> expected_ids = {0x0103, 0x0104, 0x0110, 0x0110, 0x0110, 0x0110, 0x0104, 0x0104, 0x0104, 0x0104, 0x0103, 0x0104, 0x0104, 0x0104, 0x0104, 0x0103};
     assert(ids == expected_ids);
+    Figure modules[7], tail[5];
+    std::memcpy(modules, frames[14].payload.data() + 6, sizeof(modules));
+    std::memcpy(tail, frames[15].payload.data() + 6, sizeof(tail));
+    assert(modules[5].color == ui.ORANGE && tail[0].color == ui.CYAN);
+    assert(modules[6].color == ui.PINK && tail[1].color == ui.GREEN);
+    assert(modules[5].x < tail[0].x && modules[6].x < tail[1].x);
+    for (int index = 8; index <= 10; index++) {
+        const int count = index == 10 ? 4 : 7;
+        for (int slot = 0; slot < count; slot++) {
+            Figure figure;
+            std::memcpy(&figure, frames[index].payload.data() + 6 + slot * sizeof(Figure), sizeof(Figure));
+            assert(figure.operation == RefereeSender::ADD && figure.color == ui.WHITE);
+        }
+    }
 
     // 末两帧为最新仪表：数值 yaw 30 度、pitch -10 度、转速 60 rpm、弹频 19；浮点换算后截断允许差 1
     Figure numbers[7];

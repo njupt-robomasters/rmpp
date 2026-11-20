@@ -100,8 +100,8 @@ void GimbalClassic::update_angle_loop(const Quaternionf& q, const Quaternionf& p
         const float ref = pitch.angle_ref + pitch_speed * dt;
         pitch.angle_ref = std::clamp(ref, min, max);
 
-        // 目标钳在边界且速度指令向外时撤掉前馈，避免前馈把云台推出限位
-        if ((ref > max && pitch_speed > 0) || (ref < min && pitch_speed < 0))
+        // pitch 编码器角度达到或越过限位时，仅撤销朝限位外侧的速度前馈
+        if ((motor.pitch.angle >= config.pitch_max && pitch_speed > 0) || (motor.pitch.angle <= config.pitch_min && pitch_speed < 0))
             pitch.speed_ref -= pitch_speed;
 
         const float err = plan_angle_error(Angle(pitch.angle_ref - pitch.angle_measure), config.pitch_angle_pid_config, config.pitch_max_accel);

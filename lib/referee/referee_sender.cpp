@@ -133,7 +133,7 @@ void RefereeSender::clear_ui() {
 }
 
 bool RefereeSender::send_sentry_command(const SentryCommand& command) {
-    Request request{.cmd_id = 0x0301, .content_id = 0x0120, .receiver_id = SERVER_ID, .size = sizeof(command)};
+    Request request{.cmd_id = 0x0301, .content_id = 0x0120, .receiver_id = 0x8080, .size = sizeof(command)};
     std::memcpy(request.content, &command, sizeof(command));
     return push(request);
 }

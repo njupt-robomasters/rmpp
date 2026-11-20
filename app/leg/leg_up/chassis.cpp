@@ -5,7 +5,7 @@
 
 // 下发指令，chassis_loop() 写入、chassis_write_can_frame() 组帧
 static LegUpFrame up;
-static bool down_is_connect = false;
+bool down_is_connect = false;
 static Timer callback_timer;
 
 void chassis_loop() {

@@ -3,9 +3,11 @@
 #include "chassis.hpp"
 #include "gimbal.hpp"
 #include "shooter.hpp"
+#include <algorithm>
 #include <cmath>
 
-static constexpr float HURT_TIMEOUT = 1; // 受击方向显示时长，s
+static constexpr float MOTOR_OVERHEAT = 80; // 电机温度报警阈值，℃
+static constexpr float HURT_TIMEOUT = 1;    // 受击方向显示时长，s
 
 // 受击方向，收到新的 0x0206 时按装甲 ID 换算到 IMU 参考系并锁存
 static uint32_t last_hurt_sequence = 0;
@@ -18,13 +20,18 @@ static RobotUi::Color status_color(const bool is_connect) {
     return is_connect ? RobotUi::GREEN : RobotUi::PINK;
 }
 
-// 传送带状态：离线粉色，偏离目标弹速超过 1 m/s 橙色
-static RobotUi::Color rub_color(const Motor& motor, const float speed) {
-    if (!motor.is_connect)
+static RobotUi::Color motor_color(const Motor::Status status) {
+    switch (status) {
+    case Motor::Status::OFFLINE:
         return RobotUi::PINK;
-    if (std::fabs(shooter.bullet_speed.ref - speed) > 1)
+    case Motor::Status::DISABLED:
+        return RobotUi::WHITE;
+    case Motor::Status::OVERHEAT:
         return RobotUi::ORANGE;
-    return RobotUi::GREEN;
+    case Motor::Status::NORMAL:
+        return RobotUi::GREEN;
+    }
+    return RobotUi::WHITE;
 }
 
 void referee_loop() {
@@ -48,28 +55,36 @@ void referee_loop() {
         }
     }
 
-    // 哨兵无舵轮，s1~s4 保持默认绿色；UI 只有一个 pitch 状态位，任一 pitch 电机断联都显示为断联
-    ui.update(referee_sender, {
-                                  .yaw_ecd = gimbal.yaw.ecd.measure, // 云台相对底盘角度
-                                  .yaw = gimbal.yaw.imu.measure,
-                                  .pitch = gimbal.pitch.imu.measure,
-                                  .is_hurt = has_hurt && hurt_timer.elapsed() < HURT_TIMEOUT,
-                                  .hurt_dir = hurt_dir - gimbal.yaw.imu.measure, // 相对云台
-                                  .is_detect = aim.vision.is_detect,
-                                  .wr = std::isfinite(chassis.wr.measure) ? chassis.wr.measure : 0, // 反馈未知时显示 0
-                                  .bullet = vt13.config.bullet_freq,                                // 最高弹频
-                                  .shoot = shoot.current,                                           // 拨弹电机电流
-                                  .w1 = status_color(w1.is_connect),                                // 底盘
-                                  .w2 = status_color(w2.is_connect),
-                                  .w3 = status_color(w3.is_connect),
-                                  .w4 = status_color(w4.is_connect),
-                                  .yaw1 = status_color(yaw1.is_connect), // 云台
-                                  .yaw2 = status_color(yaw2.is_connect),
-                                  .pitch_motor = status_color(pitch1.is_connect && pitch2.is_connect),
-                                  .rub1 = rub_color(rub1, shooter.rub_speed[0]), // 发射机构
-                                  .rub2 = rub_color(rub2, shooter.rub_speed[1]),
-                                  .shooter = status_color(shoot.is_connect),
-                                  .referee = status_color(referee.is_connect), // 裁判系统
-                                  .aim = status_color(aim.is_connect_vision),  // 自瞄
-                              });
+    // 哨兵无舵轮，s1~s4 保持白色；UI 只有一个 pitch 状态位，任一 pitch 电机断联都显示为断联
+    ui.yaw_ecd = gimbal.yaw.ecd.measure; // 云台相对底盘角度
+    ui.yaw_angle = gimbal.yaw.imu.measure;
+    ui.pitch_angle = gimbal.pitch.imu.measure;
+    ui.is_hurt = has_hurt && hurt_timer.elapsed() < HURT_TIMEOUT;
+    ui.hurt_dir = hurt_dir - gimbal.yaw.imu.measure; // 相对云台
+    ui.is_auto_aim_detect = aim.vision.is_detect;
+    ui.super_cap_voltage = super_cap.voltage_cap;
+    if (!super_cap.is_connect)
+        ui.cap = RobotUi::PINK;
+    else if (super_cap.mode == SuperCap::CHARGE)
+        ui.cap = RobotUi::CYAN;
+    else if (super_cap.mode == SuperCap::BOOST)
+        ui.cap = super_cap.is_cap_voltage_low() ? RobotUi::CYAN : RobotUi::GREEN;
+    else
+        ui.cap = RobotUi::WHITE;
+    ui.chassis_wr = std::isfinite(chassis.wr.measure) ? chassis.wr.measure : 0; // 反馈未知时显示 0
+    ui.bullet_freq = vt13.config.bullet_freq;                                   // 最高弹频
+    ui.shoot_output = shoot.torque;                                             // 拨弹电机力矩
+    ui.w1 = motor_color(w1.status(MOTOR_OVERHEAT));                             // 底盘
+    ui.w2 = motor_color(w2.status(MOTOR_OVERHEAT));
+    ui.w3 = motor_color(w3.status(MOTOR_OVERHEAT));
+    ui.w4 = motor_color(w4.status(MOTOR_OVERHEAT));
+    ui.base = motor_color(yaw1.status(MOTOR_OVERHEAT)); // 云台
+    ui.yaw = motor_color(yaw2.status(MOTOR_OVERHEAT));
+    ui.pitch = motor_color(std::min(pitch1.status(MOTOR_OVERHEAT), pitch2.status(MOTOR_OVERHEAT)));
+    ui.rub_left_stage1 = ui.rub_left_stage2 = motor_color(rub1.status(MOTOR_OVERHEAT, shooter.bullet_speed.ref != 0)); // 发射机构
+    ui.rub_right_stage1 = ui.rub_right_stage2 = motor_color(rub2.status(MOTOR_OVERHEAT, shooter.bullet_speed.ref != 0));
+    ui.shoot = motor_color(shoot.status(MOTOR_OVERHEAT));
+    ui.referee = status_color(referee.is_connect); // 裁判系统
+    ui.aim = status_color(aim.is_connect_vision);  // 自瞄
+    ui.update(referee_sender);
 }

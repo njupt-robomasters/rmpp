@@ -54,15 +54,20 @@ class SuperCap {
     const Config config;
 
     // 指令
+  public:
     Mode mode = OFF;
+
+  private:
     float referee_limit = 120; // 裁判电池侧功率上限原始读数，W
     float energy_referee = 60; // 裁判缓冲能量，J
 
+  public:
     bool is_connect = false;
 
     // 应答电压
+    float voltage_cap = 0; // 电容电压
+  private:
     float voltage_chassis = 0; // 底盘口（电池侧）电压
-    float voltage_cap = 0;     // 电容电压
 
     // 应答电流，已低通
     float current_chassis = 0; // 底盘负载电流
@@ -116,6 +121,8 @@ class SuperCap {
 
     // 发送一帧命令；调用周期由调用方控制，须小于控制器 100 ms 心跳超时
     void send() const;
+
+    bool is_cap_voltage_low() const;
 
     // 每个控制周期调用：断联检测、电池侧目标、虚拟缓冲能量与底盘功率目标；底盘失能时也调用
     void update();

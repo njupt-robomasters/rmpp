@@ -6,6 +6,11 @@
 
 class Motor {
   public:
+    enum class Status { OFFLINE,
+                        DISABLED,
+                        OVERHEAT,
+                        NORMAL };
+
     // 零量程与减速比在构造时取型号默认值；零点由外部维护
     struct Config {
         Can can;
@@ -31,6 +36,7 @@ class Motor {
     float torque_ref = 0;
 
     bool is_connect = false;
+    float temperature = 0; // 电机反馈温度，℃；无温度字段的型号保持 0
 
     // 安装方向与减速比修正后的输出轴反馈
     float current = 0;
@@ -58,6 +64,8 @@ class Motor {
     virtual void set_current(float current);
 
     virtual void set_torque(float torque);
+
+    Status status(float overheat, bool active = true) const;
 
     // 每个控制周期调用，检查反馈是否超时
     void update();

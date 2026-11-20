@@ -9,15 +9,6 @@ static void setup() {
     melody.play(C5D5G5);
 }
 
-static void loop() {
-    melody.update();
-    fsi6x.update();
-
-    referee_loop();
-    chassis_loop();
-    gimbal_loop();
-}
-
 static void send() {
     static uint32_t send_cnt = 0;
     send_cnt++;
@@ -35,6 +26,17 @@ static void send() {
         yaw.send();
 }
 
+static void loop() {
+    melody.update();
+    fsi6x.update();
+
+    referee_loop();
+    chassis_loop();
+    gimbal_loop();
+
+    send();
+}
+
 extern "C" void app_main() {
     setup();
     while (true) {
@@ -48,7 +50,6 @@ extern "C" void app_main() {
         static Monitor app_monitor;
         app_monitor.begin();
         loop();
-        send();
         app_monitor.end();
     }
 }

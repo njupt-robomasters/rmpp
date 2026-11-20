@@ -29,7 +29,6 @@ class DmMotor : public Motor {
 
   private:
     float temp_mos = 0;
-    float temp_motor = 0;
     Timer enable_timer;
 
   protected:

@@ -2,9 +2,13 @@
 #include "motor/m3508.hpp"
 #include "pid/pid.hpp"
 #include "rc/vt13.hpp"
+#include "referee/referee_sender.hpp"
 #include <algorithm>
+#include <cmath>
 
 static constexpr float MAX_SPEED = 60 * rpm;
+static constexpr float SPEED_TOLERANCE = 5 * rpm;
+static constexpr float MOTOR_OVERHEAT = 80;
 static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s
 
 static VT13 vt13({.uart = Uart(6)});
@@ -25,11 +29,18 @@ static Pid::Config speed_pid_config = {
 
 // 观察量：转速目标，rad/s
 static float speed_ref = 0;
+static volatile RefereeSender::Color motor_status_color = RefereeSender::WHITE;
 
 static Pid speed_pid(&speed_pid_config);
 static Timer update_timer;
 
 static void setup() {}
+
+static void send() {
+    CanFrame frame{.id = 0x200, .size = 8};
+    motor.write_can_frame(frame);
+    Can(1).send(frame);
+}
 
 static void loop() {
     const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
@@ -47,12 +58,23 @@ static void loop() {
         speed_pid.clear();
         motor.set_current(0);
     }
-}
 
-static void send() {
-    CanFrame frame{.id = 0x200, .size = 8};
-    motor.write_can_frame(frame);
-    Can(1).send(frame);
+    switch (motor.status(MOTOR_OVERHEAT, speed_ref != 0)) {
+    case Motor::Status::OFFLINE:
+        motor_status_color = RefereeSender::PINK;
+        break;
+    case Motor::Status::DISABLED:
+        motor_status_color = RefereeSender::WHITE;
+        break;
+    case Motor::Status::OVERHEAT:
+        motor_status_color = RefereeSender::ORANGE;
+        break;
+    case Motor::Status::NORMAL:
+        motor_status_color = std::fabs(speed_ref - motor.speed) > SPEED_TOLERANCE ? RefereeSender::CYAN : RefereeSender::GREEN;
+        break;
+    }
+
+    send();
 }
 
 extern "C" void app_main() {
@@ -68,7 +90,6 @@ extern "C" void app_main() {
         static Monitor app_monitor;
         app_monitor.begin();
         loop();
-        send();
         app_monitor.end();
     }
 }

@@ -18,31 +18,6 @@ static void setup() {
     ui.init(referee_sender);
 }
 
-static void loop() {
-    rgb_hue = std::fmod(rgb_hue + rgb_timer.restart() / RGB_PERIOD, 1.0f);
-    rgb.set_hsv(rgb_hue, 1, 1);
-
-    melody.update();
-    vt13.update();
-    attitude.update();
-    referee_loop();
-
-    // 上位机：姿态与比赛信息，弹速取裁判系统实测初速
-    aim.imu = {.yaw = attitude.yaw, .pitch = attitude.pitch, .roll = attitude.roll};
-    aim.referee = {
-        .is_red = referee.robot_status.robot_id < 100,
-        .game_progress = static_cast<Referee::GameProgress>(referee.game_status.game_progress),
-        .stage_remain_time = static_cast<float>(referee.game_status.stage_remain_time),
-        .bullet_speed = referee.shoot_data.initial_speed,
-    };
-    aim.update();
-    nav.update();
-
-    chassis_loop();
-    gimbal_loop();
-    shooter_loop();
-}
-
 static void send() {
     static uint32_t send_cnt = 0;
     send_cnt++;
@@ -93,6 +68,33 @@ static void send() {
     }
 }
 
+static void loop() {
+    rgb_hue = std::fmod(rgb_hue + rgb_timer.restart() / RGB_PERIOD, 1.0f);
+    rgb.set_hsv(rgb_hue, 1, 1);
+
+    melody.update();
+    vt13.update();
+    attitude.update();
+    referee_loop();
+
+    // 上位机：姿态与比赛信息，弹速取裁判系统实测初速
+    aim.imu = {.yaw = attitude.yaw, .pitch = attitude.pitch, .roll = attitude.roll};
+    aim.referee = {
+        .is_red = referee.robot_status.robot_id < 100,
+        .game_progress = static_cast<Referee::GameProgress>(referee.game_status.game_progress),
+        .stage_remain_time = static_cast<float>(referee.game_status.stage_remain_time),
+        .bullet_speed = referee.shoot_data.initial_speed,
+    };
+    aim.update();
+    nav.update();
+
+    chassis_loop();
+    gimbal_loop();
+    shooter_loop();
+
+    send();
+}
+
 extern "C" void app_main() {
     setup();
     while (true) {
@@ -106,7 +108,6 @@ extern "C" void app_main() {
         static Monitor app_monitor;
         app_monitor.begin();
         loop();
-        send();
         app_monitor.end();
     }
 }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <algorithm>
-#include <cstddef>
 
 // 定长环形队列：[] 按队首起的逻辑下标访问，0 为队首；不加锁，跨中断使用由调用方保护
 template <typename T, size_t N>

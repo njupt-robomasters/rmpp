@@ -32,6 +32,10 @@ void SuperCap::send() const {
     });
 }
 
+bool SuperCap::is_cap_voltage_low() const {
+    return voltage_cap <= config.boost_voltage_cutoff;
+}
+
 void SuperCap::update() {
     const float dt = std::min(update_timer.restart(), DT_MAX);
 

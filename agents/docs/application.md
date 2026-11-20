@@ -46,7 +46,7 @@
 ## 启动与循环
 
 - CubeMX 初始化后依次执行 `bsp_init()`、`app_main()`
-- `app.cpp` 分为 `setup()`、`loop()`、`send()`、`app_main()`：`setup()` 放一次性初始化；`loop()` 依次更新共享设备（RGB、蜂鸣器、遥控器、姿态、裁判）与各模块；`send()` 集中安排全部 CAN 发送与 `referee_sender.send()`，模块 `*_loop()` 内不发送；`app_main()` 先调用 `setup()`，再用循环内的局部 `static Timer app_timer` 按 1 kHz 依次调度 `loop()`、`send()`，并用循环内的局部 `static Monitor app_monitor` 统计频率与占用（SWD 观察）。示例程序无发送时只保留 `setup()`、`loop()`
+- `app_main()` 先调用 `setup()` 完成一次性初始化，再用循环内的局部 `static Timer app_timer` 按 1 kHz 调度 `loop()`，并用局部 `static Monitor app_monitor` 统计整个周期的频率与占用（SWD 观察）。`loop()` 依次更新共享设备（RGB、蜂鸣器、遥控器、姿态、裁判）与各模块，最后调用 `send()`。`send()` 集中安排全部 CAN 发送与 `referee_sender.send()`，模块 `*_loop()` 内不发送；无发送任务的示例省略 `send()`
 - 计时器、分频计数等跨周期状态通常放在文件作用域 `static`；主循环的 `app_timer` 放在 `while (true)` 内“1 kHz 更新”注释后，`app_monitor` 放在“负载监控”注释后，均保留 `static`
 - 低于 1 kHz 的任务在 `loop()` 内用 `<用途>_timer` 分频后提前返回，如 cdc 示例的 `print_timer`
 - 自己调用 `Pid` 的 app 函数用 `update_timer` 计一次周期并限幅后传给各 PID
@@ -101,7 +101,7 @@
 - `chassis_loop()` 每周期设置模式、裁判输入并更新超电，再把 `power_chassis_ref` 交给四轮力控底盘；发送在 `app.cpp::send()` 独立按 10 拍分频，目标 100 Hz，OFF、底盘失能和超电离线时持续发送
 - 模式优先级：裁判离线或在线 VT13 C 挡 → OFF；VT13 N/S 挡、或正赛且机器人 ID 为 7/107 → BOOST；自检/倒计时 → CHARGE；其余 OFF。BOOST 工况下用电池侧余量充电，负载升高时允许电容补偿。比赛自主运行可在遥控断联后继续使用超电，仍受裁判连接状态约束
 - 裁判连接超时由现有 `Referee` 的 1 s 检测决定，超电转 OFF 后底盘继续使用最后功率上限与缓冲能量；上电未收到裁判时为默认 120 W/60 J，超电 OFF
-- 超电实测功率覆盖范围按实车供电支路核对，四轮模型只估计轮电机功率；首轮保留现有参数和 `ui.cap=0`，能量显示待确定满电电压与可用能量范围后接入
+- 超电实测功率覆盖范围按实车供电支路核对，四轮模型只估计轮电机功率；UI 的 CAP 数值直接取电容电压，单位 V
 - 实施与验证记录见 `agents/tasks/06-super_cap_capacitance/README.md`，硬件联调由用户审计后决定
 
 ## jelly_sentry 双传送带驱动
@@ -126,7 +126,10 @@
 - `GimbalFold` 位于 `lib/robot/gimbal/gimbal_fold.*`，目前仅 jelly_sentry 使用；四轴控制在独立的 `update()` 中执行。app 每周期更新 attitude，并通过 `gimbal.update(attitude.yaw, attitude.pitch)` 传入姿态，yaw1 零点由 app 经 KvStore 持久化
 - 大 yaw、pitch1、pitch2 经电机原生 `set_output()` 接收 Nm，小 yaw 7025 接收 A；折叠云台保留电机限幅后的 PID 跟踪及重力补偿，独立于上游普通云台的简化策略
 - 底盘由 app 更新超电后传入 `power_chassis_ref`
-- 受击方向显示与实测弹速读取裁判公开只读的 `hurt_data`、`hurt_sequence`（收到 0x0206 递增）、`shoot_data`；受击时按装甲 ID 换算到 IMU 参考系锁存 1 s。UI 在 app 层 `referee_loop()` 经 `RobotUi::update(referee_sender, {...})` 每周期填写，两台哨兵与 leg_up 写法一致
+- 受击方向显示与实测弹速读取裁判公开只读的 `hurt_data`、`hurt_sequence`（收到 0x0206 递增）、`shoot_data`；受击时按装甲 ID 换算到 IMU 参考系锁存 1 s。两台哨兵与 leg_up 在 `referee_loop()` 直接填写 `ui` 的公开字段，再调用 `ui.update(referee_sender)`
+- 整车图 ADD 时全白。`base`、`yaw` 在轮腿上对应下板通信、yaw 电机，在双 yaw 哨兵上对应 yaw1、yaw2。电机状态由电机对象提供，各车 `referee.cpp` 配置过热阈值（默认 80 ℃）并选色；离线粉、主动失能白、过热橙、正常绿。摩擦轮上排对应左侧、下排对应右侧；图上左列为 1 级、右列为 2 级，单级同侧共用状态。轮腿无自瞄连接源，`aim` 保持白色。超电离线粉、OFF 白、CHARGE 青、BOOST 绿
+- 超电处于 BOOST 但电压达到或低于配置的放电补偿截止值时显示青色，高于截止值时显示绿色
+- 独立 `examples-motor` 台架示例通过 SWD 查看 `motor_status_color`：断连粉、失能或零目标白、过热橙；其余状态下转速偏差超过 5 rpm 为青，达标为绿。该观察量不参与电机控制或实车 HUD
 
 ## jelly_sentry 导航与 pitch1
 

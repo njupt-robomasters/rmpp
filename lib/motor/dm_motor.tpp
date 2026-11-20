@@ -42,7 +42,7 @@ void DmMotor<PMAX, VMAX, TMAX>::can_callback(const CanFrame& frame) {
     const auto* data = frame.data;
     err_code = static_cast<ErrCode>(data[0] >> 4);
     temp_mos = static_cast<int8_t>(data[6]);
-    temp_motor = static_cast<int8_t>(data[7]);
+    temperature = static_cast<int8_t>(data[7]);
 
     Motor::can_callback({
         .torque = decode(((data[4] & 0x0f) << 8) | data[5], TMAX, 12),

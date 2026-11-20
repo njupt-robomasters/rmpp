@@ -16,8 +16,6 @@ class GM6020 : public Motor {
 
     const float ke;
 
-    float motor_temperature = 0; // 电机温度，℃
-
   public:
     // ke 为电压帧反电动势前馈系数，V/(rad/s)；0 不补偿，需要时传 KE 或按比例缩小
     explicit GM6020(const Config& config, float ke = 0);

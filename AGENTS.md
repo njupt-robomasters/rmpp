@@ -1,6 +1,6 @@
 # 项目与协作入口
 
-RMPP 是 STM32 机器人控制项目，人工入门见 `README.md`。
+RMPP 是用于大疆 RoboMaster 机甲大师赛的 STM32 机器人控制项目。项目入门见 `README.md`。
 
 ## 回答与沟通
 

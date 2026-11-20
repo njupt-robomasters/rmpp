@@ -13,8 +13,7 @@ class RefereeSender {
     static constexpr size_t QUEUE_CAPACITY = 20;              // 待发请求数；UI 初始布局 11 个、仪表 2 个加指令余量
     static constexpr size_t CONTENT_MAX = 105;                // 请求内容最长，B；绘制七个图形
     static constexpr size_t FRAME_MAX = 6 + CONTENT_MAX + 9;  // 交互头 6 B，帧头 5 B、命令码 2 B、CRC16 2 B
-    static constexpr float INTERACTION_PERIOD = 1.0f / 30.0f; // 0x0301 最小间隔，s
-    static constexpr uint16_t SERVER_ID = 0x8080;             // 裁判系统服务器，哨兵与雷达自主决策的接收者
+    static constexpr float INTERACTION_PERIOD = 1.0f / 20.0f; // 0x0301 最小间隔，s
 
   public:
     enum Color : uint8_t { MAIN, // 己方颜色

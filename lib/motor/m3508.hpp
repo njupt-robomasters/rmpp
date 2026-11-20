@@ -10,8 +10,6 @@ class M3508 : public Motor {
     static constexpr float REDUCTION = 3591.0f / 187.0f;
 
   private:
-    float motor_temperature = 0; // 电机温度，℃
-
   public:
     explicit M3508(const Config& config);
 

@@ -11,16 +11,6 @@ static void setup() {
     Can(1).add_rx_callback(chassis_can_callback);
 }
 
-static void loop() {
-    melody.update();
-    fsi6x.update();
-    attitude.update();
-
-    // 底盘只在发送左腿的一拍计算（500 Hz），保证两侧关节反馈都已刷新
-    if (send_cnt % 2 == 0)
-        chassis_loop();
-}
-
 static void send() {
     // CAN1 左右关节交替发送，每个关节 500 Hz；偶拍与奇拍各 3 帧，匹配 3 个发送邮箱
     if (send_cnt % 2 == 0) {
@@ -46,6 +36,18 @@ static void send() {
     send_cnt++;
 }
 
+static void loop() {
+    melody.update();
+    fsi6x.update();
+    attitude.update();
+
+    // 底盘只在发送左腿的一拍计算（500 Hz），保证两侧关节反馈都已刷新
+    if (send_cnt % 2 == 0)
+        chassis_loop();
+
+    send();
+}
+
 extern "C" void app_main() {
     setup();
     while (true) {
@@ -59,7 +61,6 @@ extern "C" void app_main() {
         static Monitor app_monitor;
         app_monitor.begin();
         loop();
-        send();
         app_monitor.end();
     }
 }

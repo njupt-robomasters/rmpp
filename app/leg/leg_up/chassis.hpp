@@ -13,6 +13,7 @@ inline SuperCap super_cap({.can = Can(1)});
 
 // 上下板通信
 inline LegDownFrame down;
+extern bool down_is_connect;
 
 void chassis_loop();
 

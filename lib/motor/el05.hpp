@@ -32,7 +32,6 @@ class EL05 : public Motor {
 
     Mode mode = RESET_MODE;
     uint8_t fault = 0;              // 扩展 ID bit21~16，六项故障标志
-    float temperature = 0;          // ℃
     uint32_t clear_fault_count = 0; // 自动清错发送次数
 
   private:

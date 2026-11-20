@@ -103,7 +103,7 @@ void Vesc::can_callback(const CanFrame& frame) {
         break;
     case CAN_PACKET_STATUS_4:
         temp_fet = static_cast<float>(read16(data)) / 10.0f;
-        temp_motor = static_cast<float>(read16(data + 2)) / 10.0f;
+        temperature = static_cast<float>(read16(data + 2)) / 10.0f;
         current_in = static_cast<float>(read16(data + 4)) / 10.0f;
         pid_angle = static_cast<float>(read16(data + 6)) / 50.0f * deg;
         break;
