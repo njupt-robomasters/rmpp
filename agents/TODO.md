@@ -126,6 +126,10 @@
 - 拟用 worktree `../rmpp-referee-uart`、分支 `refactor/referee-uart`；实现开始时核对基线及并行改动
 - 验证：格式检查、相关文件对象编译，覆盖 UART/CAN 字节流、分片、忙时重试、缓冲所有权和裁判解析的主机测试
 
+## VT13 操控量解析
+
+状态：代码与文档完成，leg-leg_up、sentry、examples-motor、examples-rc 的 app 与 lib 对象编译通过，主机测试通过，待用户审计与上车。结论见 `docs/application.md`“遥控器映射”，行为变化与上车核对项见 `tasks/12-vt13_control/README.md`
+
 ## 外部 worktree 类布局重构
 
 基线 `795e263`，类布局重构已并入 master，外部 worktree 随合并移除。完成成员尾下划线移除、实例配置与设备状态展平、SWD 排序、最小权限和声明与实现排序；保留主线暂存的轮腿 LQR 调整并完成适配。infantry 跳过编译验证。代码与验证结论见 `tasks/10-global_refactor/README.md`，待用户审计与上车。

@@ -18,13 +18,14 @@ agents/
 ├── README.md          本说明
 ├── TODO.md            跨对话的规划、已确认决定和待办
 ├── docs/              架构与模块文档，索引见下文
+├── out/               统一存放临时输出和中间产物，已被 .gitignore 忽略
 └── tasks/
     └── NN-名称/       一类任务一个目录，NN 两位递增序号，名称用 snake_case
-        └── out/       临时输出，已被 .gitignore 忽略
 ```
 
 - 开始任务前先查任务索引，相似任务复用已有目录
 - 任务目录可放 `README.md` 记录目标、复现命令、结论和遗留问题
+- 日志、固件等临时输出和中间产物统一放在 `agents/out/`，各任务目录不再单独维护 `out/`
 - 保留可复现的脚本和结论，删除失效临时文件
 - `docs/` 是长期项目知识，改代码时同步修正；`tasks/` 是单类任务过程，结论成为长期知识时提炼进 `docs/`
 - `docs/` 随对应代码同一提交更新；仅任务记录或索引的变更单独提交，信息以 `agents:` 开头
@@ -55,3 +56,5 @@ agents/
 - `09-leg_lqr/`：Python 复现 SOLDIER_LEG_4 轮腿 LQR（替代 MATLAB）；重心偏移下位移稳态误差与漂移分析、LQI 对比、首版 Q_s=60 参数实车对照
 - `10-global_refactor/`：全局优化（Timer/PID dt、电机默认参数与符号修复、持有与 update 约定、类布局）；外部 worktree 成员展平、angle 命名与多圈零点、成员六组与函数调用序排序、最小权限及验证记录
 - `11-shooter_state/`：17 mm 拨弹状态机与 dt 累加计时、电机原生输出接口、云台与发射机构迁移及主机测试
+- `12-vt13_control/`：VT13 操控量解析（键盘斜坡、云台、发射、自瞄）、leg_up 与 sentry 迁移、sentry 移除 FSi6X；主机测试与上车核对项
+- `13-referee_relay/`：leg_down 裁判串口经 CAN 转发（RefereeRelay）、Referee 改为只收 CAN、VT13 解析图传链路 0x0311；Referee 收发拆分为 Referee、RefereeSender（含 UI、0x0120、0x0308）与 RobotUi；主机测试、ARM 单文件编译与上车核对项

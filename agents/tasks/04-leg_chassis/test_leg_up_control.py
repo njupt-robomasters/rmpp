@@ -28,10 +28,11 @@ struct Timer {
     void restart() { start = now; }
 };
 struct VT13 {
-    enum { N, S, STOP };
-    bool is_connect = true, fn = false, pause = false;
-    int mode = STOP;
-    float x = 0, wheel = 0;
+    struct {
+        bool fn = false, pause = false;
+    } rc;
+    bool is_enable = false;
+    float vx = 0, wr = 0;
 } vt13;
 struct { bool is_connect = true; float angle = 0; } yaw;
 LegDownFrame down;
@@ -68,9 +69,9 @@ LegUpFrame command() {
     return result;
 }
 void press_pause() {
-    vt13.pause = false;
+    vt13.rc.pause = false;
     cycle();
-    vt13.pause = true;
+    vt13.rc.pause = true;
     cycle();
 }
 uint64_t field(const CanFrame& frame, const unsigned offset, const unsigned bits) {
@@ -80,11 +81,10 @@ uint64_t field(const CanFrame& frame, const unsigned offset, const unsigned bits
 }
 int main() {
     // 首次状态帧到达前保持失能与低腿长
-    vt13.mode = VT13::N;
+    vt13.is_enable = true;
     assert(!command().is_enable && up.leg_length == 0.14f);
     // 倒地使能：pause 授权自救并保持，腿长不变
     report(true);
-    vt13.mode = VT13::N;
     auto frame = cycle();
     assert(frame.id == UP_ID && frame.size == 8);
     assert(up.is_enable && !up.allow_rescue && up.leg_length == 0.14f);
@@ -106,34 +106,34 @@ int main() {
     assert(command().leg_length == 0.14f && up.allow_rescue);
 
     // 跳跃上升沿
-    vt13.fn = true;
+    vt13.rc.fn = true;
     assert(command().trigger_jump);
     assert(command().trigger_jump);
-    vt13.fn = false;
+    vt13.rc.fn = false;
     assert(!command().trigger_jump);
 
     // 运动指令与 yaw 离线
-    vt13.x = -0.5f;
-    vt13.wheel = -0.25f;
+    vt13.vx = -1.5f;
+    vt13.wr = -1.0f;
     yaw.angle = -0.3f;
     auto decoded = command();
     assert(std::fabs(decoded.vx + 1.5f * std::cos(yaw.angle)) <= 0.0005f);
-    assert(std::fabs(decoded.wr + 0.25f * WR_MAX) <= 0.0005f);
+    assert(std::fabs(decoded.wr + 1.0f) <= 0.0005f);
     assert(decoded.yaw == -0.3f);
     yaw.is_connect = false;
     yaw.angle = 0; // Motor::update() 在实际云台循环中清零离线角度
     assert(command().yaw == 0);
 
     // 失能清授权，fn 保持直接透传
-    vt13.mode = VT13::STOP;
-    vt13.fn = true;
+    vt13.is_enable = false;
+    vt13.rc.fn = true;
     assert(!command().is_enable && !up.allow_rescue && up.trigger_jump);
-    vt13.mode = VT13::N;
+    vt13.is_enable = true;
     assert(command().is_enable && up.trigger_jump && !up.allow_rescue);
     assert(command().trigger_jump);
-    vt13.fn = false;
+    vt13.rc.fn = false;
     cycle();
-    vt13.fn = true;
+    vt13.rc.fn = true;
     assert(command().trigger_jump && !up.allow_rescue);
 
     // 下板断联清反馈与授权、复位腿长
@@ -280,7 +280,7 @@ def main():
     generated = OUT / "test.cpp"
     generated.write_text(STUBS + constants + "\n" + source + DOWN_STUBS + decoder + TESTS, encoding="utf-8")
     executable = OUT / "test.exe"
-    subprocess.run(["g++", "-std=c++20", "-mno-ms-bitfields", "-Wall", "-Wextra", "-Werror", "-I", str(OUT), "-I", str(ROOT / "app"),
+    subprocess.run(["g++", "-std=c++20", "-mno-ms-bitfields", "-Wall", "-Wextra", "-Werror", "-I", str(OUT), "-I", str(ROOT / "app/leg"),
                     str(generated), "-o", str(executable)], check=True)
     subprocess.run([str(executable)], check=True)
     print("PASS: shared protocol, CAN1 wiring, control state transitions, bit layout and frame encoding")

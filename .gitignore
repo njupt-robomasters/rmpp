@@ -8,4 +8,5 @@ logs/
 # AI
 .codex/
 .claude/
-agents/tasks/**/out/
+.agents/
+agents/out/
