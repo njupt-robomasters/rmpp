@@ -114,6 +114,14 @@
 - 单轴与拨弹测试显式限幅 dt 并传给 PID；底盘由 app 更新超电后传入 `power_chassis_ref`
 - 受击方向显示与实测弹速继续读取裁判 `hurt_data`、`hurt_sequence`、`shoot_data`，这些已有字段为公开只读输出
 
+## jelly_sentry 导航与 pitch1
+
+- CDC1 接 Aim 的 21 字节上行/18 字节下行自瞄帧，CDC2 接 Nav 的 17 字节导航下行帧；主循环先向 Aim 传入头部姿态和裁判实测弹速，再更新 Nav，最后执行底盘、云台及发射控制
+- Aim 每 5 ms 上传最终 IMU 头姿态，默认 200 ms 无有效视觉帧时清空检测和开火许可；`aim.vision` 为最终 IMU 头世界系目标，内部弧度，协议度，上正 pitch 在边界反号
+- 导航按大 yaw 雷达系速度接入，经负小 yaw 角转换到云台系；flag=0 随 IMU 头，flag=1 不随头并使用小陀螺。人工底盘输入优先接管，导航超时或 yaw 反馈离线停止自主运动
+- pitch1 当前全程失能，GimbalFold 的总使能接口和每次 update 固定关闭该轴，清 PID 并写零输出，保留反馈与失能帧发送；其余三轴正常控制
+- 协议、坐标公式、flag 和离线处理详见 `minipc.md`；验证见 `../tasks/13-minipc_nav/README.md`
+
 ## jelly_sentry CAN 发送调度
 
 - 总线分配：CAN2 为 pitch1、pitch2、EL05 和两个 P630，CAN3 为小 yaw 7025；协议、ID 和发送周期保留原值
@@ -123,7 +131,7 @@
 
 - 整车控制计算保持1kHz；pitch1、pitch2和yaw2的发送周期可写变量放在gimbal.hpp各电机实例旁，EL05的shoot_send_period_ms放在shooter.hpp的shoot实例旁
 - 默认周期：pitch1_send_period_ms=4（250Hz）、pitch2_send_period_ms=1（1000Hz）、yaw2_send_period_ms=2（500Hz，A1/94各250Hz）、shoot_send_period_ms=2（500Hz）
-- 当前整车启用底盘、大小yaw、pitch1、pitch2、EL05、双传送带及超电发送；EL05默认2 ms周期调用，合并后需用户更新固件核对在线状态
+- 当前整车启用底盘、大小yaw、pitch2、EL05、双传送带及超电控制帧发送；pitch1 保留发送且始终发送失能帧。EL05默认2 ms周期调用，合并后需用户更新固件核对在线状态
 - 各变量为inline volatile uint32_t，运行时通过调试器写入，下一个发送判断使用新值，不清零已有计数。计数器保留在cpp，不作为调频入口；周期0等效每主循环发送，超过100ms可能触发主控反馈离线，7025建议周期至少2ms
 - 失能、使能和清错帧替换当次发送，不额外增加发送频率；CAN2 和 CAN3 分别核算负载，P630 扩展帧和状态上报按实际电调设置统计
 - 频率是按1ms主循环计算的目标值，真实周期、反馈频率与7025断联是否改善仍需上板测量

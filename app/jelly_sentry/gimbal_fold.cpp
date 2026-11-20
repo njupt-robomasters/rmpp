@@ -13,7 +13,9 @@ void GimbalFold::set_enable(const bool is_enable) {
     this->is_enable = is_enable;
     motor.yaw1.set_enable(is_enable);
     motor.yaw2.set_enable(is_enable);
-    motor.pitch1.set_enable(is_enable);
+    // 折叠关节暂时固定失能，清除旧目标输出
+    motor.pitch1.set_enable(false);
+    motor.pitch1.set_output(0);
     motor.pitch2.set_enable(is_enable);
 }
 
@@ -55,6 +57,7 @@ void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
 
     yaw.imu.measure = imu_yaw;
     pitch.imu.measure = imu_pitch;
+    motor.pitch1.set_enable(false);
     motor.yaw1.update();
     motor.yaw2.update();
     motor.pitch1.update();
@@ -108,11 +111,11 @@ void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
     // 各电机单独判断，离线电机输出零，不影响其他电机
     const bool can_yaw1 = check_motor(motor.yaw1, is_yaw1_ready, yaw_speed_pid, yaw_position_pid);
     const bool can_yaw2 = check_motor(motor.yaw2, is_yaw2_ready, yaw2_speed_pid, yaw2_position_pid);
-    const bool can_pitch1 = check_motor(motor.pitch1, is_pitch1_ready, pitch1_speed_pid, pitch1_position_pid);
 
-    // 折叠关节不可控时目标跟随实测，使能后从原地保持，不会跳向旧目标
-    if (!can_pitch1)
-        pitch1.ref = pitch1.measure;
+    // 折叠关节全程失能，清空闭环状态并跟踪实测角度
+    pitch1_speed_pid.clear();
+    pitch1_position_pid.clear();
+    pitch1.ref = pitch1.measure;
 
     // 用于参考系转换
     yaw.imu_minus_ecd = yaw.imu.measure - yaw.ecd.measure;
@@ -175,16 +178,8 @@ void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
         motor.pitch2.set_output(0);
     }
 
-    // 折叠关节串级 PID 叠加重力补偿
-    if (can_pitch1) {
-        const float speed_ref = pitch1_position_pid.calculate(dt, pitch1.ref - pitch1.measure);
-        const float gravity = gravity_output(config.pitch1_gravity, pitch1.measure);
-        const float output = pitch1_speed_pid.calculate(dt, speed_ref - motor.pitch1.speed) + gravity;
-        motor.pitch1.set_output(output);
-        pitch1_speed_pid.track(motor.pitch1.torque_ref - gravity);
-    } else {
-        motor.pitch1.set_output(0);
-    }
+    // pitch1 保留反馈更新与失能帧发送，输出固定为零
+    motor.pitch1.set_output(0);
 
     // 传递软件限位到 imu 参考系
     yaw.imu.ref = yaw1.ref + yaw.imu_minus_ecd;

@@ -99,14 +99,8 @@ extern "C" void app_main() {
             referee.update();
             vt13.update();
             fsi6x.update();
-            aim.imu = {.yaw = attitude.yaw, .pitch = attitude.pitch, .roll = attitude.roll};
-            aim.referee = {
-                .is_red = referee.robot_status.robot_id < 100,
-                .game_progress = static_cast<Referee::GameProgress>(referee.game_status.game_progress),
-                .stage_remain_time = static_cast<float>(referee.game_status.stage_remain_time),
-                .bullet_speed = referee.robot_status.bullet_speed_limit,
-            };
-            aim.update();
+            aim.set_referee(referee.robot_status.robot_id < 100, referee.shoot_data.initial_speed);
+            aim.update(attitude.yaw, attitude.pitch, attitude.roll);
             nav.update();
 
             chassis_loop();

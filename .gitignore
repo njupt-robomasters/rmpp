@@ -9,3 +9,4 @@ logs/
 .codex/
 .claude/
 agents/tasks/**/out/
+agents/.tools/

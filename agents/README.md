@@ -26,6 +26,7 @@ agents/
 - 开始任务前先查任务索引，相似任务复用已有目录
 - 任务目录可放 `README.md` 记录目标、复现命令、结论和遗留问题
 - 保留可复现的脚本和结论，删除失效临时文件
+- 当前 Windows 主机测试与格式化工具共用 `agents/.tools/`（已忽略），复用现有工具，避免在各任务重复安装；任务 `out/` 中的缓存和测试产物可在验证后清理
 - `docs/` 是长期项目知识，改代码时同步修正；`tasks/` 是单类任务过程，结论成为长期知识时提炼进 `docs/`
 - `docs/` 随对应代码同一提交更新；仅任务记录或索引的变更单独提交，信息以 `agents:` 开头
 
@@ -33,6 +34,7 @@ agents/
 
 - 修改前：`docs/conventions.md`（编码、命名、SWD 类布局）、`docs/workflow.md`（协作、验证、交付）
 - 整体分层与入口：`docs/architecture.md`；应用：`docs/application.md`
+- MiniPC 自瞄/导航协议、双 CDC 和坐标转换：`docs/minipc.md`
 - `lib/bsp/**`、`boards/**/bsp/**`：`docs/bsp.md`；电机：`docs/motor.md`
 - CMake 与工具链：`docs/build.md`；验证与人工审计：`docs/verification.md`
 - IMU：`docs/imu.md`；算法原理按需读 `docs/imu-principles.md`
@@ -57,3 +59,5 @@ agents/
 - `10-global_refactor/`：全局优化（Timer/PID dt、电机默认参数与符号修复、持有与 update 约定、类布局）；外部 worktree 成员展平、angle 命名与多圈零点、成员六组与函数调用序排序、最小权限及验证记录
 - `11-shooter_state/`：17 mm 拨弹状态机与 dt 累加计时、电机原生输出接口、云台与发射机构迁移及主机测试
 - `12-upstream_merge_review/`：上游合并预检与执行；保存本地基线、EL05 适配、折叠云台移入 jelly_sentry 与局部编译验证
+- `13-minipc_nav/`：导航 17 字节协议、独立 CDC、底盘随头/小陀螺、坐标转换与 pitch1 全程失能验证
+- `14-minipc_aim/`：自瞄 21/18 字节双向协议、200 Hz 上报、默认 200 ms 超时、最终 IMU 头角度换算及回归验证

@@ -25,9 +25,9 @@ inline KvStore kv_store("jelly_sentry");
 inline VT13 vt13({.uart = Uart(1)});
 inline FSi6X fsi6x({.uart = Uart(5)});
 
-// 上位机自瞄与导航：通信协议由上游实现，未接入时保持默认值（未识别、导航速度为零）
-inline Aim aim({.cdc = Cdc(1)});
-inline Nav nav({.cdc = Cdc(1)});
+// 上位机独立通道：CDC1 自瞄（21 字节上行 / 18 字节下行），CDC2 导航（17 字节下行）
+inline Aim aim(Cdc(1), {.timeout = 200 * ms});
+inline Nav nav(Cdc(2), {});
 
 // 裁判系统经 CAN1 转发模块接入，接收 ID 0x000、发送 ID 0x001
 inline Referee referee({.bus = Can(1)});

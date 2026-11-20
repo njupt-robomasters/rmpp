@@ -93,7 +93,7 @@ inline DM4310 pitch1({
     .can = Can(2),
     .tx_id = 0x10,
     .rx_id = 0x20,
-    .is_invert = false,
+    .is_invert = true,
     .offset = 0 * deg,
 });
 

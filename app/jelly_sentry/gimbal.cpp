@@ -148,7 +148,7 @@ void gimbal_loop() {
     else
         gimbal.set_speed(std::clamp(wyaw, -WYAW_MAX, WYAW_MAX), std::clamp(wpitch, -WPITCH_MAX, WPITCH_MAX));
 
-    // 折叠关节 pitch1 暂无触发方式，保持使能时的角度；定下后在此调用 gimbal.set_pitch1_angle()
+    // pitch1 在 GimbalFold 内固定失能；导航 flag 只选择底盘模式
 
     // 小陀螺前馈
     gimbal.set_chassis_wr(chassis.wr.measure);

@@ -5,28 +5,15 @@
 #include <cmath>
 
 // 操控参数
-static constexpr float VXY_MAX = 5.0f;     // 平移最大速度，100W下2.3m/s，不限功率3.2m/s
+static constexpr float VXY_MAX = 5.0f;           // 平移最大速度，100W下2.3m/s，不限功率3.2m/s
 static constexpr float FSI6X_WR_MAX = 120 * rpm; // 旋转最大角速度，100W下107rpm，不限功率155rpm
-static constexpr float WR_MIN = 60 * rpm;  // 导航满速平移时的小陀螺角速度
-static constexpr float AXY = 100.0f;       // 键盘平移加速度，m/s^2
-static constexpr float DXY = 100.0f;       // 键盘平移减速度，m/s^2
-static constexpr float AR = 1000 * rpm;    // 键盘旋转角加速度，rad/s^2
-static constexpr float DR = 1000 * rpm;    // 键盘旋转角减速度，rad/s^2
-
-// 自主导航参数
-static constexpr bool FORCE_GAME_POSITION = false;
-static constexpr bool FORCE_TEST_POSITION = false;
-static constexpr float GAME_CENTER_X = 4 - 2 + 0.2f, GAME_CENTER_Y = 6 - 1.5f + 0.2f;
-static constexpr float GAME_HOME_X = 0, GAME_HOME_Y = 0;
-static constexpr float TEST_CENTER_X = 1, TEST_CENTER_Y = 0;
-static constexpr float TEST_HOME_X = 0, TEST_HOME_Y = 0;
-static constexpr int GO_HOME_HP = 120, GO_CENTER_HP = 400;
-
-enum ChassisState { GO_CENTER,
-                    GO_HOME };
+static constexpr float WR_MIN = 60 * rpm;        // 导航满速平移时的小陀螺角速度
+static constexpr float AXY = 100.0f;             // 键盘平移加速度，m/s^2
+static constexpr float DXY = 100.0f;             // 键盘平移减速度，m/s^2
+static constexpr float AR = 1000 * rpm;          // 键盘旋转角加速度，rad/s^2
+static constexpr float DR = 1000 * rpm;          // 键盘旋转角减速度，rad/s^2
 
 // 跨周期状态
-static ChassisState chassis_state = GO_CENTER;
 static Timer loop_timer;
 static float key_vx = 0, key_vy = 0, key_wr = 0;
 
@@ -57,25 +44,10 @@ void chassis_loop() {
 
     // 自主导航速度，按平移速度在最大转速和保留转速间插值小陀螺
     float vx = 0, vy = 0, wr = 0;
-    if (sentry_active()) {
-        const bool game_position = FORCE_GAME_POSITION || (!FORCE_TEST_POSITION && sentry_in_game());
-        if (chassis_state == GO_CENTER) {
-            nav.target_position.x = game_position ? GAME_CENTER_X : TEST_CENTER_X;
-            nav.target_position.y = game_position ? GAME_CENTER_Y : TEST_CENTER_Y;
-            if (referee.robot_status.current_HP <= GO_HOME_HP)
-                chassis_state = GO_HOME;
-        } else {
-            nav.target_position.x = game_position ? GAME_HOME_X : TEST_HOME_X;
-            nav.target_position.y = game_position ? GAME_HOME_Y : TEST_HOME_Y;
-            if (referee.robot_status.current_HP >= GO_CENTER_HP)
-                chassis_state = GO_CENTER;
-        }
-        std::tie(vx, vy) = rotate(nav.chassis_speed.vx, nav.chassis_speed.vy, yaw2.angle);
+    if (sentry_active() && nav.is_connect) {
+        std::tie(vx, vy) = rotate(nav.command.vx, nav.command.vy, yaw2.angle);
         const float speed = std::hypotf(vx, vy);
         wr = map(speed, 0.0f, VXY_MAX, FSI6X_WR_MAX, WR_MIN);
-    } else {
-        chassis_state = GO_CENTER;
-        nav.target_position = {};
     }
 
     // 叠加摇杆与键盘，断联时摇杆已复位为 0

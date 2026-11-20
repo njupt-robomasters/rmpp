@@ -59,7 +59,7 @@ Timer 提供 `elapsed`、`restart`、`delay`，时间为秒，不限幅；底层
 M3508 motor({.can = Can(1), .rx_id = 0x201});
 FSi6X fsi6x({.uart = Uart(3)});
 VT13 vt13({.uart = Uart(6)});
-Aim aim({.cdc = Cdc(1)});
+Aim aim(Cdc(1), {.timeout = 200 * ms});
 Rgb rgb;
 Melody melody;
 Imu imu({.gyro_offset = Vector3f(0.003f, -0.004f, -0.002f), .gravity = 9.80f});
