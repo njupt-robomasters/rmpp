@@ -14,6 +14,8 @@ python tools/check_builds.py
 
 每个应用只生成一个默认 Debug 预设，名称不带 `-debug`，不自动生成 Release。需要 Release 时，在 CLion 复制为普通配置后修改构建类型，并使用独立构建目录；若复制结果仍含 `--preset`，移除该选项并显式设置对应的 `-DRMPP_APP=<应用路径>`
 
+2026-11-21 已删除 `app/jelly_sentry_debug/` 全部调试应用及预设；整车 `jelly_sentry` 预设保留，重新生成预设时按现有应用目录发现入口
+
 应用支持任意层级嵌套：脚本递归查找 `app/` 下的 `CMakeLists.txt`，以所在目录相对 `app/` 的路径设置 `RMPP_APP`，路径各级用连字符连接为预设名称。例如 `app/leg/leg_up/CMakeLists.txt` 对应 `leg-leg_up`，构建目录为 `build/leg-leg_up`；下板对应 `leg-leg_down`。共享协议位于 `app/leg/leg_protocol.hpp`
 
 ## 接口与板卡实现

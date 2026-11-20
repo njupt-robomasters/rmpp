@@ -45,7 +45,7 @@ void GimbalFold::turn_yaw(const float delta) {
 }
 
 void GimbalFold::set_chassis_wr(const float chassis_wr) {
-    this->chassis_wr = chassis_wr;
+    this->chassis_wr = std::isfinite(chassis_wr) ? chassis_wr : 0;
 }
 
 void GimbalFold::set_pitch1_angle(const Angle angle) {
@@ -131,8 +131,11 @@ void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
         pitch.ecd.ref = pitch.imu.ref - pitch.imu_minus_ecd;
     }
 
-    // 分配大小 yaw：大 yaw 直接设为总目标，小 yaw 补偿大 yaw 尚未转到的部分并限位
+    // 沿用 old 哨兵分配：大 yaw 持续跟随总目标，小 yaw 补偿大轴尚未完成的转角
     yaw1.ref = yaw.ecd.ref;
+    // 小轴离线时保留其最后测量，由大轴承担头部剩余误差
+    if (mode == IMU_MODE && !motor.yaw2.is_connect)
+        yaw1.ref -= yaw2.measure;
     const float yaw2_ref = Angle(yaw.ecd.ref - yaw1.measure);
     yaw2.ref = std::clamp(yaw2_ref, config.yaw2.min, config.yaw2.max);
     const bool is_yaw2_limit = float(yaw2.ref) != yaw2_ref;
@@ -143,7 +146,7 @@ void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
     pitch.ecd.ref = pitch2_ref;
     pitch1.ref = std::clamp(float(pitch1.ref), config.pitch1.min, config.pitch1.max);
 
-    // 大 yaw 串级 PID，圆周误差；速度前馈抵消底盘旋转并叠加云台转速
+    // 大 yaw 串级 PID，速度前馈叠加头部目标转速并补偿底盘旋转
     if (can_yaw1) {
         const float speed_ref = yaw_position_pid.calculate(dt, Angle(yaw1.ref - yaw1.measure)) - chassis_wr + yaw_speed;
         motor.yaw1.set_output(yaw_speed_pid.calculate(dt, speed_ref - motor.yaw1.speed));
@@ -182,7 +185,7 @@ void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
     motor.pitch1.set_output(0);
 
     // 传递软件限位到 imu 参考系
-    yaw.imu.ref = yaw1.ref + yaw.imu_minus_ecd;
+    // yaw 总目标持续保留，大小轴分配不会覆盖视觉给出的最终头部目标
     pitch.imu.ref = pitch.ecd.ref + pitch.imu_minus_ecd;
 }
 

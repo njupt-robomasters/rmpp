@@ -85,7 +85,6 @@
 - 模式优先级：裁判离线或任一在线遥控器显式 OFF → OFF；在线 VT13 N/S 挡、或正赛且机器人 ID 为 7/107 → BOOST；自检/倒计时 → CHARGE；其余按人工请求选择 BOOST、CHARGE，均无请求时 OFF
 - 人工映射：FSi6X SWC 上/中/下为 OFF/CHARGE/BOOST，VT13 C/N/S 为 OFF/BOOST/BOOST。BOOST 工况下用电池侧余量充电，负载升高时允许电容补偿。比赛自主运行可在遥控断联后继续使用超电，仍受裁判连接状态约束
 - 裁判连接超时由现有 `Referee` 的 1 s 检测决定，超电转 OFF 后底盘继续使用最后功率上限与缓冲能量；上电未收到裁判时为默认 120 W/60 J，超电 OFF
-- `jelly_sentry_debug/chassis` 固定输入 120 W/60 J，提供 `volatile SuperCap::Mode cap_mode`（0 OFF、1 CHARGE、2 BOOST），默认 OFF；独立于底盘 `is_enable`，超电同样持续按 100 Hz 发送
 - 超电实测功率覆盖范围按实车供电支路核对，四轮模型只估计轮电机功率；首轮保留现有参数和 `ui.cap=0`，能量显示待确定满电电压与可用能量范围后接入
 - 实施与验证记录见 `agents/tasks/06-super_cap_capacitance/README.md`，硬件联调由用户审计后决定
 
@@ -95,7 +94,7 @@
 - 用户说明 rub1/rub2 为工业传送带转动机构，工程沿用摩擦轮命名。在线 VT13 的 S 挡运行两路电机，按住扳机后，左摇杆上下按比例给拨盘速度，负值反转；松开扳机或摇杆回中，拨盘目标归零
 - 两个 P630 由 app 定义为 `Vesc`，绑定 CAN2，节点 ID 沿用 `0x21/0x22`，共用现有 VESC 扩展帧收发实现
 - `Shooter17mm::update()` 通过 `set_speed()` 设置输出轴目标角速度（rad/s），由 Vesc 换算为 ERPM，使用电调内部速度环
-- 整车每1 ms发送两路VESC指令，使能时速度扩展帧ID为0x321/0x322、4字节大端ERPM，失能时发送零电流帧。`jelly_sentry_debug/shooter`与`shooter_rub`为独立调试入口，保留各自的发送开关
+- 整车每1 ms发送两路VESC指令，使能时速度扩展帧ID为0x321/0x322、4字节大端ERPM，失能时发送零电流帧
 - 当前显式保存迁移前Vesc参数：20 A、20 Nm、reduction为7（包含极对数）；按合并前实机文件保留rub1方向true、rub2默认false，同步修正速度指令与反馈方向，实际极对数待核对
 - 2026-11-12：整车 app 及三个发射调试入口的相关对象文件经 Arm GCC 局部编译通过，无新增编译警告；未完整链接、烧录或硬件验证。`git diff --check` 通过，本机未找到 clang-format，未完成工具格式检查
 
@@ -113,6 +112,21 @@
 - 大 yaw、pitch1、pitch2 经电机原生 `set_output()` 接收 Nm，小 yaw 7025 接收 A；折叠云台保留电机限幅后的 PID 跟踪及重力补偿，独立于上游普通云台的简化策略
 - 单轴与拨弹测试显式限幅 dt 并传给 PID；底盘由 app 更新超电后传入 `power_chassis_ref`
 - 受击方向显示与实测弹速继续读取裁判 `hurt_data`、`hurt_sequence`、`shoot_data`，这些已有字段为公开只读输出
+
+## jelly_sentry 大小 yaw 配合
+
+- 2026-11-21 按用户要求参考 Joushua233/rmpp 的 old 分支 `e7bbcb7`，采用 `rmpp/lib/module/gimbal/Gimbal_DualYaw.cpp` 的持续追随分配，移除45°/35°窗口及相关配置和状态
+- 大 yaw 编码器目标为 `yaw.ecd.ref`；小 yaw 目标为 `Angle(yaw.ecd.ref - yaw1.measure)`，按现有 ±40° 软件限位钳制。大轴跟上总目标后，小轴自然回中
+- 大 yaw 速度前馈为 `yaw_speed - chassis_wr`；小 yaw 为 `yaw_speed - chassis_wr - motor.yaw1.speed`，小轴目标超出限位时撤掉前馈。大轴使用自身编码器速度闭环，保留现有PID参数和720°/s位置环输出上限
+- 2026-11-21 按用户要求将 EmberProbe 实时调参值写回 `gimbal.hpp`：大轴速度环kp=0.5、ki=0.1，位置环kp=10；小轴速度环kp=2、ki=0.1，位置环kp=20，均为SI单位；其余PID字段沿用现有值
+- `yaw.imu.ref` 持续保留最终头部目标，不再在 update 末尾被大轴目标覆盖；`yaw1.ref` 为分配后的大轴编码器目标，`yaw2.ref` 为限幅后的小轴目标
+- 离线轴保持最后测量、输出零；IMU模式小轴离线时使用保持的小轴角度修正大轴目标，其余离线恢复、失能及模式转换沿用现有实现。底盘角速度非有限时关闭该项前馈，保留姿态闭环
+- 该分配采用两根 yaw 轴平行、存在位置偏置的姿态模型；相机/枪口随偏心轴运动造成的视差由视觉外参与距离处理。pitch1 继续固定失能，俯仰控制和 CDC 协议保持原有接口
+- old分支来源为 [Gimbal_DualYaw.cpp](https://github.com/Joushua233/rmpp/blob/e7bbcb74a9acb41d673ff5b8c167fbd4f1bc3ab0/rmpp/lib/module/gimbal/Gimbal_DualYaw.cpp)。机械耦合与超调表现由用户审计后上板核对
+
+## jelly_sentry 调试入口清理
+
+- 2026-11-21 按用户要求删除 `app/jelly_sentry_debug/` 全部源码及11个调试预设；保留整车 `jelly_sentry` 预设，预设生成脚本按剩余应用目录生成列表
 
 ## jelly_sentry 导航与 pitch1
 
