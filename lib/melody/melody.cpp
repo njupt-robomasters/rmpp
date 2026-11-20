@@ -130,13 +130,19 @@ float Melody::next_sample() {
     return 0.5f + 0.5f * gain * mix;
 }
 
+// 增益平滑跟随：下降快、上升慢
+void Melody::follow(float& gain, const float target, const float attack_step, const float release_step) {
+    gain += (target < gain ? attack_step : release_step) * (target - gain);
+}
+
 float Melody::midi_to_hz(const uint8_t midi) {
     return 440.0f * std::exp2((static_cast<float>(midi) - 69.0f) / 12.0f);
 }
 
-// 增益平滑跟随：下降快、上升慢
-void Melody::follow(float& gain, const float target, const float attack_step, const float release_step) {
-    gain += (target < gain ? attack_step : release_step) * (target - gain);
+// 限带方波 ±1，相位 [0, 0.5) 为 1；抑制折回到可听频段的杂音
+float Melody::square(const float phase, const float dt) {
+    const float half = phase < 0.5f ? phase + 0.5f : phase - 0.5f;
+    return (phase < 0.5f ? 1.0f : -1.0f) + poly_blep(phase, dt) - poly_blep(half, dt);
 }
 
 // PolyBLEP 跳变校正：t 为距跳变的相位 [0, 1)，dt 为每采样相位增量
@@ -150,12 +156,6 @@ float Melody::poly_blep(float t, const float dt) {
         return t * t + t + t + 1;
     }
     return 0;
-}
-
-// 限带方波 ±1，相位 [0, 0.5) 为 1；抑制折回到可听频段的杂音
-float Melody::square(const float phase, const float dt) {
-    const float half = phase < 0.5f ? phase + 0.5f : phase - 0.5f;
-    return (phase < 0.5f ? 1.0f : -1.0f) + poly_blep(phase, dt) - poly_blep(half, dt);
 }
 
 void Melody::VoiceSynth::start(const Voice voice, const Envelope& envelope, const float weight, const float dt) {
@@ -243,6 +243,10 @@ void Melody::PartSynth::start(const Part part, const float share, const Envelope
     level = 0;
 }
 
+bool Melody::PartSynth::is_done() const {
+    return std::all_of(voices, voices + count, [](const VoiceSynth& voice) { return voice.is_done(); });
+}
+
 float Melody::PartSynth::update(const bool should_update_gain, const float attack_step, const float release_step) {
     float out = 0, square_sum = 0;
     for (std::size_t k = 0; k < count; k++) {
@@ -255,8 +259,4 @@ float Melody::PartSynth::update(const bool should_update_gain, const float attac
         follow(gain, share / std::max(raw, 1.0f), attack_step, release_step);
     level = gain * raw;
     return gain * out;
-}
-
-bool Melody::PartSynth::is_done() const {
-    return std::all_of(voices, voices + count, [](const VoiceSynth& voice) { return voice.is_done(); });
 }

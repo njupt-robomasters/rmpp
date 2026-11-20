@@ -31,9 +31,9 @@ void Vesc::set_speed(const float speed) {
     set_int32(CAN_PACKET_SET_RPM, encode32(direction * speed / rpm * config.reduction, 1));
 }
 
-void Vesc::set_position(const float position) {
+void Vesc::set_angle(const float angle) {
     const float direction = config.is_invert ? -1.0f : 1.0f;
-    set_int32(CAN_PACKET_SET_POS, encode32(direction * position / deg * config.reduction, 1000000));
+    set_int32(CAN_PACKET_SET_POS, encode32(direction * angle / deg * config.reduction, 1000000));
 }
 
 void Vesc::set_current_relative(const float current) {
@@ -86,11 +86,11 @@ void Vesc::can_callback(const CanFrame& frame) {
 
     const auto status = static_cast<Status>(frame.id >> 8);
     const auto* data = frame.data;
+    Feedback feedback;
     switch (status) {
     case CAN_PACKET_STATUS:
-        raw_speed = static_cast<float>(read32(data)) * rpm;
-        raw_current = static_cast<float>(read16(data + 4)) / 10.0f;
-        raw_torque = raw_current / config.max_current * config.max_torque;
+        feedback.current = static_cast<float>(read16(data + 4)) / 10.0f;
+        feedback.speed = static_cast<float>(read32(data)) * rpm;
         duty_cycle = static_cast<float>(read16(data + 6)) / 1000.0f * pct;
         break;
     case CAN_PACKET_STATUS_2:
@@ -105,7 +105,7 @@ void Vesc::can_callback(const CanFrame& frame) {
         temp_fet = static_cast<float>(read16(data)) / 10.0f;
         temp_motor = static_cast<float>(read16(data + 2)) / 10.0f;
         current_in = static_cast<float>(read16(data + 4)) / 10.0f;
-        pid_pos = static_cast<float>(read16(data + 6)) / 50.0f * deg;
+        pid_angle = static_cast<float>(read16(data + 6)) / 50.0f * deg;
         break;
     case CAN_PACKET_STATUS_5:
         tachometer = static_cast<float>(read32(data)) / 6.0f * rev;
@@ -120,7 +120,21 @@ void Vesc::can_callback(const CanFrame& frame) {
     default:
         return;
     }
-    Motor::can_callback();
+
+    // 仅 STATUS 帧携带电流与转速，其余状态帧只刷新在线状态
+    Motor::can_callback(feedback);
+}
+
+int16_t Vesc::read16(const uint8_t* data) {
+    const uint16_t value = (static_cast<uint16_t>(data[0]) << 8) | static_cast<uint16_t>(data[1]);
+    return static_cast<int16_t>(value);
+}
+
+int32_t Vesc::read32(const uint8_t* data) {
+    const uint32_t value = (static_cast<uint32_t>(data[0]) << 24) |
+                           (static_cast<uint32_t>(data[1]) << 16) |
+                           (static_cast<uint32_t>(data[2]) << 8) | static_cast<uint32_t>(data[3]);
+    return static_cast<int32_t>(value);
 }
 
 void Vesc::set_int32(const Command command, const int32_t value) {
@@ -130,6 +144,10 @@ void Vesc::set_int32(const Command command, const int32_t value) {
     command_data[1] = static_cast<uint8_t>(value >> 16);
     command_data[2] = static_cast<uint8_t>(value >> 8);
     command_data[3] = static_cast<uint8_t>(value);
+}
+
+int32_t Vesc::encode32(const float value, const float scale) {
+    return static_cast<int32_t>(value * scale);
 }
 
 void Vesc::set_int16(const Command command, const int32_t first, const int16_t second) {
@@ -145,20 +163,4 @@ void Vesc::set_int16(const Command command, const int32_t first, const int16_t s
 
 int16_t Vesc::encode16(const float value, const float scale) {
     return static_cast<int16_t>(value * scale);
-}
-
-int32_t Vesc::encode32(const float value, const float scale) {
-    return static_cast<int32_t>(value * scale);
-}
-
-int16_t Vesc::read16(const uint8_t* data) {
-    const uint16_t value = (static_cast<uint16_t>(data[0]) << 8) | static_cast<uint16_t>(data[1]);
-    return static_cast<int16_t>(value);
-}
-
-int32_t Vesc::read32(const uint8_t* data) {
-    const uint32_t value = (static_cast<uint32_t>(data[0]) << 24) |
-                           (static_cast<uint32_t>(data[1]) << 16) |
-                           (static_cast<uint32_t>(data[2]) << 8) | static_cast<uint32_t>(data[3]);
-    return static_cast<int32_t>(value);
 }

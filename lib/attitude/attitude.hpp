@@ -5,13 +5,15 @@
 
 // 姿态解算父类：读取 Imu，由子类算法更新四元数，统一输出欧拉角和累计 yaw
 class Attitude {
+  private:
+    Imu& imu;
+
   public:
     Angle yaw, pitch, roll;                  // Z-Y-X 欧拉角，rad
     Quaternionf q = Quaternionf::Identity(); // 机体到世界
 
   private:
     float yaw_total_angle = 0.0f; // 累积偏航角，rad，不归一化
-    Imu& imu;
 
   public:
     explicit Attitude(Imu& imu);

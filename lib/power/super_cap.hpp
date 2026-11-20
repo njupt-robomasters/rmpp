@@ -32,12 +32,10 @@ class SuperCap {
         float current_fc = 10; // 应答电流（chassis、cap 共用）低通截止频率，Hz
 
         // 缓冲能量折算倍数：cutoff 为零，满 60 J 为 gain_max，其间线性；裁判与虚拟缓冲能量共用
-
         float buffer_cutoff = 30;     // 倍数为零的缓冲能量，J
         float buffer_gain_max = 1.1f; // 满缓冲能量时的倍数
 
         // BOOST 补偿：电容电压在截止与满额之间线性，满额补偿功率为 max_current·V_CAP
-
         float boost_voltage_cutoff = 10; // 补偿为零的电容电压，V
         float boost_voltage_full = 12;   // 补偿满额的电容电压，V
         float boost_max_current = 10;    // 最大补偿电流，A
@@ -53,6 +51,13 @@ class SuperCap {
     };
 
   private:
+    const Config config;
+
+    // 指令
+    Mode mode = OFF;
+    float referee_limit = 120; // 裁判电池侧功率上限原始读数，W
+    float energy_referee = 60; // 裁判缓冲能量，J
+
     bool is_connect = false;
 
     // 应答电压
@@ -76,11 +81,6 @@ class SuperCap {
   public:
     float power_chassis_ref = 0; // 底盘功率目标，供底盘限流；供给功率按所用缓冲能量折算
 
-  private:
-    // 缓冲能量，J
-    float energy_referee = 60; // 裁判缓冲能量
-
-  public:
     float energy_local = 60; // 虚拟缓冲能量；DCDC 使能时积分，否则等于 referee
 
     // 电容在线辨识：模型 V_CAP = Q/C + ESR·I_CAP；未收敛或无效时为零
@@ -88,12 +88,6 @@ class SuperCap {
     float resistance = 0;  // 等效串联电阻，Ω
 
   private:
-    const Config config;
-
-    // 指令
-    Mode mode = OFF;
-    float referee_limit = 120; // 裁判电池侧功率上限原始读数，W
-
     // 容量辨识状态：窗口起点与窗口内累计量，参数 θ = [1/C, ESR] 与协方差 P
     struct {
         float last_current = 0; // 上帧原始电容电流，A
@@ -105,8 +99,8 @@ class SuperCap {
         float p[2][2] = {};
     } rls;
 
-    Timer update_timer;   // update() 间隔，用于虚拟缓冲能量积分
     Timer callback_timer; // can_callback() 间隔，用于断联检测、电流低通与容量辨识
+    Timer update_timer;   // update() 间隔，用于虚拟缓冲能量积分
 
   public:
     explicit SuperCap(const Config& config);
@@ -120,21 +114,21 @@ class SuperCap {
     // 设置裁判缓冲能量，上限 60 J
     void set_referee_energy(float referee_energy);
 
-    // 每个控制周期调用：断联检测、电池侧目标、虚拟缓冲能量与底盘功率目标；底盘失能时也调用
-    void update();
-
     // 发送一帧命令；调用周期由调用方控制，须小于控制器 100 ms 心跳超时
     void send() const;
 
+    // 每个控制周期调用：断联检测、电池侧目标、虚拟缓冲能量与底盘功率目标；底盘失能时也调用
+    void update();
+
   private:
     void can_callback(const CanFrame& frame);
+
+    // 容量辨识一步；在 can_callback 中置 is_connect 前调用，current_cap 为未低通的电容电流
+    void update_capacitance(float current_cap, float dt);
 
     // DCDC 是否使能：在线且 CHARGE 或 BOOST
     bool is_dcdc_enable() const;
 
     // 缓冲能量折算倍数
     float buffer_gain(float energy) const;
-
-    // 容量辨识一步；在 can_callback 中置 is_connect 前调用，current_cap 为未低通的电容电流
-    void update_capacitance(float current_cap, float dt);
 };

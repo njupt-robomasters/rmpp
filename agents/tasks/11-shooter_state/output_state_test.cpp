@@ -38,8 +38,7 @@ class TestMotor : public Motor {
         : Motor({.can = Can(1)}, 20, 6, 1) {}
 
     void feedback(const float speed = 0) {
-        raw_speed = speed;
-        can_callback();
+        can_callback({.speed = speed});
     }
 };
 

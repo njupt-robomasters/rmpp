@@ -74,10 +74,14 @@ void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
     }
 
     // 从电机读取，离线电机保持最后一次反馈
-    yaw1.measure = motor.yaw1.position;
-    yaw2.measure = motor.yaw2.position;
-    pitch1.measure = motor.pitch1.position;
-    pitch.ecd.measure = motor.pitch2.position;
+    if (motor.yaw1.is_connect)
+        yaw1.measure = motor.yaw1.angle;
+    if (motor.yaw2.is_connect)
+        yaw2.measure = motor.yaw2.angle;
+    if (motor.pitch1.is_connect)
+        pitch1.measure = motor.pitch1.angle;
+    if (motor.pitch2.is_connect)
+        pitch.ecd.measure = motor.pitch2.angle;
 
     // 合并大小 yaw
     yaw.ecd.measure = yaw1.measure + yaw2.measure;

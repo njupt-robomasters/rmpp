@@ -50,6 +50,12 @@ class UiControl {
     explicit UiControl(Referee& referee)
         : referee(referee) {}
 
+    static void set_number(Graphic& graphic, int32_t value);
+
+    static void set_float(Graphic& graphic, float value);
+
+    static void set_arc(Graphic& graphic, float start_angle, float end_angle);
+
     // name 为 24 位标识，layer 为 0~9；坐标和线宽单位为像素
     static Graphic line(uint32_t name, uint8_t layer, Color color, uint16_t width, uint16_t x, uint16_t y, uint16_t end_x, uint16_t end_y);
 
@@ -68,12 +74,6 @@ class UiControl {
 
     static Graphic character(uint32_t name, uint8_t layer, Color color, uint16_t width, uint16_t x, uint16_t y, uint16_t font_size);
 
-    static void set_number(Graphic& graphic, int32_t value);
-
-    static void set_float(Graphic& graphic, float value);
-
-    static void set_arc(Graphic& graphic, float start_angle, float end_angle);
-
     // 最多 7 个图形；入队复制数据，满时不部分写入
     bool draw(const Graphic* graphics, size_t count, Operation operation);
 
@@ -86,8 +86,6 @@ class UiControl {
     // 丢弃尚未交给链路的旧绘制请求，用于显式重新绘制
     void clear_queue();
 
-    void update();
-
     bool is_pending() const {
         return count != 0 || referee.is_sending();
     }
@@ -95,6 +93,8 @@ class UiControl {
     uint16_t robot_id() const {
         return referee.robot_status.robot_id;
     }
+
+    void update();
 
   private:
     static Graphic make_graphic(uint32_t name, uint8_t layer, Color color, uint16_t width, uint16_t x, uint16_t y, Type type);
@@ -113,6 +113,10 @@ class RobotUi : public UiControl {
         float max_shoot = 10.0f;
     };
 
+  private:
+    const float max_cap, max_wr, max_bullet, max_shoot;
+
+  public:
     Angle yaw_ecd, yaw, pitch;
     bool is_hurt = false;
     Angle hurt_dir;
@@ -129,15 +133,12 @@ class RobotUi : public UiControl {
     } robot;
 
   private:
-    const float max_cap, max_wr, max_bullet, max_shoot;
     bool initialized = false;
     Timer dashboard_timer;
 
   public:
     explicit RobotUi(Referee& referee)
-        : RobotUi(referee, {}
-
-          ) {}
+        : RobotUi(referee, {}) {}
 
     RobotUi(Referee& referee, const Config& config)
         : UiControl(referee), max_cap(config.max_cap), max_wr(config.max_wr), max_bullet(config.max_bullet), max_shoot(config.max_shoot) {}
@@ -147,7 +148,7 @@ class RobotUi : public UiControl {
     void update();
 
   private:
-    void update_dashboard();
-
     void enqueue_initial_layout();
+
+    void update_dashboard();
 };

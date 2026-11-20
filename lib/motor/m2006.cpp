@@ -35,13 +35,11 @@ void M2006::can_callback(const CanFrame& frame) {
     if (frame.id != config.rx_id || frame.size != 8)
         return;
 
-    // 解析can报文
+    // 解析can报文并调用上级回调
     const auto* data = frame.data;
-    raw_current = static_cast<int16_t>((data[4] << 8) | data[5]) / 10000.0f * MAX_CURRENT;
-    raw_torque = raw_current / config.max_current * config.max_torque;
-    raw_speed = static_cast<int16_t>((data[2] << 8) | data[3]) * rpm;
-    raw_position = static_cast<float>((data[0] << 8) | data[1]) / 8192.0f * rev;
-
-    // 调用上级回调
-    Motor::can_callback();
+    Motor::can_callback({
+        .current = static_cast<int16_t>((data[4] << 8) | data[5]) / 10000.0f * MAX_CURRENT,
+        .speed = static_cast<int16_t>((data[2] << 8) | data[3]) * rpm,
+        .angle = static_cast<float>((data[0] << 8) | data[1]) / 8192.0f * rev,
+    });
 }

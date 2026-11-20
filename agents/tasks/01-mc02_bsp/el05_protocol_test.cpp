@@ -90,7 +90,7 @@ int main() {
 
     receive(feedback);
     assert(motor.is_connect && motor.mode == EL05::MOTOR_MODE && motor.fault == 0);
-    assert(std::fabs(motor.position) < 0.001f);
+    assert(std::fabs(motor.angle) < 0.001f);
     assert(std::fabs(motor.speed - 25) < 0.002f);
     assert(std::fabs(motor.torque + 3) < 0.001f);
     assert(std::fabs(motor.current + 3 / 0.94f) < 0.001f);

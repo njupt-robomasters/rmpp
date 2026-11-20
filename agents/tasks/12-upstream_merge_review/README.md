@@ -1,6 +1,18 @@
 # 上游合并与接口适配
 
-## 最新合并预检（2026-11-20，待执行）
+## 合入上游7e57d2b（2026-11-20）
+
+- 先提交当前工程成果、测试及记录为6815d85，再合入origin/master@7e57d2b；本机工具配置与out临时产物保持未跟踪
+- 解决CMakePresets、任务索引和application文档3项冲突；用tools/update_presets.py生成24个有效应用预设，保留11个jelly_sentry入口，接纳leg/leg_down、leg/leg_up迁移及infantry删除，两侧模块文档与任务索引整合
+- EL05按新Motor::Feedback传入torque/speed/angle，由基类完成电流换算、方向修正及在线检测；私有扩展帧收发、节点18/34和力矩输出保持原样
+- GimbalFold继续为jelly_sentry独立类；角度读取和yaw零位校准迁移为angle。上游单圈angle离线归零，折叠云台在电机在线时刷新既有measure，离线保留最后测量，维持合并前的合成角与控制行为
+- 两路云台调试同步angle命名；imu_calib需要温度稳定判定，Imu.temperature维持公开只读，保留其余上游最小权限布局，并修正校准观察量名称
+- 已逐文件比对6815d85，shooter.hpp/shooter.cpp/chassis.cpp/app.hpp及CAN2的.ioc/fdcan.c与保存提交一致；云台参数与零点保持原值，实机方向按rub1=true、rub2默认false、shoot=true保存。VT13三挡、扳机+左摇杆、5 m/s传送带目标、5 N·m阈值/0.2 s检测/0.25 s反转及CAN2自动重发ENABLE均保留
+- ARM对象编译通过：整车rmpp_app/rmpp_lib/rmpp_bsp、10个jelly_sentry_debug的rmpp_app，以及leg-leg_up、leg-leg_down、sentry、dummy、examples-motor应用；未出现编译警告。未执行完整固件链接、烧录或硬件操作
+- 回归通过：独立GimbalFold对比旧实现6000周期/168000项比较（增加四轴掉线保持断言，历史基线仅迁移字段名及旧Motor离线反馈约定）；EL05私有CAN协议；机构原生输出/目标力矩阈值/反转计时；超电750项模式检查。主机Zig编译有Eigen弃用与GCC pragma兼容警告，状态机副本略过Clang不支持的DM浮点模板实例，DM在ARM编译中验证
+- 本次手写适配代码与测试完成格式和diff空白检查；完整日志/测试产物放在out，未入库。后续硬件核对新Motor的观察路径、EL05反馈连续性及启用CAN2自动重发后的负载
+
+## 最新合并预检（2026-11-20，执行前基线）
 
 - 已fetch origin；本地HEAD为c8a791fd67bbc44489e0b29c6cb2c881094df199，上游master为7e57d2b396af1b7fe72804dce86a7ba9795dc191，共同祖先09766fa。本地独有5提交、上游独有20提交
 - 当前有20个已跟踪文件未提交；新增EL05协议测试需随成果保存，.agents/、.clangd、.settings/及out产物保留在本机。未跟踪文件与上游没有同路径覆盖

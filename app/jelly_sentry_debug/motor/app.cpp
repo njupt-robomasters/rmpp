@@ -4,7 +4,7 @@
 
 // 单个 DJI 电机开环测试：CAN1 上电调 ID 为 5 的电机（反馈 0x205，控制帧 0x1FF 第 1 个位置）输出固定小电流
 // 换电机时修改 rx_id 与控制帧 ID：ID 1~4 用 0x200，ID 5~8 用 0x1FF
-// 在调试器中修改 current 调整输出电流，查看 motor.speed、motor.position、motor.is_connect
+// 在调试器中修改 current 调整输出电流，查看 motor.speed、motor.angle、motor.is_connect
 
 volatile float current = 0.1f; // 输出电流，A
 

@@ -14,10 +14,13 @@ class Pid {
     };
 
   private:
-    float out = 0;
     const Config* const config = nullptr;
+
+    float out = 0;
     float p_out = 0, i_out = 0, d_out = 0;
-    float err = 0, last_err = 0;
+    float err = 0;
+
+    float last_err = 0;
     bool has_last_err = false;
 
   public:

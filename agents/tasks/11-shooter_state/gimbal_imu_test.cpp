@@ -1,5 +1,6 @@
 // 编译真实云台、Motor、PID，仅模拟时钟和 CAN 电机反馈
 #include "robot/gimbal/gimbal_classic.hpp"
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -34,11 +35,9 @@ class TestMotor : public Motor {
             set_current(output);
     }
 
-    void feedback(const float position, const float speed = 0) {
+    void feedback(const float angle, const float speed = 0) {
         const float dir = config.is_invert ? -1.0f : 1.0f;
-        raw_position = dir * position;
-        raw_speed = dir * speed;
-        can_callback();
+        can_callback({.speed = dir * speed, .angle = dir * angle});
     }
 };
 
@@ -90,11 +89,11 @@ static void test_speed_feedback() {
         const Quaternionf q = euler_to_quaternion({.yaw = yaw0, .pitch = theta});
         const Vector3f gyro(-std::sin(theta) * 0.3f, 0.15f, std::cos(theta) * 0.3f);
         f.step(q, gyro, theta, i % 2 == 0 ? 80.0f : -90.0f);
-        check(f.gimbal.yaw.speed_measure, 0.3f, "joint yaw recovery");
+        check(f.gimbal.yaw.speed_measure, 0.3f - 0.4f, "joint yaw relative speed recovery");
         check(f.gimbal.pitch.speed_measure, 0.15f, "joint pitch recovery");
         check(f.gimbal.yaw.speed_ref, 0.7f - 0.4f, "yaw speed target includes chassis feedforward");
         check(f.gimbal.pitch.speed_ref, -0.2f, "pitch speed command on motor axis");
-        check(f.yaw.current_ref, 0.7f - 0.3f - 0.4f, "yaw error subtracts chassis wr");
+        check(f.yaw.current_ref, 0.7f - 0.3f, "yaw error preserves absolute speed command");
         check(f.pitch.torque_ref, -0.35f, "pitch IMU feedback");
         check(f.gimbal.yaw.angle_ref, f.gimbal.yaw.angle_measure, "speed mode yaw target follows measure");
         check(f.gimbal.pitch.angle_ref, f.gimbal.pitch.angle_measure, "speed mode pitch target follows measure");
@@ -127,6 +126,13 @@ static void test_speed_feedback() {
 static void test_angle_loop() {
     Fixture f(true);
     f.step();
+    // 枪口世界姿态保持时，底盘旋转对应 yaw 电机反转，闭环无额外误差
+    f.gimbal.set_chassis_wr(1.0f);
+    f.step();
+    check(f.gimbal.yaw.speed_ref, -1.0f, "rotating chassis requires reverse joint target");
+    check(f.gimbal.yaw.speed_measure, -1.0f, "stationary barrel has reverse joint feedback");
+    check(f.yaw.current_ref, 0, "rotating chassis adds no world aiming error");
+    f.gimbal.set_chassis_wr(0);
     f.gimbal.set_speed(0.5f, 0.25f);
     f.step();
     check(f.gimbal.yaw.angle_ref, 0.0005f, "angle mode integrates yaw");
@@ -143,11 +149,55 @@ static void test_angle_loop() {
     f.step(euler_to_quaternion({.yaw = -pi + 0.01f}));
     check(f.gimbal.yaw.speed_ref, -0.02f, "shortest yaw error across wrap");
 
-    // pitch 越限只截断输出，保留 IMU 目标
-    f.gimbal.set_angle(0, 1.0f);
-    f.step(Quaternionf::Identity(), Vector3f::Zero(), 0.5f);
-    check(f.pitch.torque_ref, 0, "angle mode ECD upper protection");
-    check(f.gimbal.pitch.angle_ref, 1.0f, "output protection preserves IMU target");
+    // 编码器越限：目标钳回限位，向内回程输出保留
+    f.gimbal.set_angle(0, 0.5f);
+    f.step(euler_to_quaternion({.pitch = 0.4f}), Vector3f::Zero(), 0.6f);
+    check(f.gimbal.pitch.angle_ref, 0.3f, "upper ECD limit mapped to IMU target");
+    check(f.pitch.torque_ref, -0.1f, "angle mode retreats beyond ECD limit");
+}
+
+// pitch 编码器限位经 IMU 与编码器偏差钳制世界目标
+static void test_pitch_target_limit() {
+    // 水平底盘持续向外推杆，关节理想跟随：目标停在限位，撤掉向外前馈，累计超过 pi 也不反转
+    Fixture f(true, true, false);
+    f.angle_pid.kp = 10;
+    float theta = 0;
+    const auto step = [&]() {
+        f.step(euler_to_quaternion({.yaw = 0.1f, .pitch = theta}), Vector3f::Zero(), theta);
+        theta += f.gimbal.pitch.speed_ref * 0.001f;
+    };
+    step();
+    f.gimbal.set_speed(0, 1);
+    float theta_min = 1;
+    for (int i = 0; i < 10000; i++) {
+        step();
+        if (i >= 5000)
+            theta_min = std::min(theta_min, theta);
+    }
+    check(f.gimbal.pitch.angle_ref, 0.5f, "accumulated target held at upper limit");
+    check(theta, 0.5f, "pitch settles at upper limit", 1e-4f);
+    check(theta_min, 0.5f, "no reversal after long outward command", 1e-4f);
+    check(f.gimbal.pitch.speed_ref, 0, "outward feedforward removed at limit", 1e-3f);
+    f.gimbal.set_speed(0, -1);
+    step();
+    check(f.gimbal.pitch.angle_ref, 0.499f, "inward command leaves limit immediately", 1e-4f);
+
+    // 底盘前倾 0.1 rad：限位平移到世界 [-0.2, 0.6]，set_angle 越界目标同样钳制
+    const Quaternionf chassis = euler_to_quaternion({.pitch = 0.1f});
+    const auto pose = [&](const float joint) { return chassis * Quaternionf(Eigen::AngleAxisf(joint, Vector3f::UnitY())); };
+    f.gimbal.set_angle(0.1f, 1.0f);
+    f.step(pose(0.2f), Vector3f::Zero(), 0.2f);
+    check(f.gimbal.pitch.angle_ref, 0.6f, "tilted upper limit");
+    f.gimbal.set_angle(0.1f, -1.0f);
+    f.step(pose(0.2f), Vector3f::Zero(), 0.2f);
+    check(f.gimbal.pitch.angle_ref, -0.2f, "tilted lower limit");
+
+    // 界外目标被钳住时，向内的速度指令保留前馈
+    f.gimbal.set_angle(0.1f, -1.0f);
+    f.gimbal.set_speed(0, 0.2f);
+    f.step(pose(0.2f), Vector3f::Zero(), 0.2f);
+    check(f.gimbal.pitch.angle_ref, -0.2f, "inward command from clamped target");
+    check(f.gimbal.pitch.speed_ref, 0.2f + 10 * (-0.2f - 0.3f), "inward feedforward retained", 1e-4f);
 }
 
 // 倾斜底盘、关节理想跟随速度目标，世界 yaw/pitch 收敛到目标且无 roll 偏差
@@ -250,11 +300,171 @@ static void test_enable_and_connection() {
     check(speed.pitch.torque_ref, 0, "disabled pitch output");
 }
 
+static void test_angle_accel_limit() {
+    // 默认无穷大：等效禁用加速度规划，与纯线性 PID（含 P/I/D 及 kp=0）逐帧一致
+    for (const float kp : {20.0f, 0.0f}) {
+        Pid::Config speed_cfg = {.kp = 2, .max_out = 30};
+        Pid::Config angle_cfg = {.kp = kp, .ki = 3.0f, .kd = 0.2f, .max_i = 5, .max_out = 15};
+        TestMotor yaw_motor(true), pitch_motor(true);
+        GimbalClassic gimbal({yaw_motor, pitch_motor}, {.yaw_speed_pid_config = &speed_cfg,
+                                                        .yaw_angle_pid_config = &angle_cfg,
+                                                        .pitch_speed_pid_config = &speed_cfg,
+                                                        .pitch_angle_pid_config = &angle_cfg,
+                                                        .pitch_min = -1.0f,
+                                                        .pitch_max = 1.0f});
+        Pid raw_yaw(&angle_cfg), raw_pitch(&angle_cfg);
+        gimbal.set_enable(true);
+        now_us += 1000;
+        yaw_motor.feedback(0);
+        pitch_motor.feedback(0);
+        gimbal.update(Quaternionf::Identity(), Vector3f::Zero());
+
+        const float errs[] = {2.5f, -1.8f, 0.4f, -0.05f, 0.0f};
+        for (const float e : errs) {
+            gimbal.set_angle(e, -0.3f * e);
+            now_us += 1000;
+            yaw_motor.feedback(0);
+            pitch_motor.feedback(0);
+            gimbal.update(Quaternionf::Identity(), Vector3f::Zero());
+            check(gimbal.yaw.speed_ref, raw_yaw.calculate(0.001f, e), "default inf matches raw yaw PID", 0);
+            check(gimbal.pitch.speed_ref, raw_pitch.calculate(0.001f, -0.3f * e), "default inf matches raw pitch PID", 0);
+        }
+    }
+
+    // 分段代数曲线：|e| <= e0 保持 kp*e，|e| > e0 切换为 ±sqrt(2*a_max*(|e| - e0/2))，e0 处连续光滑
+    Pid::Config speed_cfg = {.kp = 1, .max_out = 50};
+    Pid::Config angle_cfg = {.kp = 20, .max_out = 12};
+    const float a_yaw = 40.0f, a_pitch = 20.0f; // e0_yaw = 0.1, e0_pitch = 0.05
+    TestMotor yaw_motor(true), pitch_motor(true);
+    GimbalClassic gimbal({yaw_motor, pitch_motor}, {.yaw_speed_pid_config = &speed_cfg,
+                                                    .yaw_angle_pid_config = &angle_cfg,
+                                                    .pitch_speed_pid_config = &speed_cfg,
+                                                    .pitch_angle_pid_config = &angle_cfg,
+                                                    .pitch_min = -1.5f,
+                                                    .pitch_max = 1.5f,
+                                                    .yaw_max_accel = a_yaw,
+                                                    .pitch_max_accel = a_pitch});
+    gimbal.set_enable(true);
+    now_us += 1000;
+    yaw_motor.feedback(0);
+    pitch_motor.feedback(0);
+    gimbal.update(Quaternionf::Identity(), Vector3f::Zero());
+
+    const auto step_err = [&](const float ey, const float ep) {
+        gimbal.set_angle(ey, ep);
+        now_us += 1000;
+        yaw_motor.feedback(0);
+        pitch_motor.feedback(0);
+        gimbal.update(Quaternionf::Identity(), Vector3f::Zero());
+    };
+    step_err(0.08f, -0.04f);
+    check(gimbal.yaw.speed_ref, 20.0f * 0.08f, "yaw linear inside e0");
+    check(gimbal.pitch.speed_ref, 20.0f * -0.04f, "pitch linear inside e0");
+
+    step_err(0.1f, -0.05f);
+    check(gimbal.yaw.speed_ref, 2.0f, "yaw C0 continuous at e0");
+    check(gimbal.pitch.speed_ref, -1.0f, "pitch C0 continuous at e0");
+
+    // 切换点导数连续：e0 + de 处的增量斜率约等于 kp
+    const float de = 1e-4f;
+    step_err(0.1f + de, 0);
+    check((gimbal.yaw.speed_ref - 2.0f) / de, 20.0f, "yaw C1 slope continuous at e0", 2e-2f);
+
+    step_err(0.85f, -0.525f);
+    check(gimbal.yaw.speed_ref, std::sqrt(2 * a_yaw * (0.85f - 0.05f)), "yaw sqrt braking curve");
+    check(gimbal.pitch.speed_ref, -std::sqrt(2 * a_pitch * (0.525f - 0.025f)), "pitch sqrt braking curve");
+
+    step_err(-2.5f, 0);
+    check(gimbal.yaw.speed_ref, -12.0f, "sqrt curve respects PID max_out");
+
+    // max_accel = 0 输出零修正
+    GimbalClassic zero_accel({yaw_motor, pitch_motor}, {.yaw_speed_pid_config = &speed_cfg,
+                                                        .yaw_angle_pid_config = &angle_cfg,
+                                                        .pitch_speed_pid_config = &speed_cfg,
+                                                        .pitch_angle_pid_config = &angle_cfg,
+                                                        .pitch_min = -1.5f,
+                                                        .pitch_max = 1.5f,
+                                                        .yaw_max_accel = 0,
+                                                        .pitch_max_accel = 0});
+    zero_accel.set_enable(true);
+    now_us += 1000;
+    yaw_motor.feedback(0);
+    pitch_motor.feedback(0);
+    zero_accel.update(Quaternionf::Identity(), Vector3f::Zero());
+    zero_accel.set_angle(1.0f, -0.5f);
+    now_us += 1000;
+    yaw_motor.feedback(0);
+    pitch_motor.feedback(0);
+    zero_accel.update(Quaternionf::Identity(), Vector3f::Zero());
+    check(zero_accel.yaw.speed_ref, 0, "zero max_accel gives zero yaw correction");
+    check(zero_accel.pitch.speed_ref, 0, "zero max_accel gives zero pitch correction");
+
+    // 二阶刚体 + 电机力矩饱和闭环仿真：J = 0.05 kg·m²，tau_max = 3 N·m（物理最大角加速度 60 rad/s²）
+    const auto simulate_yaw = [](const float max_accel, const float init_yaw, const float target_yaw, float& max_overshoot) {
+        constexpr float inertia = 0.05f, dt = 0.001f;
+        Pid::Config spd = {.kp = 5.0f, .max_out = 3.0f};
+        Pid::Config ang = {.kp = 30.0f, .max_out = 12.0f};
+        TestMotor ym(true), pm(true);
+        GimbalClassic g({ym, pm}, {.yaw_speed_pid_config = &spd,
+                                   .yaw_angle_pid_config = &ang,
+                                   .pitch_speed_pid_config = &spd,
+                                   .pitch_angle_pid_config = &ang,
+                                   .pitch_min = -1.0f,
+                                   .pitch_max = 1.0f,
+                                   .yaw_max_accel = max_accel});
+        g.set_enable(true);
+        float psi = init_yaw, omega = 0;
+        now_us += 1000;
+        ym.feedback(psi, omega);
+        pm.feedback(0, 0);
+        g.update(euler_to_quaternion({.yaw = psi}), Vector3f(0, 0, omega));
+        g.set_angle(target_yaw, 0);
+
+        const float sign = target_yaw >= init_yaw ? 1.0f : -1.0f;
+        max_overshoot = 0;
+        for (int i = 0; i < 1500; i++) {
+            now_us += 1000;
+            ym.feedback(psi, omega);
+            pm.feedback(0, 0);
+            g.update(euler_to_quaternion({.yaw = psi}), Vector3f(0, 0, omega));
+            omega += (ym.torque_ref / inertia) * dt;
+            psi += omega * dt;
+            max_overshoot = std::max(max_overshoot, sign * (psi - target_yaw));
+        }
+        return psi;
+    };
+
+    // 对照：禁用规划时 1.5 rad 阶跃因力矩饱和产生大幅过冲；启用 48 rad/s²（0.8 倍物理上限）后阶跃与外力掰偏均无过冲收敛
+    float overshoot_unplanned = 0, overshoot_step = 0, overshoot_disturb = 0;
+    simulate_yaw(INFINITY, 0.0f, 1.5f, overshoot_unplanned);
+    if (!(overshoot_unplanned > 0.5f)) {
+        std::fprintf(stderr, "expected saturation overshoot without planning, got %.9g\n", overshoot_unplanned);
+        std::abort();
+    }
+    checks++;
+
+    const float final_step = simulate_yaw(48.0f, 0.0f, 1.5f, overshoot_step);
+    check(overshoot_step, 0.0f, "planned large step has no overshoot", 1e-4f);
+    check(final_step, 1.5f, "planned large step settles to target", 1e-4f);
+
+    const float final_disturb = simulate_yaw(48.0f, 1.5f, 0.0f, overshoot_disturb);
+    check(overshoot_disturb, 0.0f, "planned large disturbance recovery has no overshoot", 1e-4f);
+    check(final_disturb, 0.0f, "planned large disturbance settles to zero", 1e-4f);
+
+    // 小角度（|e| <= e0 = 48 / 900 ≈ 0.0533 rad）轨迹与禁用规划时一致
+    float overshoot_small_inf = 0, overshoot_small_plan = 0;
+    const float small_inf = simulate_yaw(INFINITY, 0.0f, 0.03f, overshoot_small_inf);
+    const float small_plan = simulate_yaw(48.0f, 0.0f, 0.03f, overshoot_small_plan);
+    check(small_plan, small_inf, "small-angle response unaffected by accel planning", 0);
+}
+
 int main() {
     test_speed_feedback();
     test_angle_loop();
     test_tilted_convergence();
+    test_pitch_target_limit();
     test_pitch_protection();
     test_enable_and_connection();
+    test_angle_accel_limit();
     std::printf("GimbalClassic IMU: %d checks passed\n", checks);
 }

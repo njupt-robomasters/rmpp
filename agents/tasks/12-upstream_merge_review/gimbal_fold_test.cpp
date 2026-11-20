@@ -34,9 +34,7 @@ class TestMotor : public Motor {
     }
 
     void feedback(const float position, const float speed) {
-        raw_position = position;
-        raw_speed = speed;
-        can_callback();
+        can_callback({.speed = speed, .angle = position});
     }
 };
 
@@ -61,6 +59,7 @@ int main() {
     const Pid::Config position = {.kp = 6, .ki = 0.2f, .max_i = 0.4f, .max_out = 8};
     TestMotor motors[4] = {TestMotor(true), TestMotor(false), TestMotor(true), TestMotor(true)};
     TestMotor old_motors[4] = {TestMotor(true), TestMotor(false), TestMotor(true), TestMotor(true)};
+    Angle last_angle[4];
     GimbalFold fold({motors[0], motors[1], motors[2], motors[3]}, {
                                                                       .yaw_speed_pid_config = &speed,
                                                                       .yaw_position_pid_config = &position,
@@ -114,12 +113,18 @@ int main() {
                 const float rate = 5 * std::cos(i * 0.03f + axis);
                 motors[axis].feedback(angle, rate);
                 old_motors[axis].feedback(angle, rate);
+                last_angle[axis] = angle;
             }
         }
         const Angle imu_yaw = 3.4f * std::sin(i * 0.012f);
         const Angle imu_pitch = 1.1f * std::cos(i * 0.033f);
         fold.update(imu_yaw, imu_pitch);
         baseline.update(imu_yaw, imu_pitch);
+
+        compare(fold.yaw1.measure, last_angle[0]);
+        compare(fold.yaw2.measure, last_angle[1]);
+        compare(fold.pitch1.measure, last_angle[2]);
+        compare(fold.pitch.ecd.measure, last_angle[3]);
 
         compare_axis(fold.yaw, baseline.yaw);
         compare_axis(fold.pitch, baseline.pitch);

@@ -9,7 +9,7 @@
 // 电机、PID、限位、IMU 安装方向直接使用整车 app/jelly_sentry/gimbal.hpp，调好后无需搬运
 // 使能：VT13 N、S 挡，或 FSi6X SWC 中、下挡；左手竖直摇杆控制 pitch 转速
 // is_imu_mode：true 用 IMU 闭环（与整车一致），false 只用编码器闭环；调试器修改后下一周期生效
-// 观察：pitch2.is_connect、pitch2.err_code、disconnect_count、pitch2.position、pitch2.speed、pitch2.torque_ref、
+// 观察：pitch2.is_connect、pitch2.err_code、disconnect_count、pitch2.angle、pitch2.speed、pitch2.torque_ref、
 //      gimbal.pitch.ecd.measure、gimbal.pitch.imu.measure、pitch2_speed_pid.ff
 
 static constexpr float WPITCH_MAX = 360 * deg_s; // pitch 最大角速度，rad/s

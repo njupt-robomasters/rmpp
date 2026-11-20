@@ -80,14 +80,6 @@
             }
         },
         {
-            "name": "infantry",
-            "inherits": "default",
-            "cacheVariables": {
-                "RMPP_APP": "infantry",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
             "name": "jelly_sentry",
             "inherits": "default",
             "cacheVariables": {
@@ -176,18 +168,18 @@
             }
         },
         {
-            "name": "leg_down",
+            "name": "leg-leg_down",
             "inherits": "default",
             "cacheVariables": {
-                "RMPP_APP": "leg_down",
+                "RMPP_APP": "leg/leg_down",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
-            "name": "leg_up",
+            "name": "leg-leg_up",
             "inherits": "default",
             "cacheVariables": {
-                "RMPP_APP": "leg_up",
+                "RMPP_APP": "leg/leg_up",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },

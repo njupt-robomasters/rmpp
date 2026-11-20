@@ -39,7 +39,7 @@ void gimbal_loop() {
                        (fsi6x.swc == FSi6X::UP && fsi6x.swa == FSi6X::DOWN && fsi6x.swd == FSi6X::DOWN);
     if (calib && !last_calib) {
         if (yaw1.is_connect)
-            yaw1.config.offset += (yaw1.config.is_invert ? -yaw1.position : yaw1.position) * yaw1.config.reduction;
+            yaw1.config.offset += (yaw1.config.is_invert ? -yaw1.angle_multi : yaw1.angle_multi) * yaw1.config.reduction;
         kv_store.write("yaw_offset", yaw1.config.offset);
         melody.play(G5G5G5);
     }
@@ -146,7 +146,7 @@ void gimbal_loop() {
         gimbal.set_angle(target_yaw, target_pitch);
     else
         gimbal.set_speed(std::clamp(wyaw, -WYAW_MAX, WYAW_MAX), std::clamp(wpitch, -WPITCH_MAX, WPITCH_MAX));
-    gimbal.set_chassis_wr(chassis.wr.measure);
+    gimbal.set_chassis_wr(std::isfinite(chassis.wr.measure) ? chassis.wr.measure : 0);
     attitude.update();
     gimbal.update(attitude.yaw, attitude.pitch);
 }

@@ -14,6 +14,8 @@ python tools/check_builds.py
 
 每个应用只生成一个默认 Debug 预设，名称不带 `-debug`，不自动生成 Release。需要 Release 时，在 CLion 复制为普通配置后修改构建类型，并使用独立构建目录；若复制结果仍含 `--preset`，移除该选项并显式设置对应的 `-DRMPP_APP=<应用路径>`
 
+应用支持任意层级嵌套：脚本递归查找 `app/` 下的 `CMakeLists.txt`，以所在目录相对 `app/` 的路径设置 `RMPP_APP`，路径各级用连字符连接为预设名称。例如 `app/leg/leg_up/CMakeLists.txt` 对应 `leg-leg_up`，构建目录为 `build/leg-leg_up`；下板对应 `leg-leg_down`。共享协议位于 `app/leg/leg_protocol.hpp`
+
 ## 接口与板卡实现
 
 ```mermaid
@@ -149,7 +151,7 @@ flowchart LR
 
 ## 编译接口
 
-- `Can`、`Spi` 没有默认构造，硬件必须由应用显式指定；电机型号的公开 `static constexpr` 物理常量包含 kt、电流与转矩量程、默认减速比，不依赖空硬件句柄
+- `Can` 没有默认构造，硬件编号由应用显式指定；电机型号以 `static constexpr` 保存电流与转矩量程、默认减速比，按实际外部调用决定是否公开，具体权限见 motor.md
 - MiniPC 当前只保留 `Aim`、`Nav` 的状态和定时更新接口，通信协议由后续实现
 - 应用显式向 MiniPC 传入 `Cdc(1)`，为后续协议实现保留板卡通道绑定
 

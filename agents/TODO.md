@@ -71,7 +71,9 @@
 
 状态：代码完成，`leg` 编译通过，待用户审计与上车。worktree `../rmpp-leg-chassis`，分支 `leg_chassis`；结论与上车核对项见 `tasks/04-leg_chassis/README.md`
 
-- 待做：虚拟 IMU（云台 IMU + 关节角）；云台跟随
+- 待做：虚拟 IMU（云台 IMU + 关节角）
+- 2026-11-18 上下板 CAN 通信（暂不含键鼠）、下板跟随与轮端功率控制已在主工作区实现，`leg_up`、`leg_down` 的 app 与 lib 对象编译通过，待用户审计与上车；结论见 `docs/application.md`“轮腿上下板通信”“轮腿功率控制”
+- 上车核对：follow 方向与 kp、`cos(yaw)` 投影方向、`power.estimate` 与 `super_cap.power_chassis` 对比、限功率时平衡是否稳定
 
 ## 超级电容 SuperCap
 
@@ -115,7 +117,7 @@
 
 ## 后续任务
 
-- 上游合并预检（2026-11-20）：origin/master已更新到7e57d2b，本地c8a791f领先5/落后20；当前修改纳入后3项文本冲突。需保存调试成果，迁移EL05可选反馈、Motor角度接口、独立GimbalFold与校准/调试入口后合并验证；记录见tasks/12-upstream_merge_review/README.md，当前尚未执行合并
+- 上游合并（2026-11-20）：当前成果保存为6815d85，合入origin/master@7e57d2b并解决3项冲突；迁移EL05 Feedback、Motor角度接口、独立GimbalFold掉线测量保持及校准/调试入口。相关ARM对象编译与协议/状态机/云台/超电回归通过，未完整链接或操作硬件；详见tasks/12-upstream_merge_review/README.md
 
 - 上游合并（2026-11-15）：已保存基线 `4d59574`，合入 origin/master@f3b8e14 并适配 EL05、GimbalFold、jelly_sentry 与 10 个调试入口；按用户指定启用 CAN2 自动重发与 FIFO。局部编译与待实机核对项见 `tasks/12-upstream_merge_review/README.md`
 - VQF 姿态算法：原样引入官方 C++ 实现（确认单精度选项），封装 `Vqf` 与 `QuaternionEkf` 并列
@@ -142,6 +144,8 @@
 ## 外部 worktree 类布局重构
 
 基线 `795e263`，类布局重构已并入 master，外部 worktree 随合并移除。完成成员尾下划线移除、实例配置与设备状态展平、SWD 排序、最小权限和声明与实现排序；保留主线暂存的轮腿 LQR 调整并完成适配。infantry 跳过编译验证。代码与验证结论见 `tasks/10-global_refactor/README.md`，待用户审计与上车。
+
+2026-11-18 新一轮成员六组排序、函数调用序排序与最小权限调整（基线 `ba752f6`，分支 `refactor/class-member-order`）已并入 master，外部工作区 `../rmpp-class-order` 已移除，主工作区未提交的 `GimbalClassic` pitch 目标限位与 `TODO.md` 修改已合并保留。验证结论见 `tasks/10-global_refactor/README.md`。
 
 ## 轮腿 LQR 首版参数对照
 

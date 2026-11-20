@@ -20,6 +20,29 @@ void Referee::add_0311_callback(RxCallback callback) {
     callbacks_0311.push_back(std::move(callback));
 }
 
+bool Referee::send(const uint16_t cmd_id, const uint8_t* data, const size_t size) {
+    if (tx_size != 0 || size > 300 || (size != 0 && !data))
+        return false;
+    if (cmd_id == 0x0301 && (size < 6 || size > 118 || interaction_timer.elapsed() < 1.0f / 30.0f))
+        return false;
+    tx_buf[0] = 0xA5;
+    tx_buf[1] = static_cast<uint8_t>(size);
+    tx_buf[2] = static_cast<uint8_t>(size >> 8);
+    tx_buf[3] = seq++;
+    tx_buf[4] = CRC8::check_sum(tx_buf, 4);
+    tx_buf[5] = static_cast<uint8_t>(cmd_id);
+    tx_buf[6] = static_cast<uint8_t>(cmd_id >> 8);
+    if (size != 0)
+        std::memcpy(tx_buf + 7, data, size);
+    const auto crc = CRC16::check_sum(tx_buf, size + 7);
+    tx_buf[size + 7] = static_cast<uint8_t>(crc);
+    tx_buf[size + 8] = static_cast<uint8_t>(crc >> 8);
+    tx_size = size + 9;
+    if (cmd_id == 0x0301)
+        interaction_timer.restart();
+    return true;
+}
+
 void Referee::update() {
     if (frame_timer.elapsed() > config.timeout)
         is_connect = false;
@@ -46,29 +69,6 @@ void Referee::update() {
         tx_size = 0;
         tx_pos = 0;
     }
-}
-
-bool Referee::send(const uint16_t cmd_id, const uint8_t* data, const size_t size) {
-    if (tx_size != 0 || size > 300 || (size != 0 && !data))
-        return false;
-    if (cmd_id == 0x0301 && (size < 6 || size > 118 || interaction_timer.elapsed() < 1.0f / 30.0f))
-        return false;
-    tx_buf[0] = 0xA5;
-    tx_buf[1] = static_cast<uint8_t>(size);
-    tx_buf[2] = static_cast<uint8_t>(size >> 8);
-    tx_buf[3] = seq++;
-    tx_buf[4] = CRC8::check_sum(tx_buf, 4);
-    tx_buf[5] = static_cast<uint8_t>(cmd_id);
-    tx_buf[6] = static_cast<uint8_t>(cmd_id >> 8);
-    if (size != 0)
-        std::memcpy(tx_buf + 7, data, size);
-    const auto crc = CRC16::check_sum(tx_buf, size + 7);
-    tx_buf[size + 7] = static_cast<uint8_t>(crc);
-    tx_buf[size + 8] = static_cast<uint8_t>(crc >> 8);
-    tx_size = size + 9;
-    if (cmd_id == 0x0301)
-        interaction_timer.restart();
-    return true;
 }
 
 void Referee::receive(const uint8_t* data, const size_t size) {

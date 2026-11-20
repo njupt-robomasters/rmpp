@@ -35,16 +35,12 @@ void RMDL7025::can_callback(const CanFrame& frame) {
     if (data[0] == 0xa1) {
         // 温度 1 ℃/LSB，电流 0.01 A/LSB，转速 1 dps/LSB
         temperature = static_cast<int8_t>(data[1]);
-        raw_current = static_cast<int16_t>(data[2] | (data[3] << 8)) * 0.01f;
-        raw_torque = raw_current / config.max_current * config.max_torque;
-        raw_speed = static_cast<int16_t>(data[4] | (data[5] << 8)) * deg_s;
+        Motor::can_callback({
+            .current = static_cast<int16_t>(data[2] | (data[3] << 8)) * 0.01f,
+            .speed = static_cast<int16_t>(data[4] | (data[5] << 8)) * deg_s,
+        });
     } else if (data[0] == 0x94) {
         // 单圈角度 0.01°/LSB，0~35999
-        raw_position = static_cast<uint16_t>(data[6] | (data[7] << 8)) * 0.01f * deg;
-    } else {
-        return;
+        Motor::can_callback({.angle = static_cast<uint16_t>(data[6] | (data[7] << 8)) * 0.01f * deg});
     }
-
-    // 调用上级回调
-    Motor::can_callback();
 }

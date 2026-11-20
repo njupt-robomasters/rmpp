@@ -43,15 +43,15 @@ void RM6623::can_callback(const CanFrame& frame) {
     // 解析can报文
     const auto* data = frame.data;
     // 解析电流和位置反馈，电流位于第 2、3 字节
-    raw_current = static_cast<int16_t>((static_cast<uint16_t>(data[2]) << 8) | data[3]) / 5000.0f * MAX_CURRENT;
-    raw_torque = raw_current / config.max_current * config.max_torque;
-    raw_position = static_cast<uint16_t>((static_cast<uint16_t>(data[0]) << 8) | data[1]) / 8192.0f * rev;
+    const float raw_current = static_cast<int16_t>((static_cast<uint16_t>(data[2]) << 8) | data[3]) / 5000.0f * MAX_CURRENT;
+    const float raw_angle = static_cast<uint16_t>((static_cast<uint16_t>(data[0]) << 8) | data[1]) / 8192.0f * rev;
 
+    // 相邻两帧位置差分得到转速
     const float dt = speed_timer.restart();
-    raw_speed = has_position && dt > 0 ? static_cast<float>(Angle(raw_position - position_last)) / dt : 0;
-    position_last = raw_position;
-    has_position = true;
+    const float raw_speed = has_angle && dt > 0 ? static_cast<float>(Angle(raw_angle - angle_last)) / dt : 0;
+    angle_last = raw_angle;
+    has_angle = true;
 
     // 调用上级回调
-    Motor::can_callback();
+    Motor::can_callback({.current = raw_current, .speed = raw_speed, .angle = raw_angle});
 }

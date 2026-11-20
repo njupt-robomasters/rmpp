@@ -6,6 +6,7 @@
 
 ```text
 app/<应用>/                 app_main()、硬件绑定、车辆参数、应用 CMake
+app/leg/                   leg_up、leg_down 两板应用与共享 leg_protocol.hpp
 app/examples/<示例>/        empty、rgb、rc、imu、attitude、melody、cdc、kv_store、motor、referee、chassis、gimbal、shooter
 lib/bsp/                   无 HAL 依赖的公共外设声明（Can、Uart、Cdc、Rgb、Buzzer、Imu、KvStore、Timer、Monitor）
 lib/attitude/              姿态解算：抽象父类 Attitude 与算法子类 QuaternionEkf

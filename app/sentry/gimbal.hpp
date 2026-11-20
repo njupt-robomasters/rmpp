@@ -83,9 +83,9 @@ inline DM4310 pitch({
 // 云台
 inline GimbalDualYaw gimbal({yaw1, yaw2, pitch}, {
                                                      .yaw_speed_pid_config = &yaw2_speed_pid,
-                                                     .yaw_position_pid_config = &yaw2_angle_pid,
+                                                     .yaw_angle_pid_config = &yaw2_angle_pid,
                                                      .pitch_speed_pid_config = &pitch_speed_pid_config,
-                                                     .pitch_position_pid_config = &pitch_angle_pid_config,
+                                                     .pitch_angle_pid_config = &pitch_angle_pid_config,
                                                      .pitch_min = -22 * deg,
                                                      .pitch_max = 15 * deg,
                                                  });

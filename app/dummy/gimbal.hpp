@@ -17,7 +17,7 @@ inline Pid::Config yaw_pid_config = {
     .d_fc = 30.0f,
 };
 
-// 云台电机：RMD-L-7025 直连 CAN1，电机 ID 1；position 为云台相对底盘前方的角度，逆时针为正，零点待标定
+// 云台电机：RMD-L-7025 直连 CAN1，电机 ID 1；angle 为云台相对底盘前方的角度，逆时针为正，零点待标定
 inline RMDL7025 yaw({
     .can = Can(2),
     .tx_id = 0x141,

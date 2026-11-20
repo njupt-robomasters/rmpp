@@ -1,5 +1,6 @@
 #include "gimbal_classic.hpp"
 #include <algorithm>
+#include <cmath>
 
 GimbalClassic::GimbalClassic(const Motors& motor, const Config& config)
     : motor(motor),
@@ -39,17 +40,17 @@ void GimbalClassic::update(const Quaternionf& q, const Vector3f& gyro) {
     const auto euler = quaternion_to_euler(q);
     yaw.angle_measure = euler.yaw;
     pitch.angle_measure = euler.pitch;
-    const Quaternionf pitch_joint(Eigen::AngleAxisf(motor.pitch.position, Vector3f::UnitY()));
+    const Quaternionf pitch_joint(Eigen::AngleAxisf(motor.pitch.angle, Vector3f::UnitY()));
     const Vector3f gyro_axis = pitch_joint * gyro;
-    yaw.speed_measure = gyro_axis.z();
+    yaw.speed_measure = gyro_axis.z() - chassis_wr;
     pitch.speed_measure = gyro_axis.y();
 
     // 可控状态；yaw 的轴系换算依赖 pitch 关节角
     const bool can_pitch = is_enable && motor.pitch.is_connect;
     const bool can_yaw = can_pitch && motor.yaw.is_connect;
 
-    // 速度目标：电机轴速度指令叠加角度外环修正，yaw 再叠加底盘转速前馈
-    yaw.speed_ref = yaw_speed - chassis_wr;
+    // yaw 目标与反馈同时扣除底盘转速，统一为电机相对转速；角度外环修正随后叠加
+    yaw.speed_ref = yaw_speed;
     pitch.speed_ref = pitch_speed;
     update_angle_loop(q, pitch_joint, can_yaw, can_pitch, dt);
 
@@ -62,10 +63,10 @@ void GimbalClassic::update(const Quaternionf& q, const Vector3f& gyro) {
         motor.yaw.set_output(0);
     }
 
-    // pitch 速度内环，编码器越限时截断向外输出，保留回程
+    // pitch 速度内环，编码器越限时截断向外输出，保留回程；外环目标已钳在限位内，此处兜底超调
     if (can_pitch) {
         float output = pitch_speed_pid.calculate(dt, pitch.speed_ref - pitch.speed_measure);
-        if ((motor.pitch.position <= config.pitch_min && output < 0) || (motor.pitch.position >= config.pitch_max && output > 0)) {
+        if ((motor.pitch.angle <= config.pitch_min && output < 0) || (motor.pitch.angle >= config.pitch_max && output > 0)) {
             output = 0;
             pitch_speed_pid.track(output);
         }
@@ -86,14 +87,25 @@ void GimbalClassic::update_angle_loop(const Quaternionf& q, const Quaternionf& p
     float yaw_correction = 0, pitch_correction = 0;
     if (can_yaw && can_angle_loop) {
         yaw.angle_ref += yaw_speed * dt;
-        yaw_correction = yaw_angle_pid.calculate(dt, Angle(yaw.angle_ref - yaw.angle_measure));
+        const float err = plan_angle_error(Angle(yaw.angle_ref - yaw.angle_measure), config.yaw_angle_pid_config, config.yaw_max_accel);
+        yaw_correction = yaw_angle_pid.calculate(dt, err);
     } else {
         yaw.angle_ref = yaw.angle_measure;
         yaw_angle_pid.clear();
     }
     if (can_pitch && can_angle_loop) {
-        pitch.angle_ref += pitch_speed * dt;
-        pitch_correction = pitch_angle_pid.calculate(dt, Angle(pitch.angle_ref - pitch.angle_measure));
+        // 编码器限位经 IMU 与编码器偏差换算到世界 pitch，钳制累加目标与 set_angle 目标
+        const float offset = pitch.angle_measure - motor.pitch.angle;
+        const float min = config.pitch_min + offset, max = config.pitch_max + offset;
+        const float ref = pitch.angle_ref + pitch_speed * dt;
+        pitch.angle_ref = std::clamp(ref, min, max);
+
+        // 目标钳在边界且速度指令向外时撤掉前馈，避免前馈把云台推出限位
+        if ((ref > max && pitch_speed > 0) || (ref < min && pitch_speed < 0))
+            pitch.speed_ref -= pitch_speed;
+
+        const float err = plan_angle_error(Angle(pitch.angle_ref - pitch.angle_measure), config.pitch_angle_pid_config, config.pitch_max_accel);
+        pitch_correction = pitch_angle_pid.calculate(dt, err);
     } else {
         pitch.angle_ref = pitch.angle_measure;
         pitch_angle_pid.clear();
@@ -106,4 +118,18 @@ void GimbalClassic::update_angle_loop(const Quaternionf& q, const Quaternionf& p
     const Vector3f axis_correction = pitch_joint * (q.conjugate() * world_correction);
     yaw.speed_ref += axis_correction.z();
     pitch.speed_ref += axis_correction.y();
+}
+
+float GimbalClassic::plan_angle_error(const float err, const Pid::Config* const pid_config, const float max_accel) {
+    if (!std::isfinite(max_accel) || pid_config == nullptr || pid_config->kp <= 0)
+        return err;
+    if (max_accel <= 0)
+        return 0;
+
+    // 超过线性区阈值 e0 = a_max / kp² 后切换为恒减速度平方根曲线，使 kp·e_eq = ±√(2·a_max·(|e| − e0/2))
+    const float e0 = max_accel / (pid_config->kp * pid_config->kp);
+    const float abs_err = std::fabs(err);
+    if (abs_err <= e0)
+        return err;
+    return std::copysign(std::sqrt(e0 * (2 * abs_err - e0)), err);
 }

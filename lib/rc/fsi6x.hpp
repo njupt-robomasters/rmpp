@@ -11,6 +11,10 @@ class FSi6X {
         float deadline = 0.05f; // 摇杆死区，小于此值认为是0
     };
 
+  private:
+    const Config config;
+
+  public:
     enum Switch {
         DOWN,
         MID,
@@ -23,8 +27,6 @@ class FSi6X {
     Switch swa = ERR, swb = ERR, swc = ERR, swd = ERR; // 拨杆
 
   private:
-    const Config config;
-
     float vra = 0, vrb = 0; // 旋钮
 
     // 通道原始值

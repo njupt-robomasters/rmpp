@@ -58,13 +58,13 @@ void EL05::can_callback(const CanFrame& frame) {
     const auto* data = frame.data;
     mode = static_cast<Mode>((frame.id >> 22) & 0x03);
     fault = (frame.id >> 16) & 0x3F;
-    raw_position = decode((data[0] << 8) | data[1], P_MAX);
-    raw_speed = decode((data[2] << 8) | data[3], V_MAX);
-    raw_torque = decode((data[4] << 8) | data[5], T_MAX);
-    raw_current = raw_torque / config.max_torque * config.max_current;
     temperature = static_cast<float>((data[6] << 8) | data[7]) / 10.0f;
 
-    Motor::can_callback();
+    Motor::can_callback({
+        .torque = decode((data[4] << 8) | data[5], T_MAX),
+        .speed = decode((data[2] << 8) | data[3], V_MAX),
+        .angle = decode((data[0] << 8) | data[1], P_MAX),
+    });
 }
 
 void EL05::send_torque() const {

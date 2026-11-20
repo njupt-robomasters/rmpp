@@ -22,6 +22,16 @@ void SuperCap::set_referee_energy(const float referee_energy) {
     energy_referee = referee_energy;
 }
 
+void SuperCap::send() const {
+    // data[0].bit0 使能 DCDC；data[1..2] 电池侧目标功率，0.01 W/LSB，大端；不限功率时限幅到协议最大值
+    const auto command = static_cast<int16_t>(std::clamp(power_battery_ref, -327.68f, 327.67f) * 100.0f);
+    config.can.send({
+        .id = config.tx_id,
+        .size = 8,
+        .data = {is_dcdc_enable(), static_cast<uint8_t>(command >> 8), static_cast<uint8_t>(command)},
+    });
+}
+
 void SuperCap::update() {
     const float dt = std::min(update_timer.restart(), DT_MAX);
 
@@ -62,16 +72,6 @@ void SuperCap::update() {
     power_chassis_ref = supply * buffer_gain(energy_local);
 }
 
-void SuperCap::send() const {
-    // data[0].bit0 使能 DCDC；data[1..2] 电池侧目标功率，0.01 W/LSB，大端；不限功率时限幅到协议最大值
-    const auto command = static_cast<int16_t>(std::clamp(power_battery_ref, -327.68f, 327.67f) * 100.0f);
-    config.can.send({
-        .id = config.tx_id,
-        .size = 8,
-        .data = {is_dcdc_enable(), static_cast<uint8_t>(command >> 8), static_cast<uint8_t>(command)},
-    });
-}
-
 void SuperCap::can_callback(const CanFrame& frame) {
     // 检查 id 和 size
     if (frame.id != config.rx_id || frame.size != 8)
@@ -95,14 +95,6 @@ void SuperCap::can_callback(const CanFrame& frame) {
     update_capacitance(raw_current_cap, dt);
 
     is_connect = true;
-}
-
-bool SuperCap::is_dcdc_enable() const {
-    return is_connect && (mode == CHARGE || mode == BOOST);
-}
-
-float SuperCap::buffer_gain(const float energy) const {
-    return config.buffer_gain_max * std::clamp((energy - config.buffer_cutoff) / (BUFFER_FULL - config.buffer_cutoff), 0.0f, 1.0f);
 }
 
 void SuperCap::update_capacitance(const float current_cap, const float dt) {
@@ -150,4 +142,12 @@ void SuperCap::update_capacitance(const float current_cap, const float dt) {
     rls.current = current_cap;
     rls.charge = 0;
     rls.time = 0;
+}
+
+bool SuperCap::is_dcdc_enable() const {
+    return is_connect && (mode == CHARGE || mode == BOOST);
+}
+
+float SuperCap::buffer_gain(const float energy) const {
+    return config.buffer_gain_max * std::clamp((energy - config.buffer_cutoff) / (BUFFER_FULL - config.buffer_cutoff), 0.0f, 1.0f);
 }

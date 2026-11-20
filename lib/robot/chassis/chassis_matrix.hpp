@@ -22,6 +22,7 @@ class ChassisMatrix {
         {+std::sqrt(0.5f), +std::sqrt(0.5f), 1},
     };
 
+  private:
     // 麦克纳姆轮
     static constexpr float MECANUM[4][3] = {
         {-1, +1, std::sqrt(2.0f)},
@@ -30,8 +31,10 @@ class ChassisMatrix {
         {+1, +1, std::sqrt(2.0f)},
     };
 
-  private:
     static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
+
+  protected:
+    Motor* const wheel[4]; // 轮电机：左前、左后、右后、右前
 
   public:
     struct Config {
@@ -43,18 +46,36 @@ class ChassisMatrix {
         const Pid::Config* follow_pid_config = nullptr; // 跟随 PID，误差 rad，输出 rad/s；为空时跟随模式不旋转
     };
 
+  protected:
+    const Config config;
+
+  private:
+    const Eigen::Matrix<float, 4, 3> j;
+    const Eigen::Matrix<float, 3, 4> j_pinv;
+
+  public:
     // 底盘模式
     enum Mode {
         DETACH_MODE, // 分离模式
         FOLLOW_MODE, // 跟随模式
     };
 
+  protected:
+    // 指令
+    bool is_enable = false;
+    Angle gimbal_yaw;
+    float power_ref = 0;         // 底盘功率目标，W
+    float reserve_wr = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转
+
+  private:
+    Mode mode = DETACH_MODE;
+
+  protected:
     // 移动速度，云台系，vx 前正后负，vy 左正右负
     struct {
         float ref = 0, measure = 0;
     } vx, vy;
 
-  protected:
     // 旋转线速度，逆时针为正
     struct {
         float ref = 0, measure = 0;
@@ -73,25 +94,12 @@ class ChassisMatrix {
         MotorPower::Gain gain;
     } power;
 
-    const Config config;
-
   private:
-    const Eigen::Matrix<float, 4, 3> j;
-    const Eigen::Matrix<float, 3, 4> j_pinv;
-
-  protected:
-    Motor* const wheel[4]; // 轮电机：左前、左后、右后、右前
-
-    // 指令
-    bool is_enable = false;
-    Angle gimbal_yaw;
-    float power_ref = 0;         // 底盘功率目标，W
-    float reserve_wr = 60 * rpm; // 角速度超过此值时功率受限优先衰减旋转
-
-  private:
-    Mode mode = DETACH_MODE;
     Pid follow_pid;
     Timer update_timer;
+
+  protected:
+    ChassisMatrix(const std::array<Motor*, 4>& wheel, const Config& config);
 
   public:
     // 使能/失能轮电机
@@ -112,10 +120,7 @@ class ChassisMatrix {
     // 设置底盘功率目标，W；通常取超电 power_chassis_ref，未设置时为零、电机不出力
     void set_power_ref(float power_ref);
 
-    // 每个控制周期调用；失能时也更新测量与功率
-    void update();
-
-    // 运动学，底盘系 (x, y, z)，均为纯函数
+    // 运动学，底盘系 (x, y, z)；速度正解只使用在线轮，约束不足返回 NaN
     Vector3f forward_speed(const Vector4f& v) const; // 轮线速度 → 底盘速度
 
     Vector4f backward_speed(const Vector3f& v) const; // 底盘速度 → 轮线速度
@@ -124,9 +129,10 @@ class ChassisMatrix {
 
     Vector4f backward_force(const Vector3f& f) const; // 底盘牵引力 → 轮牵引力
 
-  protected:
-    ChassisMatrix(const std::array<Motor*, 4>& wheel, const Config& config);
+    // 每个控制周期调用；失能时也更新测量与功率
+    void update();
 
+  protected:
     // 控制：底盘目标 → 电机输出；每周期调用，失能时清空 PID；dt 为控制周期，s
     virtual void control(float dt) = 0;
 };

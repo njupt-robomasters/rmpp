@@ -5,7 +5,7 @@
 
 // 操控参数
 static constexpr float VXY_MAX = 3.0f;     // 平移最大速度，m/s
-static constexpr float WR_MAX = 150 * rpm; // 手动旋转最大角速度
+static constexpr float FSI6X_WR_MAX = 150 * rpm; // 手动旋转最大角速度
 static constexpr float SPIN_WR = 60 * rpm; // 小陀螺角速度
 
 static uint32_t super_cap_send_count = 0; // 超电发送分频计数
@@ -23,14 +23,14 @@ void chassis_loop() {
         if (is_spin)
             wr = SPIN_WR;
         else if (!is_follow)
-            wr = fsi6x.yaw * WR_MAX;
+            wr = fsi6x.yaw * FSI6X_WR_MAX;
     }
 
     // 底盘控制：小陀螺或跟随时以云台为前方，小陀螺角速度优先于跟随；云台离线时不跟随，以底盘原始前方
     const bool is_gimbal_front = (is_spin || is_follow) && yaw.is_connect;
     chassis.set_enable(is_enable);
     chassis.set_mode(is_follow && yaw.is_connect ? ChassisMatrix::FOLLOW_MODE : ChassisMatrix::DETACH_MODE);
-    chassis.set_gimbal_yaw(is_gimbal_front ? yaw.position : 0.0f);
+    chassis.set_gimbal_yaw(is_gimbal_front ? yaw.angle : 0.0f);
     chassis.set_speed(vx, vy, wr);
 
     // 超电模式：SWC 上 OFF、中 CHARGE、下 BOOST，遥控断联时 OFF；底盘失能时仍可充电

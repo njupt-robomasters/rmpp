@@ -2,6 +2,7 @@
 
 #include "bsp/can.hpp"
 #include "bsp/timer.hpp"
+#include <optional>
 
 class Motor {
   public:
@@ -14,32 +15,39 @@ class Motor {
         float max_current = 0, max_torque = 0, reduction = 0;
 
         bool is_invert = false;
-        float offset = 0;
+        float offset = 0; // 电机侧零点，rad；单圈与多圈角度共用
+    } config;
+
+  protected:
+    // 电机侧原始反馈，由协议子类解析；帧内未携带的量留空
+    struct Feedback {
+        std::optional<float> current = {}, torque = {}, speed = {}, angle = {};
     };
+
+    bool is_enable = false;
+
+  public:
+    float current_ref = 0;
+    float torque_ref = 0;
 
     bool is_connect = false;
 
-    // 安装方向与减速比修正后的输出轴反馈与目标
+    // 安装方向与减速比修正后的输出轴反馈
     float current = 0;
-    float current_ref = 0;
     float torque = 0;
-    float torque_ref = 0;
     float speed = 0;
-    float position = 0;
-
-    Config config;
-
-  protected:
-    bool is_enable = false;
-
-    // 电机侧原始反馈，由协议子类解析
-    float raw_current = 0, raw_torque = 0, raw_speed = 0, raw_position = 0;
+    float angle = 0;       // 单圈输出轴角度，[-π, π)，超时清零
+    float angle_multi = 0; // 连续输出轴角度，rad，超时保留
 
   private:
-    // 多圈计数与反馈超时
-    float raw_position_multi = 0;
-    float raw_position_last = 0;
+    // 电机侧原始角度、多圈计数与反馈超时
+    float raw_angle = 0;
+    float raw_angle_multi = 0;
+    bool is_angle_initialized = false;
     Timer callback_timer;
+
+  protected:
+    Motor(const Config& config, float max_current, float max_torque, float reduction);
 
   public:
     virtual void set_enable(bool is_enable);
@@ -55,8 +63,6 @@ class Motor {
     void update();
 
   protected:
-    Motor(const Config& config, float max_current, float max_torque, float reduction);
-
-    // 子类校验并解析 raw 后调用，负责修正反馈和刷新在线状态；基类不注册回调
-    void can_callback();
+    // 子类解析后调用；电流与力矩只传其一时换算另一项，携带角度时推进多圈累计
+    void can_callback(const Feedback& feedback);
 };

@@ -17,7 +17,7 @@
 // orientation：传感器到机体的安装旋转，Z-Y-X 欧拉角
 // 旧框架实测为绕左右轴翻转 180°（旧 pitch = 180°）；旧安装矩阵为 Rz(-yaw) Rx(pitch) Ry(roll)，同一物理旋转即新 roll = 180°
 // 新框架 attitude.pitch 绕机体 Y 轴（旧框架绕 X）；实测只加 roll = 180° 时抬枪口变化的是 attitude.roll
-// 再绕 Z 转 -90° 重排机体轴，使俯仰轴对齐机体 Y；实测抬枪口时 attitude.pitch 与 pitch2.position 同向变化
+// 再绕 Z 转 -90° 重排机体轴，使俯仰轴对齐机体 Y；实测抬枪口时 attitude.pitch 与 pitch2.angle 同向变化
 // gyro_offset、gravity：用 jelly_sentry_debug-imu_calib 校准后填入；未校准时为 0 与 9.81
 // temperature：调试阶段频繁 halt，沿用旧框架做法关闭加热（目标 0 ℃）；调试结束后改为 50，并在恒温下重新校准零偏
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = -90 * deg, .pitch = 0 * deg, .roll = 180 * deg}),

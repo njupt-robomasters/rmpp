@@ -1,6 +1,7 @@
 """在相同反馈和时钟下，对比 app 内的折叠云台与迁移前实现。"""
 
 import argparse
+import re
 from pathlib import Path
 import subprocess
 
@@ -20,7 +21,11 @@ def main():
         source = subprocess.check_output(
             ["git", "show", f"a220339:lib/robot/gimbal/{name}"], cwd=ROOT
         ).decode("utf-8")
-        (baseline / name).write_text(source.replace("Gimbal", "BaselineGimbal"), encoding="utf-8")
+        source = re.sub(r"\.position\b", ".angle", source.replace("Gimbal", "BaselineGimbal"))
+        # 历史 Motor 的 position 离线保留；新 Motor 的 angle 超时归零，使用既有轴测量恢复旧反馈约定
+        source = re.sub(r"(\s+)([\w.]+\.measure) = (motor\.\w+)\.angle;",
+                        r"\1if (\3.is_connect)\1    \2 = \3.angle;", source)
+        (baseline / name).write_text(source, encoding="utf-8")
     exe = OUT / "gimbal_fold_test.exe"
     subprocess.run([
         *args.cxx, "-std=c++23", "-O2", "-Wall", "-Wextra",

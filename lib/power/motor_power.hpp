@@ -22,7 +22,6 @@ class MotorPower {
     // 不能驱动的电机由调用方传入零电流
     static Gain limit_current(Motor* const motor[4], float resistance, const Vector4f& current_xy, const Vector4f& current_z, bool is_spin, float ref);
 
-  private:
     // [0, 1] 内满足 a·g² + b·g + c ≤ 0 的最大 g，a ≥ 0；无解时为零
     static float solve_gain(float a, float b, float c);
 };

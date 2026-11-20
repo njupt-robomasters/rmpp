@@ -1,9 +1,6 @@
 #include "gimbal.hpp"
 #include "app.hpp"
-
-// 操控参数
-static constexpr float YAW_SPEED_MAX = 360 * deg_s;   // yaw 最大角速度，rad/s
-static constexpr float PITCH_SPEED_MAX = 360 * deg_s; // pitch 最大角速度，rad/s
+#include "chassis.hpp"
 
 void gimbal_loop() {
     attitude.update();
@@ -28,6 +25,6 @@ void gimbal_loop() {
     // }
     // last_r = vt13.key.r;
 
-    // gimbal.set_chassis_wr(chassis.wr.measure);
+    gimbal.set_chassis_wr(down.wr);
     gimbal.update(attitude.q, imu.gyro);
 }

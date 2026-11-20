@@ -22,7 +22,7 @@
 ## 验证
 
 ```sh
-python agents/tasks/11-shooter_state/verify.py --cxx g++ --arm-build build/leg_up
+python agents/tasks/11-shooter_state/verify.py --cxx g++ --arm-build build/leg-leg_up
 ```
 
 - 主机测试通过：连续卡弹检测、未饱和帧重置计时、退弹时长、正负弹频、热量保护/失能/零弹频/离线停止、恢复重新计时、长停顿的 dt 限幅
@@ -89,3 +89,27 @@ roll_ref 用于四元数姿态误差：目标四元数缺少 roll 时，底盘�
 
 - 主机测试重写为当前行为，3,280 项通过：水平底盘关节转速恢复与编码器噪声隔离、倾斜底盘角速度投影、倾斜底盘下速度指令保持电机轴、目标积分与 dt 限幅、yaw 回绕、两种配置、pitch 双向保护与积分回算、失能/断联恢复；新增倾斜底盘（roll ±0.25~0.3 rad）闭环运动学仿真，世界 yaw/pitch 收敛误差 < 1e-4 rad
 - ARM 对象 10 个编译通过且无警告；改动文件经 `tools/format_code.py` 格式化。未执行完整固件链接与硬件测试
+
+## GimbalClassic pitch 目标限位
+
+问题：外环 pitch 目标无界累加，编码器保护挡住云台后目标继续累积，误差超过 π 经 `Angle` 回绕反向，云台转到另一侧限位；保护只截断输出，外环误差饱和时在限位处反复切断与满额推出，形成震荡。
+
+修改：`update_angle_loop()` 用 `pitch.angle_measure − motor.pitch.angle` 把编码器限位平移到世界 pitch，钳制累加目标和 `set_angle()` 目标；目标被钳住且速度指令向外时撤掉 pitch 前馈；编码器输出保护保留为超调兜底。yaw 无限位，速度环模式行为不变。
+
+验证：`python agents/tasks/11-shooter_state/verify_gimbal_imu.py --arm`
+
+- 主机测试 3,289 项通过；新增水平底盘持续向外推杆 10 s（累计 10 rad）目标停在限位、关节收敛到限位且后 5 s 无反转、向外前馈撤除、反向指令立即离开限位，底盘前倾 0.1 rad 时上下限平移，界外目标下向内前馈保留
+- `app/examples/gimbal` 已删除，脚本移除该入口；ARM 对象 9 个（infantry 5、leg_up 3、Classic 源码）编译通过且无警告。未执行完整固件链接与硬件测试
+- 上车核对：持续推杆到上下限位无反转、无震荡；底盘倾斜时限位位置跟随编码器
+
+## GimbalClassic 角度外环最大角加速度规划
+
+问题：大阶跃目标或外力大扰动下，线性角度外环要求减速度 `kp·ω` 远超电机最大力矩对应的物理角加速度上限，减速距离不足导致超调和震荡；压低 `kp` 又会牺牲小角度响应带宽。
+
+修改：`GimbalClassic::Config` 新增 `yaw_max_accel`、`pitch_max_accel`，默认值 `INFINITY`（`plan_angle_error()` 直接返回原误差，等效禁用规划）；设为有限正数时，在 `|e| <= e0`（`e0 = max_accel / kp²`）内保持原误差，超出后折算为 `±√(e0·(2|e| − e0))` 再送入角度 PID，使比例项沿恒减速度平方根制动曲线 `±√(2·max_accel·(|e| − e0/2))` 平滑过渡，在 `e0` 处值与一阶导数连续。
+
+验证：`python agents/tasks/11-shooter_state/verify_gimbal_imu.py --arm`
+
+- 主机测试 3,325 项通过；新增默认 `INFINITY` 与纯线性 PID（含 P/I/D 及 `kp = 0`）逐帧恒等、分段线性区与平方根曲线数值、`e0` 处值与斜率连续、`max_out` 限幅、`max_accel = 0` 边界，以及二阶刚体加力矩饱和（`J = 0.05 kg·m²`、`τ_max = 3 N·m`）闭环仿真：对照禁用规划时 1.5 rad 阶跃大幅过冲，启用 48 rad/s² 后阶跃响应与外力掰偏恢复均零超调收敛，小角度轨迹与禁用规划时一致
+- ARM 对象 9 个（infantry 5、leg_up 3、Classic 源码）编译通过且无警告。未执行完整固件链接与硬件测试
+- 上车核对：实测两轴最大角加速度后取 0.7~0.8 倍裕度填入配置，测试大角度阶跃与手动掰偏松手无过冲、小角度刚度不变

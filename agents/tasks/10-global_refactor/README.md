@@ -115,3 +115,69 @@ python agents/tasks/10-global_refactor/layout_regression.py --baseline 795e263
 - 新增 `motor_config_test.cpp`，覆盖默认值补齐、显式配置、电流/力矩限幅与换算、反向反馈、外部校零和超时；历史布局测试保留当时接口，本轮使用新测试及任务 11 的原生输出/拨弹测试
 
 验证：两板 timer.cpp ARM 对象编译通过；配置回归及任务 11 主机测试通过；24 个相关源码 ARM 对象编译通过，无警告。21 个工程源码及 DM 模板、新测试的格式检查与 `git diff --check` 通过。未执行完整固件链接或硬件操作；新增对象和测试产物位于本任务 `out/`，任务 11 验证产物沿用其 `out/`。
+
+### angle、多圈零点与配置优先布局
+
+基线 `da3f164`，外部 worktree `../rmpp-motor-angle`，分支 `refactor/motor-angle-layout`。主工作区的 TODO 修改随主线提交保存；2026-11-17 已合并至 master，外部 worktree 已移除，分支保留。
+
+- 电机及调用点统一使用 `angle`、`raw_angle`；VESC 采用 `set_angle()`、`pid_angle`，双 yaw 采用 `*_angle_pid*`；底盘平移及导航坐标继续使用 position
+- 新增输出轴连续角度 `angle_multi`，计算为 `dir * (raw_angle_multi - config.offset) / config.reduction`，与单圈 angle 共用电机侧 offset；运行时修改 offset 后在下一次反馈刷新，原始累计不受校准影响
+- 首个有效角度帧直接保存原始角度，避免首帧大于 π 时丢失一圈；后续保持最短角差累计，离线保留累计。RMD 电流应答与 VESC 状态应答传入 `can_callback(false)`，避免无角度帧提前初始化计数
+- infantry/sentry 外部校零使用 angle_multi，同时清零单圈与连续角度，继续由 app 持久化 offset
+- Pid 配置指针及其他类配置成员移到实例变量最前；Timer 保持在变量区末尾；update 放在所属类最后，其他方法及对应定义提前，构造初始化列表同步排列。规则更新至 AGENTS.md 与 conventions.md
+
+验证：两板公共库、两板 IMU BSP、dummy/infantry/sentry/leg_down/leg_up/motor 示例/test 与 mc02 CDC 示例共 82 个真实 ARM 对象编译通过，启用 `-Werror=reorder`，无告警；复用数据库时跳过已删除的 examples/gimbal 源码。电机配置回归覆盖首帧角度大于 π、无角度应答先到、正反转跨圈、方向、三种减速比、连续校零、重复帧、offset 修改及离线恢复。任务 11 原生输出/拨弹回归与 GimbalClassic IMU 的 3280 项检查通过。此次仅编译对象和执行主机测试，未链接固件或操作硬件。
+
+复现 ARM 对象编译（source-root 提供已有编译数据库，mc02-build 为当前 worktree 的 mc02 配置目录）：
+
+```sh
+python agents/tasks/10-global_refactor/verify_angle_layout.py --source-root <原工作区> --mc02-build <mc02构建目录>
+```
+
+对象及逐文件日志位于 `out/angle_layout/arm/`，电机回归源码沿用 `motor_config_test.cpp`；云台与拨弹回归入口沿用任务 11 的 `verify_gimbal_imu.py` 和 `verify.py`。
+
+合并验证（2026-11-17）：主线快照 `c576037`、外部实现 `d888b40`、外部记录 `c48610b`，合并提交 `87ef1f8`，无冲突。合并后 82 个角度/布局 ARM 对象及两板 Timer 对象编译通过；电机配置与多圈角度、原生输出/拨弹、云台 IMU 3280 项检查通过。57 个相关工程源码格式检查与 diff 检查通过。外部日志归档至 `out/angle_layout/external_logs/`。未执行完整固件链接、硬件操作或推送。
+
+### 电机可选反馈 Feedback
+
+- `Motor::can_callback(const Feedback&)` 取代 `can_callback(bool is_angle_frame)`；protected `Feedback` 含 `std::optional<float>` current、torque、speed、angle（电机侧原始量），子类用指定成员初始化写出本帧携带的量
+- 基类每次回调刷新在线状态；有值的量修正方向与减速比，留空的量保持上次反馈；电流、力矩只传其一时按量程换算另一项；只有 angle 有值时推进多圈累计，角度输出每次按当前 offset 重算
+- 删除 protected `raw_current/raw_torque/raw_speed` 及 `raw_angle_last`；`raw_angle` 改为 private，兼作上次角度参与最短角差累计
+- 子类不再换算电流/力矩：DM 传 torque，DJI/X630/RM6623/RMD/VESC 传 current；RMD 0xA1 传 current/speed、0x94 只传 angle；VESC STATUS 传 current/speed，其余状态帧传 `{}`
+- 行为差异：RMD 断联清零后，若先收到 0x94 角度帧，电流/力矩保持 0，直到 0xA1 应答到达（原实现会用旧 raw_current 恢复旧值）
+- `Feedback` 成员带 `= {}` 默认初始化，避免主机 `-Wextra` 对省略的指定成员报 missing-field-initializers
+
+验证：`verify_motor_feedback.py` 复用 `build/` 下 8 个 C 板预设的编译数据库，编译全部 lib/、app/ 手写源码共 253 个 ARM 对象（含 DM 模板实例化），0 失败 0 警告；产物在 `out/motor_feedback/arm/`。`motor_config_test.cpp` 新增力矩单传换算、空反馈保持上次值的检查，与任务 11 原生输出/拨弹、GimbalClassic IMU 3280 项回归均通过。未链接固件，未操作硬件。
+
+```sh
+python agents/tasks/10-global_refactor/verify_motor_feedback.py
+```
+
+## 2026-11-17 成员六组排序、函数排序与最小权限
+
+基线 `ba752f6`；外部 worktree `../rmpp-class-order`，分支 `refactor/class-member-order`。主工作区已有 `app/leg_up/shooter.cpp`、`lib/robot/gimbal/gimbal_classic.{hpp,cpp}`、`lib/robot/shooter/shooter_17mm.hpp` 的未提交修改，本轮从提交基线工作，保留主工作区内容。
+
+- 类成员依次为构造参数、set 输入、SWD 观察状态、PID 组件、跨周期历史状态、Timer；构造参数按接口顺序，设备绑定靠前；Timer 按其他 timer、callback_timer、update_timer 排列
+- 函数依次为构造函数（含 protected 构造）、set_enable、其他 set 函数、其他公开接口、update、内部辅助函数；内部辅助函数按入口首次调用顺序深度优先排列，调用者在前、被调用者紧随；.cpp 与 .tpp 定义跟随声明顺序
+- 保留成对的 ref/measure 结构；状态机当前阶段位于 PID 前，历史标记与累计时间位于 PID 后；构造初始化列表同步声明顺序，保留原有计算与默认值
+- 类型与实例权限相同时保持结构体后直接声明实例；公开配置类型与私有配置副本分开。云台、17 mm 发射机构、裁判的配置副本、17 mm 设备绑定、42 mm 观察量、Imu 温度、Melody 监测量和无外部引用的型号常量收紧为 private；底盘 vx/vy 仅供派生类使用，收紧为 protected
+- 权限核对覆盖 app、公共库及现有测试调用；超电仿真读取的辨识/功率输出、双 yaw 差分回归读取的 yaw1/yaw2 保留 public；SWD 观察本身无需公开变量
+- 同步 AGENTS.md、conventions.md 与相关模块文档；主工作区、生成代码和第三方代码未改动
+
+验证结果：
+
+- 两板公共库、两板 IMU BSP、dummy/infantry/sentry/leg_down/leg_up/motor 示例/test 与 mc02 CDC 示例共 82 个真实 ARM 对象通过，开启 `-Werror=reorder`；最终两处权限整理涉及的四个对象补编通过
+- 原生电机输出与拨弹状态机回归通过；GimbalClassic IMU 3280 项检查通过
+- 复用现有测试，对比基线与当前电机可选反馈、超电容量辨识、超电功率仿真、蜂鸣器播放，四组输出逐字节一致
+- 30 个修改的手写代码文件格式检查与 git diff --check 通过，86 份 ARM 编译日志均为空；结束检查时主工作区另出现并行的根 TODO.md 修改，保持原样
+- 本轮仅编译对象与执行主机回归，未链接完整固件或操作硬件
+
+复现：mc02 配置目录为 `agents/tasks/10-global_refactor/out/class_order/mc02`，复用上方 `verify_angle_layout.py`；主机差分入口：
+
+```sh
+python agents/tasks/10-global_refactor/verify_class_order.py --baseline ba752f6
+python agents/tasks/11-shooter_state/verify.py
+python agents/tasks/11-shooter_state/verify_gimbal_imu.py
+```
+
+合并与一致性核对（2026-11-18）：一致性检查修正 `Melody` 限带方波与 PolyBLEP 错位注释、`GimbalDualYaw` 指令区 `is_enable` 顺序、`Steer` 舵向注释位置、`RobotUi` 委托构造空行及 `SuperCap::Config` 分组注释空行。外部分支提交 `987d002`、`f8bdfd2`，与主线 `93d1e49` 合并为 `d39e002`（解决 `Shooter17mm`、`GimbalClassic` 布局重叠，保留 `93d1e49` 摩擦轮释放阈值与 `TODO.md`），外部工作区 `../rmpp-class-order` 已删除；主工作区未提交的 `GimbalClassic` pitch 目标限位等 7 个文件原样保留未暂存状态并完成适配。合并后两板 82 个布局对象、C 板全预设 253 个 `lib/` 与 `app/` 对象、两板 19 个手写 BSP 对象真实 ARM 编译通过（0 失败 0 告警）；四组主机差分回归、原生输出与拨弹回归、云台 IMU 3289 项检查及全部修改源码格式检查通过。

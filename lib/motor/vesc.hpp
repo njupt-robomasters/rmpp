@@ -25,6 +25,11 @@ class Vesc : public Motor {
         CAN_PACKET_STATUS_6 = 58,
     };
 
+    // 待发送的命令，由 set_* 写入、send() 发出
+    Command command = CAN_PACKET_SET_CURRENT;
+    uint8_t command_data[8]{};
+    uint8_t command_size = 4;
+
     // 状态帧反馈
     float temp_fet = 0;
     float temp_motor = 0;
@@ -35,17 +40,12 @@ class Vesc : public Motor {
     float amp_hours_charged = 0;
     float watt_hours = 0;
     float watt_hours_charged = 0;
-    float pid_pos = 0;
+    float pid_angle = 0;
     float tachometer = 0;
     float adc1 = 0;
     float adc2 = 0;
     float adc3 = 0;
     float ppm = 0;
-
-    // 待发送的命令，由 set_* 写入、send() 发出
-    Command command = CAN_PACKET_SET_CURRENT;
-    uint8_t command_data[8]{};
-    uint8_t command_size = 4;
 
   public:
     // VESC 不对应固定电机型号，没有默认驱动参数，量程和减速比须全部给出；reduction 含极对数
@@ -62,7 +62,7 @@ class Vesc : public Motor {
     // 输出轴速度，rad/s；VESC 按 ERPM 闭环，reduction 含极对数
     void set_speed(float speed);
 
-    void set_position(float position);
+    void set_angle(float angle);
 
     void set_current_relative(float current);
 
@@ -81,15 +81,15 @@ class Vesc : public Motor {
   private:
     void can_callback(const CanFrame& frame);
 
+    static int16_t read16(const uint8_t* data);
+
+    static int32_t read32(const uint8_t* data);
+
     void set_int32(Command command, int32_t value);
+
+    static int32_t encode32(float value, float scale);
 
     void set_int16(Command command, int32_t first, int16_t second);
 
     static int16_t encode16(float value, float scale);
-
-    static int32_t encode32(float value, float scale);
-
-    static int16_t read16(const uint8_t* data);
-
-    static int32_t read32(const uint8_t* data);
 };

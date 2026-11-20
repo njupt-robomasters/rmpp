@@ -4,7 +4,6 @@
 #include "lqr_fit.hpp"
 #include "motor/dm8009.hpp"
 #include "motor/m3508.hpp"
-#include "power/super_cap.hpp"
 #include "robot/chassis/chassis_leg.hpp"
 
 // 硬件参数沿用 SOLDIER_LEG_4/Chassis；LQR 使用首版 Python 模型生成值，待实车对照
@@ -17,49 +16,49 @@ inline Imu imu({.orientation = euler_to_quaternion({.yaw = 180 * deg, .pitch = 0
                 .gravity = 9.5909f});
 inline QuaternionEkf attitude(imu, {});
 
-// 关节 DM8009：CAN2；面向输出轴逆时针为正，不反向
-// offset 取外部工程 pos = wrap(raw + c) 中 c 的相反数，使 position 零位对应 A 杆方位角 π、E 杆 0
+// 关节 DM8009：CAN1；面向输出轴逆时针为正，不反向
+// offset 取外部工程 pos = wrap(raw + c) 中 c 的相反数，使 angle 零位对应 A 杆方位角 π、E 杆 0
 inline DM8009 left_front({
-    .can = Can(2),
+    .can = Can(1),
     .tx_id = 0x11,
     .rx_id = 0x21,
     .is_invert = false,
     .offset = -2.793f,
 });
 inline DM8009 left_back({
-    .can = Can(2),
+    .can = Can(1),
     .tx_id = 0x12,
     .rx_id = 0x22,
     .is_invert = false,
     .offset = -0.745f,
 });
 inline DM8009 right_back({
-    .can = Can(2),
+    .can = Can(1),
     .tx_id = 0x13,
     .rx_id = 0x23,
     .is_invert = false,
     .offset = -1.1478f,
 });
 inline DM8009 right_front({
-    .can = Can(2),
+    .can = Can(1),
     .tx_id = 0x14,
     .rx_id = 0x24,
     .is_invert = false,
     .offset = 1.225f,
 });
 
-// 轮 M3508：CAN2；左轮电机正转为后退，反向后转速与力矩均以前进为正
+// 轮 M3508：CAN1；左轮电机正转为后退，反向后转速与力矩均以前进为正
 static constexpr float WHEEL_REDUCTION = 16.875f;
 static constexpr float WHEEL_KT = 0.2545043441f; // 轮端等效转矩常数，N·m/A
 inline M3508 left_wheel({
-    .can = Can(2),
+    .can = Can(1),
     .rx_id = 0x201,
     .max_torque = M3508::MAX_CURRENT * WHEEL_KT,
     .reduction = WHEEL_REDUCTION,
     .is_invert = true,
 });
 inline M3508 right_wheel({
-    .can = Can(2),
+    .can = Can(1),
     .rx_id = 0x202,
     .max_torque = M3508::MAX_CURRENT * WHEEL_KT,
     .reduction = WHEEL_REDUCTION,
@@ -72,6 +71,8 @@ inline Pid::Config leg_length_pid = {.kp = 1750, .kd = 100, .max_out = 180};
 inline Pid::Config leg_angle_pid = {.kp = 140, .kd = 7, .max_out = 80};
 // 横滚 PD：误差 rad → 腿长修正 m；微分用 gyro.x，外部工程为 10 阶最小二乘微分
 inline Pid::Config roll_pid = {.kp = 1.3f, .kd = 0.004f, .max_out = 0.4f};
+// 云台跟随 PID：云台相对底盘 yaw 误差 rad → 航向角速度 rad/s
+inline Pid::Config follow_pid_config = {.kp = 6.0f, .max_out = 180 * deg_s};
 
 // 底盘：其余参数取 ChassisLeg::Config 默认值，与外部工程一致
 inline ChassisLeg chassis({left_front, left_back, right_back, right_front, left_wheel, right_wheel},
@@ -87,9 +88,17 @@ inline ChassisLeg chassis({left_front, left_back, right_back, right_front, left_
                               .leg_length_pid = &leg_length_pid,
                               .leg_angle_pid = &leg_angle_pid,
                               .roll_pid = &roll_pid,
+                              .follow_pid = &follow_pid_config,
                               .lqr_fit = LQR_FIT,
+                              .wheel_resistance = 0.194f,
                           });
 
-inline SuperCap super_cap({.can = Can(2)});
-
+// 底盘计算，每 2 次循环调用一次（500 Hz）
 void chassis_loop();
+
+// 上下板 CAN1 经滑环连接，协议见 ../leg_protocol.hpp
+// 组 0x003 状态帧
+void chassis_write_can_frame(CanFrame& frame);
+
+// 接收 0x002 控制帧，由 setup() 注册到 Can(1)
+void chassis_can_callback(const CanFrame& frame);

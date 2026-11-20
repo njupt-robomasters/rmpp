@@ -12,6 +12,10 @@ class VT13 {
         uint16_t mouse_max = 500; // 鼠标xy最大速度
     };
 
+  private:
+    const Config config;
+
+  public:
     enum Mode {
         C,
         N,
@@ -41,8 +45,6 @@ class VT13 {
     } key;
 
   private:
-    const Config config;
-
     // 通道原始值
     struct __attribute__((packed)) {
         uint8_t sof_1 : 8;   // 0xA9
@@ -52,11 +54,11 @@ class VT13 {
         uint16_t ch_2 : 11;  // 左手竖直
         uint16_t ch_3 : 11;  // 左手水平
         uint8_t mode_sw : 2; // 挡位切换开关，c - 0，n - 1，s - 2
-        uint8_t pause : 1;   // 暂停按键
-        uint8_t fn_1 : 1;    // 自定义按键（左）
-        uint8_t fn_2 : 1;    // 自定义按键（右）
+        bool pause : 1;      // 暂停按键
+        bool fn_1 : 1;       // 自定义按键（左）
+        bool fn_2 : 1;       // 自定义按键（右）
         uint16_t wheel : 11; // 拨轮
-        uint8_t trigger : 1; // 扳机键
+        bool trigger : 1;    // 扳机键
 
         uint8_t reserved_3bit : 3;
 
@@ -88,8 +90,6 @@ class VT13 {
     void callback(const uint8_t data[], size_t size);
 
     void parse_raw();
-
-    void reset_data();
 
     // 解析摇杆值，归一化到±1
     float get_joy_stick(uint16_t value) const;
