@@ -84,8 +84,8 @@ void referee_loop() {
     ui.is_hurt = has_hurt && hurt_timer.elapsed() < HURT_TIMEOUT;
     ui.hurt_dir = hurt_dir - gimbal.yaw.angle_measure;
 
-    // 仪表读数：超电电压、下板实测航向角速度、VT13 设定弹频和拨弹实测电流
-    ui.super_cap_voltage = super_cap.voltage_cap;
+    // 仪表读数：超电能量占比、下板实测航向角速度、VT13 设定弹频和拨弹实测电流
+    ui.super_cap = super_cap.energy_ratio();
     ui.chassis_wr = leg_protocol.received.wr;
     ui.bullet_freq = vt13.config.bullet_freq;
     ui.shoot_output = shoot.current;
@@ -115,12 +115,10 @@ void referee_loop() {
     // 超电状态；轮腿未接自瞄，图元保持白色，准星圆不显示
     if (!super_cap.is_connect)
         ui.cap = RobotUi::PINK;
-    else if (super_cap.mode == SuperCap::CHARGE)
-        ui.cap = RobotUi::CYAN;
+    else if (super_cap.mode == SuperCap::OFF || super_cap.mode == SuperCap::CHARGE)
+        ui.cap = RobotUi::WHITE;
     else if (super_cap.mode == SuperCap::BOOST)
         ui.cap = super_cap.is_cap_voltage_low() ? RobotUi::CYAN : RobotUi::GREEN;
-    else
-        ui.cap = RobotUi::WHITE;
 
     ui.update(referee_sender);
 }

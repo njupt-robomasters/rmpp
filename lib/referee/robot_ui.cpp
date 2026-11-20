@@ -98,7 +98,7 @@ void RobotUi::draw_car(RefereeSender& sender, const RefereeSender::Operation ope
 void RobotUi::update(RefereeSender& sender) {
     // 提示条：满量程比例映射为 1~39 度弧长
     const auto span = [](const float ratio) { return static_cast<uint16_t>(1 + std::clamp(ratio, 0.0f, 1.0f) * 38); };
-    const auto cap_span = span(super_cap_voltage / config.super_cap_voltage_max);
+    const auto cap_span = span(super_cap / config.super_cap_max);
     const auto wr_span = span(std::fabs(chassis_wr) / config.chassis_wr_max);
     const auto bullet_span = span(bullet_freq / config.bullet_freq_max);
     const auto shoot_span = span(std::fabs(shoot_output) / config.shoot_output_max);
@@ -117,7 +117,7 @@ void RobotUi::update(RefereeSender& sender) {
 
     // 图层 2：电容电压 V、转速 rpm、弹频 Hz、拨弹电流 A、yaw 度、pitch 度
     const Figure numbers[] = {
-        RefereeSender::integer(0x000170, 2, WHITE, 2, 615, 565, 15, static_cast<int32_t>(super_cap_voltage)),
+        RefereeSender::integer(0x000170, 2, WHITE, 2, 615, 565, 15, static_cast<int32_t>(std::lround(super_cap * 100))),
         RefereeSender::integer(0x000171, 2, WHITE, 2, 615, 530, 15, static_cast<int32_t>(chassis_wr / rpm)),
         RefereeSender::integer(0x000172, 2, WHITE, 2, 1250, 530, 15, static_cast<int32_t>(bullet_freq)),
         RefereeSender::integer(0x000173, 2, WHITE, 2, 1250, 565, 15, static_cast<int32_t>(shoot_output)),

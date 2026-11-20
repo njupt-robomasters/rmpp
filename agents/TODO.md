@@ -105,7 +105,7 @@
 ### jelly_sentry 超电待上车
 
 - 已接入默认 CAN1 ID 0x061/0x051，在线 VT13 的 C 挡优先失能，N/S 挡启用超电 BOOST。N 挡双传送带与拨盘停转，S 挡运行双传送带，拨盘取 VT13 弹频（trigger 加 pitch 摇杆或鼠标左键）。人工 OFF 与裁判失联优先关闭超电，实现和验证见 `docs/application.md` 与 `tasks/06-super_cap_capacitance/README.md`
-- 待用户审计：OFF 反馈、CHARGE 充电、BOOST 电压补偿衰减、断联与重连；结合实车供电支路核对超电实测和四轮模型功率。UI 能量显示待确定满电电压与可用能量范围
+- 待用户审计：OFF 反馈、CHARGE 充电、BOOST 电压补偿衰减、断联与重连；结合实车供电支路核对超电实测和四轮模型功率。UI 按电容电压平方比显示储能百分比，满电电压默认 23.85 V，待实车核对
 
 ## 底盘深度重构、PID 回算、UI 下放
 

@@ -14,10 +14,10 @@ class RobotUi {
 
     struct Config {
         // 提示条满量程
-        float super_cap_voltage_max = 23.85f; // 电容电压，V
-        float chassis_wr_max = 120 * rpm;     // 底盘转速，rad/s
-        float bullet_freq_max = 20.0f;        // 弹频，Hz
-        float shoot_output_max = 20.0f;       // 拨弹电流/力矩，A / Nm
+        float super_cap_max = 1;          // 超电能量占比，1 为满电
+        float chassis_wr_max = 120 * rpm; // 底盘转速，rad/s
+        float bullet_freq_max = 20.0f;    // 弹频，Hz
+        float shoot_output_max = 20.0f;   // 拨弹电流/力矩，A / Nm
     };
 
   private:
@@ -33,8 +33,8 @@ class RobotUi {
 
     bool is_auto_aim_detect = false; // 自瞄识别到目标，显示准星圆
 
-    // 电容电压，V；底盘转速，rad/s；设定弹频，Hz；拨弹实测电流或力矩，A 或 N·m
-    float super_cap_voltage = 0, chassis_wr = 0, bullet_freq = 0, shoot_output = 0;
+    // 超电能量占比，0～1；底盘转速，rad/s；设定弹频，Hz；拨弹实测电流或力矩，A 或 N·m
+    float super_cap = 0, chassis_wr = 0, bullet_freq = 0, shoot_output = 0;
 
     // 设备状态颜色；yaw1 为底层转轴或轮腿下板，yaw2 为小 yaw，pitch1、pitch2 为俯仰关节，未使用的槽位保持白色
     Color w1 = WHITE, w2 = WHITE, w3 = WHITE, w4 = WHITE;

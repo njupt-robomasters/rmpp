@@ -3,17 +3,17 @@
 #include "bsp/can.hpp"
 #include "bsp/timer.hpp"
 #include "container/fifo.hpp"
-#include "protocol.hpp"
+#include "packets.hpp"
 
 // 裁判系统常规链路发送：选手端 UI、哨兵自主决策 0x0120、选手端消息 0x0308
 // 每次调用排入 1 个请求，send() 按序组帧（帧头、发送者与接收者、CRC）并逐 8 B 经 CAN 交给 RefereeRelay
 // 0x0301 全部子内容共用 30 Hz，由 send() 保证；其余频率由调用方决定
 class RefereeSender {
   private:
+    static constexpr float INTERACTION_PERIOD = 1.0f / 20.0f; // 0x0301 最小间隔，s
     static constexpr size_t QUEUE_CAPACITY = 20;              // 待发请求数；UI 初始布局 11 个、仪表 2 个加指令余量
     static constexpr size_t CONTENT_MAX = 105;                // 请求内容最长，B；绘制七个图形
     static constexpr size_t FRAME_MAX = 6 + CONTENT_MAX + 9;  // 交互头 6 B，帧头 5 B、命令码 2 B、CRC16 2 B
-    static constexpr float INTERACTION_PERIOD = 1.0f / 20.0f; // 0x0301 最小间隔，s
 
   public:
     enum Color : uint8_t { MAIN, // 己方颜色

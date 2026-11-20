@@ -31,6 +31,8 @@ class SuperCap {
         float timeout = 0.1f;  // 应答超时判断断联，s
         float current_fc = 10; // 应答电流（chassis、cap 共用）低通截止频率，Hz
 
+        float voltage_full = 23.85f; // 满电电容电压，V；用于计算储能占比
+
         // 缓冲能量折算倍数：cutoff 为零，满 60 J 为 gain_max，其间线性；裁判与虚拟缓冲能量共用
         float buffer_cutoff = 30;     // 倍数为零的缓冲能量，J
         float buffer_gain_max = 1.1f; // 满缓冲能量时的倍数
@@ -59,7 +61,7 @@ class SuperCap {
 
   private:
     float referee_limit = 120; // 裁判电池侧功率上限原始读数，W
-    float energy_referee = 60; // 裁判缓冲能量，J
+    float referee_energy = 60; // 裁判缓冲能量，J
 
   public:
     bool is_connect = false;
@@ -123,6 +125,7 @@ class SuperCap {
     void send() const;
 
     bool is_cap_voltage_low() const;
+    float energy_ratio() const;
 
     // 每个控制周期调用：断联检测、电池侧目标、虚拟缓冲能量与底盘功率目标；底盘失能时也调用
     void update();

@@ -3,7 +3,7 @@
 #include "bsp/can.hpp"
 #include "bsp/timer.hpp"
 #include "container/fifo.hpp"
-#include "protocol.hpp"
+#include "packets.hpp"
 
 // 裁判系统常规链路接收：拼接 RefereeRelay 经 CAN 转发的串口字节流，校验后解析；发送见 RefereeSender
 class Referee {

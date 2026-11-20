@@ -8,7 +8,7 @@ leg_down 的 USART1 收发裁判系统（电源管理模块）串口，经 CAN1 
 
 - `lib/container/fifo.hpp`：新增环形队列 `Fifo<T, N>`，RefereeRelay、Referee、RefereeSender、VT13 共用；解析器先用 `[]` 检查帧头，收齐后 `peek` 到局部连续数组做 CRC 和解包
 - `lib/referee/referee_relay.*`：新增 `RefereeRelay`，`to_can` 1024 B、`to_uart` 256 B，接收中断写入，`send()` 在主循环取出（`IrqLock` 保护）；`to_can` 每次至多发 1 帧 8 字节，`to_uart` 在串口空闲时一次发出
-- `lib/referee/referee.*`：`Config::bus`（`std::variant<Can, Uart>`）改为 `Config::can`，删除 UART 分支、0x0310/0x0311 解析与 `add_0311_callback`；载荷上限 300 改为常规链路最长的 118 B（0x0301），接收环形 256 B，`tx_buf` 与局部帧数组 127 B；`protocol.hpp` 删除仅供 0x0310 使用的 `ClientData`
+- `lib/referee/referee.*`：`Config::bus`（`std::variant<Can, Uart>`）改为 `Config::can`，删除 UART 分支、0x0310/0x0311 解析与 `add_0311_callback`；载荷上限 300 改为常规链路最长的 118 B（0x0301），接收环形 256 B，`tx_buf` 与局部帧数组 127 B；`packets.hpp` 删除仅供 0x0310 使用的 `ClientData`
 - `lib/rc/vt13.*`：同一缓冲区按帧头分别处理 0xA9 0x53 遥控帧与 0xA5 裁判帧，接收环形 128 B，局部帧数组 69 B（0x0311 最长帧）；新增 `add_0311_callback()`
 - leg_down：`app.hpp` 定义 `referee_relay`；`app.cpp` 奇拍第 3 帧在 0x003 与下板裁判帧 0x00 之间轮流，0x003 由 500 Hz 降到 250 Hz
 - sentry、referee 示例：`{.bus = Can(1)}` 改为 `{.can = Can(1)}`

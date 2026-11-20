@@ -19,7 +19,7 @@ void SuperCap::set_referee_limit(const float referee_limit) {
 }
 
 void SuperCap::set_referee_energy(const float referee_energy) {
-    energy_referee = referee_energy;
+    this->referee_energy = referee_energy;
 }
 
 void SuperCap::send() const {
@@ -34,6 +34,13 @@ void SuperCap::send() const {
 
 bool SuperCap::is_cap_voltage_low() const {
     return voltage_cap <= config.boost_voltage_cutoff;
+}
+
+float SuperCap::energy_ratio() const {
+    if (!is_connect || config.voltage_full <= 0)
+        return 0;
+    const float ratio = std::clamp(voltage_cap / config.voltage_full, 0.0f, 1.0f);
+    return ratio * ratio;
 }
 
 void SuperCap::update() {
@@ -54,12 +61,12 @@ void SuperCap::update() {
     // 裁判不限功率时缓冲能量也异常，不限制
     if (referee_limit == UNLIMITED) {
         power_battery_ref = power_chassis_ref = std::numeric_limits<float>::infinity();
-        energy_local = energy_referee;
+        energy_local = referee_energy;
         return;
     }
 
     // 电池侧目标：裁判上限按裁判缓冲能量折算；实测偏小时裁判缓冲能量下降、目标随之降低
-    power_battery_ref = referee_limit * buffer_gain(energy_referee);
+    power_battery_ref = referee_limit * buffer_gain(referee_energy);
 
     // 底盘供给与虚拟缓冲能量
     // DCDC 使能：供给为电池侧目标加电容补偿；底盘超出供给（电容额外放电或电池超用）时扣除，低于时增加
@@ -69,7 +76,7 @@ void SuperCap::update() {
         supply = power_battery_ref + power_boost_max;
         energy_local = std::clamp(energy_local + (supply - power_chassis) * dt, 0.0f, BUFFER_FULL);
     } else {
-        energy_local = energy_referee;
+        energy_local = referee_energy;
     }
 
     // 底盘功率目标；DCDC 未使能时等于电池侧目标

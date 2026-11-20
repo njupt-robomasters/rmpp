@@ -101,7 +101,7 @@
 - `chassis_loop()` 每周期设置模式、裁判输入并更新超电，再把 `power_chassis_ref` 交给四轮力控底盘；发送在 `app.cpp::send()` 独立按 10 拍分频，目标 100 Hz，OFF、底盘失能和超电离线时持续发送
 - 模式优先级：裁判离线或在线 VT13 C 挡 → OFF；VT13 N/S 挡、或正赛且机器人 ID 为 7/107 → BOOST；自检/倒计时 → CHARGE；其余 OFF。BOOST 工况下用电池侧余量充电，负载升高时允许电容补偿。比赛自主运行可在遥控断联后继续使用超电，仍受裁判连接状态约束
 - 裁判连接超时由现有 `Referee` 的 1 s 检测决定，超电转 OFF 后底盘继续使用最后功率上限与缓冲能量；上电未收到裁判时为默认 120 W/60 J，超电 OFF
-- 超电实测功率覆盖范围按实车供电支路核对，四轮模型只估计轮电机功率；UI 的 CAP 数值直接取电容电压，单位 V
+- 超电实测功率覆盖范围按实车供电支路核对，四轮模型只估计轮电机功率；UI 的 CAP 弧长和整数百分比均取自 `SuperCap::energy_ratio()`，按（当前电容电压 / 满电电压）² 计算，满电默认 23.85 V，离线显示 0
 - 实施与验证记录见 `agents/tasks/06-super_cap_capacitance/README.md`，硬件联调由用户审计后决定
 
 ## jelly_sentry 双传送带驱动
@@ -164,7 +164,8 @@
 - 上板将 `power_chassis_ref` 随控制帧下发：8 字节小端位域，bit0 为使能，bit1 为跳跃，bit2..14 前向速度（有符号 13 位，1e-3 m/s，±4.096 m/s），bit15..29 手动角速度（有符号 15 位，1e-3 rad/s，±16.384 rad/s，约 156 rpm），bit30..42 yaw（有符号 13 位，1e-3 rad），bit43..51 腿长，bit52..63 功率（12 位，0.125 W/LSB，四舍五入，有限值最高 511.875 W，4095 表示不限功率）。下板状态帧 4 字节：bit0 倒地，bit1 使能，bit2..17 实测航向角速度（int16，1e-3 rad/s），bit18..29 为左前、左后、右后、右前、左轮、右轮的 2 位状态（0 正常、1 过热、2 达妙错误、3 离线），bit30..31 保留。下板移除 SuperCap，只调用 `set_power_ref()`
 - 下板 Can(1) 每拍 3 帧，匹配 3 个发送邮箱：偶拍左腿两关节与双轮 0x200，奇拍右腿两关节加第 3 帧，第 3 帧由 0x003 状态帧与 `referee_relay.send()` 轮流使用，各 250 Hz
 - 裁判系统接下板 USART1（115200），`app.hpp` 的 `RefereeRelay referee_relay` 原样转发字节流：CAN ID 与 leg_protocol 一样按发送板命名，0x00 为下板发送、0x01 为上板发送，类内按本板视角写作 `tx_id`、`rx_id`（与 Referee 对应）。串口收到的字节切成至多 8 字节的 0x00 帧，每次 `send()` 发 1 帧，容量 2 kB/s，约为 2027 协议常规链路定频报文的 2 倍；收到的 0x01 帧载荷拼接后在串口空闲时一次发出。缓冲区 `to_can` 1024 B（1 Hz 定频报文与触发报文叠加的最坏突发约 500 B）、`to_uart` 256 B（两次 `send()` 间至多积压 32 B），满时丢弃并计入 `to_can_drop`、`to_uart_drop`。上板用 `Referee({.can = Can(1)})` 接收（默认 `rx_id = 0`）、`RefereeSender({.can = Can(1)})` 发送（默认 `tx_id = 1`）；leg_up 的 `referee_loop()` 在 `referee.update()` 后调用 `referee_sender.set_robot_id()` 并填写 UI，`send()` 在偶拍空闲槽调用 `referee_sender.send()`，每次至多 1 帧
-- leg_up 接入裁判：超电保持 OFF，按裁判功率上限与缓冲能量折算 `power_chassis_ref` 随控制帧下发；发射机构按裁判热量设置剩余热量，`heat_protect = 80` 待整定；UI 的 yaw 相对角取 `yaw.angle`，世界 yaw/pitch 取 GimbalClassic 的 `angle_measure`，受击方向按“云台世界 yaw − yaw 电机角”换算底盘航向后锁存，底盘转速显示下板回传的 `down.wr`；下板通信、使能与倒地显示在 `yaw1`，6 个底盘电机状态显示在 `w1`~`w4`、`s1`~`s4`
+- leg_up 超电跟随 VT13 整车使能：失能强制 OFF，每次使能默认 BOOST；使能期间按 Q 切 CHARGE、按 E 切 BOOST，松键保持。按裁判功率上限与缓冲能量折算 `power_chassis_ref` 随控制帧下发
+- leg_up 发射机构按裁判热量设置剩余热量，`heat_protect = 80` 待整定；UI 的 yaw 相对角取 `yaw.angle`，世界 yaw/pitch 取 GimbalClassic 的 `angle_measure`，受击方向按“云台世界 yaw − yaw 电机角”换算底盘航向后锁存，底盘转速显示下板回传的 `down.wr`；下板通信、使能与倒地显示在 `yaw1`，6 个底盘电机状态显示在 `w1`~`w4`、`s1`~`s4`
 
 ## 轮腿功率控制
 

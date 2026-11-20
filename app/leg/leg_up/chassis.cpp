@@ -4,8 +4,20 @@
 #include "referee.hpp"
 
 void chassis_loop() {
-    // 超级电容：保持 OFF，按裁判功率上限与缓冲能量折算底盘功率目标；裁判离线时沿用最后值，启动默认 120 W / 60 J
-    super_cap.set_mode(SuperCap::OFF);
+    // 超电：失能 OFF，每次使能默认 BOOST；Q 切 CHARGE，E 切 BOOST
+    static bool last_q = false, last_e = false;
+    if (!vt13.is_enable)
+        super_cap.set_mode(SuperCap::OFF);
+    else if (super_cap.mode == SuperCap::OFF)
+        super_cap.set_mode(SuperCap::BOOST);
+    else if (vt13.key.q && !last_q)
+        super_cap.set_mode(SuperCap::CHARGE);
+    else if (vt13.key.e && !last_e)
+        super_cap.set_mode(SuperCap::BOOST);
+    last_q = vt13.key.q;
+    last_e = vt13.key.e;
+
+    // 裁判功率上限与缓冲能量：离线沿用最后值，启动默认 120 W / 60 J
     super_cap.set_referee_limit(referee.robot_status.chassis_power_limit);
     super_cap.set_referee_energy(referee.power_heat_data.buffer_energy);
     super_cap.update();

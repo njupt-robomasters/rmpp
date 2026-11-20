@@ -273,12 +273,12 @@ struct __attribute__((packed)) Figure {
 // 0x0301 子内容 0x0120，哨兵自主决策指令；发往服务器 0x8080
 // 计数字段单调递增，次数类每次只能加 1，否则服务器视为不合法；默认全 0
 struct __attribute__((packed)) SentryCommand {
-    uint32_t confirm_revive : 1 = 0;      // 确认复活，读条完成后复活
-    uint32_t buy_revive : 1 = 0;          // 确认消耗金币兑换立即复活
-    uint32_t bullet_exchange : 11 = 0;    // 累计兑换发弹量，在补血点兑换
-    uint32_t remote_bullet_count : 4 = 0; // 远程兑换发弹量请求次数
-    uint32_t remote_hp_count : 4 = 0;     // 远程兑换血量请求次数
-    uint32_t posture : 3 = 0;             // 姿态：1 进攻、2 防御、3 移动，4~6 为对应强化姿态；默认 3
-    uint32_t activate_rune : 1 = 0;       // 确认使能量机关进入正在激活状态
-    uint32_t reserved : 7 = 0;
+    uint32_t confirm_revive : 1;      // 确认复活，读条完成后复活
+    uint32_t buy_revive : 1;          // 确认消耗金币兑换立即复活
+    uint32_t bullet_exchange : 11;    // 累计兑换发弹量，在补血点兑换
+    uint32_t remote_bullet_count : 4; // 远程兑换发弹量请求次数
+    uint32_t remote_hp_count : 4;     // 远程兑换血量请求次数
+    uint32_t posture : 3;             // 姿态：1 进攻、2 防御、3 移动，4~6 为对应强化姿态；默认 3
+    uint32_t activate_rune : 1;       // 确认使能量机关进入正在激活状态
+    uint32_t reserved : 7;
 };
