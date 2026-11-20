@@ -13,6 +13,8 @@ lib/attitude/              姿态解算：抽象父类 Attitude 与算法子类 
 lib/math/                  单位、角度、低通滤波、Eigen 类型与姿态转换
 lib/power/                 超级电容 SuperCap（G474SuperCap CAN 协议与底盘功率管理：app 设置裁判上限与缓冲能量，下发电池侧目标，DCDC 使能时维护虚拟缓冲能量并给出底盘功率目标，app 更新后经 `chassis.set_power_ref()` 交给底盘；应答中在线辨识电容量与 ESR；未装超电时不调用 send()，离线按裁判缓冲能量）、电机功率模型 MotorPower（无状态，功率估计与两组电流衰减，各底盘共用）
 lib/melody/                  Melody 与曲目
+lib/container/             通用容器：环形队列 Fifo<T, N>（[] 按队首起的逻辑下标访问，peek/pop 复制为连续数组；不加锁，跨中断由调用方保护）
+lib/referee/               裁判系统常规链路：Referee（经 CAN 接收解析）、RefereeSender（UI 绘制、0x0120 哨兵决策、0x0308 选手端消息的排队、组帧与 CAN 发送；本机 ID 由 app 经 set_robot_id() 从 Referee 传入；0x0301 共用 30 Hz 由 send() 保证，其余频率由调用方决定）、RobotUi（自定义 UI，不持有 RefereeSender，由 app 在 init()、update() 时传入；启动时 init() 排入初始布局，update() 传入显示量）、RefereeRelay（裁判串口与 CAN 字节流互转）、协议结构体；图传链路归 VT13
 lib/third_party/           纯软件第三方库：Eigen
 third_party/               含硬件移植层、由板卡 BSP 编译的第三方库：CherryUSB v1.6.1、FlashDB 2.2.0
 boards/<板卡>/              CubeMX 工程与生成 CMake

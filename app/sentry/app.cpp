@@ -34,6 +34,11 @@ static void send_can_cmd() {
     rub2.send();
 }
 
+// 设备状态：在线绿色，离线粉色
+static RobotUi::Color status_color(const bool is_connect) {
+    return is_connect ? RobotUi::GREEN : RobotUi::PINK;
+}
+
 // 摩擦轮状态：离线粉色，偏离目标弹速超过 1 m/s 橙色
 static RobotUi::Color rub_color(const Motor& motor, const float speed) {
     if (!motor.is_connect)
@@ -44,43 +49,40 @@ static RobotUi::Color rub_color(const Motor& motor, const float speed) {
 }
 
 static void update_ui() {
-    // 云台角度
-    ui.yaw_ecd = gimbal.yaw.ecd.measure; // 云台相对底盘角度
-    ui.yaw = gimbal.yaw.imu.measure;
-    ui.pitch = gimbal.pitch.imu.measure;
+    // F 键刷新 UI
+    if (vt13.key.f)
+        ui.init(referee_sender);
 
-    // 伤害方向
-    ui.is_hurt = referee.hurt_timer.elapsed() < 0.2f;
-    ui.hurt_dir = 0 * deg;
-
-    // 自瞄识别
-    ui.is_detect = aim.vision.is_detect;
-
-    // 提示条
-    // 弹速或弹频由 shooter_loop 写入
-    ui.cap = 0.0f;                                                      // 超级电容剩余能量比例
-    ui.wr = std::isfinite(chassis.wr.measure) ? chassis.wr.measure : 0; // UI 数值字段在反馈未知时显示 0
-    ui.shoot = shoot.current;                                           // 拨弹电机电流
-
-    // 机器人状态
-    ui.robot.w1 = w1.is_connect ? RobotUi::GREEN : RobotUi::PINK; // 底盘
-    ui.robot.w2 = w2.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-    ui.robot.w3 = w3.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-    ui.robot.w4 = w4.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-    ui.robot.s1 = s1.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-    ui.robot.s2 = s2.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-    ui.robot.s3 = s3.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-    ui.robot.s4 = s4.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-    ui.robot.yaw1 = yaw1.is_connect ? RobotUi::GREEN : RobotUi::PINK; // 云台
-    ui.robot.yaw2 = yaw2.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-    ui.robot.pitch = pitch.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-    ui.robot.rub1 = ui.robot.rub3 = rub_color(rub1, shooter.rub_speed[0]); // 发射机构
-    ui.robot.rub2 = ui.robot.rub4 = rub_color(rub2, shooter.rub_speed[1]);
-    ui.robot.shoot = shoot.is_connect ? RobotUi::GREEN : RobotUi::PINK;
-    ui.robot.referee = referee.is_connect ? RobotUi::GREEN : RobotUi::PINK; // 裁判系统
-    ui.robot.aim = aim.is_connect_vision ? RobotUi::GREEN : RobotUi::PINK;  // 自瞄
-
-    ui.update();
+    ui.update(referee_sender, {
+                                  .yaw_ecd = gimbal.yaw.ecd.measure, // 云台相对底盘角度
+                                  .yaw = gimbal.yaw.imu.measure,
+                                  .pitch = gimbal.pitch.imu.measure,
+                                  .is_hurt = referee.hurt_timer.elapsed() < 0.2f,
+                                  .hurt_dir = 0 * deg,
+                                  .is_detect = aim.vision.is_detect,
+                                  .cap = 0.0f,                                                      // 超级电容剩余能量比例
+                                  .wr = std::isfinite(chassis.wr.measure) ? chassis.wr.measure : 0, // UI 数值字段在反馈未知时显示 0
+                                  .bullet = vt13.config.bullet_freq,                                // 最高弹频
+                                  .shoot = shoot.current,                                           // 拨弹电机电流
+                                  .w1 = status_color(w1.is_connect),                                // 底盘
+                                  .w2 = status_color(w2.is_connect),
+                                  .w3 = status_color(w3.is_connect),
+                                  .w4 = status_color(w4.is_connect),
+                                  .s1 = status_color(s1.is_connect),
+                                  .s2 = status_color(s2.is_connect),
+                                  .s3 = status_color(s3.is_connect),
+                                  .s4 = status_color(s4.is_connect),
+                                  .yaw1 = status_color(yaw1.is_connect), // 云台
+                                  .yaw2 = status_color(yaw2.is_connect),
+                                  .pitch_motor = status_color(pitch.is_connect),
+                                  .rub1 = rub_color(rub1, shooter.rub_speed[0]), // 发射机构
+                                  .rub2 = rub_color(rub2, shooter.rub_speed[1]),
+                                  .rub3 = rub_color(rub1, shooter.rub_speed[0]),
+                                  .rub4 = rub_color(rub2, shooter.rub_speed[1]),
+                                  .shooter = status_color(shoot.is_connect),
+                                  .referee = status_color(referee.is_connect), // 裁判系统
+                                  .aim = status_color(aim.is_connect_vision),  // 自瞄
+                              });
 }
 
 static float cpu_usage = 0; // 主循环占用，SWD 观察
@@ -89,6 +91,7 @@ extern "C" void app_main() {
     // imu.start_calibration();
     yaw1.config.offset = kv_store.read("yaw_offset");
     melody.play(C5D5G5);
+    ui.init(referee_sender);
 
     Timer timer;
     while (true) {
@@ -97,8 +100,9 @@ extern "C" void app_main() {
             misc_loop();
             melody.update();
             referee.update();
+            referee_sender.set_robot_id(referee.robot_status.robot_id);
+            referee_sender.send();
             vt13.update();
-            fsi6x.update();
             aim.imu = {.yaw = attitude.yaw, .pitch = attitude.pitch, .roll = attitude.roll};
             aim.referee = {
                 .is_red = referee.robot_status.robot_id < 100,
@@ -113,8 +117,6 @@ extern "C" void app_main() {
             gimbal_loop();
             shooter_loop();
 
-            if (vt13.key.f) // F 键刷新 UI
-                ui.init();
             update_ui();
             send_can_cmd();
             const float running_time = timer.elapsed();

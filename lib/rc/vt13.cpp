@@ -7,70 +7,125 @@
 VT13::VT13(const Config& config)
     : config(config) {
     // 注册串口回调
-    config.uart.add_rx_callback([this](const uint8_t* data, std::size_t size) { callback(data, size); });
+    config.uart.add_rx_callback([this](const uint8_t* data, const size_t size) { callback(data, size); });
+}
+
+void VT13::add_0311_callback(RxCallback callback) {
+    callbacks_0311.push_back(std::move(callback));
 }
 
 void VT13::update() {
-    // 断联检测
+    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
+
+    // 断联检测：原始量与键盘斜坡复位，操控量随之为 0
     if (callback_timer.elapsed() > config.timeout) {
         is_connect = false;
-
-        // 遥控器
-        x = y = pitch = yaw = 0.0f;
-        wheel = 0.0f;
-        mode = ERR;
-        pause = trigger = fn = photo = false;
-
-        // 键鼠
+        rc = {};
         mouse = {};
         key = {};
+        key_vx = key_vy = key_wr = 0;
     }
+
+    // 挡位与自瞄；断联时挡位为 ERR
+    is_enable = rc.mode == N || rc.mode == S;
+    bullet_speed = rc.mode == S ? config.bullet_speed : 0;
+    is_auto_aim = rc.photo || mouse.right;
+
+    // 底盘：摇杆叠加键盘斜坡，W/S 前后、A/D 左右、Shift/Ctrl 逆/顺时针
+    key_vx = get_key_speed(key_vx, key.w, key.s, config.vxy_max, config.axy, config.dxy, dt);
+    key_vy = get_key_speed(key_vy, key.a, key.d, config.vxy_max, config.axy, config.dxy, dt);
+    key_wr = get_key_speed(key_wr, key.shift, key.ctrl, config.wr_max, config.ar, config.dr, dt);
+    vx = std::clamp(rc.x * config.vxy_max + key_vx, -config.vxy_max, config.vxy_max);
+    vy = std::clamp(rc.y * config.vxy_max + key_vy, -config.vxy_max, config.vxy_max);
+    wr = std::clamp(rc.wheel * config.wr_max + key_wr, -config.wr_max, config.wr_max);
+
+    // 云台：摇杆叠加鼠标，摇杆上推抬头；按住 trigger 时 pitch 摇杆改为调弹频
+    const float pitch_stick = rc.trigger ? 0 : rc.pitch;
+    yaw_speed = std::clamp((rc.yaw + mouse.yaw) * config.yaw_speed_max, -config.yaw_speed_max, config.yaw_speed_max);
+    pitch_speed = std::clamp(-(pitch_stick + mouse.pitch) * config.pitch_speed_max, -config.pitch_speed_max, config.pitch_speed_max);
+
+    // 发射：trigger 时 pitch 摇杆为最高弹频倍率，负值反转；否则鼠标左键按最高弹频
+    if (rc.trigger)
+        bullet_freq = rc.pitch * config.bullet_freq;
+    else if (mouse.left)
+        bullet_freq = config.bullet_freq;
+    else
+        bullet_freq = 0;
 }
 
 void VT13::callback(const uint8_t data[], const size_t size) {
     for (size_t i = 0; i < size; i++) {
-        if (rx_size == sizeof(rx_buf))
-            rx_size = 0;
-        rx_buf[rx_size++] = data[i];
+        if (rx.size == RX_CAPACITY)
+            rx.clear();
+        rx.push(data[i]);
 
-        while (rx_size >= 2) {
-            if (rx_buf[0] != 0xA9 || rx_buf[1] != 0x53) {
-                std::memmove(rx_buf, rx_buf + 1, --rx_size);
-                continue;
+        while (rx.size != 0) {
+            // 整帧复制为连续数组后校验；最长为 0x0311 帧
+            uint8_t frame[COMMAND_MAX + 9];
+
+            // 遥控帧：0xA9 0x53 帧头，CRC16 校验前 19 字节
+            if (rx[0] == 0xA9) {
+                if (rx.size < 2)
+                    break;
+                if (rx[1] == 0x53) {
+                    if (rx.size < sizeof(raw))
+                        break;
+                    rx.peek(frame, sizeof(raw));
+                    const uint16_t crc16 = frame[19] | (static_cast<uint16_t>(frame[20]) << 8u);
+                    if (CRC16::verify(frame, 19, crc16)) {
+                        is_connect = true;
+                        callback_timer.restart();
+                        std::memcpy(&raw, frame, sizeof(raw));
+                        rx.pop(sizeof(raw));
+                        parse_raw();
+                        continue;
+                    }
+                }
             }
-            if (rx_size < sizeof(raw))
-                break;
 
-            const uint16_t crc16 = rx_buf[19] | (static_cast<uint16_t>(rx_buf[20]) << 8u);
-            if (!CRC16::verify(rx_buf, 19, crc16)) {
-                std::memmove(rx_buf, rx_buf + 1, --rx_size);
-                continue;
+            // 图传链路裁判帧：0xA5 帧头，CRC8 校验帧头、CRC16 校验整包；只处理 0x0311
+            if (rx[0] == 0xA5) {
+                if (rx.size < 5)
+                    break;
+                rx.peek(frame, 5);
+                const size_t payload_size = frame[1] | (static_cast<size_t>(frame[2]) << 8u);
+                if (payload_size <= COMMAND_MAX && CRC8::verify(frame, 4, frame[4])) {
+                    const size_t frame_size = payload_size + 9;
+                    if (rx.size < frame_size)
+                        break;
+                    rx.peek(frame, frame_size);
+                    const uint16_t crc16 = frame[frame_size - 2] | (static_cast<uint16_t>(frame[frame_size - 1]) << 8u);
+                    if (CRC16::verify(frame, frame_size - 2, crc16)) {
+                        const uint16_t cmd_id = frame[5] | (static_cast<uint16_t>(frame[6]) << 8u);
+                        if (cmd_id == 0x0311)
+                            for (const auto& rx_callback : callbacks_0311)
+                                rx_callback(frame + 7, payload_size);
+                        rx.pop(frame_size);
+                        continue;
+                    }
+                }
             }
 
-            is_connect = true;
-            callback_timer.restart();
-            std::memcpy(&raw, rx_buf, sizeof(raw));
-            std::memmove(rx_buf, rx_buf + sizeof(raw), rx_size - sizeof(raw));
-            rx_size -= sizeof(raw);
-            parse_raw();
+            // 非帧头或校验失败：丢弃 1 字节重新寻找帧头，支持坏帧后紧接有效帧
+            rx.pop(1);
         }
     }
 }
 
 void VT13::parse_raw() {
     // 解析摇杆
-    y = -get_joy_stick(raw.ch_0);      // 右手水平
-    x = get_joy_stick(raw.ch_1);       // 右手垂直
-    pitch = get_joy_stick(raw.ch_2);   // 左手垂直
-    yaw = -get_joy_stick(raw.ch_3);    // 左手水平
-    wheel = -get_joy_stick(raw.wheel); // 拨轮
+    rc.y = -get_joy_stick(raw.ch_0);      // 右手水平
+    rc.x = get_joy_stick(raw.ch_1);       // 右手垂直
+    rc.pitch = get_joy_stick(raw.ch_2);   // 左手垂直
+    rc.yaw = -get_joy_stick(raw.ch_3);    // 左手水平
+    rc.wheel = -get_joy_stick(raw.wheel); // 拨轮
 
     // 解析开关和按钮
-    mode = Mode(raw.mode_sw);
-    pause = raw.pause;
-    trigger = raw.trigger;
-    fn = raw.fn_1;
-    photo = raw.fn_2;
+    rc.mode = Mode(raw.mode_sw);
+    rc.pause = raw.pause;
+    rc.trigger = raw.trigger;
+    rc.fn = raw.fn_1;
+    rc.photo = raw.fn_2;
 
     // 解析鼠标
     mouse.yaw = -static_cast<float>(raw.mouse_x) / static_cast<float>(config.mouse_max);
@@ -105,4 +160,14 @@ float VT13::get_joy_stick(const uint16_t value) const {
     if (std::fabs(ret) < config.deadline)
         ret = 0.0f;
     return ret;
+}
+
+float VT13::get_key_speed(const float speed, const bool positive, const bool negative, const float max, const float acceleration, const float deceleration, const float dt) {
+    if (positive)
+        return std::clamp(std::max(speed, 0.0f) + acceleration * dt, -max, max);
+    if (negative)
+        return std::clamp(std::min(speed, 0.0f) - acceleration * dt, -max, max);
+    if (speed > 0)
+        return std::max(0.0f, speed - deceleration * dt);
+    return std::min(0.0f, speed + deceleration * dt);
 }

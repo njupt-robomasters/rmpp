@@ -5,6 +5,7 @@
 
 static void setup() {
     melody.play(C5D5G5);
+
     Can(1).add_rx_callback(chassis_can_callback);
 }
 
@@ -30,9 +31,14 @@ static void loop() {
         right_back.send();
         right_front.send();
 
-        CanFrame frame;
-        chassis_write_can_frame(frame);
-        Can(1).send(frame);
+        // 第 3 帧：底盘状态帧 0x003 与下板裁判帧 0x00 轮流，各 250 Hz
+        if (cnt % 4 == 1) {
+            CanFrame frame;
+            chassis_write_can_frame(frame);
+            Can(1).send(frame);
+        } else {
+            referee_relay.send();
+        }
     }
 }
 

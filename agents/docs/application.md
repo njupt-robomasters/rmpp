@@ -10,7 +10,7 @@
 - 校准组合键、断联保持使能等车型策略在 app 展开
 - yaw 校零与偏移持久化在 app 直接操作电机和 KvStore：infantry 使用 yaw，sentry 使用 yaw1；启动将 `yaw_offset` 读入 `motor.config.offset`，校准时按连续输出轴角度 angle_multi、方向与减速比更新 offset，使单圈与多圈反馈同时归零，随后保存；两处 yaw 减速比均为 1
 - lib 不为车型策略保留开关或流程
-- 发射机构、底盘、超级电容、遥控器、裁判通信与 MiniPC 通信按值保存只读 `Config`，直接读取配置字段；PID 状态、运动学矩阵、校准值与其他运行状态独立保存，超级电容 RLS 的固定参数读取 `config.rls`
+- 发射机构、底盘、超级电容、FSi6X、裁判通信与 MiniPC 通信按值保存只读 `Config`，直接读取配置字段；PID 状态、运动学矩阵、校准值与其他运行状态独立保存，超级电容 RLS 的固定参数读取 `config.rls`
 - 云台、17 mm 发射机构及裁判通信的配置副本为 private；17 mm 的 motor 与 42 mm 的弹速、摩擦轮速度仅供类内及 SWD 使用。矩阵与舵轮底盘的 vx/vy 供派生类控制使用，权限为 protected；应用读取的 wr 保持 public
 - `GimbalClassic` 与 `GimbalDualYaw` 独立实现，控制流程在各自 `update()` 中展开，按值保存只读 `Config`；Classic 固定采用电机轴 IMU 速度内环，通过 `use_angle_loop` 选择世界角度外环，DualYaw 保留 ECD/IMU 模式和编码器目标限位
 - Classic 的 `pitch_min`、`pitch_max` 经 IMU 与编码器偏差换算后钳制世界 pitch 目标，并按编码器实测角度保护最终输出；DualYaw 用它们钳制编码器目标
@@ -65,8 +65,14 @@
 
 ## 遥控器映射
 
-- 不设置遥控器汇总层
-- 底盘、云台、发射分别在对应 `.cpp` 直接读取 VT13、FSi6X
+- VT13 在 `update()` 内把遥控器与键鼠合成为操控量，app 优先读取：`is_enable`（N、S 挡）、`vx`/`vy`/`wr`、`yaw_speed`/`pitch_speed`、`bullet_speed`、`bullet_freq`、`is_auto_aim`；原始量在 `rc`、`mouse`、`key`，供 fn、pause、校准组合键等 app 专用操作读取
+- 平移与旋转为摇杆或拨轮乘满量程，叠加 W/S、A/D、Shift/Ctrl 键盘斜坡后限幅；按反向键时同向速度先清零再反向加速，松手按减速度回零；加减速度设 `INFINITY` 时一个周期到满量程或归零。斜坡用本类 dt，`DT_MIN`/`DT_MAX` 限幅
+- 云台为摇杆叠加鼠标，无斜坡，限幅到满量程；pitch 抬头为负，与 Classic 云台一致。按住 trigger 时 pitch 摇杆改为弹频倍率（负值反转），否则鼠标左键按最高弹频；S 挡输出配置弹速；photo 或鼠标右键为自瞄
+- 断联时原始量、键盘斜坡与操控量全部清零，挡位为 ERR
+- 图传链路的裁判帧与遥控帧混在 VT13 串口：VT13 同一缓冲区按帧头分别校验，0xA5 帧只处理 0x0311（载荷至多 60 B），在串口接收中断内依序调用 `add_0311_callback()` 注册的回调，回调在启动前注册；0x0311 不影响 `is_connect`。机器人发往自定义终端的 0x0310 同样走图传串口，目前未提供发送接口；Referee 不再收发图传链路报文
+- VT13 的 `Config` 公开且可修改，下次 `update()` 生效，如 sentry 的 C、Z 键增减 `config.bullet_freq`；各 app 在实例处给出满量程、加减速度、弹速与弹频
+- sentry 只用 VT13，已移除 FSi6X；底盘、云台叠加自主导航和扫描速度后按 VT13 满量程限幅，射击在 VT13 弹频基础上加自瞄开火许可、右键双击强制开火和自主视觉开火
+- 其余 FSi6X 操作（leg_down 断联回退、示例）在对应 `.cpp` 直接读取
 - 操控参数和跨周期状态使用文件内 `static`
 
 ## 持有与更新
@@ -80,14 +86,15 @@
 
 ## 轮腿上下板通信
 
-- 上下板 Can(1) 经滑环连接，与下板全部电机、上板管理的超电共用 CAN1；两板通过 `../leg_protocol.hpp` 引用共享文件 `app/leg/leg_protocol.hpp`，包含按发送方命名的 `UP_ID = 0x02`、`DOWN_ID = 0x03` 和报文布局。上板控制帧 8 字节（使能、自救授权、跳跃、速度、yaw、腿长、功率目标），500 Hz；下板状态帧 3 字节（底盘倒地、实测航向角速度），500 Hz
+- 上下板 Can(1) 经滑环连接，与下板全部电机、上板管理的超电共用 CAN1；两板通过 `../leg_protocol.hpp` 引用共享文件 `app/leg/leg_protocol.hpp`，包含按发送方命名的 `UP_ID = 0x02`、`DOWN_ID = 0x03` 和报文布局。上板控制帧 8 字节（使能、自救授权、跳跃、速度、yaw、腿长、功率目标），500 Hz；下板状态帧 3 字节（底盘倒地、实测航向角速度），250 Hz
 - 共享协议文件统一定义 `LegUpFrame`、`LegDownFrame`、物理单位、`pack()` 与 `unpack()`；`Raw` 位域与解码后成员同序，编解码在 `pack()`、`unpack()` 内用局部 `Raw` 完成，不保存原始帧；位域按 arm-none-eabi-gcc 布局，主机 MinGW 测试加 `-mno-ms-bitfields`。解包先检查 ID 和长度，失败保持原数据。功率目标 11 位 0.25 W/LSB，范围 0..511.5 W，2047 表示不限功率。腿长为连续数值 `leg_length`（m），以 9 位无符号毫米数传输，范围 0..0.511 m；协议中没有腿长档位表。两板 `chassis.cpp` 保存协议结构体并调用编解码，负责控制与在线状态，发送仍在 `app.cpp` 的 `loop()` 分拍安排；回归测试检查共享文件引用与编解码
-- 暂不适配键鼠：上板只读 VT13，VT13 与下板均在线时 N、S 挡使能，默认低腿长 0.14 m。下板报告倒地时按 pause 授权自救，授权保持；站立时每次按 pause 按 0.14 → 0.22 → 0.33 → 0.14 m 切换。fn 直接透传，由下板检测上升沿。失能或下板断联清授权、复位低腿长；下板断联期间发送失能帧，恢复状态帧后按当前遥控挡位恢复使能。pause 持续记录前值
-- 右摇杆竖直为云台前向速度，拨轮为手动旋转；yaw 在线时默认跟随，离线角度发 0。上板直接保存解包后的 `down`，云台使用 `down.wr`，pause 分支使用 `down.is_fallen`，即下板 `chassis.rescue.is_fallen`（倒地锁存，站起完成、失能或跳跃时清除），断联 0.1 s 清空反馈。在线状态命名为 `up_is_connect`、`down_is_connect`
+- 上板只读 VT13 操控量：VT13 与下板均在线时 `is_enable`，默认低腿长 0.14 m。下板报告倒地时按 pause 授权自救，授权保持；站立时每次按 pause 按 0.14 → 0.22 → 0.33 → 0.14 m 切换。fn 直接透传，由下板检测上升沿。失能或下板断联清授权、复位低腿长；下板断联期间发送失能帧，恢复状态帧后按当前遥控挡位恢复使能。pause 持续记录前值
+- `vt13.vx`（右摇杆竖直叠加 W/S）为云台前向速度，`vt13.wr`（拨轮叠加 Shift/Ctrl）为手动旋转；yaw 在线时默认跟随，离线角度发 0。上板直接保存解包后的 `down`，云台使用 `down.wr`，pause 分支使用 `down.is_fallen`，即下板 `chassis.rescue.is_fallen`（倒地锁存，站起完成、失能或跳跃时清除），断联 0.1 s 清空反馈。在线状态命名为 `up_is_connect`、`down_is_connect`
 - 下板执行策略：上板在线时透传自救、跳跃和腿长，前向速度按 `cos(yaw)` 投影；`ChassisLeg` 持有 follow PID，使用本类 dt，使能且无手动旋转时跟随经 `set_gimbal_yaw()` 设置的云台相对航向（为 0 时 P 输出 0），手动旋转或失能时清 PID；断联 0.1 s（`LEG_TIMEOUT`）回退 FSi6X 并将云台航向设为 0，保留 FSi6X 原有拨杆操作，功率目标设为 `INFINITY` 不限功率，保留 LQR 速度与位移反馈
 - 超电实例、更新和收发由上板负责，接 Can(1)，`chassis_loop()` 每周期设 OFF 并更新，100 Hz 持续发送关闭指令，未接裁判时沿用默认 120 W 上限和 60 J 缓冲能量。OFF 关闭 DCDC，底盘仍按裁判功率与缓冲能量折算目标
 - 上板将 `power_chassis_ref` 随控制帧下发：8 字节小端位域，bit0/1/2 为使能/自救/跳跃，bit3..15 前向速度（有符号 13 位，1e-3 m/s，±4.096 m/s），bit16..30 手动角速度（有符号 15 位，1e-3 rad/s，±16.384 rad/s，约 156 rpm），bit31..43 yaw（有符号 13 位，1e-3 rad），bit44..52 腿长，bit53..63 功率（11 位，0.25 W/LSB，四舍五入，有限值最高 511.5 W，2047 表示不限功率）。下板状态帧 bit0 为倒地，bit1..16 为实测航向角速度（int16，1e-3 rad/s），bit17..23 保留。下板移除 SuperCap，只调用 `set_power_ref()`
-- 下板 Can(1) 每拍 3 帧：偶拍左腿两关节与双轮 0x200，奇拍右腿两关节加 0x003
+- 下板 Can(1) 每拍 3 帧，匹配 3 个发送邮箱：偶拍左腿两关节与双轮 0x200，奇拍右腿两关节加第 3 帧，第 3 帧由 0x003 状态帧与 `referee_relay.send()` 轮流使用，各 250 Hz
+- 裁判系统接下板 USART1（115200），`app.hpp` 的 `RefereeRelay referee_relay` 原样转发字节流：CAN ID 与 leg_protocol 一样按发送板命名，0x00 为下板发送、0x01 为上板发送，类内按本板视角写作 `tx_id`、`rx_id`（与 Referee 对应）。串口收到的字节切成至多 8 字节的 0x00 帧，每次 `send()` 发 1 帧，容量 2 kB/s，约为 2027 协议常规链路定频报文的 2 倍；收到的 0x01 帧载荷拼接后在串口空闲时一次发出。缓冲区 `to_can` 1024 B（1 Hz 定频报文与触发报文叠加的最坏突发约 500 B）、`to_uart` 256 B（两次 `send()` 间至多积压 32 B），满时丢弃并计入 `to_can_drop`、`to_uart_drop`。上板用 `Referee({.can = Can(1)})` 接收（默认 `rx_id = 0`）、`RefereeSender({.can = Can(1)})` 发送（默认 `tx_id = 1`）；sentry 主循环在 `referee.update()` 后调用 `referee_sender.set_robot_id()` 与 `send()`，每拍至多 1 帧
 
 ## 轮腿功率控制
 

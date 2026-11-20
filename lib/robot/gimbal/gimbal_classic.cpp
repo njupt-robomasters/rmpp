@@ -42,7 +42,7 @@ void GimbalClassic::update(const Quaternionf& q, const Vector3f& gyro) {
     pitch.angle_measure = euler.pitch;
     const Quaternionf pitch_joint(Eigen::AngleAxisf(motor.pitch.angle, Vector3f::UnitY()));
     const Vector3f gyro_axis = pitch_joint * gyro;
-    yaw.speed_measure = gyro_axis.z() - chassis_wr;
+    yaw.speed_measure = gyro_axis.z();
     pitch.speed_measure = gyro_axis.y();
 
     // 可控状态；yaw 的轴系换算依赖 pitch 关节角

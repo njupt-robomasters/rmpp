@@ -246,93 +246,14 @@ struct __attribute__((packed)) MapCommand {
     uint16_t cmd_source;
 };
 
-// 0x0305，双方位置，坐标 cm
-struct __attribute__((packed)) MapRobotData {
-    uint16_t opponent_hero_position_x, opponent_hero_position_y;
-    uint16_t opponent_engineer_position_x, opponent_engineer_position_y;
-    uint16_t opponent_infantry_3_position_x, opponent_infantry_3_position_y;
-    uint16_t opponent_infantry_4_position_x, opponent_infantry_4_position_y;
-    uint16_t opponent_aerial_position_x, opponent_aerial_position_y;
-    uint16_t opponent_sentry_position_x, opponent_sentry_position_y;
-    uint16_t ally_hero_position_x, ally_hero_position_y;
-    uint16_t ally_engineer_position_x, ally_engineer_position_y;
-    uint16_t ally_infantry_3_position_x, ally_infantry_3_position_y;
-    uint16_t ally_infantry_4_position_x, ally_infantry_4_position_y;
-    uint16_t ally_aerial_position_x, ally_aerial_position_y;
-    uint16_t ally_sentry_position_x, ally_sentry_position_y;
+// 0x0301，机器人交互数据；只解析队友发来的子内容 0x0200~0x02FF
+struct Interaction {
+    uint16_t data_cmd_id = 0, sender_id = 0, receiver_id = 0;
+    uint16_t size = 0; // user_data 有效长度，B
+    uint8_t user_data[112]{};
 };
 
-// 0x0306，自定义控制器与选手端交互，坐标为像素
-struct __attribute__((packed)) CustomClientData {
-    uint16_t key_value;
-    uint16_t x_position : 12;
-    uint16_t mouse_left : 4;
-    uint16_t y_position : 12;
-    uint16_t mouse_right : 4;
-    uint16_t reserved;
-};
-
-// 0x0307，路径起点和增量均为 dm，含 sender_id 共 105 字节；总览表误列103
-struct __attribute__((packed)) MapData {
-    uint8_t intention;
-    uint16_t start_position_x, start_position_y;
-    int8_t delta_x[49], delta_y[49];
-    uint16_t sender_id;
-};
-
-// 0x0308，user_data 为小端 UTF-16 编码的 30 字节
-struct __attribute__((packed)) CustomInfo {
-    uint16_t sender_id, receiver_id;
-    uint8_t user_data[30];
-};
-
-// 0x0A01，对方位置，坐标 cm
-struct __attribute__((packed)) RadarPosition {
-    uint16_t hero_x, hero_y, engineer_x, engineer_y;
-    uint16_t infantry_3_x, infantry_3_y, infantry_4_x, infantry_4_y;
-    uint16_t aerial_x, aerial_y, sentry_x, sentry_y;
-};
-
-// 0x0A02，对方血量
-struct __attribute__((packed)) RadarHp {
-    uint16_t hero, engineer, infantry_3, infantry_4, reserved, sentry;
-};
-
-// 0x0A03，对方允许发弹量
-struct __attribute__((packed)) RadarAllowance {
-    uint16_t hero, infantry_3, infantry_4, aerial, sentry;
-};
-
-// 0x0A04，对方宏观状态；场地状态保留协议位掩码
-struct __attribute__((packed)) RadarTeam {
-    uint16_t remaining_gold_coin, total_gold_coin;
-    uint32_t event_data;
-};
-
-struct __attribute__((packed)) RadarRobotBuff {
-    uint8_t recovery;
-    uint16_t cooling;
-    uint8_t defence, vulnerability;
-    uint16_t attack;
-};
-
-// 0x0A05，对方增益、姿态及存活状态
-struct __attribute__((packed)) RadarBuff {
-    RadarRobotBuff hero, engineer, infantry_3, infantry_4, sentry;
-    uint8_t sentry_posture;
-    uint8_t hero_status, engineer_status, infantry_3_status, infantry_4_status, sentry_status;
-};
-
-// 0x0A06，6 字节 ASCII 密钥，不包含结束符
-struct __attribute__((packed)) RadarKey {
-    uint8_t data[6];
-};
-
-// 0x0301 子内容，全部字段保持线上编码
-struct __attribute__((packed)) LayerDelete {
-    uint8_t delete_type, layer;
-};
-
+// 0x0301 子内容 0x0101~0x0110 的图形配置，按线上位段编码
 struct __attribute__((packed)) Figure {
     uint8_t name[3];
     uint32_t operation : 3;
@@ -349,42 +270,15 @@ struct __attribute__((packed)) Figure {
     uint32_t details_e : 11;
 };
 
-struct __attribute__((packed)) Character {
-    Figure figure;
-    uint8_t text[30];
-};
-
+// 0x0301 子内容 0x0120，哨兵自主决策指令；发往服务器 0x8080
+// 计数字段单调递增，次数类每次只能加 1，否则服务器视为不合法；默认全 0
 struct __attribute__((packed)) SentryCommand {
-    uint32_t command;
+    uint32_t confirm_revive : 1 = 0;      // 确认复活，读条完成后复活
+    uint32_t buy_revive : 1 = 0;          // 确认消耗金币兑换立即复活
+    uint32_t bullet_exchange : 11 = 0;    // 累计兑换发弹量，在补血点兑换
+    uint32_t remote_bullet_count : 4 = 0; // 远程兑换发弹量请求次数
+    uint32_t remote_hp_count : 4 = 0;     // 远程兑换血量请求次数
+    uint32_t posture : 3 = 0;             // 姿态：1 进攻、2 防御、3 移动，4~6 为对应强化姿态；默认 3
+    uint32_t activate_rune : 1 = 0;       // 确认使能量机关进入正在激活状态
+    uint32_t reserved : 7 = 0;
 };
-
-struct __attribute__((packed)) RadarCommand {
-    uint8_t command, password_command, password[6];
-};
-
-// 变长字节数据只保存本帧内容及实际长度
-struct CustomData {
-    uint8_t data[30]{};
-    uint16_t size = 0;
-};
-
-struct ClientData {
-    uint8_t data[300]{};
-    uint16_t size = 0;
-};
-
-struct Interaction {
-    uint16_t data_cmd_id = 0, sender_id = 0, receiver_id = 0;
-    uint16_t size = 0;
-
-    // data_cmd_id 确定有效成员；图形数量由 0x0101~0x0104 确定
-    union {
-        uint8_t user_data[112]{};
-        LayerDelete layer_delete;
-        Figure figures[7];
-        Character character;
-        SentryCommand sentry_command;
-        RadarCommand radar_command;
-    };
-};
-

@@ -37,11 +37,11 @@ static void loop() {
     fsi6x.update();
     motor.update();
 
-    const bool is_enable = fsi6x.swa == FSi6X::DOWN || vt13.mode == VT13::N || vt13.mode == VT13::S;
+    const bool is_enable = fsi6x.swa == FSi6X::DOWN || vt13.is_enable;
     motor.set_enable(is_enable);
 
     if (is_enable) {
-        speed_ref = MAX_SPEED * (vt13.x + fsi6x.x);
+        speed_ref = MAX_SPEED * (vt13.rc.x + fsi6x.x);
         const float current = speed_pid.calculate(dt, speed_ref - motor.speed);
         motor.set_current(current);
     } else {

@@ -38,7 +38,7 @@
 - 硬件设备由 app 定义；只服务一个机构的设备（电机）由该机构持有并调用其 `update()`；被多处使用或与机构业务无关的设备（姿态、超电）由 app 调用 `update()` 和设置，再把结果交给机构
 - 公开输出按物理量集中组织
 - 成员默认 private，变量不加尾随下划线；逐项核对当前调用，类内使用或仅供 SWD 观察的变量与常量保持 private，外部确需访问的才用 public，子类确需访问的用 protected；公开成员变量外部只读，只经 `set_*`、`update` 修改，不提供读取函数
-- 固定配置按值保存为 `const Config config`，使用处直接读取，不再逐项复制同名成员；需要解析默认值、校准或运行时设置的参数按实际用途持有，经 set_* 修改；Motor 使用 `Config config`，零值在构造时补齐，offset 由外部直接维护；Pid 保留指向调用方可调参数的只读引用
+- 固定配置按值保存为 `const Config config`，使用处直接读取，不再逐项复制同名成员；需要解析默认值、校准或运行时设置的参数按实际用途持有，经 set_* 修改；Motor 使用 `Config config`，零值在构造时补齐，offset 由外部直接维护；VT13 使用公开的 `Config config`，app 可直接修改操控参数；Pid 保留指向调用方可调参数的只读引用
 - 积分、微分步长由持有方在 `update()` 开头计一次周期、按本类 `DT_MIN`/`DT_MAX` 限幅，再传给 PID 等组件；`Timer` 不限幅
 - 标量成员默认值写 `= 0`，不写 `{}`
 - 固定硬件绑定不提供运行时修改
@@ -113,6 +113,29 @@
 ## 注释与格式
 
 - 注释精炼，优先用简短中文概括代码段职责；不直观处再补充配置、单位、边界、约束或原因，单句尽量不加句号
+- 注释服务于上车前的逐行审计：读者对照需求逐段核对含义、单位、方向和条件，无需反推代码
+- 变量与 Config 字段的行尾注释写“含义，单位；方向、条件或约定”，逗号接单位，分号接约定；同组注释由 clang-format 对齐
+- 相关变量成组声明，组前注释写组名、计算位置和失效值；Config 组前注释写“组名：各字段含义，单位”，组内字段顺序与注释一致
+- 主流程按输出对象或处理步骤分段，段间空行；段首注释写“对象：输入来源与映射规则；特殊条件”，按键、挡位、方向写出具体对应，优先级和互斥条件写明先后
+- 示例（`lib/rc/vt13`）：
+
+```cpp
+// 平移：摇杆满量程与合成速度上限，m/s；键盘加速度、松手减速度，m/s^2
+float vxy_max = 0;
+float axy = 0, dxy = 0;
+
+// 操控量，update() 计算，断联时为 0
+bool is_enable = false; // N、S 挡使能
+float wr = 0;           // 旋转角速度，rad/s；逆时针为正
+
+// 云台：摇杆叠加鼠标，摇杆上推抬头；按住 trigger 时 pitch 摇杆改为调弹频
+const float pitch_stick = rc.trigger ? 0 : rc.pitch;
+yaw_speed = std::clamp((rc.yaw + mouse.yaw) * config.yaw_speed_max, -config.yaw_speed_max, config.yaw_speed_max);
+
+// 发射：trigger 时 pitch 摇杆为最高弹频倍率，负值反转；否则鼠标左键按最高弹频
+if (rc.trigger)
+    bullet_freq = rc.pitch * config.bullet_freq;
+```
 - STM32 生成代码和第三方原始代码保持原样；生成文件中的应用修改放在 USER CODE 区域
 - 遵循根 `.clang-format`，使用 `tools/format_code.py` 调用 CLion 同版本 clang-format
 - 只格式化本任务修改的手写代码

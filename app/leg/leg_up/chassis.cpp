@@ -18,10 +18,10 @@ void chassis_loop() {
         down = {};
     }
 
-    up.is_enable = vt13.is_connect && (vt13.mode == VT13::N || vt13.mode == VT13::S) && down_is_connect;
-    up.trigger_jump = vt13.fn;
-    up.vx = vt13.x * std::cos(yaw.angle) * VX_MAX;
-    up.wr = vt13.wheel * WR_MAX;
+    up.is_enable = vt13.is_enable && down_is_connect;
+    up.trigger_jump = vt13.rc.fn;
+    up.vx = vt13.vx * std::cos(yaw.angle);
+    up.wr = vt13.wr;
     up.yaw = yaw.angle;
     up.power_ref = super_cap.power_chassis_ref;
 
@@ -31,7 +31,7 @@ void chassis_loop() {
         up.leg_length = 0.14f;
     } else {
         // pause：倒地时授权自救并保持，站立时切换腿长
-        if (vt13.pause && !last_pause) {
+        if (vt13.rc.pause && !last_pause) {
             if (down.is_fallen) {
                 up.allow_rescue = true;
             } else {
@@ -44,7 +44,7 @@ void chassis_loop() {
             }
         }
     }
-    last_pause = vt13.pause;
+    last_pause = vt13.rc.pause;
 }
 
 void chassis_write_can_frame(CanFrame& frame) {
