@@ -33,7 +33,6 @@ class ChassisLeg {
         const Pid::Config* leg_length_pid; // 腿长 PD：m → 轴向力 N，伸腿为正；微分取 -d_L，不含目标变化
         const Pid::Config* leg_angle_pid;  // 相对腿角 PD：rad → 摆动力矩 N·m，后摆为正
         const Pid::Config* roll_pid;       // 横滚 PD：rad → 腿长修正 m；右侧低时输出为负，左腿缩短、右腿伸长
-        const Pid::Config* follow_pid;     // 云台相对航向 rad → 底盘航向角速度 rad/s
 
         // LQR 增益与误差限幅
         const float (*lqr_fit)[10][6]; // LQR 增益拟合系数 [4 输出][10 状态][6 项]，项序 1、Ll、Lr、Ll²、Ll·Lr、Lr²
@@ -41,6 +40,7 @@ class ChassisLeg {
         // LQR 目标与误差限幅
         float theta_ref = 0.07f;     // 目标腿倾角，rad，后摆为正
         float x_err_max = 6.0f;      // 位移误差限幅，误差已乘 10
+        float yaw_err_max = 1.25f;   // 航向误差限幅，rad；非负
         float theta_err_max = 0.45f; // 腿倾角误差限幅，rad
         float pitch_err_max = 0.25f; // 俯仰误差限幅，rad
         float x_max = 0.1f;          // 位移积分限幅，m
@@ -174,7 +174,7 @@ class ChassisLeg {
 
     // 控制器
     float d_yaw_ref = 0;
-    Pid leg_length_pid[2], leg_angle_pid[2], roll_pid, follow_pid;
+    Pid leg_length_pid[2], leg_angle_pid[2], roll_pid;
 
     // 跨周期状态
     bool is_position = false; // 速度降到阈值内后开始位移积分

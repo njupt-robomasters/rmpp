@@ -9,8 +9,7 @@ ChassisLeg::ChassisLeg(const Motors& motor, const Config& config)
       leg_length(config.leg_min),
       leg_length_pid{Pid(config.leg_length_pid), Pid(config.leg_length_pid)},
       leg_angle_pid{Pid(config.leg_angle_pid), Pid(config.leg_angle_pid)},
-      roll_pid(config.roll_pid),
-      follow_pid(config.follow_pid) {}
+      roll_pid(config.roll_pid) {}
 
 void ChassisLeg::set_enable(const bool is_enable) {
     this->is_enable = is_enable;
@@ -48,13 +47,8 @@ void ChassisLeg::update(const Quaternionf& q, const Vector3f& gyro) {
 
     update_feedback(q, gyro);
 
-    // 航向目标：无手动旋转时 PID 跟随云台相对航向，有手动旋转或失能时直接取 wr 并清空 PID
-    if (is_enable && wr == 0) {
-        d_yaw_ref = follow_pid.calculate(dt, this->gimbal_yaw);
-    } else {
-        follow_pid.clear();
-        d_yaw_ref = wr;
-    }
+    // 航向目标：无手动旋转时由 LQR 直接消除云台相对航向误差，否则跟踪手动角速度
+    d_yaw_ref = wr;
 
     // 两侧均值为前向速度，右减左为航向角速度（逆时针正）
     const float v_left = leg[0].v_wheel + leg[0].v_swing;
@@ -394,11 +388,12 @@ void ChassisLeg::calc_lqr() {
     const float Ll = leg[0].L, Lr = leg[1].L;
     const float terms[6] = {1, Ll, Lr, Ll * Ll, Ll * Lr, Lr * Lr};
 
-    // 状态误差，均为“目标减反馈”；航向角不跟随云台，误差恒为零
+    // 状态误差，均为“目标减反馈”；跟随模式对云台相对航向限幅
+    const float yaw_err = wr == 0 ? std::clamp(gimbal_yaw, -config.yaw_err_max, config.yaw_err_max) : 0;
     const float err[10] = {
         std::clamp((0 - body.x) * 10, -config.x_err_max, config.x_err_max),                       // 前向位移，前进为正
         vx - body.d_x,                                                                            // 前向速度，前进为正
-        0,                                                                                        // 航向角，未启用
+        yaw_err,                                                                                  // 航向角，跟随模式为云台相对底盘航向
         d_yaw_ref - body.d_yaw_gyro,                                                              // 航向角速度，逆时针为正
         std::clamp(config.theta_ref - leg[0].theta, -config.theta_err_max, config.theta_err_max), // 左腿倾角，后摆为正
         0 - leg[0].d_theta,                                                                       // 左腿倾角速度
