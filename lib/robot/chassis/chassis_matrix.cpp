@@ -68,7 +68,7 @@ Vector4f ChassisMatrix::backward_force(const Vector3f& f) const {
 }
 
 void ChassisMatrix::update() {
-    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
+    const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
 
     // 离线检测与速度正解，缺失轮不参与解算；约束不足时反馈为 NaN
     Vector4f v;

@@ -26,7 +26,7 @@ void Shooter17mm::set_heat_remain(const int32_t heat_remain) {
 }
 
 void Shooter17mm::update() {
-    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
+    const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
 
     // 离线检测
     motor.rub1.update();

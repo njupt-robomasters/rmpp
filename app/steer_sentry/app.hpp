@@ -32,7 +32,7 @@ inline VT13 vt13({
 });
 
 // 上位机：C 板只有一路 CDC，自瞄（协议待接入）与导航共用
-inline Aim aim({.cdc = Cdc(1)});
+inline Aim aim(Cdc(1), {});
 inline Nav nav(Cdc(1), {});
 
 // fn 开关：VT13 在 N、S 挡时 fn 键置位、pause 键清除，失能或断联时清除

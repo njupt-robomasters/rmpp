@@ -67,7 +67,7 @@
 
 ## 遥控器映射
 
-- VT13 在 `update()` 内把遥控器与键鼠合成为操控量，app 优先读取：`is_enable`（N、S 挡）、`vx`/`vy`/`wr`、`yaw_speed`/`pitch_speed`、`bullet_speed`、`bullet_freq`、`is_auto_aim`；原始量在 `rc`、`mouse`、`key`，供 fn、pause、校准组合键等 app 专用操作读取
+- VT13 在 `update()` 内把遥控器与键鼠合成为操控量，app 优先读取：`is_enable`（N、S 挡）、`vx`/`vy`/`wr`、`yaw_speed`/`pitch_speed`、`bullet_speed`、`bullet_freq`、`is_aim`；原始量在 `rc`、`mouse`、`key`，供 fn、pause、校准组合键等 app 专用操作读取
 - 平移与旋转为摇杆或拨轮乘满量程，叠加 W/S、A/D、Shift/Ctrl 键盘斜坡后限幅；按反向键时同向速度先清零再反向加速，松手按减速度回零；加减速度设 `INFINITY` 时一个周期到满量程或归零。斜坡用本类 dt，`DT_MIN`/`DT_MAX` 限幅
 - 云台为摇杆叠加鼠标，无斜坡，限幅到满量程；pitch 抬头为负，与 Classic 云台一致。按住 trigger 时 pitch 摇杆改为弹频倍率（负值反转），否则鼠标左键按最高弹频；S 挡输出配置弹速；photo 或鼠标右键为自瞄
 - 断联时原始量、键盘斜坡与操控量全部清零，挡位为 ERR
@@ -171,5 +171,5 @@
 ## 轮腿功率控制
 
 - `ChassisLeg` 只限制轮电机：`calc_lqr()` 把 LQR 轮力矩拆为驱动部分（位移、速度、航向角、航向角速度项）与平衡部分（腿倾角、俯仰项），交给 `limit_power()` 求 gain 并写入 T = 平衡 + gain·驱动
-- 预测功率 Σ(T·ω + 0.75·R·(T/kt)²) ≤ power_ref，用 `MotorPower::solve_gain()` 求最大 gain；平衡部分不衰减，gain 为 0 时仍超出由缓冲能量承担；关节 DM8009 功耗不计入
+- 预测功率 Σ(T·ω + 0.75·R·(T/kt)²) ≤ power_ref，用 `MotorPower::solve_gain()` 求最大 gain；平衡与驱动先按电机 `max_torque` 限幅，预测值与实际下发一致。驱动 gain 降到 0 仍超功率时，再按同一规则求平衡力矩的衰减系数（`power_ref` 为 0 表示未设置，此时保持平衡力矩）；关节 DM8009 功耗不计入
 - `wheel_resistance` 取 M3508 线间电阻 0.194 Ω，kt 取轮电机 `max_torque / max_current`；`power.estimate`、`power.gain` 供 SWD 与超电实测对照

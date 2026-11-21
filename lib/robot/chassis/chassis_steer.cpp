@@ -119,7 +119,7 @@ Vector3f ChassisSteer::forward_force(const Vector4f& f) const {
 }
 
 void ChassisSteer::update() {
-    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
+    const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
 
     // 离线检测与速度正解，轮或舵离线时该位置不参与解算
     Vector4f v;

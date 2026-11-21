@@ -15,7 +15,7 @@ void VT13::add_0311_callback(RxCallback callback) {
 }
 
 void VT13::update() {
-    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
+    const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
 
     // 断联检测：原始量与键盘斜坡复位，操控量随之为 0
     if (callback_timer.elapsed() > config.timeout) {
@@ -29,7 +29,7 @@ void VT13::update() {
     // 挡位与自瞄；断联时挡位为 ERR
     is_enable = rc.mode == N || rc.mode == S;
     bullet_speed = rc.mode == S ? config.bullet_speed : 0;
-    is_auto_aim = rc.photo || mouse.right;
+    is_aim = rc.photo || mouse.right;
 
     // 底盘：摇杆叠加键盘斜坡，W/S 前后、A/D 左右、Shift/Ctrl 逆/顺时针
     key_vx = get_key_speed(key_vx, key.w, key.s, config.vxy_max, config.axy, config.dxy, dt);

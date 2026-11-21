@@ -11,8 +11,6 @@
 class Shooter42mm {
   private:
     static constexpr float RUB12_RATIO = 0.5f; // 摩擦轮 1、2 相对弹速的速度比
-
-    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
     static constexpr float SHOOT_FINISH_RATIO = 0.95f;       // 用于检查拨弹完成
     static constexpr float SHAKE_FREQ = 1;                   // 抖动频率
     static constexpr float SHAKE_AMP = 1;                    // 抖动幅度（一个弹 = 1）

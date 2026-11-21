@@ -46,7 +46,7 @@ void GimbalDualYaw::set_chassis_wr(const float chassis_wr) {
 }
 
 void GimbalDualYaw::update(const Angle imu_yaw, const Angle imu_pitch) {
-    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
+    const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
 
     // 读取姿态与电机反馈
     yaw.imu.measure = imu_yaw;

@@ -59,7 +59,7 @@ void referee_loop() {
     ui.pitch_angle = gimbal.pitch.imu.measure;
     ui.is_hurt = has_hurt && hurt_timer.elapsed() < HURT_TIMEOUT;
     ui.hurt_dir = hurt_dir - gimbal.yaw.imu.measure; // 相对云台
-    ui.is_auto_aim_detect = aim.vision.is_detect;
+    ui.is_aim_detect = aim.vision.is_detect;
     ui.super_cap = super_cap.energy_ratio();
     if (!super_cap.is_connect)
         ui.cap = RobotUi::PINK;

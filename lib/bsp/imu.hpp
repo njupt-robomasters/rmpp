@@ -7,7 +7,6 @@
 // 板载 BMI088：读取、零偏与安装方向修正、校准及恒温加热
 class Imu {
   private:
-    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 加热闭环步长限幅，s；避免首次调用和停顿后的大步长
 
   public:
     struct Config {

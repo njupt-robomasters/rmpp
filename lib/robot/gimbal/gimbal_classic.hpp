@@ -10,7 +10,6 @@
 // 外环（可选）：世界 yaw/pitch 角度闭环，输出的世界角速率修正换算到电机轴后叠加到速度指令
 class GimbalClassic {
   private:
-    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s
 
   public:
     struct Motors {

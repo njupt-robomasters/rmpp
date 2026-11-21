@@ -9,7 +9,6 @@
 static constexpr float MAX_SPEED = 60 * rpm;
 static constexpr float SPEED_TOLERANCE = 5 * rpm;
 static constexpr float MOTOR_OVERHEAT = 80;
-static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s
 
 static VT13 vt13({.uart = Uart(6)});
 
@@ -43,7 +42,7 @@ static void send() {
 }
 
 static void loop() {
-    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
+    const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
 
     vt13.update();
     motor.update();

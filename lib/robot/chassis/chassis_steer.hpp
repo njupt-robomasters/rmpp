@@ -44,7 +44,6 @@ class Steer {
 // 国际单位制：半径 m，速度 m/s，角速度 rad/s，力 N
 class ChassisSteer {
   private:
-    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
 
   protected:
     Motor* const wheel[4]; // 轮电机

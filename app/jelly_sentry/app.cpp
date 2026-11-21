@@ -78,14 +78,8 @@ static void loop() {
     referee_loop();
 
     // 上位机：姿态与比赛信息，弹速取裁判系统实测初速
-    aim.imu = {.yaw = attitude.yaw, .pitch = attitude.pitch, .roll = attitude.roll};
-    aim.referee = {
-        .is_red = referee.robot_status.robot_id < 100,
-        .game_progress = static_cast<Referee::GameProgress>(referee.game_status.game_progress),
-        .stage_remain_time = static_cast<float>(referee.game_status.stage_remain_time),
-        .bullet_speed = referee.shoot_data.initial_speed,
-    };
-    aim.update();
+    aim.set_referee(referee.robot_status.robot_id < 100, referee.shoot_data.initial_speed);
+    aim.update(attitude.yaw, attitude.pitch, attitude.roll);
     nav.update();
 
     chassis_loop();

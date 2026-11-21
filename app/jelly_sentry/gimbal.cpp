@@ -27,7 +27,7 @@ static void control_by_vt13() {
         gimbal.turn_yaw(180 * deg);
     last_r = vt13.key.r;
 
-    if (vt13.is_auto_aim && aim.vision.is_detect) {
+    if (vt13.is_aim && aim.vision.is_detect) {
         gimbal.set_angle(aim.vision.yaw, aim.vision.pitch);
     } else {
         float yaw_speed = vt13.yaw_speed;

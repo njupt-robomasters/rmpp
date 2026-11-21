@@ -245,16 +245,16 @@ int main() {
     in.photo = true;
     send(in);
     step();
-    assert(vt13.is_auto_aim);
+    assert(vt13.is_aim);
     in = {};
     in.right = true;
     send(in);
     step();
-    assert(vt13.is_auto_aim);
+    assert(vt13.is_aim);
     in.right = false;
     send(in);
     step();
-    assert(!vt13.is_auto_aim);
+    assert(!vt13.is_aim);
 
     // 断联：原始量、斜坡与操控量清零
     in = {};
@@ -267,7 +267,7 @@ int main() {
     step(500);
     assert(!vt13.is_connect && !vt13.is_enable && vt13.rc.mode == VT13::ERR);
     assert(vt13.vx == 0 && vt13.vy == 0 && vt13.wr == 0 && vt13.yaw_speed == 0 && vt13.pitch_speed == 0);
-    assert(vt13.bullet_speed == 0 && vt13.bullet_freq == 0 && !vt13.is_auto_aim && !vt13.key.w);
+    assert(vt13.bullet_speed == 0 && vt13.bullet_freq == 0 && !vt13.is_aim && !vt13.key.w);
 
     // 重连后斜坡从 0 开始
     in.key = 1u << 0;

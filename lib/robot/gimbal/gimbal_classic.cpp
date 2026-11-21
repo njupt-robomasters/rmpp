@@ -32,7 +32,7 @@ void GimbalClassic::set_chassis_wr(const float chassis_wr) {
 }
 
 void GimbalClassic::update(const Quaternionf& q, const Vector3f& gyro) {
-    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
+    const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
 
     // 更新反馈：IMU 系经 pitch 关节旋转到 yaw 随动系
     motor.yaw.update();

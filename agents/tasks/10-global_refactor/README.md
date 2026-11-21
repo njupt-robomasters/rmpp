@@ -91,7 +91,7 @@ python agents/tasks/10-global_refactor/layout_regression.py --baseline 795e263
 - 公共库与手写 BSP：dummy 覆盖 C 板，examples-cdc 覆盖 mc02
 - 主机差分回归：layout_motor_regression.cpp 验证八类电机反馈、限幅、零点、离线处理、CAN 命令及 17 mm 发射机构电流/力矩输出；sim.cpp 验证超电容量/ESR；power_sim.cpp 验证功率与虚拟缓冲能量；layout_melody_regression.cpp 比较直驱音符时序、带伴奏和纯旋律的复音浮点采样。分别编译基线与当前实现，要求输出逐字节一致
 - `layout_regression.py` 只读取指定 Git 基线，提取文件与构建产物放在`agents/out/10-global_refactor/layout_regression/`；包含生成和第三方目录的工程文件未改动
-- 保留的应用告警：motor 示例两个未使用函数；leg_up/gimbal.cpp 的 is_auto_aim 未使用
+- 保留的应用告警：motor 示例两个未使用函数；leg_up/gimbal.cpp 的 is_aim 未使用
 - 构建日志和差分结果位于 out/；最终状态以本节对应执行结果为准，早期失败尝试也保留在 out/ 便于追溯
 
 类布局重构已并入 master，外部 worktree 随合并移除；待用户审阅 SWD 展开顺序与接口后决定上车测试。

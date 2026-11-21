@@ -31,7 +31,7 @@ class RobotUi {
     bool is_hurt = false;
     Angle hurt_dir{};
 
-    bool is_auto_aim_detect = false; // 自瞄识别到目标，显示准星圆
+    bool is_aim_detect = false; // 自瞄识别到目标，显示准星圆
 
     // 超电能量占比，0～1；底盘转速，rad/s；设定弹频，Hz；拨弹实测电流或力矩，A 或 N·m
     float super_cap = 0, chassis_wr = 0, bullet_freq = 0, shoot_output = 0;

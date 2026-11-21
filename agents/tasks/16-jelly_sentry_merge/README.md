@@ -12,7 +12,7 @@
 
 ## 适配 master 接口
 
-- VT13 改读操控量：`vt13.vx/vy/wr`、`yaw_speed/pitch_speed`、`bullet_speed/bullet_freq`、`is_enable`、`is_auto_aim`，原始量从 `vt13.rc` 读取；满量程、键盘加减速度、弹速 5 m/s、最高弹频 20 发/秒写在 `misc.hpp` 实例配置中，与迁移前常量一致
+- VT13 改读操控量：`vt13.vx/vy/wr`、`yaw_speed/pitch_speed`、`bullet_speed/bullet_freq`、`is_enable`、`is_aim`，原始量从 `vt13.rc` 读取；满量程、键盘加减速度、弹速 5 m/s、最高弹频 20 发/秒写在 `misc.hpp` 实例配置中，与迁移前常量一致
 - FSi6X 保留：摇杆乘 VT13 满量程后叠加；使能、fn、校准组合、超电模式和断联时射击的拨杆映射不变
 - Referee 改为 `{.can = Can(1)}`，新增 `RefereeSender`；主循环在 `referee.update()` 后调用 `set_robot_id()`、`send()`，UI 经 `RobotUi::update(referee_sender, {...})` 填写，启动时及按 F 键时 `init()`
 - 主循环改为局部 `static` 的 `app_timer`、`app_monitor`，删除 `cpu_usage`

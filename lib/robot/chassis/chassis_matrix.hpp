@@ -31,8 +31,6 @@ class ChassisMatrix {
         {+1, +1, std::sqrt(2.0f)},
     };
 
-    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
-
   protected:
     Motor* const wheel[4]; // 轮电机：左前、左后、右后、右前
 

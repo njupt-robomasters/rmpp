@@ -3,7 +3,6 @@
 #include <algorithm>
 
 static constexpr float SPEED_MAX = 60 * rpm;             // 摇杆满量程对应的云台转速
-static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s
 
 static Pid yaw_pid(&yaw_pid_config);
 static Timer update_timer;
@@ -13,7 +12,7 @@ static Angle yaw_ref;
 static Angle yaw_measure;
 
 void gimbal_loop() {
-    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
+    const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
     attitude.update();
 
     // IMU 在底盘上：云台朝向 = 底盘航向 + 电机相对底盘角度

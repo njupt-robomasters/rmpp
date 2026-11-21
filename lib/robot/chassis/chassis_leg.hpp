@@ -12,7 +12,6 @@
 // 姿态由调用方每周期传入底盘机体的 q 与 gyro，可来自本板 IMU 或云台换算的虚拟 IMU
 class ChassisLeg {
   private:
-    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s；避免首次调用和停顿后的大步长
 
     // 设备绑定
     struct Motors {
@@ -250,6 +249,7 @@ class ChassisLeg {
     void calc_lqr();
 
     // 功率控制：按 power_ref 衰减轮端驱动力矩，更新 power.gain 与 Tw；balance、drive 为左右轮平衡与驱动力矩，N·m
+    // 输入先按电机输出上限限幅；驱动衰减到零仍超功率时再衰减平衡力矩
     void limit_power(const float balance[2], const float drive[2]);
 
     // 力映射：由 L、Fn 和机构极性的摆动力矩 Tt 更新 T_A、T_E

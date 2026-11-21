@@ -44,7 +44,7 @@ float SuperCap::energy_ratio() const {
 }
 
 void SuperCap::update() {
-    const float dt = std::min(update_timer.restart(), DT_MAX);
+    const float dt = std::min(update_timer.restart(), 0.1f);
 
     // 断联检测
     if (callback_timer.elapsed() > config.timeout)

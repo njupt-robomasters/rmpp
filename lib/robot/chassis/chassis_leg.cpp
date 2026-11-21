@@ -49,7 +49,7 @@ void ChassisLeg::set_power_ref(const float power_ref) {
 }
 
 void ChassisLeg::update(const Quaternionf& q, const Vector3f& gyro) {
-    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
+    const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
 
     update_feedback(q, gyro);
 
@@ -432,28 +432,50 @@ void ChassisLeg::calc_lqr() {
         }
     }
 
-    const float balance[2] = {out[0] - drive[0], out[1] - drive[1]};
-    limit_power(balance, drive);
+    // 临时关闭轮端功率限制，观察实测超功率幅度；恢复时改回下面两行
+    // const float balance[2] = {out[0] - drive[0], out[1] - drive[1]};
+    // limit_power(balance, drive);
+    leg[0].Tw = out[0];
+    leg[1].Tw = out[1];
+
     leg[0].Tt = out[2];
     leg[1].Tt = out[3];
 }
 
 void ChassisLeg::limit_power(const float balance[2], const float drive[2]) {
     // 轮端 P = Σ(T·ω + 0.75·R·(T/kt)²)，T = 平衡 + gain·驱动
-    // 求预测功率不超过 power_ref 的最大 gain，平衡部分不衰减；不限功率时 power_ref 为无穷大，gain 为 1
+    // 平衡与驱动先按电机输出上限限幅，预测功率与实际下发一致
     const M3508* wheel[2] = {&motor.left_wheel, &motor.right_wheel};
+    float balance_t[2], drive_t[2], k_loss[2];
     float a = 0, b = 0, c = -power_ref;
     for (int i = 0; i < 2; i++) {
-        const float kt = wheel[i]->config.max_torque / wheel[i]->config.max_current;
-        const float k = 0.75f * config.wheel_resistance / (kt * kt);
-        a += k * drive[i] * drive[i];
-        b += drive[i] * wheel[i]->speed + 2 * k * balance[i] * drive[i];
-        c += balance[i] * wheel[i]->speed + k * balance[i] * balance[i];
+        const float max_torque = wheel[i]->config.max_torque;
+        const float kt = max_torque / wheel[i]->config.max_current;
+        k_loss[i] = 0.75f * config.wheel_resistance / (kt * kt);
+        balance_t[i] = std::clamp(balance[i], -max_torque, max_torque);
+        drive_t[i] = std::clamp(drive[i], -max_torque, max_torque);
+        a += k_loss[i] * drive_t[i] * drive_t[i];
+        b += drive_t[i] * wheel[i]->speed + 2 * k_loss[i] * balance_t[i] * drive_t[i];
+        c += balance_t[i] * wheel[i]->speed + k_loss[i] * balance_t[i] * balance_t[i];
     }
     power.gain = MotorPower::solve_gain(a, b, c);
 
-    for (int i = 0; i < 2; i++)
-        leg[i].Tw = balance[i] + power.gain * drive[i];
+    // 驱动衰减到零仍超功率时按同一规则衰减平衡力矩，避免 gain 恒为零后无法恢复
+    // 功率目标为零表示未设置，保持平衡力矩；不限功率时 power_ref 为无穷大，gain 为 1
+    float balance_gain = 1;
+    if (power.gain == 0 && power_ref > 0) {
+        float a_balance = 0, b_balance = 0;
+        for (int i = 0; i < 2; i++) {
+            a_balance += k_loss[i] * balance_t[i] * balance_t[i];
+            b_balance += balance_t[i] * wheel[i]->speed;
+        }
+        balance_gain = MotorPower::solve_gain(a_balance, b_balance, -power_ref);
+    }
+
+    for (int i = 0; i < 2; i++) {
+        const float max_torque = wheel[i]->config.max_torque;
+        leg[i].Tw = std::clamp(balance_gain * (balance_t[i] + power.gain * drive_t[i]), -max_torque, max_torque);
+    }
 }
 
 void ChassisLeg::map_force(Leg& leg, const float Tt) const {

@@ -53,7 +53,7 @@ void GimbalFold::set_pitch1_angle(const Angle angle) {
 }
 
 void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
-    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
+    const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
 
     yaw.imu.measure = imu_yaw;
     pitch.imu.measure = imu_pitch;

@@ -7,7 +7,6 @@
 
 class VT13 {
   public:
-    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 键盘斜坡步长限幅，s；避免首次调用和停顿后的大步长
 
   private:
     static constexpr size_t COMMAND_MAX = 60;  // 0x0311 自定义指令最大长度，B
@@ -56,7 +55,7 @@ class VT13 {
     float yaw_speed = 0, pitch_speed = 0; // 云台角速度，rad/s；yaw 逆时针为正，pitch 抬头为负
     float bullet_speed = 0;               // 弹速，m/s；S 挡开摩擦轮
     float bullet_freq = 0;                // 弹频，发/秒；负值反转拨弹
-    bool is_auto_aim = false;             // 自瞄
+    bool is_aim = false;                  // 自瞄
 
     // 遥控器
     struct Rc {

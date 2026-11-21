@@ -13,7 +13,6 @@
 // 国际单位制：角度 rad，角速度 rad/s，力矩 Nm，电流 A
 class GimbalFold {
   private:
-    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s
 
   public:
     enum Mode {

@@ -8,7 +8,6 @@
 // 姿态由调用方每周期经 update() 传入云台系 IMU 的 yaw、pitch
 class GimbalDualYaw {
   private:
-    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s
 
     struct Motors {
         Motor &yaw1, &yaw2, &pitch;

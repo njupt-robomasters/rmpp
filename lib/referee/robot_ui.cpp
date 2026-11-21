@@ -111,7 +111,7 @@ void RobotUi::update(RefereeSender& sender) {
         RefereeSender::arc(0x000163, 1, GREEN, 14, 960, 540, (265 - wr_span) * deg, 265 * deg, 387, 387),
         RefereeSender::arc(0x000164, 1, GREEN, 14, 960, 540, 95 * deg, (95 + bullet_span) * deg, 387, 387),
         RefereeSender::arc(0x000165, 1, GREEN, 14, 960, 540, (85 - shoot_span) * deg, 85 * deg, 387, 387),
-        RefereeSender::circle(0x000166, 1, aim, is_auto_aim_detect ? 21 : 0, 960, 540, 21),
+        RefereeSender::circle(0x000166, 1, aim, is_aim_detect ? 21 : 0, 960, 540, 21),
     };
     sender.draw(arcs, 7, RefereeSender::MODIFY);
 

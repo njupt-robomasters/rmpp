@@ -15,7 +15,6 @@ class SuperCap {
   private:
     static constexpr float BUFFER_FULL = 60;  // 裁判缓冲能量上限，J
     static constexpr float UNLIMITED = 65535; // 裁判不限功率时的上限读数
-    static constexpr float DT_MAX = 0.1f;     // update() 积分步长上限，s；避免首次调用的大间隔
 
   public:
     enum Mode {

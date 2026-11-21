@@ -42,7 +42,7 @@ static void control_by_vt13() {
     last_c = vt13.key.c;
     last_z = vt13.key.z;
 
-    const bool can_fire = !vt13.is_auto_aim || is_force_shoot || aim.vision.is_fire;
+    const bool can_fire = !vt13.is_aim || is_force_shoot || aim.vision.is_fire;
     shooter.set_bullet_speed(vt13.bullet_speed);
     shooter.set_bullet_freq(can_fire ? vt13.bullet_freq : 0);
 }
