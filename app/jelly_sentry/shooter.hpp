@@ -36,18 +36,18 @@ inline Vesc rub2({
 // 拨弹电机：灵足 EL05，CAN2 私有扩展帧，电机 ID 0x12 / 主机 ID 0x22；速度环 rad/s → Nm
 // 电机侧 protocol_1=0；使能 ID 0x03002212，运行反馈 ID 0x02801222（无故障）
 inline Pid::Config shoot_pid = {
-    .kp = (2.0f) / (60 * rpm),
-    .max_out = 5.0f,
+    .kp = (5.0f) / (60 * rpm),
+    .max_out = 6.0f,
 };
-// 力矩限幅与 PID 限幅同为 5 Nm；卡滞阈值与反转时间在下方 shooter 配置中设置
+// 力矩限幅与 PID 限幅同为 6 Nm；卡滞阈值为 5.5 Nm，反转时间在下方 shooter 配置中设置
 // 运行时可写发送周期，单位 ms，建议取 1~99，避免超过反馈超时
 inline volatile uint32_t shoot_send_period_ms = 2;
 inline EL05 shoot({
     .can = Can(2),
     .tx_id = 0x12,
     .rx_id = 0x22,
-    .max_current = 5.0f / 0.94f,
-    .max_torque = 5.0f,
+    .max_current = 6.0f / 0.94f,
+    .max_torque = 6.0f,
     .is_invert = true,
 });
 
@@ -55,10 +55,10 @@ inline EL05 shoot({
 inline Shooter17mm shooter({rub1, rub2, shoot}, {
                                                     .shoot_pid_config = &shoot_pid,
                                                     .bullet_per_angle = 9.0f / rev,
-                                                    .block_torque = 5.0f,  // 目标力矩阈值，N·m
-                                                    .block_time = 0.2f,    // 连续超阈值时间，s
-                                                    .reverse_time = 0.25f, // 反转时间，s
-                                                    .heat_protect = 80,
+                                                    .block_torque = 5.5f, // 目标力矩阈值，N·m
+                                                    .block_time = 0.2f,   // 连续超阈值时间，s
+                                                    .reverse_time = 0.1f, // 反转时间，s
+                                                    .heat_protect = 100,
                                                 });
 
 void shooter_loop();

@@ -59,10 +59,10 @@ void gimbal_loop() {
         mouse_wyaw = mouse_wpitch = 0;
     }
 
-    // 摇杆：射击开关打开时 pitch 摇杆改为调节弹频，不再控制云台
+    // S 挡自瞄时左摇杆用于调节弹频；肩键沿用 pitch 摇杆隔离
     const float yaw = vt13.yaw + fsi6x.yaw;
     float pitch = 0;
-    if (!vt13.trigger)
+    if (!vt13.trigger && !(vt13.mode == VT13::S && vt13.photo))
         pitch += vt13.pitch;
     if (fsi6x.swb != FSi6X::DOWN)
         pitch += fsi6x.pitch;

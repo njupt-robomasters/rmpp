@@ -91,7 +91,7 @@
 ## jelly_sentry 双传送带驱动
 
 - 在线 VT13 的 C 挡使整车失能，优先于比赛阶段的自动使能；N 挡只允许底盘和云台使能，摩擦轮与拨弹目标均归零，发射机构失能
-- 用户说明 rub1/rub2 为工业传送带转动机构，工程沿用摩擦轮命名。在线 VT13 的 S 挡运行两路电机，按住扳机后，左摇杆上下按比例给拨盘速度，负值反转；松开扳机或摇杆回中，拨盘目标归零
+- 用户说明 rub1/rub2 为工业传送带转动机构，工程沿用摩擦轮命名。在线 VT13 的 S 挡运行两路电机；按住自瞄键 photo 后，左摇杆上推幅度按 0～1 映射基础弹频，aim.vision.is_fire 放行拨弹；同时按住肩键 trigger 时越过视觉许可强制拨弹。松开自瞄键、摇杆回中或下推时拨弹目标归零，肩键单独按下时目标为零；整车使能、热量保护和电机在线检查继续生效。S 挡按住自瞄键时左摇杆专用于弹频，不输入 pitch 云台速度
 - 两个 P630 由 app 定义为 `Vesc`，绑定 CAN2，节点 ID 沿用 `0x21/0x22`，共用现有 VESC 扩展帧收发实现
 - `Shooter17mm::update()` 通过 `set_speed()` 设置输出轴目标角速度（rad/s），由 Vesc 换算为 ERPM，使用电调内部速度环
 - 整车每1 ms发送两路VESC指令，使能时速度扩展帧ID为0x321/0x322、4字节大端ERPM，失能时发送零电流帧
@@ -104,7 +104,7 @@
 - 电机端配套参数：CAN_ID=18、CAN_MASTER=34、protocol_1=0、CAN_TIMEOUT=20000（约1秒）；此前上位机写入记录为protocol_1=2，需用户核对并改为0后断电重启，主控不在线改参
 - 整车和发射调试入口共用shoot实例，控制计算保持1ms，EL05按shoot_send_period_ms发送（默认2ms、500Hz）；失能停止帧、使能帧和周期控制帧均请求状态应答
 - 按用户实测反向要求，shoot在shooter.hpp中显式配置is_invert=true，同步反向力矩指令和位置/速度/力矩反馈；三路方向可分别观察rub1.config.is_invert、rub2.config.is_invert和shoot.config.is_invert
-- 卡滞参数在shooter.hpp的shooter配置中显式设置：block_torque=5 N·m、block_time=0.2 s、reverse_time=0.25 s；检测阈值独立于电机与PID的5 N·m输出限幅，修改配置后重新构建并更新固件
+- 卡滞参数在shooter.hpp的shooter配置中显式设置：block_torque=5.5 N·m、block_time=0.2 s、reverse_time=0.1 s；检测阈值独立于电机与PID的6 N·m输出限幅，heat_protect=100；修改配置后重新构建并更新固件
 
 ## jelly_sentry 上游接口适配
 

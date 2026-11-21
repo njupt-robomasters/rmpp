@@ -3,8 +3,8 @@
 #include <algorithm>
 
 // 操控参数
-static constexpr float BULLET_SPEED = 5.0f;          // 弹速，m/s
-static constexpr float BULLET_FREQ_INIT = 20.0f;     // 初始基础弹频，发/秒
+static constexpr float BULLET_SPEED = 20.0f;         // 弹速，m/s
+static constexpr float BULLET_FREQ_INIT = 10.0f;     // 初始基础弹频，发/秒
 static constexpr float BULLET_FREQ_STEP = 5.0f;      // C、Z 键每次增减的基础弹频，发/秒
 static constexpr float BULLET_FREQ_MIN = 5.0f;       // 基础弹频下限，发/秒
 static constexpr float BULLET_FREQ_MAX = 25.0f;      // 基础弹频上限，发/秒
@@ -20,8 +20,8 @@ void shooter_loop() {
     const bool is_shooter_enable = sentry_enable() && !(vt13.is_connect && vt13.mode == VT13::N);
     shooter.set_enable(is_shooter_enable);
 
-    // VT13 在线时按三挡手动控制；S 挡按住扳机后，左摇杆上下控制拨盘
-    const bool is_vt13_feed = vt13.is_connect && vt13.mode == VT13::S && vt13.trigger;
+    // S 挡按住自瞄键后，左摇杆上推调节弹频；肩键用于强制开火
+    const bool is_vt13_feed = vt13.is_connect && vt13.mode == VT13::S && vt13.photo;
     const bool radio_rub = fsi6x.swc == FSi6X::DOWN;
     const bool radio_shoot = fsi6x.swb == FSi6X::DOWN;
     const bool radio_auto_aim = fsi6x.swd == FSi6X::DOWN;
@@ -51,12 +51,12 @@ void shooter_loop() {
     }
     last_left = mouse.left;
 
-    // VT13 在线时由扳机和左摇杆决定拨盘目标；其余入口沿用 FSi6X、键鼠与自主模式
-    // 无运行请求时倍率为 0，负倍率反转拨盘
+    // VT13 自瞄拨弹由视觉放行，肩键越过视觉许可；摇杆回中或下推时停止
+    // 其余入口沿用 FSi6X、键鼠与自主模式
     float rate = 0;
     if (vt13.is_connect) {
-        if (is_vt13_feed)
-            rate = std::clamp(vt13.pitch, -1.0f, 1.0f);
+        if (is_vt13_feed && (vt13.trigger || aim.vision.is_fire))
+            rate = std::clamp(vt13.pitch, 0.0f, 1.0f);
     } else if (radio_shoot && (!radio_auto_aim || aim.vision.is_fire))
         rate = radio_rate;
     else if (mouse.left && (!mouse.right || is_force_shoot || aim.vision.is_fire))
