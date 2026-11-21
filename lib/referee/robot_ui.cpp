@@ -38,7 +38,7 @@ void RobotUi::init(RefereeSender& sender) {
     const Figure arcs[] = {
         RefereeSender::arc(0x000160, 1, GREEN, 10, 960, 540, 0 * deg, 360 * deg, 85, 85),
         RefereeSender::arc(0x000161, 1, PINK, 0, 960, 540, 0 * deg, 360 * deg, 85, 85),
-        RefereeSender::arc(0x000162, 1, cap, 14, 960, 540, 275 * deg, 313 * deg, 387, 387),
+        RefereeSender::arc(0x000162, 1, GREEN, 14, 960, 540, 275 * deg, 313 * deg, 387, 387),
         RefereeSender::arc(0x000163, 1, GREEN, 14, 960, 540, 227 * deg, 265 * deg, 387, 387),
         RefereeSender::arc(0x000164, 1, GREEN, 14, 960, 540, 95 * deg, 133 * deg, 387, 387),
         RefereeSender::arc(0x000165, 1, GREEN, 14, 960, 540, 47 * deg, 85 * deg, 387, 387),
@@ -107,7 +107,7 @@ void RobotUi::update(RefereeSender& sender) {
     const Figure arcs[] = {
         RefereeSender::arc(0x000160, 1, GREEN, 10, 960, 540, yaw_ecd - 20 * deg, yaw_ecd + 20 * deg, 85, 85),
         RefereeSender::arc(0x000161, 1, PINK, is_hurt ? 10 : 0, 960, 540, -hurt_dir - 20 * deg, -hurt_dir + 20 * deg, 85, 85),
-        RefereeSender::arc(0x000162, 1, cap, 14, 960, 540, 275 * deg, (275 + cap_span) * deg, 387, 387),
+        RefereeSender::arc(0x000162, 1, GREEN, 14, 960, 540, 275 * deg, (275 + cap_span) * deg, 387, 387),
         RefereeSender::arc(0x000163, 1, GREEN, 14, 960, 540, (265 - wr_span) * deg, 265 * deg, 387, 387),
         RefereeSender::arc(0x000164, 1, GREEN, 14, 960, 540, 95 * deg, (95 + bullet_span) * deg, 387, 387),
         RefereeSender::arc(0x000165, 1, GREEN, 14, 960, 540, (85 - shoot_span) * deg, 85 * deg, 387, 387),

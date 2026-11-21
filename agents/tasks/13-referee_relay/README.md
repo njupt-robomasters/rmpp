@@ -52,3 +52,6 @@ python -I agents/tasks/13-referee_relay/compile_arm.py
 - 0x0310 发送接口未实现，需要时加在 VT13
 - 裁判串口实际接在 leg_down C 板 USART1（PA9/PB7）；CubeMX 已配置 115200 8N1 与收发 DMA
 - 上车用 SWD 观察 `referee_relay.to_can_drop`、`to_uart_drop` 应为 0，上板 `referee.is_connect` 为真；必要时用 CAN 分析仪核对总线负载
+## 裁判协议版本
+
+`lib/referee/packet.hpp` 对应 2026 V1.3.1（20260519），是当前收发器使用的版本；`lib/referee/packet2027.hpp` 对应 2027 V1.0.0，覆盖相同的模块职责。切换赛季时同时更新 `referee.hpp`、`referee_sender.hpp` 的包含文件，并核对应用对赛季字段的访问。同一固件统一使用一个版本。`test_packet_layout.py` 使用 ARM GCC 核对两版包长和关键偏移。

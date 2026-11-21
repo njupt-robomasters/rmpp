@@ -3,7 +3,7 @@
 #include "bsp/can.hpp"
 #include "bsp/timer.hpp"
 #include "container/fifo.hpp"
-#include "packets.hpp"
+#include "packet.hpp"
 
 // 裁判系统常规链路发送：选手端 UI、哨兵自主决策 0x0120、选手端消息 0x0308
 // 每次调用排入 1 个请求，send() 按序组帧（帧头、发送者与接收者、CRC）并逐 8 B 经 CAN 交给 RefereeRelay

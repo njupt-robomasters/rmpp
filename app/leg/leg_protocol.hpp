@@ -19,11 +19,11 @@ struct LegUpFrame {
 
         // 运动
         int16_t vx : 13;  // 1e-3 m/s/LSB
-        int16_t wr : 15;  // 1e-3 rad/s/LSB
+        int16_t wr : 16;  // 1e-3 rad/s/LSB
         int16_t yaw : 13; // 1e-3 rad/LSB
 
         uint16_t leg_length : 9; // 1 mm/LSB
-        uint16_t power_ref : 12; // 0.125 W/LSB；4095 表示不限功率
+        uint16_t power_ref : 11; // 0.25 W/LSB；2047 表示不限功率
     };
 
     // 开关
@@ -43,10 +43,10 @@ struct LegUpFrame {
             .is_enable = is_enable,
             .trigger_jump = trigger_jump,
             .vx = static_cast<int16_t>(std::lround(std::clamp(vx, -4.096f, 4.095f) * 1000)),
-            .wr = static_cast<int16_t>(std::lround(std::clamp(wr, -16.384f, 16.383f) * 1000)),
+            .wr = static_cast<int16_t>(std::lround(std::clamp(wr, -32.768f, 32.767f) * 1000)),
             .yaw = static_cast<int16_t>(std::lround(std::clamp(yaw, -4.096f, 4.095f) * 1000)),
             .leg_length = static_cast<uint16_t>(std::lround(std::clamp(leg_length, 0.0f, 0.511f) * 1000)),
-            .power_ref = std::isinf(power_ref) ? static_cast<uint16_t>(4095) : static_cast<uint16_t>(std::clamp(std::lround(power_ref * 8), 0l, 4094l)),
+            .power_ref = std::isinf(power_ref) ? static_cast<uint16_t>(2047) : static_cast<uint16_t>(std::clamp(std::lround(power_ref * 4), 0l, 2046l)),
         };
 
         frame.id = UP_ID;
@@ -66,7 +66,7 @@ struct LegUpFrame {
         wr = raw.wr / 1000.0f;
         yaw = raw.yaw / 1000.0f;
         leg_length = raw.leg_length / 1000.0f;
-        power_ref = raw.power_ref == 4095 ? INFINITY : raw.power_ref * 0.125f;
+        power_ref = raw.power_ref == 2047 ? INFINITY : raw.power_ref * 0.25f;
         return true;
     }
 };

@@ -182,10 +182,10 @@ int main() {
     layout.pack(frame);
     assert(field(frame, 0, 1) == 1 && field(frame, 1, 1) == 1);
     assert(field(frame, 2, 13) == ((1u << 13) - 1234));
-    assert(field(frame, 15, 15) == 2345);
-    assert(field(frame, 30, 13) == ((1u << 13) - 3000));
-    assert(field(frame, 43, 9) == 257);
-    assert(field(frame, 52, 12) == 802);
+    assert(field(frame, 15, 16) == 2345);
+    assert(field(frame, 31, 13) == ((1u << 13) - 3000));
+    assert(field(frame, 44, 9) == 257);
+    assert(field(frame, 53, 11) == 401);
 
     // 下板帧位布局：倒地 0、使能 1、wr 2..17、6 个电机 18..29、保留 30..31
     LegDownFrame status;
@@ -235,15 +235,15 @@ int main() {
     }
     super_cap.power_chassis_ref = INFINITY;
     frame = cycle();
-    assert(field(frame, 52, 12) == 4095);
+    assert(field(frame, 53, 11) == 2047);
     assert(received_up.unpack(frame) && std::isinf(received_up.power_ref));
     super_cap.power_chassis_ref = 0;
     frame = cycle();
     assert(received_up.unpack(frame) && received_up.power_ref == 0);
     super_cap.power_chassis_ref = 2000;
     frame = cycle();
-    assert(field(frame, 52, 12) == 4094);
-    assert(received_up.unpack(frame) && received_up.power_ref == 511.75f);
+    assert(field(frame, 53, 11) == 2046);
+    assert(received_up.unpack(frame) && received_up.power_ref == 511.5f);
 
     // 错误 ID 或长度保持原数据
     frame.id = DOWN_ID;
@@ -251,15 +251,15 @@ int main() {
     frame.id = UP_ID;
     frame.size = 7;
     assert(!received_up.unpack(frame));
-    assert(received_up.power_ref == 511.75f && received_up.is_enable);
+    assert(received_up.power_ref == 511.5f && received_up.is_enable);
 
     // 速度、角度、腿长限幅
-    for (const float speed : {-20.0f, -16.384f, -4.096f, -3.0f, -0.001f, 0.0f, 0.001f, 3.0f, 4.095f, 16.383f, 20.0f}) {
+    for (const float speed : {-40.0f, -32.768f, -4.096f, -3.0f, -0.001f, 0.0f, 0.001f, 3.0f, 4.095f, 32.767f, 40.0f}) {
         const LegUpFrame input{.vx = speed, .wr = speed, .yaw = -3.1415f, .leg_length = 0.257f};
         input.pack(frame);
         assert(decoded.unpack(frame));
         assert(std::fabs(decoded.vx - std::clamp(speed, -4.096f, 4.095f)) <= 0.0005f);
-        assert(std::fabs(decoded.wr - std::clamp(speed, -16.384f, 16.383f)) <= 0.0005f);
+        assert(std::fabs(decoded.wr - std::clamp(speed, -32.768f, 32.767f)) <= 0.0005f);
         assert(std::fabs(decoded.yaw + 3.1415f) <= 0.0005f && decoded.leg_length == 0.257f);
     }
     for (const float length : {-1.0f, 0.1424f, 0.1426f, 1.0f}) {

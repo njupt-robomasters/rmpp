@@ -102,6 +102,7 @@
 - 模式优先级：裁判离线或在线 VT13 C 挡 → OFF；VT13 N/S 挡、或正赛且机器人 ID 为 7/107 → BOOST；自检/倒计时 → CHARGE；其余 OFF。BOOST 工况下用电池侧余量充电，负载升高时允许电容补偿。比赛自主运行可在遥控断联后继续使用超电，仍受裁判连接状态约束
 - 裁判连接超时由现有 `Referee` 的 1 s 检测决定，超电转 OFF 后底盘继续使用最后功率上限与缓冲能量；上电未收到裁判时为默认 120 W/60 J，超电 OFF
 - 超电实测功率覆盖范围按实车供电支路核对，四轮模型只估计轮电机功率；UI 的 CAP 弧长和整数百分比均取自 `SuperCap::energy_ratio()`，按（当前电容电压 / 满电电压）² 计算，满电默认 23.85 V，离线显示 0
+- CAP、RPM、BULLET、SHOOT 四段仪表圆弧始终为绿色；整车图中的超电状态框按超电状态着色
 - 实施与验证记录见 `agents/tasks/06-super_cap_capacitance/README.md`，硬件联调由用户审计后决定
 
 ## jelly_sentry 双传送带驱动
@@ -155,13 +156,13 @@
 ## 轮腿上下板通信
 
 - 上下板 Can(1) 经滑环连接，与下板全部电机、上板管理的超电共用 CAN1；两板通过 `../leg_protocol.hpp` 引用共享文件 `app/leg/leg_protocol.hpp`，包含按发送方命名的 `UP_ID = 0x02`、`DOWN_ID = 0x03` 和报文布局。上板控制帧 8 字节（使能、跳跃、速度、yaw、腿长、功率目标），500 Hz；下板状态帧 4 字节（底盘倒地、下板使能、实测航向角速度、6 个电机状态），250 Hz
-- 共享协议文件统一定义 `LegUpFrame`、`LegDownFrame`、物理单位、`pack()` 与 `unpack()`；`Raw` 位域与解码后成员同序，编解码在 `pack()`、`unpack()` 内用局部 `Raw` 完成，不保存原始帧；位域按 arm-none-eabi-gcc 布局，主机 MinGW 测试加 `-mno-ms-bitfields`。解包先检查 ID 和长度，失败保持原数据。功率目标 12 位 0.125 W/LSB，范围 0..511.875 W，4095 表示不限功率。腿长为连续数值 `leg_length`（m），以 9 位无符号毫米数传输，范围 0..0.511 m；协议中没有腿长档位表。`LegProtocol<TxFrame, RxFrame>` 封装发送帧、接收帧、在线状态与超时：构造时向 Can 注册回调，`update()` 超时清接收数据，`send()` 组帧发送；上板用 `LegUpProtocol`、下板用 `LegDownProtocol`，两板 `chassis_loop()` 直接读写 `leg_protocol` 字段，发送仍按 `app.cpp` 的拍数调用 `leg_protocol.send()`；回归测试检查共享文件引用与编解码
+- 共享协议文件统一定义 `LegUpFrame`、`LegDownFrame`、物理单位、`pack()` 与 `unpack()`；`Raw` 位域与解码后成员同序，编解码在 `pack()`、`unpack()` 内用局部 `Raw` 完成，不保存原始帧；位域按 arm-none-eabi-gcc 布局，主机 MinGW 测试加 `-mno-ms-bitfields`。解包先检查 ID 和长度，失败保持原数据。功率目标 11 位 0.25 W/LSB，范围 0..511.5 W，2047 表示不限功率。腿长为连续数值 `leg_length`（m），以 9 位无符号毫米数传输，范围 0..0.511 m；协议中没有腿长档位表。`LegProtocol<TxFrame, RxFrame>` 封装发送帧、接收帧、在线状态与超时：构造时向 Can 注册回调，`update()` 超时清接收数据，`send()` 组帧发送；上板用 `LegUpProtocol`、下板用 `LegDownProtocol`，两板 `chassis_loop()` 直接读写 `leg_protocol` 字段，发送仍按 `app.cpp` 的拍数调用 `leg_protocol.send()`；回归测试检查共享文件引用与编解码
 - 上板只读 VT13 操控量：VT13 与下板均在线时允许使能，但使能后首次按下 pause 才把 `leg_protocol.is_enable` 置位，之前持续发送失能帧防止误触；之后每次按 pause 按 0.14 → 0.22 → 0.33 → 0.22 → 0.14 m 往返切换腿长，默认低腿长 0.14 m。fn 直接透传，由下板检测上升沿。失能或下板断联清使能锁存、复位低腿长；下板断联期间发送失能帧，恢复状态帧后重新等待 pause。pause 持续记录前值
 - `vt13.vx`（右摇杆竖直叠加 W/S）为云台前向速度，`vt13.wr`（拨轮叠加 Shift/Ctrl）为手动旋转；yaw 在线时默认跟随，离线角度发 0。上板直接保存解包后的 `down`，云台使用 `down.wr`，pause 分支使用 `down.is_fallen`，即下板 `chassis.rescue.is_fallen`（倒地锁存，站起完成、失能或跳跃时清除），断联 0.1 s 清空反馈。在线状态命名为 `up_is_connect`、`down_is_connect`
 - 下板执行策略：FSi6X 在线时优先接管，避免上板协议错误导致误动作；否则透传上板跳跃与腿长，前向速度按 `cos(yaw)` 投影，上板断联 0.1 s（`LEG_TIMEOUT`）后按已清零的指令失能。`ChassisLeg` 持有 follow PID，使用本类 dt，使能且无手动旋转时跟随经 `set_gimbal_yaw()` 设置的云台相对航向（为 0 时 P 输出 0），手动旋转或失能时清 PID；FSi6X 路径保留拨杆操作，云台航向设为 0，功率目标设为 `INFINITY` 不限功率，保留 LQR 速度与位移反馈
 - 自救授权仍由下板决定：控制帧删除自救位，上板控制时 `control_by_up()` 固定 `set_allow_rescue(true)`，FSi6X 控制时保持 SWB 下挡授权；底盘使能、倒地且已授权空闲时启动自救，站起完成、失能或跳跃时清除锁存
 - 超电实例、更新和收发由上板负责，接 Can(1)，`chassis_loop()` 每周期设 OFF 并更新，100 Hz 持续发送关闭指令，未接裁判时沿用默认 120 W 上限和 60 J 缓冲能量。OFF 关闭 DCDC，底盘仍按裁判功率与缓冲能量折算目标
-- 上板将 `power_chassis_ref` 随控制帧下发：8 字节小端位域，bit0 为使能，bit1 为跳跃，bit2..14 前向速度（有符号 13 位，1e-3 m/s，±4.096 m/s），bit15..29 手动角速度（有符号 15 位，1e-3 rad/s，±16.384 rad/s，约 156 rpm），bit30..42 yaw（有符号 13 位，1e-3 rad），bit43..51 腿长，bit52..63 功率（12 位，0.125 W/LSB，四舍五入，有限值最高 511.875 W，4095 表示不限功率）。下板状态帧 4 字节：bit0 倒地，bit1 使能，bit2..17 实测航向角速度（int16，1e-3 rad/s），bit18..29 为左前、左后、右后、右前、左轮、右轮的 2 位状态（0 正常、1 过热、2 达妙错误、3 离线），bit30..31 保留。下板移除 SuperCap，只调用 `set_power_ref()`
+- 上板将 `power_chassis_ref` 随控制帧下发：8 字节小端位域，bit0 为使能，bit1 为跳跃，bit2..14 前向速度（有符号 13 位，1e-3 m/s，±4.096 m/s），bit15..30 手动角速度（有符号 16 位，1e-3 rad/s，±32.768 rad/s，约 313 rpm），bit31..43 yaw（有符号 13 位，1e-3 rad），bit44..52 腿长，bit53..63 功率（11 位，0.25 W/LSB，四舍五入，有限值最高 511.5 W，2047 表示不限功率）。下板状态帧 4 字节：bit0 倒地，bit1 使能，bit2..17 实测航向角速度（int16，1e-3 rad/s），bit18..29 为左前、左后、右后、右前、左轮、右轮的 2 位状态（0 正常、1 过热、2 达妙错误、3 离线），bit30..31 保留。下板移除 SuperCap，只调用 `set_power_ref()`
 - 下板 Can(1) 每拍 3 帧，匹配 3 个发送邮箱：偶拍左腿两关节与双轮 0x200，奇拍右腿两关节加第 3 帧，第 3 帧由 0x003 状态帧与 `referee_relay.send()` 轮流使用，各 250 Hz
 - 裁判系统接下板 USART1（115200），`app.hpp` 的 `RefereeRelay referee_relay` 原样转发字节流：CAN ID 与 leg_protocol 一样按发送板命名，0x00 为下板发送、0x01 为上板发送，类内按本板视角写作 `tx_id`、`rx_id`（与 Referee 对应）。串口收到的字节切成至多 8 字节的 0x00 帧，每次 `send()` 发 1 帧，容量 2 kB/s，约为 2027 协议常规链路定频报文的 2 倍；收到的 0x01 帧载荷拼接后在串口空闲时一次发出。缓冲区 `to_can` 1024 B（1 Hz 定频报文与触发报文叠加的最坏突发约 500 B）、`to_uart` 256 B（两次 `send()` 间至多积压 32 B），满时丢弃并计入 `to_can_drop`、`to_uart_drop`。上板用 `Referee({.can = Can(1)})` 接收（默认 `rx_id = 0`）、`RefereeSender({.can = Can(1)})` 发送（默认 `tx_id = 1`）；leg_up 的 `referee_loop()` 在 `referee.update()` 后调用 `referee_sender.set_robot_id()` 并填写 UI，`send()` 在偶拍空闲槽调用 `referee_sender.send()`，每次至多 1 帧
 - leg_up 超电跟随 VT13 整车使能：失能强制 OFF，每次使能默认 BOOST；使能期间按 Q 切 CHARGE、按 E 切 BOOST，松键保持。按裁判功率上限与缓冲能量折算 `power_chassis_ref` 随控制帧下发

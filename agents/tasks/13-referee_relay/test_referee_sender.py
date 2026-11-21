@@ -107,13 +107,18 @@ int main() {
     // 本机 ID 未知时暂停；无选手端（哨兵 7）丢弃 UI，0x0120 发往服务器 0x8080
     RefereeSender sender({.can = Can(2)});
     assert(sender.delete_all());
-    assert(sender.send_sentry_command({.confirm_revive = 1, .posture = 2}));
+    SentryCommand command{};
+    assert(command.posture == 3);
+    command.confirm_revive = 1;
+    command.posture = 2;
+    command.activate_rune = 1;
+    assert(sender.send_sentry_command(command));
     assert(run(sender, 100).empty());
     sender.set_robot_id(7);
     auto frames = run(sender, 100);
     assert(frames.size() == 1 && frames[0].cmd_id == 0x0301 && frames[0].payload.size() == 10);
     assert(u16(frames[0].payload, 0) == 0x0120 && u16(frames[0].payload, 2) == 7 && u16(frames[0].payload, 4) == 0x8080);
-    assert(frames[0].payload[6] == 1 && frames[0].payload[7] == 0 && frames[0].payload[8] == 0x40 && frames[0].payload[9] == 0); // posture 2 在 bit 21~23
+    assert(frames[0].payload[6] == 1 && frames[0].payload[7] == 0 && frames[0].payload[8] == 0xC0 && frames[0].payload[9] == 0); // 姿态 bit 21~22，能量机关 bit 23
 
     // 0x0308：小端 UTF-16 补 0 到 30 B，发送者、接收者在前；与 0x0301 交替时不受 30 Hz 约束
     sender.set_robot_id(103);

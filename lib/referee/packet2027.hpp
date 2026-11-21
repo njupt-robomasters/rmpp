@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-// 原始协议单位与位段保持不变，离线默认值仅在首次接收前有效
+// RoboMaster 2027 通信协议 V1.0.0；离线默认值仅在首次接收前有效
 // 0x0001，比赛状态数据（1Hz）
 // 服务器→全体机器人
 struct __attribute__((packed)) GameStatus {
@@ -43,22 +43,25 @@ struct __attribute__((packed)) GameResult {
 // 服务器→全体机器人
 // 若机器人未上场或者被罚下，则血量为0
 struct __attribute__((packed)) GameRobotHp {
-    uint16_t ally_1_robot_HP;  // 己方1号英雄机器人血量
-    uint16_t ally_2_robot_HP;  // 己方2号工程机器人血量
+    uint16_t ally_1_robot_HP; // 己方1号重装机器人血量
+    uint16_t reserved;
     uint16_t ally_3_robot_HP;  // 己方3步兵机器人血量
     uint16_t ally_4_robot_HP;  // 己方4号步兵机器人血量
     int16_t damage_difference; // 己方总伤害减对方总伤害
     uint16_t ally_7_robot_HP;  // 己方7号哨兵机器人血量
-    uint16_t ally_outpost_HP;  // 己方前哨站血量
+    uint16_t outpost_R_HP;     // R 前哨血量
     uint16_t ally_base_HP;     // 己方基地血量
-    uint16_t enemy_outpost_HP; // 对方前哨站血量
+    uint16_t outpost_B_HP;     // B 前哨血量
     uint16_t enemy_base_HP;    // 对方基地血量
+    uint16_t ally_control_degree;
+    uint16_t enemy_control_degree;
 };
 
 // 0x0101，场地事件数据（1Hz）
 // 服务器→己方全体机器人
 struct __attribute__((packed)) EventData {
     uint32_t event_data;
+    uint32_t event_data_2;
 };
 
 // 0x0104，裁判警告数据（1Hz，己方判罚/判负时触发发送）
@@ -112,7 +115,7 @@ struct __attribute__((packed)) PowerHeatData {
     uint16_t shooter_42mm_barrel_heat = 0; // 42mm发射机构的射击热量
 };
 
-// 0x0203，机器人位置数据（1Hz，离线模式下可用）；总览表误列16，详细字段为12
+// 0x0203，机器人位置数据（1Hz，离线模式下可用）
 // 主控模块→对应机器人
 struct __attribute__((packed)) RobotPos {
     float x;     // 本机器人位置x坐标，单位：m
@@ -120,7 +123,7 @@ struct __attribute__((packed)) RobotPos {
     float angle; // 本机器人测速模块的朝向，单位：度。正北为0度
 };
 
-// 0x0204，机器人增益和底盘能量数据（3Hz）
+// 0x0204，机器人增益数据（3Hz）
 // 服务器→对应机器人
 struct __attribute__((packed)) Buff {
     uint8_t recovery_buff;      // 机器人回血增益（百分比，值为10表示每秒恢复血量上限的10%）
@@ -128,10 +131,9 @@ struct __attribute__((packed)) Buff {
     uint8_t defence_buff;       // 机器人防御增益（百分比，值为50 表示50%防御增益）
     uint8_t vulnerability_buff; // 机器人负防御增益（百分比，值为30 表示-30%防御增益）
     uint16_t attack_buff;       // 机器人攻击增益（百分比，值为50 表示50%攻击增益）
-    uint8_t remaining_energy;   // bit 0~6 依次表示能量 >=125%、100%、50%、30%、15%、5%、1%
 };
 
-// 0x0206，伤害状态数据（伤害发生后发送，离线模式下可用）
+// 0x0206，伤害状态数据（伤害发生后发送）
 // 主控模块→对应机器人
 // 0x0206的受伤害情况为机器人裁判系统本地判定，即时发送，但实际是否受到对应伤害受规则条例影响，请以服务器最终判定为准
 struct __attribute__((packed)) HurtData {
@@ -141,9 +143,13 @@ struct __attribute__((packed)) HurtData {
 
     // 血量变化类型
     // 0：装甲模块被弹丸攻击导致扣血
-    // 1：装甲模块或超级电容管理模块离线导致扣血
+    // 1：装甲模块离线导致扣血
+    // 2：超级电容管理模块离线导致扣血
     // 5：装甲模块受到撞击导致扣血
     uint8_t HP_deduction_reason : 4;
+    uint16_t hit_sequence;
+    int16_t hit_position_x; // 命中位置，mm；装甲检测面左下角为原点，向右为正
+    int16_t hit_position_y; // 命中位置，mm；向上为正
 };
 
 // 0x0207，实时射击数据（弹丸发射后发送，离线模式下可用）
@@ -168,12 +174,12 @@ struct __attribute__((packed)) ShootData {
 };
 
 // 0x0208，允许发弹量（10Hz）
-// 服务器→己方英雄、步兵、哨兵、空中机器人
+// 服务器→己方重装、步兵、哨兵机器人
 struct __attribute__((packed)) ProjectileAllowance {
     uint16_t projectile_allowance_17mm;     // 机器人自身拥有的17mm弹丸允许发弹量
     uint16_t projectile_allowance_42mm;     // 42mm弹丸允许发弹量
     uint16_t remaining_gold_coin;           // 剩余金币数量
-    uint16_t projectile_allowance_fortress; // 堡垒增益点提供的储备17mm弹丸允许发弹量；该值与机器人是否实际占领堡垒无关
+    uint16_t projectile_allowance_fortress; // 堡垒增益点提供的储备允许发弹量；与机器人是否实际激活堡垒无关
 };
 
 // 0x0209，机器人RFID模块状态（3Hz）
@@ -181,7 +187,7 @@ struct __attribute__((packed)) ProjectileAllowance {
 // 所有RFID卡仅在赛内生效。在赛外，即使检测到对应的RFID卡，对应值也为0
 struct __attribute__((packed)) RfidStatus {
     uint32_t rfid_status;
-    uint8_t rfid_status_2;
+    uint16_t rfid_status_2;
 };
 
 // 0x020A，飞镖选手端指令数据（3Hz）
@@ -207,16 +213,16 @@ struct __attribute__((packed)) DartClientCmd {
 // 服务器→己方哨兵机器人
 // 场地围挡在红方补给站附近的交点为坐标原点，沿场地长边向蓝方为X轴正方向，沿场地短边向红方停机坪为Y轴正方向
 struct __attribute__((packed)) GroundRobotPosition {
-    float hero_x;       // 己方英雄机器人位置x轴坐标，单位：m
-    float hero_y;       // 己方英雄机器人位置y轴坐标，单位：m
-    float engineer_x;   // 己方工程机器人位置x轴坐标，单位：m
-    float engineer_y;   // 己方工程机器人位置y轴坐标，单位：m
+    float heavyengineer_x; // 己方重装机器人位置x轴坐标，单位：m
+    float heavyengineer_y; // 己方重装机器人位置y轴坐标，单位：m
+    float reserved_1;
+    float reserved_2;
     float standard_3_x; // 己方3号步兵机器人位置x轴坐标，单位：m
     float standard_3_y; // 己方3号步兵机器人位置y轴坐标，单位：m
     float standard_4_x; // 己方4号步兵机器人位置x轴坐标，单位：m
     float standard_4_y; // 己方4号步兵机器人位置y轴坐标，单位：m
-    float reserved_1;   // 保留位
-    float reserved_2;   // 保留位
+    float reserved_3;
+    float reserved_4;
 };
 
 // 0x020C，雷达标记进度数据（1Hz）
@@ -237,6 +243,10 @@ struct __attribute__((packed)) SentryInfo {
 // 服务器→己方雷达机器人
 struct __attribute__((packed)) RadarInfo {
     uint8_t radar_info;
+    uint8_t radar_info_2;
+    uint16_t fortify_center_x; // 生效加固区域圆心 x，mm
+    uint16_t fortify_center_y; // 生效加固区域圆心 y，mm
+    uint16_t fortify_radius;   // 生效加固区域半径，mm
 };
 
 // 0x0303，选手端小地图指令；坐标 m，详细字段表长度为 12
@@ -271,14 +281,14 @@ struct __attribute__((packed)) Figure {
 };
 
 // 0x0301 子内容 0x0120，哨兵自主决策指令；发往服务器 0x8080
-// 计数字段单调递增，次数类每次只能加 1，否则服务器视为不合法；默认全 0
+// 计数字段单调递增，次数类每次只能加 1，否则服务器视为不合法
 struct __attribute__((packed)) SentryCommand {
     uint32_t confirm_revive : 1;      // 确认复活，读条完成后复活
     uint32_t buy_revive : 1;          // 确认消耗金币兑换立即复活
     uint32_t bullet_exchange : 11;    // 累计兑换发弹量，在补血点兑换
     uint32_t remote_bullet_count : 4; // 远程兑换发弹量请求次数
     uint32_t remote_hp_count : 4;     // 远程兑换血量请求次数
-    uint32_t posture : 3;             // 姿态：1 进攻、2 防御、3 移动，4~6 为对应强化姿态；默认 3
+    uint32_t posture : 3 = 3;         // 姿态：1 进攻、2 防御、3 移动，4~6 为对应强化姿态；默认 3
     uint32_t activate_rune : 1;       // 确认使能量机关进入正在激活状态
     uint32_t reserved : 7;
 };
