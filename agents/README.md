@@ -66,4 +66,4 @@ agents/
 - `16-jelly_sentry_merge/`：jelly_sentry 与依赖库从 rmpp-czk 并入 master；VT13、Referee 收发拆分适配、行为变化与上车核对项
 - `17-app_unify/`：sentry 改名 steer_sentry，两台哨兵与 leg 统一 app 结构（setup/loop/send、app 层 referee）、VT13/自主控制拆分、删除 insta360 与 FSi6X、leg_up 接入裁判与 UI；修复项与上车核对项
 - `18-leg_link_ui/`：UI 槽位改为 yaw1/yaw2/pitch1/pitch2、中心弧固定绿色；下板状态帧回传使能与 6 个电机状态、FSi6X 优先；使能后首次 pause 才使能、删除自救授权；删除 `use_angle_loop`
-- `19-leg_spin_power/`：小陀螺时轮端功率 gain 掉到 0 的日志分析；`limit_power()` 按电机上限限幅平衡与驱动、驱动无余量时衰减平衡；主机回归与上车核对项
+- `19-leg_spin_power/`：历史轮端功率限幅实验、日志分析与归档提交；当前轮腿直接使用 LQR 输出

@@ -1,6 +1,5 @@
 #include "chassis_leg.hpp"
 #include "math/angle.hpp"
-#include "power/motor_power.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -42,10 +41,6 @@ void ChassisLeg::set_gimbal_yaw(const float gimbal_yaw) {
 
 void ChassisLeg::set_leg_length(const float leg_length) {
     this->leg_length = std::clamp(leg_length, config.leg_min, config.leg_max);
-}
-
-void ChassisLeg::set_power_ref(const float power_ref) {
-    this->power_ref = power_ref;
 }
 
 void ChassisLeg::update(const Quaternionf& q, const Vector3f& gyro) {
@@ -155,11 +150,6 @@ void ChassisLeg::update_feedback(const Quaternionf& q, const Vector3f& gyro) {
     // 轮速：电机安装方向已由 is_invert 修正为前进为正
     leg[0].v_wheel = motor.left_wheel.speed * config.wheel_radius;
     leg[1].v_wheel = motor.right_wheel.speed * config.wheel_radius;
-
-    // 轮电机功率估计，供 SWD 与超电实测对照
-    power.estimate = 0;
-    for (const M3508* wheel : {&motor.left_wheel, &motor.right_wheel})
-        power.estimate += wheel->torque * wheel->speed + 0.75f * config.wheel_resistance * wheel->current * wheel->current;
 }
 
 void ChassisLeg::solve_leg(Leg& leg) const {
@@ -419,63 +409,20 @@ void ChassisLeg::calc_lqr() {
     };
 
     // 输出 [0/1] 左/右轮力矩，前进为正；[2/3] 左/右摆动力矩，后摆为正
-    // 轮力矩中位移、速度、航向项为驱动部分，腿倾角与俯仰项为平衡部分
-    float out[4]{}, drive[2]{};
+    float out[4]{};
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 10; j++) {
             float k = 0;
             for (int n = 0; n < 6; n++)
                 k += config.lqr_fit[i][j][n] * terms[n];
             out[i] += k * err[j];
-            if (i < 2 && j < 4)
-                drive[i] += k * err[j];
         }
     }
 
-    // 临时关闭轮端功率限制，观察实测超功率幅度；恢复时改回下面两行
-    // const float balance[2] = {out[0] - drive[0], out[1] - drive[1]};
-    // limit_power(balance, drive);
     leg[0].Tw = out[0];
     leg[1].Tw = out[1];
-
     leg[0].Tt = out[2];
     leg[1].Tt = out[3];
-}
-
-void ChassisLeg::limit_power(const float balance[2], const float drive[2]) {
-    // 轮端 P = Σ(T·ω + 0.75·R·(T/kt)²)，T = 平衡 + gain·驱动
-    // 平衡与驱动先按电机输出上限限幅，预测功率与实际下发一致
-    const M3508* wheel[2] = {&motor.left_wheel, &motor.right_wheel};
-    float balance_t[2], drive_t[2], k_loss[2];
-    float a = 0, b = 0, c = -power_ref;
-    for (int i = 0; i < 2; i++) {
-        const float max_torque = wheel[i]->config.max_torque;
-        const float kt = max_torque / wheel[i]->config.max_current;
-        k_loss[i] = 0.75f * config.wheel_resistance / (kt * kt);
-        balance_t[i] = std::clamp(balance[i], -max_torque, max_torque);
-        drive_t[i] = std::clamp(drive[i], -max_torque, max_torque);
-        a += k_loss[i] * drive_t[i] * drive_t[i];
-        b += drive_t[i] * wheel[i]->speed + 2 * k_loss[i] * balance_t[i] * drive_t[i];
-        c += balance_t[i] * wheel[i]->speed + k_loss[i] * balance_t[i] * balance_t[i];
-    }
-    power.gain = MotorPower::solve_gain(a, b, c);
-
-    // 驱动衰减到零仍超功率时按同一规则衰减平衡力矩，避免 gain 恒为零后无法恢复
-    // 功率目标为零表示未设置，保持平衡力矩；不限功率时 power_ref 为无穷大，gain 为 1
-    float balance_gain = 1;
-    if (power.gain == 0 && power_ref > 0) {
-        float a_balance = 0, b_balance = 0;
-        for (int i = 0; i < 2; i++) {
-            a_balance += k_loss[i] * balance_t[i] * balance_t[i];
-            b_balance += balance_t[i] * wheel[i]->speed;
-        }
-        balance_gain = MotorPower::solve_gain(a_balance, b_balance, -power_ref);
-    }
-
-    for (int i = 0; i < 2; i++) {
-        const float max_torque = wheel[i]->config.max_torque;
-        leg[i].Tw = std::clamp(balance_gain * (balance_t[i] + power.gain * drive_t[i]), -max_torque, max_torque);
-    }
 }
 
 void ChassisLeg::map_force(Leg& leg, const float Tt) const {

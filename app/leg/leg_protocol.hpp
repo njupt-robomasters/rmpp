@@ -23,7 +23,7 @@ struct LegUpFrame {
         int16_t yaw : 13; // 1e-3 rad/LSB
 
         uint16_t leg_length : 9; // 1 mm/LSB
-        uint16_t power_ref : 11; // 0.25 W/LSB；2047 表示不限功率
+        uint16_t reserved : 11;  // 保留，发送时为 0
     };
 
     // 开关
@@ -36,7 +36,6 @@ struct LegUpFrame {
     float yaw = 0; // 云台相对底盘航向角，rad
 
     float leg_length = 0; // 腿长，m
-    float power_ref = 0;  // 底盘功率目标，W；无穷大表示不限功率
 
     void pack(CanFrame& frame) const {
         const Raw raw{
@@ -46,7 +45,7 @@ struct LegUpFrame {
             .wr = static_cast<int16_t>(std::lround(std::clamp(wr, -32.768f, 32.767f) * 1000)),
             .yaw = static_cast<int16_t>(std::lround(std::clamp(yaw, -4.096f, 4.095f) * 1000)),
             .leg_length = static_cast<uint16_t>(std::lround(std::clamp(leg_length, 0.0f, 0.511f) * 1000)),
-            .power_ref = std::isinf(power_ref) ? static_cast<uint16_t>(2047) : static_cast<uint16_t>(std::clamp(std::lround(power_ref * 4), 0l, 2046l)),
+            .reserved = 0,
         };
 
         frame.id = UP_ID;
@@ -66,7 +65,6 @@ struct LegUpFrame {
         wr = raw.wr / 1000.0f;
         yaw = raw.yaw / 1000.0f;
         leg_length = raw.leg_length / 1000.0f;
-        power_ref = raw.power_ref == 2047 ? INFINITY : raw.power_ref * 0.25f;
         return true;
     }
 };

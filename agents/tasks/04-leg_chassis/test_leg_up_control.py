@@ -53,10 +53,9 @@ struct {
     struct { float buffer_energy = 60; } power_heat_data;
 } referee;
 struct SuperCap {
-    enum Mode { OFF };
-    float power_chassis_ref = 132;
+    enum Mode { OFF, BOOST } mode = OFF;
     unsigned updates = 0;
-    void set_mode(Mode) {}
+    void set_mode(Mode value) { mode = value; }
     void set_referee_limit(float) {}
     void set_referee_energy(float) {}
     void update() { updates++; }
@@ -102,7 +101,7 @@ int main() {
     auto frame = cycle();
     assert(frame.id == UP_ID && frame.size == 8);
     assert(!leg_protocol.is_enable && leg_protocol.leg_length == 0.14f);
-    assert(super_cap.updates == 2);
+    assert(super_cap.updates == 2 && super_cap.mode == SuperCap::BOOST);
     press_pause();
     assert(leg_protocol.is_enable && leg_protocol.leg_length == 0.14f);
 
@@ -139,8 +138,10 @@ int main() {
     vt13.is_enable = false;
     vt13.rc.fn = true;
     assert(!command().is_enable && leg_protocol.trigger_jump);
+    assert(super_cap.mode == SuperCap::OFF);
     vt13.is_enable = true;
     assert(!command().is_enable && leg_protocol.trigger_jump);
+    assert(super_cap.mode == SuperCap::BOOST);
     cycle();
     vt13.rc.fn = false;
     press_pause();
@@ -169,7 +170,7 @@ int main() {
     chassis_loop(); // 未超时，数据保留
     assert(leg_protocol.received.is_fallen && leg_protocol.received.is_enable);
 
-    // 上板帧位布局：使能 0、跳跃 1、vx 2..14、wr 15..29、yaw 30..42、腿长 43..51、功率 52..63
+    // 上板帧位布局：使能 0、跳跃 1、vx 2..14、wr 15..30、yaw 31..43、腿长 44..52、保留 53..63
     const LegUpFrame layout{
         .is_enable = true,
         .trigger_jump = true,
@@ -177,7 +178,6 @@ int main() {
         .wr = 2.345f,
         .yaw = -3.0f,
         .leg_length = 0.257f,
-        .power_ref = 100.25f,
     };
     layout.pack(frame);
     assert(field(frame, 0, 1) == 1 && field(frame, 1, 1) == 1);
@@ -185,7 +185,7 @@ int main() {
     assert(field(frame, 15, 16) == 2345);
     assert(field(frame, 31, 13) == ((1u << 13) - 3000));
     assert(field(frame, 44, 9) == 257);
-    assert(field(frame, 53, 11) == 401);
+    assert(field(frame, 53, 11) == 0);
 
     // 下板帧位布局：倒地 0、使能 1、wr 2..17、6 个电机 18..29、保留 30..31
     LegDownFrame status;
@@ -222,28 +222,15 @@ int main() {
     assert(!feedback.unpack(frame));
     assert(feedback.is_fallen && feedback.is_enable);
 
-    // 腿长与功率编解码
+    // 腿长编解码
     LegUpFrame received_up;
     for (unsigned length = 0; length <= 511; length++) {
         leg_protocol.leg_length = length / 1000.0f;
-        super_cap.power_chassis_ref = 133;
         frame = cycle();
         assert(received_up.unpack(frame));
-        assert(received_up.power_ref == 133);
         assert(received_up.leg_length == length / 1000.0f);
         assert(received_up.is_enable);
     }
-    super_cap.power_chassis_ref = INFINITY;
-    frame = cycle();
-    assert(field(frame, 53, 11) == 2047);
-    assert(received_up.unpack(frame) && std::isinf(received_up.power_ref));
-    super_cap.power_chassis_ref = 0;
-    frame = cycle();
-    assert(received_up.unpack(frame) && received_up.power_ref == 0);
-    super_cap.power_chassis_ref = 2000;
-    frame = cycle();
-    assert(field(frame, 53, 11) == 2046);
-    assert(received_up.unpack(frame) && received_up.power_ref == 511.5f);
 
     // 错误 ID 或长度保持原数据
     frame.id = DOWN_ID;
@@ -251,7 +238,7 @@ int main() {
     frame.id = UP_ID;
     frame.size = 7;
     assert(!received_up.unpack(frame));
-    assert(received_up.power_ref == 511.5f && received_up.is_enable);
+    assert(received_up.leg_length == 0.511f && received_up.is_enable);
 
     // 速度、角度、腿长限幅
     for (const float speed : {-40.0f, -32.768f, -4.096f, -3.0f, -0.001f, 0.0f, 0.001f, 3.0f, 4.095f, 32.767f, 40.0f}) {

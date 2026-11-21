@@ -12,7 +12,6 @@
 // 姿态由调用方每周期传入底盘机体的 q 与 gyro，可来自本板 IMU 或云台换算的虚拟 IMU
 class ChassisLeg {
   private:
-
     // 设备绑定
     struct Motors {
         DM8009 &left_front, &left_back, &right_back, &right_front; // 关节：面向输出轴逆时针为正；零位时 A 杆方位角 π、E 杆 0
@@ -58,9 +57,6 @@ class ChassisLeg {
         float jump_retract_time = 0.2f;     // 收腿保持时间，s
         float jump_buffer_length = 0.22f;   // 落地缓冲目标腿长，m
         float jump_buffer_time = 0.5f;      // 落地缓冲时间，s
-
-        // 功率
-        float wheel_resistance = 0; // 轮电机线间电阻，Ω；功率控制只计轮电机，关节功耗由余量承担
     } const config;
 
   private:
@@ -77,7 +73,6 @@ class ChassisLeg {
     float vx = 0, wr = 0;
     float gimbal_yaw = 0;
     float leg_length;
-    float power_ref = 0; // 底盘功率目标，W
 
   public:
     // 车体运动：姿态为传入 q 换算的标准 Z-Y-X 欧拉角，角速度取机体系 gyro；前向运动与 d_yaw_wheel 由轮腿运动学得出
@@ -177,12 +172,6 @@ class ChassisLeg {
         float hold_time = 0;    // 阶段 2、3 已保持时间，s
     } jump;
 
-    // 功率：轮电机模型估计与本周期轮端驱动力矩衰减系数
-    struct {
-        float estimate = 0; // W
-        float gain = 1;     // [0, 1]
-    } power;
-
     // 控制器
     float d_yaw_ref = 0;
     Pid leg_length_pid[2], leg_angle_pid[2], roll_pid, follow_pid;
@@ -214,9 +203,6 @@ class ChassisLeg {
     // 跳跃触发，上升沿且空闲时启动
     void set_trigger_jump(bool trigger_jump);
 
-    // 底盘功率目标，W；通常取超电 power_chassis_ref，未设置时为零，轮端只保留平衡力矩
-    void set_power_ref(float power_ref);
-
     // 每个控制周期调用：q 为底盘机体到世界，gyro 为底盘机体系角速度 rad/s
     // 计算并设置全部电机力矩，发送由调用方完成
     void update(const Quaternionf& q, const Vector3f& gyro);
@@ -247,10 +233,6 @@ class ChassisLeg {
 
     // LQR 平衡：按腿长插值增益，计算轮端力矩 Tw 与摆动力矩 Tt
     void calc_lqr();
-
-    // 功率控制：按 power_ref 衰减轮端驱动力矩，更新 power.gain 与 Tw；balance、drive 为左右轮平衡与驱动力矩，N·m
-    // 输入先按电机输出上限限幅；驱动衰减到零仍超功率时再衰减平衡力矩
-    void limit_power(const float balance[2], const float drive[2]);
 
     // 力映射：由 L、Fn 和机构极性的摆动力矩 Tt 更新 T_A、T_E
     void map_force(Leg& leg, float Tt) const;

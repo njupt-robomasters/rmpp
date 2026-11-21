@@ -17,7 +17,6 @@ static void control_by_up() {
     chassis.set_speed(leg_protocol.received.vx, leg_protocol.received.wr);
     chassis.set_gimbal_yaw(leg_protocol.received.yaw);
     chassis.set_leg_length(leg_protocol.received.leg_length);
-    chassis.set_power_ref(leg_protocol.received.power_ref);
 }
 
 static void control_by_fsi6x() {
@@ -34,8 +33,6 @@ static void control_by_fsi6x() {
         chassis.set_leg_length(0.22f);
     else if (fsi6x.swc == FSi6X::DOWN)
         chassis.set_leg_length(0.33f);
-
-    chassis.set_power_ref(INFINITY);
 }
 
 void chassis_loop() {

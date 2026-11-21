@@ -91,7 +91,6 @@ inline ChassisLeg chassis({left_front, left_back, right_back, right_front, left_
                               .roll_pid = &roll_pid,
                               .follow_pid = &follow_pid_config,
                               .lqr_fit = LQR_FIT,
-                              .wheel_resistance = 0.194f,
                           });
 
 // 底盘计算，每 2 次循环调用一次（500 Hz）
