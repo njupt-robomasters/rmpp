@@ -44,6 +44,7 @@ struct VT13 {
     struct {
         bool fn = false, pause = false;
     } rc;
+    struct { bool e = false, z = false, x = false, c = false; } key;
     bool is_enable = false;
     float vx = 0, wr = 0;
 } vt13;
@@ -115,9 +116,23 @@ int main() {
     press_pause();
     assert(leg_protocol.leg_length == 0.14f);
 
-    // 跳跃上升沿
+    vt13.key.c = true;
+    assert(command().leg_length == 0.33f);
+    press_pause();
+    assert(command().leg_length == 0.22f);
+    vt13.key.z = true;
+    assert(command().leg_length == 0.14f);
+    vt13.key.x = true;
+    assert(command().leg_length == 0.22f);
+    vt13.key = {};
+    cycle();
+
+    // E 或 Fn 按住期间持续下发跳跃位
+    vt13.key.e = true;
+    assert(command().trigger_jump);
     vt13.rc.fn = true;
     assert(command().trigger_jump);
+    vt13.key.e = false;
     assert(command().trigger_jump);
     vt13.rc.fn = false;
     assert(!command().trigger_jump);

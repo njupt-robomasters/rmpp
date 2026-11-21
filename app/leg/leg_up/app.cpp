@@ -6,7 +6,6 @@
 #include "melody/music/c5d5g5.hpp"
 #include "referee.hpp"
 #include "shooter.hpp"
-#include <cmath>
 
 // 遥控器：键盘加减速度待实车整定
 VT13 vt13({
@@ -14,7 +13,7 @@ VT13 vt13({
     .vxy_max = 3.0f,
     .axy = INFINITY,
     .dxy = INFINITY,
-    .wr_max = 240 * rpm,
+    .wr_max = 120 * rpm,
     .ar = 120 * rpm,
     .dr = 120 * rpm,
     .yaw_speed_max = 360 * deg_s,

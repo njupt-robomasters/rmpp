@@ -13,6 +13,7 @@ inline Vesc rub1({
     .rx_id = 0x30,
     .max_current = M3508::MAX_CURRENT,
     .reduction = 7,
+    .is_invert = false,
 });
 inline Vesc rub2({
     .can = Can(2),
@@ -20,20 +21,19 @@ inline Vesc rub2({
     .rx_id = 0x31,
     .max_current = M3508::MAX_CURRENT,
     .reduction = 7,
+    .is_invert = false,
 });
 
 // 拨弹电机
+inline Pid::Config shoot_pid_config = {
+    .kp = 4.0f,
+    .max_out = M3508::MAX_CURRENT,
+};
 inline M3508 shoot({
     .can = Can(2),
     .rx_id = 0x201,
     .is_invert = false,
 });
-
-// 拨弹电机 PID 参数
-inline Pid::Config shoot_pid_config = {
-    .kp = 4.0f,
-    .max_out = M3508::MAX_CURRENT,
-};
 
 // 发射机构
 inline Shooter17mm shooter({rub1, rub2, shoot},
