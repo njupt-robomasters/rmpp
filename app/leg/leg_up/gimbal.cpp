@@ -1,6 +1,5 @@
 #include "gimbal.hpp"
 #include "app.hpp"
-#include "chassis.hpp"
 
 void gimbal_loop() {
     attitude.update();
@@ -20,6 +19,5 @@ void gimbal_loop() {
     // }
     // last_r = vt13.key.r;
 
-    gimbal.set_chassis_wr(leg_protocol.received.wr);
     gimbal.update(attitude.q, imu.gyro);
 }

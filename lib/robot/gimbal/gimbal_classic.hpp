@@ -6,7 +6,7 @@
 
 // 单 yaw、单 pitch 云台，机构为底盘→yaw→pitch
 // IMU 固连 pitch 随动部分，安装修正后 X 沿枪口、Y 沿 pitch 正轴；pitch 编码器零位对应两级坐标系对齐
-// 内环：IMU 角速度经 pitch 关节角换算到电机轴，yaw 目标与反馈均扣除底盘转速后闭环
+// 内环：IMU 角速度经 pitch 关节角换算到电机轴，yaw、pitch 目标与反馈均为绝对角速度
 // 外环（可选）：世界 yaw/pitch 角度闭环，输出的世界角速率修正换算到电机轴后叠加到速度指令
 class GimbalClassic {
   private:
@@ -38,10 +38,9 @@ class GimbalClassic {
     // 指令
     bool is_enable = false;
     float yaw_speed = 0, pitch_speed = 0; // 电机轴速度，rad/s；外环开启时同时积分到世界角度目标
-    float chassis_wr = 0;                 // 底盘绕 yaw 轴转速，rad/s
 
   public:
-    // 角度为枪口世界 yaw/pitch；速度为 yaw 相对底盘转速、pitch 轴绝对角速度，rad/s
+    // 角度为枪口世界 yaw/pitch；速度为 yaw、pitch 轴绝对角速度，rad/s
     struct Axis {
         Angle angle_ref, angle_measure;
         float speed_ref = 0, speed_measure = 0; // ref 与 measure 为闭环目标与反馈；目标含外环修正，不可控时为 0
@@ -64,9 +63,6 @@ class GimbalClassic {
 
     // 设置世界 yaw/pitch 目标并清零速度指令，rad；关闭角度环时目标跟随实测
     void set_angle(Angle yaw, Angle pitch);
-
-    // 设置底盘绕 yaw 轴的转速，rad/s；从 yaw 目标与 IMU 反馈同时扣除，换算电机相对转速
-    void set_chassis_wr(float chassis_wr);
 
     // q 为云台到世界的单位四元数；gyro 为安装修正后的云台系角速度，rad/s
     void update(const Quaternionf& q, const Vector3f& gyro);

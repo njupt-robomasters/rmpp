@@ -47,7 +47,7 @@ void ChassisLeg::update(const Quaternionf& q, const Vector3f& gyro) {
 
     update_feedback(q, gyro);
 
-    // 航向目标：无手动旋转时由 LQR 直接消除云台相对航向误差，否则跟踪手动角速度
+    // 航向角速度目标：小陀螺手动角速度，或云台跟随前馈
     d_yaw_ref = wr;
 
     // 两侧均值为前向速度，右减左为航向角速度（逆时针正）
@@ -388,12 +388,11 @@ void ChassisLeg::calc_lqr() {
     const float Ll = leg[0].L, Lr = leg[1].L;
     const float terms[6] = {1, Ll, Lr, Ll * Ll, Ll * Lr, Lr * Lr};
 
-    // 状态误差，均为“目标减反馈”；跟随模式对云台相对航向限幅
-    const float yaw_err = wr == 0 ? std::clamp(gimbal_yaw, -config.yaw_err_max, config.yaw_err_max) : 0;
+    // 状态误差，均为“目标减反馈”；云台相对航向限幅，小陀螺时上板发 0 即不追踪
     const float err[10] = {
         std::clamp((0 - body.x) * 10, -config.x_err_max, config.x_err_max),                       // 前向位移，前进为正
         vx - body.d_x,                                                                            // 前向速度，前进为正
-        yaw_err,                                                                                  // 航向角，跟随模式为云台相对底盘航向
+        std::clamp(gimbal_yaw, -config.yaw_err_max, config.yaw_err_max),                          // 航向角，跟随模式为云台相对底盘航向
         d_yaw_ref - body.d_yaw_gyro,                                                              // 航向角速度，逆时针为正
         std::clamp(config.theta_ref - leg[0].theta, -config.theta_err_max, config.theta_err_max), // 左腿倾角，后摆为正
         0 - leg[0].d_theta,                                                                       // 左腿倾角速度

@@ -70,7 +70,7 @@ class ChassisLeg {
     // 指令
     bool allow_rescue = false;
     bool trigger_jump = false;
-    float vx = 0, wr = 0;
+    float vx = 0, wr = 0; // 前向速度 m/s 前进为正；航向角速度目标 rad/s 逆时针为正
     float gimbal_yaw = 0;
     float leg_length;
 
@@ -188,10 +188,10 @@ class ChassisLeg {
     // 使能或失能全部电机
     void set_enable(bool is_enable);
 
-    // 前向速度 m/s 前进为正；航向角速度 rad/s 俯视逆时针为正
+    // 前向速度 m/s 前进为正；航向角速度目标 rad/s 俯视逆时针为正，小陀螺为手动角速度，跟随为云台 yaw 目标速度前馈
     void set_speed(float vx, float wr);
 
-    // 云台相对底盘航向，rad；无云台或断联时传 0
+    // 云台相对底盘航向，rad；无云台、断联或小陀螺时传 0，0 即不追踪航向
     void set_gimbal_yaw(float gimbal_yaw);
 
     // 双腿共用目标腿长，m，限幅到 [leg_min, leg_max]

@@ -27,18 +27,18 @@
 - 速度正解排除离线位置：全向轮／麦轮按有效运动学行最小二乘求解，通常至少 3 轮；舵轮在无侧滑假设下按有效位置的 x/y 速度约束求解，至少 2 个不同位置。正常四轮舵轮解算与原均值算法等价，缺轮时重新求解平移与旋转，避免偏置
 - 约束不足或秩亏时 vx/vy/vz/wr.measure 为 NaN；力控清空底盘速度 PID 并关闭轮输出，舵向控制继续；轮速控制仍按在线轮执行。恢复足够反馈后自动恢复解算
 - 总牵引力反馈需要全部轮数据，缺失时 fx/fy/fz.measure 为 NaN；输出力求和与 PID 回算保持独立。两台哨兵对未知 wr 关闭云台转速前馈，现有 UI 数字字段显示 0，底盘测量本身保留 NaN
-- leg_up 直接下发 yaw.angle，离线清零由 Motor::update() 统一完成
+- leg_up 跟随模式下发 yaw.angle，小陀螺发 0；离线清零由 Motor::update() 统一完成
 
 ## GimbalClassic 控制与观测
 
 - 机构为底盘→yaw→pitch，IMU 固连 pitch 随动部分；`update(q, gyro)` 接收云台到世界的单位四元数和完成安装修正的云台系角速度（X 沿枪口、Y 沿 pitch 正轴）。pitch 编码器零位对应两级坐标系对齐
-- 内环：`pitch_joint = AngleAxisf(motor.pitch.angle, UnitY())` 把 gyro 旋转到 yaw 随动系，Z/Y 分量为 yaw、pitch 电机轴的绝对角速度；yaw 再减 `chassis_wr` 换算为相对底盘转速，pitch 保留绝对角速度，作为各自的 `speed_measure`；电机编码器速度只供观察
+- 内环：`pitch_joint = AngleAxisf(motor.pitch.angle, UnitY())` 把 gyro 旋转到 yaw 随动系，Z/Y 分量为 yaw、pitch 电机轴的绝对角速度，作为各自的 `speed_measure`；电机编码器速度只供观察
 - 外环：`angle_ref/angle_measure` 为枪口世界 yaw/pitch（ZYX 欧拉角）。ZYX 的 yaw/pitch 完整描述枪口指向，roll 只是绕枪口自旋，两轴机构无法也无需控制，因此外环直接对欧拉角误差闭环（yaw 误差经 `Angle` 回绕），省去目标四元数与 roll 参考
 - 外环加速度规划：`Config` 的 `yaw_max_accel`、`pitch_max_accel` 默认 `INFINITY`（原样传入误差，等效禁用规划）；设为有限正数时，在线性区阈值 `e0 = max_accel / kp²` 内保持原误差，超出后经 `plan_angle_error()` 折算为 `±√(e0·(2|e| − e0))` 再送入角度 PID，使比例项沿恒减速度平方根制动曲线 `±√(2·max_accel·(|e| − e0/2))` 平滑收敛，在 `e0` 处值与斜率连续，消除阶跃目标与外力大扰动下的制动饱和超调
 - `set_speed()` 为电机轴速度，直接作为 `speed_ref` 的前馈；外环开启时同时积分到世界角度目标（底盘水平时两者一致，倾斜时的差异由外环修正）。外环输出的世界 yaw/pitch 角速率修正合成 `ψ̇·Z + θ̇·(−sinψ, cosψ, 0)` 后经 `pitch_joint * q⁻¹` 换算到电机轴再叠加，底盘倾斜时消除轴间耦合，roll 不引入稳态偏差。pitch 接近 ±90 度时世界 yaw 奇异，实际实例由 pitch 保护范围避开
 - 不需要关闭角度外环的开关：角度 PID 的 `kp` 设为 0 时外环修正为零，等效只有速度内环，角度目标仍随速度指令积分
 - 使能与在线判断集中为 `can_pitch = is_enable && pitch 在线`、`can_yaw = can_pitch && yaw 在线`（yaw 换算依赖 pitch 关节角）。外环由私有成员 `update_angle_loop()` 直接读写两轴状态和角度 PID：不可控、关闭外环或首次 `update()` 时目标跟随实测并清空角度 PID，恢复后自然从当前姿态开始，无需上周期状态；速度内环不可控时清零目标、清空 PID、输出 0
-- `angle_ref/angle_measure`、`speed_ref/speed_measure` 即两级闭环的最终目标与反馈：`speed_ref` = 电机轴绝对速度指令 + 换算后的外环修正；yaw 目标与 IMU 反馈同时减 `chassis_wr`，统一为相对底盘的电机转速。速度误差为 `speed_ref − speed_measure`，两处底盘转速相消，保持绝对速度指令与世界角度闭环
+- `angle_ref/angle_measure`、`speed_ref/speed_measure` 即两级闭环的最终目标与反馈：`speed_ref` = 电机轴绝对速度指令 + 换算后的外环修正，速度误差为 `speed_ref − speed_measure`，保持绝对速度指令与世界角度闭环；底盘旋转由 yaw 速度环自然抵消，不再需要底盘转速前馈
 - pitch 目标限位：外环每周期取 `offset = pitch.angle_measure − motor.pitch.angle`，把编码器限位平移为世界 pitch 范围 `[pitch_min + offset, pitch_max + offset]`，钳制速度积分后的目标，`set_angle()` 的越界目标在下一次 `update()` 同样钳制；目标停在边界后不再累积，避免误差经 `Angle` 回绕后反转到另一侧。目标被钳住且 `pitch_speed` 向外时从 `speed_ref` 撤掉该前馈，否则平衡点会冲出限位约 `pitch_speed / kp`；向内指令保留前馈。底盘倾斜时世界 pitch 与关节角的二阶非线性由每周期刷新的 offset 吸收
 - pitch 输出保护兜底超调：编码器 `<= pitch_min` 时禁止负输出、`>= pitch_max` 时禁止正输出，截断后 `track(0)` 回算积分，保留回程方向；只开速度环时仅有此保护
 - 主机测试与 ARM 对象编译入口见 `agents/tasks/11-shooter_state/verify_gimbal_imu.py`；DualYaw 保持 ECD/IMU 模式
@@ -89,7 +89,7 @@
 ## 持有与更新
 
 - 设备由 app 定义；只服务一个机构的设备（电机）由该机构持有并在其 `update()` 中更新
-- 被多处使用或与机构业务无关的设备（姿态 `Attitude`、超电 `SuperCap`）由 app 调用 `update()`，结果再交给机构：每周期都要刷新的测量经机构 `update(...)` 参数传入（如底盘和 Classic 云台 `update(q, gyro)`、DualYaw `update(yaw, pitch)`），其余输入用 `set_*`（如 `set_power_ref()`、`set_gimbal_yaw()`、`set_chassis_wr()`）
+- 被多处使用或与机构业务无关的设备（姿态 `Attitude`、超电 `SuperCap`）由 app 调用 `update()`，结果再交给机构：每周期都要刷新的测量经机构 `update(...)` 参数传入（如底盘和 Classic 云台 `update(q, gyro)`、DualYaw `update(yaw, pitch)`），其余输入用 `set_*`（如 `set_power_ref()`、`set_gimbal_yaw()`、`set_leg_length()`）
 - app 先更新共享设备再更新机构：如 `super_cap.update()` → `chassis.set_power_ref(super_cap.power_chassis_ref)` → `chassis.update()`
 - 发送（`send()`、`write_can_frame()` 组帧）始终由 app 安排
 - 模块间不互相引用状态
@@ -158,11 +158,11 @@
 - 上下板 Can(1) 经滑环连接，与下板全部电机、上板管理的超电共用 CAN1；两板通过 `../leg_protocol.hpp` 引用共享文件 `app/leg/leg_protocol.hpp`，包含按发送方命名的 `UP_ID = 0x02`、`DOWN_ID = 0x03` 和报文布局。上板控制帧 8 字节（使能、跳跃、速度、yaw、腿长），500 Hz；下板状态帧 4 字节（底盘倒地、下板使能、实测航向角速度、6 个电机状态），250 Hz
 - 共享协议文件统一定义 `LegUpFrame`、`LegDownFrame`、物理单位、`pack()` 与 `unpack()`；`Raw` 位域与解码后成员同序，编解码在 `pack()`、`unpack()` 内用局部 `Raw` 完成，不保存原始帧；位域按 arm-none-eabi-gcc 布局，主机 MinGW 测试加 `-mno-ms-bitfields`。解包先检查 ID 和长度，失败保持原数据。腿长为连续数值 `leg_length`（m），以 9 位无符号毫米数传输，范围 0..0.511 m；协议中没有腿长档位表。`LegProtocol<TxFrame, RxFrame>` 封装发送帧、接收帧、在线状态与超时：构造时向 Can 注册回调，`update()` 超时清接收数据，`send()` 组帧发送；上板用 `LegUpProtocol`、下板用 `LegDownProtocol`，两板 `chassis_loop()` 直接读写 `leg_protocol` 字段，发送仍按 `app.cpp` 的拍数调用 `leg_protocol.send()`；回归测试检查共享文件引用与编解码
 - 上板在 VT13 使能且下板在线时，首次按下 Pause 使能底盘，之后按 Pause 按 0.14 → 0.22 → 0.33 → 0.22 → 0.14 m 往返切换腿长。Z/X/C 各自在按下沿直选低/中/高档；选低档后 Pause 向上切，选高档后向下切，选中档保留原方向。E 或 Fn 任一按住时下发跳跃位，由下板检测上升沿。失能或下板断联时清使能锁存、复位低档，恢复后重新等待 Pause；每周期记录 Pause 和三个腿长键的前值
-- `vt13.vx`（右摇杆竖直叠加 W/S）为云台前向速度，`vt13.wr`（拨轮叠加 Shift/Ctrl）为手动旋转；yaw 在线时默认跟随，离线角度发 0。上板直接保存解包后的 `down`，云台使用 `down.wr`，pause 分支使用 `down.is_fallen`，即下板 `chassis.rescue.is_fallen`（倒地锁存，站起完成、失能或跳跃时清除），断联 0.1 s 清空反馈。在线状态命名为 `up_is_connect`、`down_is_connect`
-- 下板执行策略：FSi6X 在线时优先接管，避免上板协议错误导致误动作；否则透传上板跳跃与腿长，前向速度按 `cos(yaw)` 投影，上板断联 0.1 s（`LEG_TIMEOUT`）后按已清零的指令失能。使能且无手动旋转时，`ChassisLeg` 对云台相对航向按 `Config::yaw_err_max` 对称限幅（默认 ±1.25 rad）后送入 LQR；手动旋转时航向误差为 0，仅跟踪角速度目标。FSi6X 路径保留拨杆操作，云台航向设为 0，保留 LQR 速度与位移反馈
+- `vt13.vx`（右摇杆竖直叠加 W/S）为云台前向速度，`vt13.wr`（拨轮叠加 Shift/Ctrl）为手动旋转。上板控制帧的 `wr` 为航向角速度目标：`vt13.wr` 非 0 时发手动角速度、`yaw` 发 0（小陀螺，下板不追踪航向）；为 0 时发遥控器云台 `yaw_speed` 作跟随前馈（与云台角度外环解耦，自瞄时前馈为 0），`yaw` 发 `yaw.angle` 相对航向；yaw 离线时角度发 0。上板直接保存解包后的 `down`，pause 分支使用 `down.is_fallen`，即下板 `chassis.rescue.is_fallen`（倒地锁存，站起完成、失能或跳跃时清除），断联 0.1 s 清空反馈。在线状态命名为 `up_is_connect`、`down_is_connect`
+- 下板执行策略：FSi6X 在线时优先接管，避免上板协议错误导致误动作；否则透传上板跳跃与腿长，前向速度按 `cos(yaw)` 投影，上板断联 0.1 s（`LEG_TIMEOUT`）后按已清零的指令失能。`ChassisLeg` 的 `wr` 为航向角速度目标，`gimbal_yaw` 恒按 `Config::yaw_err_max` 对称限幅（默认 ±1.25 rad）后作航向误差；小陀螺时上板发 0，误差项为 0，仅跟踪手动角速度。FSi6X 路径保留拨杆操作，云台航向设为 0，保留 LQR 速度与位移反馈
 - 自救授权仍由下板决定：控制帧删除自救位，上板控制时 `control_by_up()` 固定 `set_allow_rescue(true)`，FSi6X 控制时保持 SWB 下挡授权；底盘使能、倒地且已授权空闲时启动自救，站起完成、失能或跳跃时清除锁存
 - 超电接上板 Can(1)，每周期读取裁判功率上限和缓冲能量并更新，指令按 100 Hz 发送。模式跟随 VT13 整车使能：失能 OFF，使能 BOOST。
-- 上板控制帧：bit0 使能，bit1 跳跃，bit2..14 前向速度，bit15..30 手动角速度，bit31..43 yaw，前三个运动量分别按 0.001 m/s、0.001 rad/s、0.001 rad 编码；bit44..52 腿长，bit53..63 保留，发送时清零。下板状态帧：bit0 倒地，bit1 使能，bit2..17 实测航向角速度（int16，0.001 rad/s），bit18..29 为左前、左后、右后、右前、左轮、右轮的 2 位状态（0 正常、1 过热、2 达妙错误、3 离线），bit30..31 保留。
+- 上板控制帧：bit0 使能，bit1 跳跃，bit2..14 前向速度，bit15..30 航向角速度目标，bit31..43 yaw，前三个运动量分别按 0.001 m/s、0.001 rad/s、0.001 rad 编码；bit44..52 腿长，bit53..63 保留，发送时清零。下板状态帧：bit0 倒地，bit1 使能，bit2..17 实测航向角速度（int16，0.001 rad/s），bit18..29 为左前、左后、右后、右前、左轮、右轮的 2 位状态（0 正常、1 过热、2 达妙错误、3 离线），bit30..31 保留。
 - 下板 Can(1) 每拍 3 帧，匹配 3 个发送邮箱：偶拍左腿两关节与双轮 0x200，奇拍右腿两关节加第 3 帧，第 3 帧由 0x003 状态帧与 `referee_relay.send()` 轮流使用，各 250 Hz
 - 裁判系统接下板 USART1（115200），`app.hpp` 的 `RefereeRelay referee_relay` 原样转发字节流：CAN ID 与 leg_protocol 一样按发送板命名，0x00 为下板发送、0x01 为上板发送，类内按本板视角写作 `tx_id`、`rx_id`（与 Referee 对应）。串口收到的字节切成至多 8 字节的 0x00 帧，每次 `send()` 发 1 帧，容量 2 kB/s，约为 2027 协议常规链路定频报文的 2 倍；收到的 0x01 帧载荷拼接后在串口空闲时一次发出。缓冲区 `to_can` 1024 B（1 Hz 定频报文与触发报文叠加的最坏突发约 500 B）、`to_uart` 256 B（两次 `send()` 间至多积压 32 B），满时丢弃并计入 `to_can_drop`、`to_uart_drop`。上板用 `Referee({.can = Can(1)})` 接收（默认 `rx_id = 0`）、`RefereeSender({.can = Can(1)})` 发送（默认 `tx_id = 1`）；leg_up 的 `referee_loop()` 在 `referee.update()` 后调用 `referee_sender.set_robot_id()` 并填写 UI，`send()` 在偶拍空闲槽调用 `referee_sender.send()`，每次至多 1 帧
 - `ChassisLeg::calc_lqr()` 直接输出左右轮力矩与两腿摆动力矩，轮电机保留自身力矩限幅。

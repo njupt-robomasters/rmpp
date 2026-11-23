@@ -6,10 +6,13 @@
 void chassis_loop() {
     // 下板断联检测
     leg_protocol.update();
+
+    // 航向：小陀螺发手动角速度并禁用航向追踪，否则发遥控器云台 yaw 目标速度作跟随前馈与相对航向
+    const bool is_spin = vt13.wr != 0;
     leg_protocol.trigger_jump = vt13.key.e || vt13.rc.fn;
     leg_protocol.vx = vt13.vx * std::cos(yaw.angle);
-    leg_protocol.wr = vt13.wr;
-    leg_protocol.yaw = yaw.angle;
+    leg_protocol.wr = is_spin ? vt13.wr : vt13.yaw_speed;
+    leg_protocol.yaw = is_spin ? 0.0f : yaw.angle;
 
     // 使能后首次按下 pause 才下发底盘使能，防止误触；之后 pause 切换腿长，失能或下板断联复位
     static bool last_pause = false;

@@ -32,8 +32,8 @@ struct LegUpFrame {
 
     // 运动
     float vx = 0;  // 前向速度，m/s
-    float wr = 0;  // 手动角速度，rad/s
-    float yaw = 0; // 云台相对底盘航向角，rad
+    float wr = 0;  // 航向角速度目标，rad/s；小陀螺为手动角速度，跟随为云台 yaw 目标速度前馈
+    float yaw = 0; // 云台相对底盘航向角，rad；小陀螺发 0，下板不追踪
 
     float leg_length = 0; // 腿长，m
 
