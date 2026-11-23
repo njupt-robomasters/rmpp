@@ -73,6 +73,7 @@
 
 - 待做：虚拟 IMU（云台 IMU + 关节角）
 - 2026-11-18 上下板 CAN 通信（暂不含键鼠）、下板跟随与轮端功率控制已在主工作区实现，`leg_up`、`leg_down` 的 app 与 lib 对象编译通过，待用户审计与上车；结论见 `docs/application.md`“轮腿上下板通信”“轮腿功率控制”
+- 2026-11-23 轮腿航向前馈：上板 `vt13.wr` 非 0 时发手动角速度并令 `yaw = 0`（下板不追踪航向），为 0 时发遥控器 `vt13.yaw_speed` 作跟随前馈；下板 LQR 去掉 `wr == 0` 门控，`gimbal_yaw` 恒进航向误差；删除未使用的 `GimbalClassic::set_chassis_wr`。两应用编译通过，待上车核对前馈方向与小陀螺/跟随切换瞬间的影响
 - 上车核对：follow 方向与 kp、`cos(yaw)` 投影方向、`power.estimate` 与 `super_cap.power_chassis` 对比、限功率时平衡是否稳定
 
 ## 超级电容 SuperCap
