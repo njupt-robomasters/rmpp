@@ -160,6 +160,18 @@ agents/tasks/01-mc02_bsp/out/el05_protocol_test.exe
 - 标量采样归档out/el05_no_turn_20261119.csv；已请求用户确认上位机是否断开，并在可运行时保持S挡、扳机与左摇杆以继续定位。该操作状态尚未获得回复
 - 最后一次采样OpenOCD启动失败；查询sampling_status为stopped后重试一次variables_read仍返回OPENOCD_START_FAILED，USB枚举仍能看到Horco CMSIS-DAP v2序列号d8cd1ad9。停止重复连接，待恢复探针/目标连接再核对持杆状态。本轮未改工程代码、烧录、复位、halt或改写内存/寄存器
 
+### pitch 上下摆动时两路 DM4310 同步断联（2026-11-21）
+
+- 用户要求只读诊断，确认现象在上下摇动 pitch 时出现；采样期间未断电或拔线
+- EmberProbe 经 HID 后端连接；ELF 为 build/jelly_sentry/rmpp.elf，SHA-256 d83e9151a06162a494ae57e09313846647ec1bea81a024b09acf84c0e0565aa0，Bridge firmwareConsistency=match
+- 第一轮 600 点/50 ms，29.974 s：pitch1、pitch2 在第 11.406 s 同时离线，第 26.348 s 同时恢复；pitch2 有效反馈时间戳连续冻结约 15.040 s。EL05 始终在线；CAN2 bus_off_count、hfdcan2.ErrorCode 全程为 0
+- 第二轮 400 点/50 ms：开始时两路 pitch 已离线，第 19.068 s 同时恢复。CAN1 大 yaw 与 CAN2 EL05 的反馈时间戳各有 400 个不同值；两路 pitch 各只有 52 个不同值。pitch2 故障码全程为 1（ENABLED），MOS/电机温度为 26/28℃，输出力矩采样范围约 -3.223～0.867 N·m。停反馈期间故障码、温度保留最后值
+- 在线判定超时为 100 ms；pitch1、pitch2 发送周期分别为 4 ms、1 ms。有效反馈冻结期间 callback_timer.dt 保留最后一次间隔，分析断联时长须看 last_cycles 与主机采样时间
+- 已确认直接触发链为两路 pitch 有效反馈停更超过 100 ms → 标记离线 → pitch2 闭环输出归零。优先核对两路 pitch 共用的活动 CAN 线束、接头及供电分支；具体断点待量测，发送链路/帧内容仍需总线 trace 核实
+- 第三轮计划读取周期使能时间等发送侧证据，完成 257/400 点后报 OPENOCD_TCL_ERROR，scatter memory read failed (-400)，retryable=false；响应未提供这 257 点，未纳入结论。随后确认采样 stopped、调试 none，未自动重试
+- 原始两轮 CSV 和统计归档 out/pitch_disconnect_20261121_1.csv、_2.csv、_summary.json。本轮未修改固件、运行变量、寄存器、SVD 或共享观察列表，未烧录、复位、halt
+- 后续核实：安全失能后检查活动线束与端子；由用户量测两路 pitch 电源输入电压，并在故障时抓 CAN2 控制帧 0x10/0x11、反馈帧 0x20/0x21，区分供电、支线与发送/反馈协议路径
+
 ### USB-CAN 断开后的持杆与C挡对照（2026-11-19）
 
 - 用户确认USB-CAN已断开，并保持S挡、扳机及左摇杆；Ember重新读取成功，所选ELF与上节同一SHA，Bridge仍报告匹配。期间未执行复位；新读数中的系统累计周期比上节小，只按当前每段数据分析

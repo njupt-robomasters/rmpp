@@ -19,12 +19,12 @@ class Nav {
   public:
     bool is_connect = false;
 
-    // vx/vy 为雷达所在大 yaw 系速度，m/s；yaw 为协议角度，rad，当前仅保存
+    // vx/vy 为最终 IMU 头坐标系速度，m/s；yaw 为协议角度，rad，当前仅保存
     struct Command {
         float vx = 0;
         float vy = 0;
         float yaw = 0;
-        uint8_t action_flag = 0; // 0 随头，1 小陀螺；pitch1 当前全程失能
+        uint8_t action_flag = 0; // 0 小陀螺，1 随头；pitch1 当前全程失能
     } command;
 
   private:

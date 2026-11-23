@@ -5,7 +5,7 @@
 #include "pid/pid.hpp"
 
 // 折叠哨兵云台：大小 yaw + 折叠关节 pitch1 + 俯仰轴 pitch2
-// - 大 yaw 持续跟随头部总目标，小 yaw 补偿大 yaw 尚未转到的部分，随大轴跟上回中
+// - 自瞄窗口内小 yaw 独立追踪，越界由大 yaw 补足；普通模式大 yaw 持续跟随，小 yaw 补偿回中
 // - pitch1 折叠关节当前固定失能，保留测量，控制输出为零；目标接口预留给后续启用
 // - pitch2 为传统俯仰轴，IMU 装在其上；pitch1 转动时 IMU 模式经 imu_minus_ecd 自动补偿
 // - pitch2 叠加重力补偿力矩 torque·cos(angle + phase)，pitch1 补偿当前停用
@@ -72,6 +72,10 @@ class GimbalFold {
   private:
     const Config config;
     const Motors motor;
+    bool is_yaw_window = false;
+
+    Angle yaw1_world_ref; // 窗口模式下大轴保持的世界朝向
+
     Pid yaw_speed_pid, yaw_position_pid, pitch_speed_pid, pitch_position_pid;
     Pid yaw2_speed_pid, yaw2_position_pid;
     Pid pitch1_speed_pid, pitch1_position_pid;
@@ -81,6 +85,7 @@ class GimbalFold {
     bool is_enable = false;
     bool is_yaw_ready = false, is_pitch_ready = false;
     bool is_yaw1_ready = false, is_yaw2_ready = false;
+    bool is_yaw_window_ready = false;
     Timer update_timer;
 
   public:
@@ -92,6 +97,8 @@ class GimbalFold {
     void set_angle(Angle yaw, Angle pitch);
     void turn_yaw(float delta);
     void set_chassis_wr(float chassis_wr);
+    // 自瞄识别到目标时启用小 yaw 优先窗口，边界使用 yaw2 软件限位
+    void set_yaw_window(bool is_yaw_window);
 
     // 保存折叠关节目标角；当前失能策略在 update 中将其恢复为实测角
     void set_pitch1_angle(Angle angle);

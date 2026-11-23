@@ -48,6 +48,10 @@ void GimbalFold::set_chassis_wr(const float chassis_wr) {
     this->chassis_wr = std::isfinite(chassis_wr) ? chassis_wr : 0;
 }
 
+void GimbalFold::set_yaw_window(const bool is_yaw_window) {
+    this->is_yaw_window = is_yaw_window;
+}
+
 void GimbalFold::set_pitch1_angle(const Angle angle) {
     pitch1.ref = angle;
 }
@@ -131,11 +135,22 @@ void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
         pitch.ecd.ref = pitch.imu.ref - pitch.imu_minus_ecd;
     }
 
-    // 沿用 old 哨兵分配：大 yaw 持续跟随总目标，小 yaw 补偿大轴尚未完成的转角
-    yaw1.ref = yaw.ecd.ref;
-    // 小轴离线时保留其最后测量，由大轴承担头部剩余误差
-    if (mode == IMU_MODE && !motor.yaw2.is_connect)
-        yaw1.ref -= yaw2.measure;
+    // 自瞄窗口内保持大轴世界朝向，超出小轴限位时由大轴补足超出角度
+    const bool can_yaw_window = is_yaw_window && mode == IMU_MODE && can_yaw1 && can_yaw2;
+    if (can_yaw_window) {
+        if (!is_yaw_window_ready)
+            yaw1_world_ref = yaw1.measure + yaw.imu_minus_ecd;
+        const float offset = Angle(yaw.imu.ref - yaw1_world_ref);
+        const float limited_offset = std::clamp(offset, config.yaw2.min, config.yaw2.max);
+        yaw1_world_ref += offset - limited_offset;
+        yaw1.ref = yaw1_world_ref - yaw.imu_minus_ecd;
+    } else {
+        // 普通模式大轴持续跟随总目标；小轴离线时由大轴承担剩余误差
+        yaw1.ref = yaw.ecd.ref;
+        if (mode == IMU_MODE && !motor.yaw2.is_connect)
+            yaw1.ref -= yaw2.measure;
+    }
+    is_yaw_window_ready = can_yaw_window;
     const float yaw2_ref = Angle(yaw.ecd.ref - yaw1.measure);
     yaw2.ref = std::clamp(yaw2_ref, config.yaw2.min, config.yaw2.max);
     const bool is_yaw2_limit = float(yaw2.ref) != yaw2_ref;
@@ -146,9 +161,12 @@ void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
     pitch.ecd.ref = pitch2_ref;
     pitch1.ref = std::clamp(float(pitch1.ref), config.pitch1.min, config.pitch1.max);
 
-    // 大 yaw 串级 PID，速度前馈叠加头部目标转速并补偿底盘旋转
+    // 大 yaw 串级 PID，底盘旋转补偿直接进入速度环
     if (can_yaw1) {
-        const float speed_ref = yaw_position_pid.calculate(dt, Angle(yaw1.ref - yaw1.measure)) - chassis_wr + yaw_speed;
+        float speed_ff = -chassis_wr;
+        if (!can_yaw_window)
+            speed_ff += yaw_speed;
+        const float speed_ref = yaw_position_pid.calculate(dt, Angle(yaw1.ref - yaw1.measure)) + speed_ff;
         motor.yaw1.set_output(yaw_speed_pid.calculate(dt, speed_ref - motor.yaw1.speed));
         yaw_speed_pid.track(motor.yaw1.torque_ref);
     } else {

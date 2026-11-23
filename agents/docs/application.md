@@ -91,7 +91,7 @@
 ## jelly_sentry 双传送带驱动
 
 - 在线 VT13 的 C 挡使整车失能，优先于比赛阶段的自动使能；N 挡只允许底盘和云台使能，摩擦轮与拨弹目标均归零，发射机构失能
-- 用户说明 rub1/rub2 为工业传送带转动机构，工程沿用摩擦轮命名。在线 VT13 的 S 挡运行两路电机；按住自瞄键 photo 后，左摇杆上推幅度按 0～1 映射基础弹频，aim.vision.is_fire 放行拨弹；同时按住肩键 trigger 时越过视觉许可强制拨弹。松开自瞄键、摇杆回中或下推时拨弹目标归零，肩键单独按下时目标为零；整车使能、热量保护和电机在线检查继续生效。S 挡按住自瞄键时左摇杆专用于弹频，不输入 pitch 云台速度
+- 用户说明 rub1/rub2 为工业传送带转动机构，工程沿用摩擦轮命名。在线 VT13 的 S 挡运行两路电机；按住自瞄键 photo 后，左摇杆上推幅度按 0～1 映射基础弹频，aim.vision.is_fire 放行拨弹；按住肩键 trigger 时按上推幅度强制拨弹，自瞄键可同时按下或松开。两个键均松开、摇杆回中或下推时拨弹目标归零；整车使能、热量保护和电机在线检查继续生效。S 挡按住自瞄键或肩键时左摇杆专用于弹频，不输入 pitch 云台速度
 - 两个 P630 由 app 定义为 `Vesc`，绑定 CAN2，节点 ID 沿用 `0x21/0x22`，共用现有 VESC 扩展帧收发实现
 - `Shooter17mm::update()` 通过 `set_speed()` 设置输出轴目标角速度（rad/s），由 Vesc 换算为 ERPM，使用电调内部速度环
 - 整车每1 ms发送两路VESC指令，使能时速度扩展帧ID为0x321/0x322、4字节大端ERPM，失能时发送零电流帧
@@ -115,10 +115,13 @@
 
 ## jelly_sentry 大小 yaw 配合
 
-- 2026-11-21 按用户要求参考 Joushua233/rmpp 的 old 分支 `e7bbcb7`，采用 `rmpp/lib/module/gimbal/Gimbal_DualYaw.cpp` 的持续追随分配，移除45°/35°窗口及相关配置和状态
-- 大 yaw 编码器目标为 `yaw.ecd.ref`；小 yaw 目标为 `Angle(yaw.ecd.ref - yaw1.measure)`，按现有 ±40° 软件限位钳制。大轴跟上总目标后，小轴自然回中
-- 大 yaw 速度前馈为 `yaw_speed - chassis_wr`；小 yaw 为 `yaw_speed - chassis_wr - motor.yaw1.speed`，小轴目标超出限位时撤掉前馈。大轴使用自身编码器速度闭环，保留现有PID参数和720°/s位置环输出上限
-- 2026-11-21 按用户要求将 EmberProbe 实时调参值写回 `gimbal.hpp`：大轴速度环kp=0.5、ki=0.1，位置环kp=10；小轴速度环kp=2、ki=0.1，位置环kp=20，均为SI单位；其余PID字段沿用现有值
+- 2026-11-23 将 EmberProbe 当前 pitch2 调参值保存到 `gimbal.hpp`：速度环 kp=0.50558、ki=2、kd=0.02、ff=-1.55、max_i=0.4、max_out=5、err_fc=10、d_fc=0；位置环保持 kp=20、max_out=720°/s，其余字段为 0
+- 2026-11-23 按 `aim.vision.is_detect` 切换大小 yaw 分配，app 每周期调用 `set_yaw_window()`。未识别（0）时，大 yaw 持续追随 `yaw.ecd.ref`，小 yaw 补偿 `Angle(yaw.ecd.ref - yaw1.measure)`，大轴跟上后小轴自然回中
+- 识别到装甲板（1）且 IMU 模式、两 yaw 可控时，小 yaw 优先追踪：进入时保存大轴实测世界朝向 `yaw1_world_ref`；目标相对此朝向处于小轴现有 ±40° 限位内时保持大轴世界目标，越界时大轴目标增加超出的角度。小轴按总目标减大轴实测角度追踪并限幅；例如大轴世界朝向 0°、目标 70°，大轴目标为 30°，到位后小轴目标为 40°
+- 检测下降沿、失能、掉线及 ECD 模式回退普通分配；重新进入窗口时从实测世界朝向建立保持目标。视觉角度目标的采用条件沿用现有自瞄/自主逻辑
+- 大轴普通模式速度前馈为 `yaw_speed - chassis_wr`，窗口模式为 `-chassis_wr`；小轴前馈保持 `yaw_speed - chassis_wr - motor.yaw1.speed`，超出小轴限位时撤掉该项前馈。大轴保持世界朝向时继续补偿底盘旋转
+- 已删除大 yaw 二次位移曲线、加速度限幅、`yaw1_max_accel` 配置及 `yaw1_speed_ref` 状态，恢复直接串级 PID。位置环输出上限保持 720°/s，当前 PID 参数保持原值；动态响应与限位边缘表现待更新固件后实测
+- 2026-11-23 按用户要求读取 EmberProbe 实时配置并写回 `gimbal.hpp`：大轴速度环 kp=3、ki=0.15、max_i=1、max_out=7、err_fc=10，位置环 kp=5；小轴速度环 kp=2、ki=0.1、max_i=1、max_out=8.5、err_fc=10，位置环 kp=15。两位置环 max_out 均为720°/s，其余字段均为0；读取时 ELF 与已烧录记录匹配
 - `yaw.imu.ref` 持续保留最终头部目标，不再在 update 末尾被大轴目标覆盖；`yaw1.ref` 为分配后的大轴编码器目标，`yaw2.ref` 为限幅后的小轴目标
 - 离线轴保持最后测量、输出零；IMU模式小轴离线时使用保持的小轴角度修正大轴目标，其余离线恢复、失能及模式转换沿用现有实现。底盘角速度非有限时关闭该项前馈，保留姿态闭环
 - 该分配采用两根 yaw 轴平行、存在位置偏置的姿态模型；相机/枪口随偏心轴运动造成的视差由视觉外参与距离处理。pitch1 继续固定失能，俯仰控制和 CDC 协议保持原有接口
@@ -130,9 +133,11 @@
 
 ## jelly_sentry 导航与 pitch1
 
+- 2026-11-23 暂停云台自动扫描：`gimbal.cpp` 的 yaw、pitch 扫描速度均设为 0，自检阶段 yaw 同步停止。Fn 继续启用自主导航，flag=1 保留底盘随头，视觉目标锁定和人工云台输入继续生效；无目标且无人工云台输入时保持当前目标朝向
+
 - CDC1 接 Aim 的 21 字节上行/18 字节下行自瞄帧，CDC2 接 Nav 的 17 字节导航下行帧；主循环先向 Aim 传入头部姿态和裁判实测弹速，再更新 Nav，最后执行底盘、云台及发射控制
 - Aim 每 5 ms 上传最终 IMU 头姿态，默认 200 ms 无有效视觉帧时清空检测和开火许可；`aim.vision` 为最终 IMU 头世界系目标，内部弧度，协议度，上正 pitch 在边界反号
-- 导航按大 yaw 雷达系速度接入，经负小 yaw 角转换到云台系；flag=0 随 IMU 头，flag=1 不随头并使用小陀螺。人工底盘输入优先接管，导航超时或 yaw 反馈离线停止自主运动
+- 人工与导航平移均以最终 IMU 头为前方，导航速度直接传给底盘；有效 flag=1 随头、flag=0 以 60 rpm 自动小陀螺旋转。人工平移接管速度并保持 flag 对应的旋转模式，人工主动旋转优先、上限 100 rpm。Fn 仅启用自主模式，导航或 yaw 反馈离线停止自动控制并回到分离模式；pitch1 的 flag=0 抬头、flag=1 折叠仅保留 TODO
 - pitch1 当前全程失能，GimbalFold 的总使能接口和每次 update 固定关闭该轴，清 PID 并写零输出，保留反馈与失能帧发送；其余三轴正常控制
 - 协议、坐标公式、flag 和离线处理详见 `minipc.md`；验证见 `../tasks/13-minipc_nav/README.md`
 
@@ -140,7 +145,7 @@
 
 - 总线分配：CAN2 为 pitch1、pitch2、EL05 和两个 P630，CAN3 为小 yaw 7025；协议、ID 和发送周期保留原值
 - 大yaw DM4310使用CAN1，当前命令ID 0x11、反馈ID 0x10；CAN2自动重发当前开启，用户生成的fdcan.c与.ioc均为ENABLE，发送FIFO模式保留
-- 小 yaw 中位原始角度由用户实测为 5.31959 rad，`yaw2.config.offset` 已按该值配置；更新固件后核对中位 `yaw2.angle` 接近 0
+- 小 yaw 中位原始角度由用户于 2026-11-22 更新为 3.192 rad，`yaw2.config.offset` 已按该值配置；更新固件后核对中位 `yaw2.angle` 接近 0
 - EmberProbe 实测 IMU 航向与大小 yaw 合成角方向相反；按用户确认将大 yaw 设为 `is_invert=true`、小 yaw 设为 `false`，同步翻转位置、速度反馈和输出，使合成角与 IMU 航向方向一致，保留原始 offset；待更新固件后低输出复核
 
 - 整车控制计算保持1kHz；pitch1、pitch2和yaw2的发送周期可写变量放在gimbal.hpp各电机实例旁，EL05的shoot_send_period_ms放在shooter.hpp的shoot实例旁

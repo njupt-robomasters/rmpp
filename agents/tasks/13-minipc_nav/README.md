@@ -6,9 +6,9 @@
 
 - `lib/minipc/Nav` 接入 17 字节小端 float32 下行协议，独立 MODBUS CRC16，任意分片与坏帧重同步；有效帧才刷新超时
 - 中断保存待发布帧，主循环 `update()` 通过短临界区取得完整快照；默认 100 ms 离线清空指令
-- jelly_sentry 使用 CDC1 自瞄、CDC2 导航。flag=0 底盘随 IMU 头，flag=1 关闭随头并启用原有小陀螺；人工底盘输入接管，大小 yaw 离线停止自主运动
-- 雷达系到云台系使用 `R(-q2)`，底盘内部再用 `R(q1+q2)` 转到底盘系，合成 `R(q1)`；雷达安装轴按大 yaw 对齐处理
-- pitch1 全程失能，set_enable/update 均固定关闭，清空两级 PID、撤除该轴闭环输出计算并写零原生输出；4 ms 调度保留，实际 DmMotor::send() 发失能帧
+- jelly_sentry 使用 CDC1 自瞄、CDC2 导航。有效 flag=0 关闭随头并以 60 rpm 自动小陀螺旋转，flag=1 底盘随 IMU 头；人工平移接管速度并保持对应旋转模式，人工主动旋转优先，大小 yaw 离线停止自主运动
+- 人工与导航平移均以最终 IMU 头为前方，导航速度直接传入，底盘内部用总云台角 `R(q1+q2)` 转到底盘系；Fn 仅启用自主模式
+- pitch1 全程失能，set_enable/update 均固定关闭，清空两级 PID、撤除该轴闭环输出计算并写零原生输出；4 ms 调度保留，实际 DmMotor::send() 发失能帧。flag=0 抬头、flag=1 折叠仅记录 TODO
 - C 板 sentry 同步迁移 Nav 构造与速度读取，保留原有底盘控制策略；两处应用删除未发送到上位机的目标点/返航占位赋值
 - yaw 字段解析并保存，具体控制用途待上位机约定；自瞄协议和 MCU 上行协议后续接入
 
@@ -24,6 +24,8 @@ python agents/tasks/13-minipc_nav/verify.py --arm
 格式化与检查使用 `tools/format_code.py --clang-format agents/.tools/clang_format/data/bin/clang-format.exe`，路径限定为本轮修改的 9 个手写源码文件。
 
 ## 验证结果
+
+- 2026-11-23 本次调整仅运行底盘流程测试，51 项检查通过，覆盖头坐标输入、两种 flag、人工平移保留旋转模式、人工旋转优先和超时停止；`chassis.cpp`、`gimbal.cpp` ARM 对象编译与三个修改源文件格式检查通过。主机编译有 4 条 Eigen/C++23 弃用警告；未完整构建或操作硬件
 
 - Nav 与 pitch1：90,578 项检查通过。覆盖独立 CRC 查表/黄金帧、首帧逐字节、全部分片位置、粘包、每个位置插字节/丢字节、噪声恢复、CRC 错误、NaN/Inf/非法 flag、坏帧超时、重连、重复状态、CDC1/2/3 隔离
 - pitch1 使用真实 GimbalFold、Motor、PID、DM4310/DmMotor，6000 周期覆盖总使能、模式切换、反馈超时/恢复、非零重力补偿配置和主动注入非零目标；每周期验证失能、current_ref=torque_ref=0，并检查真实驱动发出 `FF FF FF FF FF FF FF FD`

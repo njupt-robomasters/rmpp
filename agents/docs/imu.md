@@ -87,6 +87,8 @@ inline QuaternionEkf attitude(imu, {}); // 可选；第二参数覆盖 Quaternio
 
 ## 校准与解算行为
 
+jelly_sentry 的 IMU 温控目标为 50 ℃（2026-11-22 开启）。mc02 加热电阻由板卡 12～24 V 电源输入供电，热机时观察 `imu.temperature`，待接近 50 ℃并稳定后保持机构静止再校准。整车当前没有遥控校准入口；可在 EmberProbe 运行中修改 `imu.calibration` 为 `STARTING`（枚举值 1），等效请求一次 `start_calibration()`，之后保持静止至少 5 s。状态值依次为 IDLE=0、STARTING=1、SAMPLING=2、SUCCEEDED=3、FAILED=4；成功后读取 `imu.gyro_offset` 的 xyz 与 `imu.gravity`，按传感器坐标系原样填回 `app/jelly_sentry/gimbal.hpp` 构造配置并重新构建、更新固件。校准和温控期间保持程序运行，halt 会暂停温控更新并使 PWM 保持暂停前的占空比。
+
 `Imu::start_calibration()` 请求开始校准，下一次 `update()` 初始化计时和样本计数后开始采样；调用方负责温稳和静止时机。采样固定 5 s，到时按平均零偏判为成功或失败；采样中一旦非静止立即判为失败，不重新开始。校准状态和样本数为内部状态，不对外开放。
 
 成功时一次提交三个零偏与重力模长，用 SWD 观察 `imu.gyro_offset` 与 `imu.gravity` 读取；不会自动写 Flash。失败保留旧标定。采样过程中温控与旧标定解算继续运行。校准归 `Imu`，提交时不再自动清除 EKF 剩余零偏；需要立即重建时由调用方在校准完成后调用 `QuaternionEkf::reset_bias()`（保留 q 和累计 yaw），否则由 EKF 逐渐收敛。BMI088 读取失败时关闭加热，本周期不推进校准和姿态解算。

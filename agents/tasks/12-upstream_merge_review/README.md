@@ -1,5 +1,38 @@
 # 上游合并与接口适配
 
+## 合并预检（2026-11-24，尚未执行合并）
+
+- 本地 `master` 为 `10e2767af510120fd8021bc566367c8bfad8daa7`，已拉取的 `origin/master` 为 `741379a4fb042e9491f3d4ced60e9d6a2dd85ef7`，共同祖先 `7e57d2b396af1b7fe72804dce86a7ba9795dc191`；本地独有10提交、上游独有11提交
+- 当前15个已跟踪文件有未提交修改，暂存区为空；未跟踪路径与上游没有同路径覆盖。最近的 yaw 窗口、PID、导航约定等包含在工作区快照中，实施前应先保存这些成果
+- 复用 `node agents/tasks/12-upstream_merge_review/review.cjs`，在任务 `out/review.git` 的独立对象库和索引预演；原分支、真实索引和工程源码保持原状。本轮仅预演和静态核对，未编译、测试或操作硬件
+- 仅合并已提交HEAD及纳入当前已跟踪修改的两次预演，冲突路径集合相同，均为29项：15项内容冲突、11项双方新增、3项修改/删除。工作区候选树为 `ec14041fed90996fb9edad7da44042799d1d0799`，完整路径见 `out/summary.json` 和 `out/working_merge.txt`
+
+### 冲突分布与推荐处理
+
+| 范围 | 数量 | 处理方向 |
+| --- | ---: | --- |
+| `app/jelly_sentry/` 的 app、chassis、gimbal、shooter 各一对 hpp/cpp | 8 | 保留本地整车行为及实测配置，逐项迁移上游VT13、裁判和UI接口 |
+| `app/sentry/app.cpp`、`chassis.cpp`、`misc.hpp` | 3 | 上游将该应用重组为 `steer_sentry`；对照迁移本地差异后采用新目录和预设 |
+| `lib/minipc/aim.cpp`、`nav.cpp`、`nav.hpp` | 3 | 21/18字节自瞄和17字节导航帧已经一致；整合CRC/浮点编解码实现，保留本地导航坐标及flag语义 |
+| `lib/motor/el05.hpp` | 1 | 上游把temperature统一移入Motor；移除子类同名字段，保留私有扩展帧、节点和力矩语义 |
+| `lib/referee/referee.hpp` | 1 | 采用上游接收/发送拆分和新配置，保留hurt/shoot公开测量及hurt_sequence |
+| `lib/robot/shooter/shooter_17mm.*` | 2 | 本地按目标力矩阈值卡滞，上游按PID输出持续饱和卡滞；推荐先保留本地实机策略和参数 |
+| `.gitignore`、文档及历史测试 | 11 | 合并忽略规则与知识记录，整理重复迁入的任务记录；按最终接口调整相关脚本 |
+
+### 自动合并后的结构与行为风险
+
+- **同名云台实现重复**：候选树同时存在 `app/jelly_sentry/gimbal_fold.*` 和上游新增 `lib/robot/gimbal/gimbal_fold.*`，两者均定义全局 `GimbalFold`，app/lib的递归源码收集会编译两份，形成重复定义。推荐将当前本地实现迁入上游库路径并只保留一份，窗口接口及所有调用同步迁移
+- **当前云台行为**：保留 `is_detect=1` 小轴 ±40° 窗口、越界大轴补足，`is_detect=0` 大轴追随/小轴补偿，底盘转速前馈及二次曲线已删除的状态。上游库实现尚无窗口接口；其末尾还用大轴参考重写头部目标，移植时继续保留本地最终头部目标保持策略
+- **实测参数**：保留yaw1速度环kp=3、ki=0.15、位置环kp=5；yaw2速度环kp=2、ki=0.1、位置环kp=15，小轴offset=3.192 rad；保留pitch2当前参数、5 Nm输出上限和IMU 50℃。上游相应配置仍是较早初值
+- **导航语义**：本地速度为最终IMU头坐标系，flag=0为60 rpm小陀螺、flag=1随头；上游速度为大yaw雷达系，先按负小yaw角旋转，flag=0随头、flag=1小陀螺且转速随平移变化。推荐沿用当前本地约定、人工接管策略和pitch1固定失能，代码及协议注释一起保留
+- **遥控接口**：上游原始量移至 `vt13.rc`，新增 `vx/vy/wr`、`yaw_speed/pitch_speed`、`bullet_speed/bullet_freq`、`is_enable/is_aim`。原地保留旧调用会产生编译错误；直接取上游app会移除FSi6X、鼠标角加速度限制和全景检查分支，并改变photo/trigger、反向拨弹与人工接管行为。推荐迁移接口时逐项保留本地映射，避免重复叠加上游已合成的摇杆/鼠标输入
+- **裁判/UI**：上游移除 `referee/ui.hpp`，新增 `RobotUi`、`RefereeSender` 和 app侧 `referee.*`；`Referee::Config.bus` 改为 `can`，发送从Referee分离。候选仍保留本地 `misc.*`，需统一全局实例、头文件、发送调度和逐字段UI刷新；VT13构造时应填入当前实际速度/弹速/弹频配置，上游这些字段默认0
+- **卡弹与射击参数**：本地 `block_torque=5.5 Nm`、PID/电机上限6 Nm、reverse_time=0.1 s、heat_protect=100；上游删除block_torque，按PID饱和判定，PID/电机上限5 Nm、reverse_time=0.25 s、heat_protect=80。推荐先保留本地卡弹和操控行为，把判定规则改变单独决策
+- **构建与板卡**：CMakePresets自动合并，接纳sentry→steer_sentry预设变化；逐对象核对候选树的mc02 .ioc和7个已修改生成文件，均与本地快照一致，CAN2 ENABLE/FIFO配置保留。上游没有修改这些生成文件
+- **忽略与脚本路径**：本地忽略 `agents/tasks/**/out/`、`agents/.tools/`，上游改为 `.agents/`、`agents/out/`；合并时保留既有工具/产物忽略，并同步新脚本输出目录约定。上游还将本地早期12/13任务复制为14/15目录，需整理索引与交叉引用
+
+实施建议：先保存当前成果，以本地整车行为为保留基线接纳上游库/遥控/裁判/UI结构，解决重复类和全局实例后仅编译受影响文件；验证范围保持精简，完整构建和硬件操作按用户后续要求执行
+
 ## 合入上游7e57d2b（2026-11-20）
 
 - 先提交当前工程成果、测试及记录为6815d85，再合入origin/master@7e57d2b；本机工具配置与out临时产物保持未跟踪

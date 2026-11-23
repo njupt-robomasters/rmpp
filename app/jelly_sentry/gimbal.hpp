@@ -19,11 +19,11 @@
 // 新框架 attitude.pitch 绕机体 Y 轴（旧框架绕 X）；实测只加 roll = 180° 时抬枪口变化的是 attitude.roll
 // 再绕 Z 转 -90° 重排机体轴，使俯仰轴对齐机体 Y；实测抬枪口时 attitude.pitch 与 pitch2.angle 同向变化
 // gyro_offset、gravity：IMU 校准后填入；未校准时为 0 与 9.81
-// temperature：调试阶段频繁 halt，沿用旧框架做法关闭加热（目标 0 ℃）；调试结束后改为 50，并在恒温下重新校准零偏
+// temperature：恒温目标 50 ℃，温度稳定后静止校准零偏
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = -90 * deg, .pitch = 0 * deg, .roll = 180 * deg}),
                 .gyro_offset = Vector3f(0.0f, 0.0f, 0.0f),
                 .gravity = 9.81f,
-                .temperature = 0.0f});
+                .temperature = 50.0f});
 inline QuaternionEkf attitude(imu, {});
 
 // 达妙电机：tx_id 为调试助手中的 CAN ID，rx_id 为 Master ID；上位机 PMAX 改为 3.14159，MIT 模式
@@ -32,14 +32,14 @@ inline QuaternionEkf attitude(imu, {});
 
 // 大 yaw：DM4310，CAN1，MIT 纯力矩；位置环 rad → rad/s，速度环 rad/s → Nm
 inline Pid::Config yaw1_speed_pid = {
-    .kp = 0.5f,
-    .ki = 0.1f,
+    .kp = 3.0f,
+    .ki = 0.15f,
     .max_i = 1.0f,
     .max_out = 7.0f,
     .err_fc = 10,
 };
 inline Pid::Config yaw1_position_pid = {
-    .kp = 3.0f,
+    .kp = 5.0f,
     .max_out = 720 * deg_s,
 };
 inline DM4310 yaw1({
@@ -59,7 +59,7 @@ inline Pid::Config yaw2_speed_pid = {
     .err_fc = 10,
 };
 inline Pid::Config yaw2_position_pid = {
-    .kp = 20.0f,
+    .kp = 15.0f,
     .max_out = 720 * deg_s,
 };
 // 大小 yaw 正方向与 IMU 航向一致；offset 为小 yaw 回中时的原始角度
@@ -70,7 +70,7 @@ inline RMDL7025 yaw2({
     .tx_id = 0x141,
     .rx_id = 0x241,
     .is_invert = false,
-    .offset = 5.31959f,
+    .offset = 3.192f,
 });
 
 // pitch1：折叠关节，DM4310，CAN2，只用编码器闭环；位置环限速 90°/s 限制折叠、展开速度
@@ -99,11 +99,11 @@ inline DM4310 pitch1({
 
 // pitch2：俯仰轴，DM4310，CAN2，IMU 装在其上，走 ECD / IMU 模式
 inline Pid::Config pitch2_speed_pid = {
-    .kp = (0.8f) / (150 * deg_s),
-    .ki = (0.03f) / (150 * deg),
-    .kd = (0.01f) / (1000 * deg_ss),
-    .ff = -1.2f,
-    .max_i = 0.3f,
+    .kp = 0.50558f,
+    .ki = 2.0f,
+    .kd = 0.02f,
+    .ff = -1.55f,
+    .max_i = 0.4f,
     .max_out = 5.0f,
     .err_fc = 10,
 };

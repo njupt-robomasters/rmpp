@@ -20,8 +20,8 @@ void shooter_loop() {
     const bool is_shooter_enable = sentry_enable() && !(vt13.is_connect && vt13.mode == VT13::N);
     shooter.set_enable(is_shooter_enable);
 
-    // S 挡按住自瞄键后，左摇杆上推调节弹频；肩键用于强制开火
-    const bool is_vt13_feed = vt13.is_connect && vt13.mode == VT13::S && vt13.photo;
+    // S 挡按住自瞄键或肩键后，左摇杆上推调节弹频；肩键用于强制开火
+    const bool is_vt13_feed = vt13.is_connect && vt13.mode == VT13::S && (vt13.photo || vt13.trigger);
     const bool radio_rub = fsi6x.swc == FSi6X::DOWN;
     const bool radio_shoot = fsi6x.swb == FSi6X::DOWN;
     const bool radio_auto_aim = fsi6x.swd == FSi6X::DOWN;

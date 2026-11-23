@@ -19,48 +19,46 @@ int main() {
     near(chassis.vy, 0);
     near(chassis.wr, 0);
 
-    // 小 yaw 左转 90°：大 yaw 系向前在云台系中为向右
+    // 导航速度直接使用头坐标系，小 yaw 角度不改变输入
     gimbal.yaw2.measure = 90 * deg;
     gimbal.yaw.ecd.measure = 30 * deg;
-    command(1, 0, 0);
+    command(1, 0, 1);
     CHECK(chassis.mode == ChassisMatrix::FOLLOW_MODE);
-    near(chassis.vx, 0);
-    near(chassis.vy, -1);
-    near(chassis.wr, 0);
-    near(chassis.gimbal_yaw, 30 * deg);
-
-    // 两次坐标转换应等于直接按大 yaw 相对底盘角转换
-    for (int i = -10; i <= 10; i++) {
-        const float large_yaw = i * 0.2f;
-        gimbal.yaw2.measure = i * 0.06f;
-        gimbal.yaw.ecd.measure = large_yaw + float(gimbal.yaw2.measure);
-        command(1.2f, -0.8f, 0);
-        const auto [actual_x, actual_y] = rotate(chassis.vx, chassis.vy, chassis.gimbal_yaw);
-        const auto [expected_x, expected_y] = rotate(1.2f, -0.8f, large_yaw);
-        near(actual_x, expected_x);
-        near(actual_y, expected_y);
-    }
-
-    gimbal.yaw2.measure = 0;
-    command(0, 0, 1);
-    CHECK(chassis.mode == ChassisMatrix::DETACH_MODE);
-    near(chassis.wr, WR_MAX);
-    command(5, 0, 1);
-    near(chassis.wr, WR_MIN);
-    command(100, 0, 1);
-    near(chassis.vx, VXY_MAX);
-    near(chassis.wr, WR_MIN);
-    command(0, 0, 0);
-    CHECK(chassis.mode == ChassisMatrix::FOLLOW_MODE);
-    near(chassis.wr, 0);
-
-    // 人工控制接管全部导航速度和旋转
-    vt13.is_connect = true;
-    vt13.x = 0.2f;
-    command(3, 2, 1);
     near(chassis.vx, 1);
     near(chassis.vy, 0);
     near(chassis.wr, 0);
+    near(chassis.gimbal_yaw, 30 * deg);
+
+    gimbal.yaw2.measure = 0;
+    command(0, 0, 0);
+    CHECK(chassis.mode == ChassisMatrix::DETACH_MODE);
+    near(chassis.wr, NAV_WR);
+    command(5, 0, 0);
+    near(chassis.wr, NAV_WR);
+    command(100, 0, 0);
+    near(chassis.vx, VXY_MAX);
+    near(chassis.wr, NAV_WR);
+    command(0, 0, 1);
+    CHECK(chassis.mode == ChassisMatrix::FOLLOW_MODE);
+    near(chassis.wr, 0);
+
+    // 人工平移接管速度，保留 flag 对应的小陀螺或随头
+    vt13.is_connect = true;
+    vt13.x = 0.2f;
+    command(3, 2, 0);
+    near(chassis.vx, 1);
+    near(chassis.vy, 0);
+    near(chassis.wr, NAV_WR);
+    CHECK(chassis.mode == ChassisMatrix::DETACH_MODE);
+    command(3, 2, 1);
+    near(chassis.vx, 1);
+    near(chassis.wr, 0);
+    CHECK(chassis.mode == ChassisMatrix::FOLLOW_MODE);
+    command(3, 2, 0);
+    vt13.wheel = 0.5f;
+    run();
+    near(chassis.wr, 0.5f * WR_MAX);
+    vt13.wheel = 0;
     vt13.x = 0;
     run();
     near(chassis.vx, 3);
@@ -73,7 +71,14 @@ int main() {
     near(chassis.vx, 0);
     near(chassis.vy, 0);
     near(chassis.wr, 0);
-    command(1, 2, 0);
+    // 导航离线时 Fn 和人工平移保持分离模式
+    vt13.x = 0.2f;
+    run();
+    CHECK(chassis.mode == ChassisMatrix::DETACH_MODE);
+    near(chassis.vx, 1);
+    near(chassis.wr, 0);
+    vt13.x = 0;
+    command(1, 2, 1);
     CHECK(chassis.mode == ChassisMatrix::FOLLOW_MODE);
     yaw2.is_connect = false;
     run();

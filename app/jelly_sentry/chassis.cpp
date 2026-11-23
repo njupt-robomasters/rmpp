@@ -1,13 +1,11 @@
 #include "app.hpp"
 #include "bsp/timer.hpp"
-#include "math/math.hpp"
 #include <algorithm>
-#include <cmath>
 
 // 操控参数
 static constexpr float VXY_MAX = 5.0f;     // 平移最大速度，m/s；100W下2.3m/s，不限功率3.2m/s
-static constexpr float WR_MAX = 120 * rpm; // 旋转最大角速度，rad/s；100W下107rpm，不限功率155rpm
-static constexpr float WR_MIN = 60 * rpm;  // 导航满速平移时的小陀螺角速度，与底盘功率控制保留转速一致
+static constexpr float WR_MAX = 100 * rpm; // 旋转最大角速度，rad/s；100W下107rpm，不限功率155rpm
+static constexpr float NAV_WR = 60 * rpm;  // 导航自动小陀螺角速度，rad/s
 static constexpr float AXY = 100.0f;       // 键盘平移加速度，m/s^2
 static constexpr float DXY = 100.0f;       // 键盘平移减速度，m/s^2
 static constexpr float AR = 1000 * rpm;    // 键盘旋转角加速度，rad/s^2
@@ -16,8 +14,6 @@ static constexpr float DR = 1000 * rpm;    // 键盘旋转角减速度，rad/s^2
 // 跨周期状态
 static Timer loop_timer;
 static float key_vx = 0, key_vy = 0, key_wr = 0;
-static bool last_enable = false;
-static ChassisMatrix::Mode mode = ChassisMatrix::DETACH_MODE;
 
 // 按住正向或反向键时加速，松开时减速到 0
 static float key_speed(const float speed, const bool positive, const bool negative, const float maximum, const float acceleration, const float deceleration, const float dt) {
@@ -33,13 +29,7 @@ static float key_speed(const float speed, const bool positive, const bool negati
 void chassis_loop() {
     const float dt = loop_timer.restart();
 
-    // 使能变化时回到分离模式，防止车突然转动伤人；fn 打开后切到跟随并保持到下次使能变化
     const bool is_enable = sentry_enable();
-    if (is_enable != last_enable)
-        mode = ChassisMatrix::DETACH_MODE;
-    last_enable = is_enable;
-    if (rc_fn())
-        mode = ChassisMatrix::FOLLOW_MODE;
     chassis.set_enable(is_enable);
 
     // 键盘：WASD 平移，Shift、Ctrl 旋转；断联时直接清零
@@ -51,26 +41,26 @@ void chassis_loop() {
         key_vx = key_vy = key_wr = 0;
     }
 
-    // 人工底盘输入优先接管，速度定义在 IMU 头的云台系
+    // 人工输入优先接管速度；人工与导航平移均以最终 IMU 头为前方
     float vx = (vt13.x + fsi6x.x) * VXY_MAX + key_vx;
     float vy = (vt13.y + fsi6x.y) * VXY_MAX + key_vy;
     float wr = vt13.wheel * WR_MAX + key_wr;
     const bool has_manual_input = vt13.x != 0 || vt13.y != 0 || vt13.wheel != 0 ||
                                   fsi6x.x != 0 || fsi6x.y != 0 ||
                                   key_vx != 0 || key_vy != 0 || key_wr != 0;
-    auto control_mode = mode;
-    if (is_enable && sentry_active() && !has_manual_input) {
-        // 等待有效导航或 yaw 反馈时停止自主平移、旋转及随头
-        control_mode = ChassisMatrix::DETACH_MODE;
+    auto control_mode = ChassisMatrix::DETACH_MODE;
+    if (is_enable && sentry_active()) {
+        // 有效 flag 选择旋转模式，人工平移保持该模式；离线时停止自动控制
         if (nav.is_connect && yaw1.is_connect && yaw2.is_connect) {
-            // 雷达固连大 yaw；小 yaw 系相对大 yaw 系转过 yaw2，坐标转换取负角
-            std::tie(vx, vy) = rotate(nav.command.vx, nav.command.vy, -gimbal.yaw2.measure);
-            if (nav.command.action_flag == 0) {
+            if (!has_manual_input) {
+                vx = nav.command.vx;
+                vy = nav.command.vy;
+            }
+            if (nav.command.action_flag == 1) {
                 control_mode = ChassisMatrix::FOLLOW_MODE;
-            } else {
-                // 平移越快，小陀螺越慢；插值输入限幅，超量程指令保持旋转正方向
-                const float speed = std::clamp(std::hypotf(vx, vy), 0.0f, VXY_MAX);
-                wr = map(speed, 0.0f, VXY_MAX, WR_MAX, WR_MIN);
+            } else if (wr == 0) {
+                // 人工主动旋转优先，否则保持自动小陀螺转速
+                wr = NAV_WR;
             }
         }
     }

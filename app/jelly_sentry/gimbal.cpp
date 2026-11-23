@@ -10,8 +10,8 @@ static constexpr float WPITCH_MAX = 360 * deg_s; // pitch 最大角速度，rad/
 static constexpr float AYAW = 3600 * deg_s;      // 鼠标 yaw 最大角加速度，rad/s^2
 static constexpr float APITCH = 3600 * deg_s;    // 鼠标 pitch 最大角加速度，rad/s^2
 
-// 自主扫描与锁定参数：扫描时 yaw 匀速旋转、pitch 在 IMU [PITCH_MIN, PITCH_MAX] 内来回摆动
-static constexpr float YAW_SPEED = 180 * deg_s, PITCH_SPEED = 60 * deg_s;
+// 暂停自动扫描：yaw、pitch 扫描速度归零，自检 yaw 同步停止；保留目标锁定
+static constexpr float YAW_SPEED = 0 * deg_s, PITCH_SPEED = 0 * deg_s;
 static constexpr Angle PITCH_MIN = -22 * deg, PITCH_MAX = 0 * deg;
 static constexpr float LOCK_DISTANCE = 5, LOCK_TIMEOUT = 500 * ms;           // 自瞄有效距离 m、脱锁时间 s
 static constexpr float INSTA360_CHECK_TIMEOUT = 1, INSTA360_PUNISH_TIME = 0; // 全景目标检查时间、误识别惩罚时间，s
@@ -128,7 +128,7 @@ void gimbal_loop() {
             break;
         }
     } else {
-        // 非自主模式复位状态机；裁判系统 15 s 自检阶段 yaw 旋转、pitch 停止
+        // 非自主模式复位状态机；自检 yaw 速度沿用当前扫描设置
         gimbal_state = SCAN;
         scan_up = false;
         target_yaw = target_pitch = 0 * deg;
@@ -148,9 +148,11 @@ void gimbal_loop() {
     else
         gimbal.set_speed(std::clamp(wyaw, -WYAW_MAX, WYAW_MAX), std::clamp(wpitch, -WPITCH_MAX, WPITCH_MAX));
 
-    // pitch1 在 GimbalFold 内固定失能；导航 flag 只选择底盘模式
+    // TODO：有效 action_flag=0 时 pitch1 抬头，=1 时折叠，待确定目标角和编码器零点
+    // pitch1 当前仍在 GimbalFold 内固定失能
 
-    // 小陀螺前馈
+    // 识别到装甲板时小 yaw 优先追踪，并传入底盘旋转前馈
+    gimbal.set_yaw_window(aim.vision.is_detect);
     gimbal.set_chassis_wr(chassis.wr.measure);
     gimbal.update(attitude.yaw, attitude.pitch);
 }
