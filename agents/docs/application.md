@@ -72,6 +72,7 @@
 - 云台为摇杆叠加鼠标，无斜坡，限幅到满量程；pitch 抬头为负，与 Classic 云台一致。按住 trigger 时 pitch 摇杆改为弹频倍率（负值反转），否则鼠标左键按最高弹频；S 挡输出配置弹速；photo 或鼠标右键为自瞄
 - 断联时原始量、键盘斜坡与操控量全部清零，挡位为 ERR
 - 图传链路的裁判帧与遥控帧混在 VT13 串口：VT13 同一缓冲区按帧头分别校验，0xA5 帧只处理 0x0311（载荷至多 60 B），在串口接收中断内依序调用 `add_0311_callback()` 注册的回调，回调在启动前注册；0x0311 不影响 `is_connect`。机器人发往自定义终端的 0x0310 同样走图传串口，目前未提供发送接口；Referee 不再收发图传链路报文
+- VT13 回调按“协议接收”统一写法（`conventions.md`）在 `rx_fifo` 中分流：`A9 53` 遥控帧按固定长度验 `crc16_referee`、更新 `raw` 和在线计时；`A5` 裁判帧先验 5 字节帧头的 `crc8_referee`，再按载荷长度验整帧 `crc16_referee`。半帧原样保留，错位、超长或校验失败时丢弃 1 字节
 - VT13 的 `Config` 公开且可修改，下次 `update()` 生效，如 steer_sentry 的 C、Z 键增减 `config.bullet_freq`；各 app 在实例处给出满量程、加减速度、弹速与弹频
 - steer_sentry（VT13 接 USART6）与 jelly_sentry（VT13 接 USART1）只用 VT13，已移除 FSi6X；控制方式见下节“哨兵控制”。jelly_sentry 云台 pitch 取 `-vt13.pitch_speed`，保持迁移前摇杆上推目标增大的方向；步兵身份下 C、Z 键修改 `vt13.config.bullet_freq`
 - FSi6X 只保留在 dummy、leg_down 断联回退与 `examples/rc`，在对应 `.cpp` 直接读取
@@ -134,7 +135,7 @@
 
 ## jelly_sentry 导航与 pitch1
 
-- CDC1 留给 Aim，CDC2 接 Nav 的 17 字节导航下行帧；主循环先执行 nav.update()，再执行 chassis_loop()
+- CDC1 用于 Aim 收发，CDC2 接 Nav 的 17 字节导航下行帧。主循环先执行 `nav.update()`，再执行 `chassis_loop()`
 - 导航按大 yaw 雷达系速度接入，经负小 yaw 角转换到云台系；flag=0 随 IMU 头，flag=1 不随头并使用小陀螺。人工底盘输入优先接管，导航超时或 yaw 反馈离线停止自主运动
 - pitch1 当前全程失能，GimbalFold 的总使能接口和每次 update 固定关闭该轴，清 PID 并写零输出，保留反馈与失能帧发送；其余三轴正常控制
 - 协议、坐标公式、flag 和离线处理详见 `minipc.md`；验证见 `../tasks/15-minipc_nav/README.md`
@@ -164,6 +165,6 @@
 - 超电接上板 Can(1)，每周期读取裁判功率上限和缓冲能量并更新，指令按 100 Hz 发送。模式跟随 VT13 整车使能：失能 OFF，使能 BOOST。
 - 上板控制帧：bit0 使能，bit1 跳跃，bit2..14 前向速度，bit15..30 航向角速度目标，bit31..43 yaw，前三个运动量分别按 0.001 m/s、0.001 rad/s、0.001 rad 编码；bit44..52 腿长，bit53..63 保留，发送时清零。下板状态帧：bit0 倒地，bit1 使能，bit2..17 实测航向角速度（int16，0.001 rad/s），bit18..29 为左前、左后、右后、右前、左轮、右轮的 2 位状态（0 正常、1 过热、2 达妙错误、3 离线），bit30..31 保留。
 - 下板 Can(1) 每拍 3 帧，匹配 3 个发送邮箱：偶拍左腿两关节与双轮 0x200，奇拍右腿两关节加第 3 帧，第 3 帧由 0x003 状态帧与 `referee_relay.send()` 轮流使用，各 250 Hz
-- 裁判系统接下板 USART1（115200），`app.hpp` 的 `RefereeRelay referee_relay` 原样转发字节流：CAN ID 与 leg_protocol 一样按发送板命名，0x00 为下板发送、0x01 为上板发送，类内按本板视角写作 `tx_id`、`rx_id`（与 Referee 对应）。串口收到的字节切成至多 8 字节的 0x00 帧，每次 `send()` 发 1 帧，容量 2 kB/s，约为 2027 协议常规链路定频报文的 2 倍；收到的 0x01 帧载荷拼接后在串口空闲时一次发出。缓冲区 `to_can` 1024 B（1 Hz 定频报文与触发报文叠加的最坏突发约 500 B）、`to_uart` 256 B（两次 `send()` 间至多积压 32 B），满时丢弃并计入 `to_can_drop`、`to_uart_drop`。上板用 `Referee({.can = Can(1)})` 接收（默认 `rx_id = 0`）、`RefereeSender({.can = Can(1)})` 发送（默认 `tx_id = 1`）；leg_up 的 `referee_loop()` 在 `referee.update()` 后调用 `referee_sender.set_robot_id()` 并填写 UI，`send()` 在偶拍空闲槽调用 `referee_sender.send()`，每次至多 1 帧
+- 裁判系统接下板 USART1（115200），`app.hpp` 的 `RefereeRelay referee_relay` 原样转发字节流：CAN ID 与 leg_protocol 一样按发送板命名，0x00 为下板发送、0x01 为上板发送，类内按本板视角写作 `tx_id`、`rx_id`（与 Referee 对应）。串口收到的字节切成至多 8 字节的 0x00 帧，每次 `send()` 发 1 帧，容量 2 kB/s，约为 2027 协议常规链路定频报文的 2 倍；收到的 0x01 帧载荷拼接后在串口空闲时一次发出。缓冲区 `to_can` 1024 B（1 Hz 定频报文与触发报文叠加的最坏突发约 500 B）、`to_uart` 256 B（两次 `send()` 间至多积压 32 B），满时弹出最旧字节，丢失的字节数分别累计到 `to_can_drop`、`to_uart_drop`。上板用 `Referee({.can = Can(1)})` 接收（默认 `rx_id = 0`）、`RefereeSender({.can = Can(1)})` 发送（默认 `tx_id = 1`）；发送队列保留最新 20 个待发请求，已组帧的数据继续发完。leg_up 的 `referee_loop()` 在 `referee.update()` 后调用 `referee_sender.set_robot_id()` 并填写 UI，`send()` 在偶拍空闲槽调用 `referee_sender.send()`，每次至多 1 帧
 - `ChassisLeg::calc_lqr()` 直接输出左右轮力矩与两腿摆动力矩，轮电机保留自身力矩限幅。
 - leg_up 发射机构按裁判热量设置剩余热量，`heat_protect = 80` 待整定；UI 的 yaw 相对角取 `yaw.angle`，世界 yaw/pitch 取 GimbalClassic 的 `angle_measure`，受击方向按“云台世界 yaw − yaw 电机角”换算底盘航向后锁存，底盘转速显示下板回传的 `down.wr`；下板通信、使能与倒地显示在 `yaw1`，6 个底盘电机状态显示在 `w1`~`w4`、`s1`~`s4`

@@ -7,6 +7,7 @@
 ### 原则
 
 - 简洁、直观、可人工审计优先
+- 应用代码及业务模块禁止使用 `static_assert`。字节序、浮点表示和协议帧布局等检查放在测试中
 - 同类问题使用统一写法
 - 删除重复实现、无效中间层、旧接口和依赖
 - 不增加兼容包装，不为假设需求保留兜底
@@ -79,9 +80,22 @@
 - 电机型号在具体类中保留 `MAX_CURRENT`、`MAX_TORQUE`、`REDUCTION` 常量，构造时作为默认值传给 `Motor`；不使用 kt，电流与力矩按二者之比换算
 - PID 由持有方传入 `dt`；不使用的分支调用 `clear()`，clear 后首帧不差分
 
+### 协议接收
+
+适用于 `lib/minipc`（Nav、Aim）、`lib/rc/vt13`、`lib/referee/referee` 等字节流协议；FSi6X 的 SBUS 无校验，按空闲中断整帧接收
+
+- 成员：`raw`（多方向时 `raw_rx`、`raw_tx`）保存最近一帧有效原始帧，断联后保留供 SWD 查看；`rx_fifo` 保存未解析字节，只在接收回调内读写；`callback_timer` 用于断联检测
+- `callback(const uint8_t* data, size_t size)` 逐字节 `rx_fifo.push()`，在 `while` 中依次：帧头不符丢弃 1 字节；不足整帧 `break`；校验不符丢弃 1 字节；有效帧整帧出队，复制到 `raw` 后解析，最后置 `is_connect` 并重启 `callback_timer`
+- 定长帧用 `packed` 结构体 `peek()` 到局部变量，校验通过再赋给 `raw`；CRC 字段按小端 `uint16_t` 直接比较
+- 只做协议规定的帧头、长度和 CRC 校验，字段原样映射，不额外检查浮点有限性或取值范围
+- 断联只在 `update()` 检查：超时后 `is_connect = false` 并清零解析结果，不清 `rx_fifo` 和 `raw`
+- 发送帧需要 SWD 诊断时保存为成员 `raw_tx`，`set_*()` 直接写入，`send()` 补 CRC 后发出
+- CRC 为自由函数：`crc8_referee`、`crc16_referee`（`referee/crc.hpp`），`crc16_modbus`（`minipc/crc16_modbus.hpp`）
+
 ### 表达
 
 - 多分支使用清晰的 `if`、`else if` 或提前返回，不使用嵌套三目
+- 位运算的掩码和移位量使用无符号字面量，如 `1u << 0u`、`0xFFu`；按位表达式中的零值写 `0u`
 - 参数使用对应物理量名称；与成员重名时用 `this->`
 - 不会重新赋值的局部变量和按值参数在定义中尽量使用 `const`；声明中不重复顶层 `const`
 - 指针和引用按实际修改语义限定

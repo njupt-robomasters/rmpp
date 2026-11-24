@@ -138,4 +138,4 @@ inline GimbalFold gimbal({yaw1, yaw2, pitch1, pitch2}, {
                                                            .pitch2_gravity = {.torque = 0, .phase = 0 * deg},
                                                        });
 
-void gimbal_loop();
+void gimbal_loop(bool is_detect, Angle target_yaw, Angle target_pitch, float distance);

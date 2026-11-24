@@ -2,11 +2,9 @@
 #include "referee/crc.hpp"
 #include <algorithm>
 #include <cmath>
-#include <cstring>
 
 VT13::VT13(const Config& config)
     : config(config) {
-    // 注册串口回调
     config.uart.add_rx_callback([this](const uint8_t* data, const size_t size) { callback(data, size); });
 }
 
@@ -53,72 +51,80 @@ void VT13::update() {
         bullet_freq = 0;
 }
 
-void VT13::callback(const uint8_t data[], const size_t size) {
-    for (size_t i = 0; i < size; i++) {
-        if (rx.size == RX_CAPACITY)
-            rx.clear();
-        rx.push(data[i]);
-
-        while (rx.size != 0) {
-            // 整帧复制为连续数组后校验；最长为 0x0311 帧
-            uint8_t frame[COMMAND_MAX + 9];
-
-            // 遥控帧：0xA9 0x53 帧头，CRC16 校验前 19 字节
-            if (rx[0] == 0xA9) {
-                if (rx.size < 2)
+void VT13::callback(const uint8_t* data, const size_t size) {
+    for (size_t index = 0; index < size; index++) {
+        rx_fifo.push(data[index]);
+        while (rx_fifo.size >= 2) {
+            // 遥控帧：A9 53 帧头，定长
+            if (rx_fifo[0] == 0xA9 && rx_fifo[1] == 0x53) {
+                if (rx_fifo.size < sizeof(raw))
                     break;
-                if (rx[1] == 0x53) {
-                    if (rx.size < sizeof(raw))
-                        break;
-                    rx.peek(frame, sizeof(raw));
-                    const uint16_t crc16 = frame[19] | (static_cast<uint16_t>(frame[20]) << 8u);
-                    if (CRC16::verify(frame, 19, crc16)) {
-                        is_connect = true;
-                        callback_timer.restart();
-                        std::memcpy(&raw, frame, sizeof(raw));
-                        rx.pop(sizeof(raw));
-                        parse_raw();
-                        continue;
-                    }
+
+                // CRC 不符：丢弃 1 字节，帧内出现的帧头可重新对齐
+                decltype(raw) frame;
+                auto* bytes = reinterpret_cast<uint8_t*>(&frame);
+                rx_fifo.peek(bytes, sizeof(frame));
+                if (crc16_referee(bytes, sizeof(frame) - 2) != frame.crc16) {
+                    rx_fifo.pop(1);
+                    continue;
                 }
+                rx_fifo.pop(sizeof(frame));
+
+                // 有效帧：保存原始帧并解析
+                raw = frame;
+                parse_raw();
+                is_connect = true;
+                callback_timer.restart();
+                continue;
             }
 
-            // 图传链路裁判帧：0xA5 帧头，CRC8 校验帧头、CRC16 校验整包；只处理 0x0311
-            if (rx[0] == 0xA5) {
-                if (rx.size < 5)
+            // 图传链路裁判帧：A5 帧头，帧格式同常规链路；只分发 0x0311
+            if (rx_fifo[0] == 0xA5) {
+                if (rx_fifo.size < 5)
                     break;
-                rx.peek(frame, 5);
+
+                // 帧头 5 B：A5、载荷长度 2 B、包序号、CRC8；载荷超长或 CRC8 不符时丢弃 1 字节重新对齐
+                uint8_t frame[COMMAND_MAX + 9];
+                rx_fifo.peek(frame, 5);
                 const size_t payload_size = frame[1] | (static_cast<size_t>(frame[2]) << 8u);
-                if (payload_size <= COMMAND_MAX && CRC8::verify(frame, 4, frame[4])) {
-                    const size_t frame_size = payload_size + 9;
-                    if (rx.size < frame_size)
-                        break;
-                    rx.peek(frame, frame_size);
-                    const uint16_t crc16 = frame[frame_size - 2] | (static_cast<uint16_t>(frame[frame_size - 1]) << 8u);
-                    if (CRC16::verify(frame, frame_size - 2, crc16)) {
-                        const uint16_t cmd_id = frame[5] | (static_cast<uint16_t>(frame[6]) << 8u);
-                        if (cmd_id == 0x0311)
-                            for (const auto& rx_callback : callbacks_0311)
-                                rx_callback(frame + 7, payload_size);
-                        rx.pop(frame_size);
-                        continue;
-                    }
+                if (payload_size > COMMAND_MAX || crc8_referee(frame, 4) != frame[4]) {
+                    rx_fifo.pop(1);
+                    continue;
                 }
+                const size_t frame_size = 5 + 2 + payload_size + 2;
+                if (rx_fifo.size < frame_size)
+                    break;
+
+                // 整帧：帧头、命令码 2 B、载荷、CRC16 2 B；CRC16 不符时丢弃 1 字节重新对齐
+                rx_fifo.peek(frame, frame_size);
+                const uint16_t crc = frame[frame_size - 2] | (static_cast<uint16_t>(frame[frame_size - 1]) << 8u);
+                if (crc16_referee(frame, frame_size - 2) != crc) {
+                    rx_fifo.pop(1);
+                    continue;
+                }
+                rx_fifo.pop(frame_size);
+
+                // 有效帧：载荷仅在回调期间有效，其他命令码直接丢弃
+                const uint16_t cmd_id = frame[5] | (static_cast<uint16_t>(frame[6]) << 8u);
+                if (cmd_id == 0x0311)
+                    for (const auto& rx_callback : callbacks_0311)
+                        rx_callback(frame + 7, payload_size);
+                continue;
             }
 
-            // 非帧头或校验失败：丢弃 1 字节重新寻找帧头，支持坏帧后紧接有效帧
-            rx.pop(1);
+            // 帧头不符：丢弃 1 字节重新对齐
+            rx_fifo.pop(1);
         }
     }
 }
 
 void VT13::parse_raw() {
     // 解析摇杆
-    rc.y = -get_joy_stick(raw.ch_0);      // 右手水平
-    rc.x = get_joy_stick(raw.ch_1);       // 右手垂直
-    rc.pitch = get_joy_stick(raw.ch_2);   // 左手垂直
-    rc.yaw = -get_joy_stick(raw.ch_3);    // 左手水平
-    rc.wheel = -get_joy_stick(raw.wheel); // 拨轮
+    rc.y = -get_joystick(raw.ch_0);      // 右手水平
+    rc.x = get_joystick(raw.ch_1);       // 右手垂直
+    rc.pitch = get_joystick(raw.ch_2);   // 左手垂直
+    rc.yaw = -get_joystick(raw.ch_3);    // 左手水平
+    rc.wheel = -get_joystick(raw.wheel); // 拨轮
 
     // 解析开关和按钮
     rc.mode = Mode(raw.mode_sw);
@@ -154,10 +160,10 @@ void VT13::parse_raw() {
     key.b = raw.key & (1u << 15u);
 }
 
-float VT13::get_joy_stick(const uint16_t value) const {
+float VT13::get_joystick(const uint16_t value) const {
     float ret = (static_cast<float>(value) - 1024.0f) / 660.0f;
     ret = std::clamp(ret, -1.0f, 1.0f);
-    if (std::fabs(ret) < config.deadline)
+    if (std::fabs(ret) < config.dead_zone)
         ret = 0.0f;
     return ret;
 }

@@ -179,9 +179,9 @@ void RefereeSender::send() {
             frame[0] = 0xA5;
             write_u16(frame + 1, static_cast<uint16_t>(size));
             frame[3] = seq++;
-            frame[4] = CRC8::check_sum(frame, 4);
+            frame[4] = crc8_referee(frame, 4);
             write_u16(frame + 5, request.cmd_id);
-            write_u16(frame + 7 + size, CRC16::check_sum(frame, 7 + size));
+            write_u16(frame + 7 + size, crc16_referee(frame, 7 + size));
             frame_size = size + 9;
             frame_pos = 0;
 
@@ -203,7 +203,7 @@ void RefereeSender::send() {
 }
 
 Figure RefereeSender::make_figure(const uint32_t name, const uint8_t layer, const Color color, const uint16_t width, const uint16_t x, const uint16_t y, const Type type) {
-    return {.name = {static_cast<uint8_t>(name), static_cast<uint8_t>(name >> 8), static_cast<uint8_t>(name >> 16)},
+    return {.name = {static_cast<uint8_t>(name), static_cast<uint8_t>(name >> 8u), static_cast<uint8_t>(name >> 16u)},
             .operation = NONE,
             .type = type,
             .layer = layer,
@@ -239,9 +239,9 @@ void RefereeSender::write_arc(Figure& figure, const float start_angle, const flo
 void RefereeSender::write_number(Figure& figure, const int32_t value) {
     // 32 位补码拆入 details_c/d/e
     const auto bits = static_cast<uint32_t>(value);
-    figure.details_c = bits & 0x3FF;
-    figure.details_d = (bits >> 10) & 0x7FF;
-    figure.details_e = bits >> 21;
+    figure.details_c = bits & 0x3FFu;
+    figure.details_d = (bits >> 10u) & 0x7FFu;
+    figure.details_e = bits >> 21u;
 }
 
 void RefereeSender::write_float(Figure& figure, const float value) {
@@ -261,20 +261,21 @@ void RefereeSender::write_float(Figure& figure, const float value) {
 
 bool RefereeSender::push(const Request& request) {
     // 仪表刷新只保留最新：同子内容、首图形同名且同为 MODIFY 的排队请求原位替换
-    const bool is_modify = request.cmd_id == 0x0301 && request.content_id >= 0x0101 && request.content_id <= 0x0104 && (request.content[3] & 0x07) == MODIFY;
+    const bool is_modify = request.cmd_id == 0x0301 && request.content_id >= 0x0101 && request.content_id <= 0x0104 && (request.content[3] & 0x07u) == MODIFY;
     if (is_modify) {
         for (size_t i = 0; i < queue.size; i++) {
             auto& queued = queue[i];
-            if (queued.cmd_id == request.cmd_id && queued.content_id == request.content_id && (queued.content[3] & 0x07) == MODIFY && std::memcmp(queued.content, request.content, 3) == 0) {
+            if (queued.cmd_id == request.cmd_id && queued.content_id == request.content_id && (queued.content[3] & 0x07u) == MODIFY && std::memcmp(queued.content, request.content, 3) == 0) {
                 queued = request;
                 return true;
             }
         }
     }
-    return queue.push(request);
+    queue.push(request);
+    return true;
 }
 
 void RefereeSender::write_u16(uint8_t* data, const uint16_t value) {
     data[0] = static_cast<uint8_t>(value);
-    data[1] = static_cast<uint8_t>(value >> 8);
+    data[1] = static_cast<uint8_t>(value >> 8u);
 }

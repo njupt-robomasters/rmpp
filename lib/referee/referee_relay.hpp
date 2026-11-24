@@ -13,15 +13,13 @@ class RefereeRelay {
 
   public:
     struct Config {
-        Uart uart;             // 接电源管理模块，115200
+        Uart uart;             // 接电源管理模块，115200 8N1
         Can can;               // 接 Referee 所在板
         uint32_t tx_id = 0x00; // 本板发送 CAN ID，载荷来自串口；对应 Referee rx_id
         uint32_t rx_id = 0x01; // 本板接收 CAN ID，载荷发往串口；对应 Referee tx_id
-    };
+    } const config;
 
   private:
-    const Config config;
-
     // 已满丢弃的字节数，接收中断累加；SWD 观察
     uint32_t to_can_drop = 0, to_uart_drop = 0;
 
@@ -32,8 +30,6 @@ class RefereeRelay {
   public:
     // 实例在 BSP 回调有效期间不得销毁或移动
     explicit RefereeRelay(const Config& config);
-
-    RefereeRelay(const RefereeRelay&) = delete;
 
     // 仅在主循环调用：CAN 有空位时发 1 帧 tx_id，串口空闲时一次发出 to_uart 全部字节
     void send();

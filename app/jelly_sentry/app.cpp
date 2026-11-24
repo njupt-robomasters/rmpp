@@ -1,10 +1,12 @@
 #include "app.hpp"
+#include "bsp/irq_lock.hpp"
 #include "bsp/monitor.hpp"
 #include "chassis.hpp"
 #include "gimbal.hpp"
 #include "melody/music/c5d5g5.hpp"
 #include "shooter.hpp"
 #include <cmath>
+#include <tuple>
 
 // RGB 色彩循环
 static constexpr float RGB_PERIOD = 1; // 循环周期，s
@@ -66,6 +68,12 @@ static void send() {
         shoot_cnt = 0;
         shoot.send();
     }
+
+    if (send_cnt % 5 == 0) {
+        aim.set_imu(attitude.yaw, attitude.pitch, attitude.roll);
+        aim.set_referee(referee.robot_status.robot_id < 100, referee.shoot_data.initial_speed);
+        aim.send();
+    }
 }
 
 static void loop() {
@@ -75,16 +83,17 @@ static void loop() {
     melody.update();
     vt13.update();
     attitude.update();
+    aim.update();
     referee_loop();
-
-    // 上位机：姿态与比赛信息，弹速取裁判系统实测初速
-    aim.set_referee(referee.robot_status.robot_id < 100, referee.shoot_data.initial_speed);
-    aim.update(attitude.yaw, attitude.pitch, attitude.roll);
     nav.update();
 
     chassis_loop();
-    gimbal_loop();
-    shooter_loop();
+    const auto [is_detect, target_yaw, target_pitch, distance, is_fire] = [] {
+        const IrqLock lock;
+        return std::tuple{aim.is_detect, aim.yaw, aim.pitch, aim.distance, aim.is_fire};
+    }();
+    gimbal_loop(is_detect, target_yaw, target_pitch, distance);
+    shooter_loop(is_fire);
 
     send();
 }

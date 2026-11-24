@@ -21,13 +21,13 @@ static Timer lock_lost_timer;      // 识别到有效目标时重新开始
 static bool last_calib = false, last_r = false;
 
 // VT13：摇杆叠加鼠标；R 键掉头；photo 或鼠标右键自瞄，识别到目标时跟随视觉角度；裁判自检阶段 yaw 叠加匀速旋转
-static void control_by_vt13() {
+static void control_by_vt13(const bool is_detect, const Angle target_yaw, const Angle target_pitch) {
     if (vt13.key.r && !last_r)
         gimbal.turn_yaw(180 * deg);
     last_r = vt13.key.r;
 
-    if (vt13.is_aim && aim.vision.is_detect) {
-        gimbal.set_angle(aim.vision.yaw, aim.vision.pitch);
+    if (vt13.is_aim && is_detect) {
+        gimbal.set_angle(target_yaw, target_pitch);
     } else {
         float yaw_speed = vt13.yaw_speed;
         if (referee.game_status.game_progress == Referee::REFEREE_SELF_CHECK)
@@ -38,13 +38,13 @@ static void control_by_vt13() {
 }
 
 // 自主：有效距离内识别到目标即锁定并跟随视觉角度，脱锁超时或低血量回到扫描
-static void control_by_auto() {
-    const bool has_target = aim.vision.is_detect && aim.vision.distance <= LOCK_DISTANCE;
+static void control_by_auto(const bool is_detect, const Angle target_yaw, const Angle target_pitch, const float distance) {
+    const bool has_target = is_detect && distance <= LOCK_DISTANCE;
     const bool is_low_hp = referee.robot_status.current_HP <= GO_HOME_HP;
     if (has_target && !is_low_hp) {
         is_lock = true;
-        lock_yaw = aim.vision.yaw;
-        lock_pitch = aim.vision.pitch;
+        lock_yaw = target_yaw;
+        lock_pitch = target_pitch;
         lock_lost_timer.restart();
     } else if (is_low_hp || lock_lost_timer.elapsed() > LOCK_TIMEOUT) {
         is_lock = false;
@@ -61,7 +61,7 @@ static void control_by_auto() {
     }
 }
 
-void gimbal_loop() {
+void gimbal_loop(const bool is_detect, const Angle target_yaw, const Angle target_pitch, const float distance) {
     gimbal.set_enable(sentry_enable());
 
     // yaw 零点校准：VT13 C 挡按住 fn 和 photo，按下时触发一次
@@ -76,10 +76,10 @@ void gimbal_loop() {
     last_calib = calib;
 
     if (sentry_active()) {
-        control_by_auto();
+        control_by_auto(is_detect, target_yaw, target_pitch, distance);
     } else {
         is_lock = scan_up = false;
-        control_by_vt13();
+        control_by_vt13(is_detect, target_yaw, target_pitch);
     }
 
     // 小陀螺前馈；底盘转速未知时关闭

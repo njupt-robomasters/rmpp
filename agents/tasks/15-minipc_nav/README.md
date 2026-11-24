@@ -10,7 +10,7 @@
 - 雷达系到云台系使用 `R(-q2)`，底盘内部再用 `R(q1+q2)` 转到底盘系，合成 `R(q1)`；雷达安装轴按大 yaw 对齐处理
 - pitch1 全程失能，set_enable/update 均固定关闭，清空两级 PID、撤除该轴闭环输出计算并写零原生输出；4 ms 调度保留，实际 DmMotor::send() 发失能帧
 - C 板 sentry 同步迁移 Nav 构造与速度读取，保留原有底盘控制策略；两处应用删除未发送到上位机的目标点/返航占位赋值
-- yaw 字段解析并保存，具体控制用途待上位机约定；自瞄协议和 MCU 上行协议后续接入
+- 导航 yaw 字段解析并保存，具体控制用途待上位机约定。当前 Aim 收发接口见 `../../docs/minipc.md`
 
 ## 复现
 
@@ -33,3 +33,25 @@ python agents/tasks/15-minipc_nav/verify.py --arm
 - 本轮未烧录、复位、halt 或改写硬件；用户审计后更新固件，核对 CDC 枚举、雷达安装偏角、实际随头方向及 pitch1 失能状态
 
 ARM 编译摘要见 `out/arm_summary.json`。任务脚本的 host 编译和 ARM 编译可在工具路径可访问的环境中重放。
+
+## Aim 收发回归
+
+在项目根目录用主机 GCC 编译测试，输出放到 `agents/out/aim_refactor/`。
+
+```powershell
+New-Item -ItemType Directory -Force agents/out/aim_refactor
+g++ -std=c++23 -O2 -Wall -Wextra -Werror -DEIGEN_DONT_VECTORIZE -DEIGEN_MAX_ALIGN_BYTES=0 -Ilib -isystem lib/third_party/eigen-3.4.0 agents/tasks/15-minipc_nav/aim_test.cpp lib/minipc/aim.cpp -o agents/out/aim_refactor/aim_test.exe
+& agents/out/aim_refactor/aim_test.exe
+```
+
+固定字节帧验证上下行布局和 CRC。主机测试还覆盖全部拆分位置、粘包、重叠帧头、缺字节恢复、非法标志、非有限角度、超时清残帧和重连。两套哨兵的 app 与 Aim 共 12 个 ARM 对象，以及 leg_up 云台对象，均通过编译且零告警。
+
+### Aim 工作区审查（2026-11-24）
+
+审查时 `check_no_target(aim, true)` 失败。之后按用户要求改为字段原样映射（识别标志为 0 时开火标志仍按载荷发布），测试已随之更新并通过，见 `../20-protocol_unify/README.md`。
+
+### Nav 帧解析整理
+
+Nav 改用 `Config.cdc`、帧长 FIFO 和 `packed RxFrame`，Aim 与 Nav 共用一个 MODBUS CRC 函数。保留 Nav 的整帧快照、滑窗重同步、数值校验和 100 ms 超时。`nav_test.cpp` 新增生产 CRC 对标准向量 `123456789` 的检查，以及旧半帧的尾段先于 `update()` 到达的超时测试。主机 Nav/pitch1 测试 90,583 项通过，两块板各自的 Nav、Aim、app 和 chassis 共 8 个 ARM 对象编译通过。此前记录的 Aim 业务回归仍单独跟踪。
+
+后续 `../20-protocol_unify/` 删除了 Nav 的数值检查、`has_command` 与回调内超时判断，`command` 展开为同名公开成员；`nav_test.cpp` 已同步。

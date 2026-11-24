@@ -18,12 +18,8 @@ class RobotUi {
         float chassis_wr_max = 120 * rpm; // 底盘转速，rad/s
         float bullet_freq_max = 20.0f;    // 弹频，Hz
         float shoot_output_max = 20.0f;   // 拨弹电流/力矩，A / Nm
-    };
+    } const config;
 
-  private:
-    const Config config;
-
-  public:
     // 云台：相对底盘角度画中心圆弧，yaw、pitch 显示为度
     Angle yaw_ecd{}, yaw_angle{}, pitch_angle{};
 

@@ -1,5 +1,5 @@
 """Fifo 与迁移后环形缓冲主机测试：编译实际 lib/referee/referee.cpp 与 CRC，
-覆盖 Fifo 回绕、满时部分写入、peek/pop、[] 读写；Referee 接收环形回绕后连续解析、超长载荷丢弃。"""
+覆盖 Fifo 回绕、单元素和批量覆盖队首、溢出计数、peek/pop、[] 读写；Referee 接收环形回绕后连续解析、超长载荷丢弃。"""
 
 from pathlib import Path
 import subprocess
@@ -54,12 +54,12 @@ extern std::map<int, std::vector<CanFrame>> can_sent;
 
 static std::vector<uint8_t> make_frame(const uint16_t cmd_id, const void* data, const size_t size) {
     std::vector<uint8_t> frame{0xA5, static_cast<uint8_t>(size), static_cast<uint8_t>(size >> 8), 0};
-    frame.push_back(CRC8::check_sum(frame.data(), 4));
+    frame.push_back(crc8_referee(frame.data(), 4));
     frame.push_back(static_cast<uint8_t>(cmd_id));
     frame.push_back(static_cast<uint8_t>(cmd_id >> 8));
     const auto* bytes = static_cast<const uint8_t*>(data);
     frame.insert(frame.end(), bytes, bytes + size);
-    const uint16_t crc = CRC16::check_sum(frame.data(), static_cast<uint32_t>(frame.size()));
+    const uint16_t crc = crc16_referee(frame.data(), static_cast<uint32_t>(frame.size()));
     frame.push_back(static_cast<uint8_t>(crc));
     frame.push_back(static_cast<uint8_t>(crc >> 8));
     return frame;
@@ -76,23 +76,32 @@ static void can_receive(const int id, const uint32_t frame_id, const std::vector
 }
 
 int main() {
-    // Fifo：回绕、满时部分写入、peek 不取出、pop 丢弃与复制、[] 读写
+    // Fifo：回绕、满时覆盖队首、peek 不取出、pop 丢弃与复制、[] 读写
     Fifo<int, 4> fifo;
     const int a[] = {1, 2, 3};
-    assert(fifo.push(a, 3) == 3 && fifo.size == 3);
+    assert(fifo.push(a, 3) == 0 && fifo.size == 3);
     fifo.pop(2);
     assert(fifo.size == 1 && fifo[0] == 3);
     const int b[] = {4, 5, 6, 7};
-    assert(fifo.push(b, 4) == 3 && fifo.size == 4); // 回绕后写满，7 未写入
-    assert(!fifo.push(8));
+    assert(fifo.push(b, 4) == 1 && fifo.size == 4);
+    assert(fifo.push(nullptr, 0) == 0 && fifo[0] == 4);
+    fifo.push(8);
     int out[4]{};
-    assert(fifo.peek(out, 4) == 4 && out[0] == 3 && out[3] == 6 && fifo.size == 4);
+    assert(fifo.peek(out, 4) == 4 && out[0] == 5 && out[3] == 8 && fifo.size == 4);
     fifo[1] = 40;
-    assert(fifo.pop(out, 2) == 2 && out[0] == 3 && out[1] == 40 && fifo.size == 2);
-    assert(fifo[0] == 5 && fifo[1] == 6);
+    assert(fifo.pop(out, 2) == 2 && out[0] == 5 && out[1] == 40 && fifo.size == 2);
+    assert(fifo[0] == 7 && fifo[1] == 8);
+    const int oversized[] = {9, 10, 11, 12, 13, 14};
+    assert(fifo.push(oversized, 6) == 4 && fifo.size == 4);
+    for (int index = 0; index < 4; index++)
+        assert(fifo[index] == 11 + index);
     fifo.pop(10);
     assert(fifo.size == 0);
-    assert(fifo.push(9) && fifo[0] == 9);
+    for (int value = 9; value <= 18; value++)
+        fifo.push(value);
+    assert(fifo.size == 4 && fifo.peek(out, 4) == 4);
+    for (int index = 0; index < 4; index++)
+        assert(out[index] == 15 + index);
     fifo.clear();
     assert(fifo.size == 0 && fifo.peek(out, 4) == 0);
 
@@ -116,7 +125,7 @@ int main() {
     can_receive(2, 0x00, stream);
     assert(referee.robot_status.robot_id == 3);
 
-    std::puts("PASS: fifo wrap/partial/peek/pop/index, referee ring wrap and payload limit");
+    std::puts("PASS: fifo wrap/overwrite/drop count/peek/pop/index, referee ring wrap and payload limit");
 }
 """
 

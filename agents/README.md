@@ -67,3 +67,4 @@ agents/
 - `17-app_unify/`：sentry 改名 steer_sentry，两台哨兵与 leg 统一 app 结构（setup/loop/send、app 层 referee）、VT13/自主控制拆分、删除 insta360 与 FSi6X、leg_up 接入裁判与 UI；修复项与上车核对项
 - `18-leg_link_ui/`：UI 槽位改为 yaw1/yaw2/pitch1/pitch2、中心弧固定绿色；下板状态帧回传使能与 6 个电机状态、FSi6X 优先；使能后首次 pause 才使能、删除自救授权；删除 `use_angle_loop`
 - `19-leg_spin_power/`：历史轮端功率限幅实验、日志分析与归档提交；当前轮腿直接使用 LQR 输出
+- `20-protocol_unify/`：Nav、Aim、VT13、Referee 协议接收统一写法，minipc/rc/referee 命名、注释与 CRC 自由函数整理；ARM 编译脚本与主机测试记录

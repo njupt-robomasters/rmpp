@@ -73,7 +73,7 @@ static void build(const Input& in, uint8_t frame[21]) {
     put(frame, offset, in.right, 2);
     put(frame, offset, 0, 4);
     put(frame, offset, in.key, 16);
-    const uint16_t crc = CRC16::check_sum(frame, 19);
+    const uint16_t crc = crc16_referee(frame, 19);
     frame[19] = crc & 0xFF;
     frame[20] = crc >> 8;
 }
@@ -87,11 +87,11 @@ static void send(const Input& in) {
 // 追加一帧裁判协议帧：0xA5 帧头、CRC8、命令码、载荷、CRC16
 static void append_referee(std::vector<uint8_t>& stream, const uint16_t cmd_id, const uint8_t* data, const size_t size) {
     std::vector<uint8_t> frame{0xA5, static_cast<uint8_t>(size), static_cast<uint8_t>(size >> 8), 0};
-    frame.push_back(CRC8::check_sum(frame.data(), 4));
+    frame.push_back(crc8_referee(frame.data(), 4));
     frame.push_back(static_cast<uint8_t>(cmd_id));
     frame.push_back(static_cast<uint8_t>(cmd_id >> 8));
     frame.insert(frame.end(), data, data + size);
-    const uint16_t crc = CRC16::check_sum(frame.data(), static_cast<uint32_t>(frame.size()));
+    const uint16_t crc = crc16_referee(frame.data(), static_cast<uint32_t>(frame.size()));
     frame.push_back(static_cast<uint8_t>(crc));
     frame.push_back(static_cast<uint8_t>(crc >> 8));
     stream.insert(stream.end(), frame.begin(), frame.end());
@@ -343,6 +343,16 @@ int main() {
     append_referee(stream, 0x0311, long_payload, 61);
     uart_callback(stream.data(), stream.size());
     assert(command_count == 1);
+
+    // 短帧头、重叠帧头和 CRC8 错误后逐字节输入，最后一字节到达才分发
+    stream = {0xA9, 0xA9, 0xA5, 0x00, 0x00, 0x00, 0x00, 0xA5};
+    append_referee(stream, 0x0311, payload, 5);
+    for (size_t pos = 0; pos < stream.size() - 1; pos++) {
+        uart_callback(&stream[pos], 1);
+        assert(command_count == 1);
+    }
+    uart_callback(&stream.back(), 1);
+    assert(command_count == 2 && command.size() == 5 && std::memcmp(command.data(), payload, 5) == 0);
 
     std::puts("PASS: frame parse, key ramps, infinite ramps, gimbal speed, shooter, auto aim, disconnect and 0x0311");
 }

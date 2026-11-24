@@ -7,8 +7,8 @@ void gimbal_loop() {
     gimbal.set_enable(vt13.is_enable);
 
     // 自瞄：VT13 photo 或鼠标右键，识别到目标时跟随视觉角度
-    // if (vt13.is_aim && aim.vision.is_detect)
-    //     gimbal.set_angle(aim.vision.yaw, aim.vision.pitch);
+    // if (vt13.is_aim && aim.is_detect)
+    //     gimbal.set_angle(aim.yaw, aim.pitch);
     // else
     gimbal.set_speed(vt13.yaw_speed, vt13.pitch_speed);
 

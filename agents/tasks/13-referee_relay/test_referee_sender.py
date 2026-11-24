@@ -64,11 +64,11 @@ static std::vector<Frame> run(RefereeSender& sender, const int n) {
     std::vector<Frame> frames;
     size_t pos = 0;
     while (pos < bytes.size()) {
-        assert(bytes[pos] == 0xA5 && CRC8::verify(bytes.data() + pos, 4, bytes[pos + 4]));
+        assert(bytes[pos] == 0xA5 && crc8_referee(bytes.data() + pos, 4) == bytes[pos + 4]);
         const size_t size = bytes[pos + 1] | (bytes[pos + 2] << 8);
         assert(pos + size + 9 <= bytes.size());
         const uint16_t crc = bytes[pos + size + 7] | (bytes[pos + size + 8] << 8);
-        assert(CRC16::verify(bytes.data() + pos, static_cast<uint32_t>(size + 7), crc));
+        assert(crc16_referee(bytes.data() + pos, size + 7) == crc);
         frames.push_back({static_cast<uint16_t>(bytes[pos + 5] | (bytes[pos + 6] << 8)),
                           std::vector<uint8_t>(bytes.begin() + pos + 7, bytes.begin() + pos + 7 + size)});
         pos += size + 9;
@@ -164,16 +164,17 @@ int main() {
     frames = run(sender, 100);
     assert(frames.size() == 1 && u16(frames[0].payload, 0) == 0x0120);
 
-    // CAN 忙时保留当前帧，空闲后续发；队列满时拒绝
+    // CAN 忙时保留已组好的帧；后续 21 个请求仅保留最新 20 个
     can_busy = true;
     assert(sender.delete_all());
     assert(run(sender, 50).empty());
+    for (uint8_t index = 0; index < 21; index++)
+        assert(sender.delete_layer(index % 10));
     can_busy = false;
-    assert(run(sender, 10).size() == 1);
-    for (int i = 0; i < 20; i++)
-        assert(sender.delete_layer(1));
-    assert(!sender.delete_layer(1));
-    sender.clear_ui();
+    frames = run(sender, 1500);
+    assert(frames.size() == 21 && frames[0].payload[6] == 2);
+    for (size_t index = 1; index < frames.size(); index++)
+        assert(frames[index].payload[6] == 1 && frames[index].payload[7] == index % 10);
 
     // RobotUi：init() 排入 11 个初始布局，update 每周期排入的仪表只保留最新 2 份，按 30 Hz 全部发出
     RefereeSender ui_sender({.can = Can(2)});

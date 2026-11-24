@@ -1,4 +1,5 @@
 #include "support.hpp"
+#include "minipc/crc16_modbus.hpp"
 #include "robot/gimbal/gimbal_fold.hpp"
 #include "motor/dm4310.hpp"
 #include <limits>
@@ -6,26 +7,27 @@
 static void protocol_test() {
     const uint8_t check_text[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9'};
     CHECK(reference_crc(check_text, 9) == 0x4B37);
+    CHECK(crc16_modbus(check_text, sizeof(check_text)) == 0x4B37u);
     const std::array<uint8_t, 17> golden{0xA5, 0x5A, 0, 0, 0x80, 0x3F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x9A, 0xE6};
     CHECK(make_frame(1, 0, 0, 0) == golden);
     int aim_packets = 0;
     Cdc(1).add_rx_callback([&](const uint8_t*, std::size_t) { aim_packets++; });
-    Nav nav(Cdc(2), {});
+    Nav nav({.cdc = Cdc(2)});
     nav.update();
     CHECK(!nav.is_connect);
     feed(1, golden.data(), golden.size());
     nav.update();
     CHECK(!nav.is_connect && aim_packets == 1);
 
-    // 首帧可跨主循环逐字节到达；接收回调不会直接改公开指令
+    // 首帧可跨主循环逐字节到达；最后一字节到达时接收回调直接发布指令
     for (std::size_t i = 0; i < golden.size(); i++) {
         feed(2, golden.data() + i, 1);
-        CHECK(!nav.is_connect);
+        CHECK(nav.is_connect == (i == golden.size() - 1));
         nav.update();
         CHECK(nav.is_connect == (i == golden.size() - 1));
     }
-    near(nav.command.vx, 1);
-    CHECK(nav.command.action_flag == 0);
+    near(nav.vx, 1);
+    CHECK(nav.action_flag == 0);
 
     const auto other = make_frame(-1.25f, 2.5f, -0.75f, 1);
     for (std::size_t split = 0; split <= other.size(); split++) {
@@ -33,10 +35,10 @@ static void protocol_test() {
         nav.update();
         feed(2, other.data() + split, other.size() - split);
         nav.update();
-        near(nav.command.vx, -1.25f);
-        near(nav.command.vy, 2.5f);
-        near(nav.command.yaw, -0.75f);
-        CHECK(nav.command.action_flag == 1);
+        near(nav.vx, -1.25f);
+        near(nav.vy, 2.5f);
+        near(nav.yaw, -0.75f);
+        CHECK(nav.action_flag == 1);
     }
 
     // 连续完整帧、重叠帧头、每个位置插入或丢失一个字节，随后均恢复到黄金帧
@@ -52,9 +54,9 @@ static void protocol_test() {
             stream.insert(stream.end(), golden.begin(), golden.end());
             feed(2, stream.data(), stream.size());
             nav.update();
-            near(nav.command.vx, 1);
-            near(nav.command.vy, 0);
-            CHECK(nav.command.action_flag == 0);
+            near(nav.vx, 1);
+            near(nav.vy, 0);
+            CHECK(nav.action_flag == 0);
         }
     }
     std::vector<uint8_t> joined;
@@ -65,24 +67,21 @@ static void protocol_test() {
     for (std::size_t offset = 0; offset < joined.size(); offset += 7)
         feed(2, joined.data() + offset, std::min<std::size_t>(7, joined.size() - offset));
     nav.update();
-    near(nav.command.vx, 99);
-    near(nav.command.vy, -99);
-    CHECK(nav.command.action_flag == 1);
+    near(nav.vx, 99);
+    near(nav.vy, -99);
+    CHECK(nav.action_flag == 1);
 
     now_us += 60000;
     auto corrupted = other;
     corrupted[5] ^= 0x40;
     feed(2, corrupted.data(), corrupted.size());
-    for (const auto& invalid : {make_frame(NAN, 0, 0, 0), make_frame(0, INFINITY, 0, 0),
-                                make_frame(0, 0, -INFINITY, 0), make_frame(0, 0, 0, 2)})
-        feed(2, invalid.data(), invalid.size());
     nav.update();
-    near(nav.command.vx, 99);
+    near(nav.vx, 99);
     now_us += 41000;
     nav.update();
     CHECK(!nav.is_connect);
-    near(nav.command.vx, 0);
-    near(nav.command.yaw, 0);
+    near(nav.vx, 0);
+    near(nav.yaw, 0);
 
     // 超时后首帧可分片恢复，flag=1 直接生效；重复状态保持一致
     for (int i = 0; i < 5; i++) {
@@ -90,16 +89,33 @@ static void protocol_test() {
         nav.update();
         feed(2, other.data() + 8, 9);
         nav.update();
-        CHECK(nav.is_connect && nav.command.action_flag == 1);
+        CHECK(nav.is_connect && nav.action_flag == 1);
     }
 
+    // 校验通过即原样接收，不检查浮点有限性和 flag 范围
+    const auto unchecked = make_frame(NAN, INFINITY, -INFINITY, 2);
+    feed(2, unchecked.data(), unchecked.size());
+    nav.update();
+    CHECK(nav.is_connect && std::isnan(nav.vx) && std::isinf(nav.vy) && nav.action_flag == 2);
+
+    // 断联只在 update 检查：超时前的半帧与超时后的尾段拼成完整帧时照常接收
+    feed(2, golden.data(), 8);
+    now_us += 101000;
+    nav.update();
+    CHECK(!nav.is_connect);
+    feed(2, golden.data() + 8, golden.size() - 8);
+    nav.update();
+    CHECK(nav.is_connect);
+    near(nav.vx, 1);
+    feed(2, other.data(), other.size());
+
     // 第二实例及通道隔离
-    Nav second(Cdc(3), {});
+    Nav second({.cdc = Cdc(3)});
     feed(3, golden.data(), golden.size());
     second.update();
     nav.update();
-    near(second.command.vx, 1);
-    near(nav.command.vx, -1.25f);
+    near(second.vx, 1);
+    near(nav.vx, -1.25f);
     CHECK(aim_packets == 1);
 
     // 噪声流与恢复：固定随机种子便于复现
@@ -113,8 +129,8 @@ static void protocol_test() {
         noise.insert(noise.end(), golden.begin(), golden.end());
         feed(2, noise.data(), noise.size());
         nav.update();
-        near(nav.command.vx, 1);
-        CHECK(nav.command.action_flag == 0);
+        near(nav.vx, 1);
+        CHECK(nav.action_flag == 0);
     }
     cdc_callbacks[1].clear();
     cdc_callbacks[2].clear();

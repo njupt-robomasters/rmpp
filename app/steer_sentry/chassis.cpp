@@ -23,10 +23,10 @@ static void control_by_auto() {
     }
 
     const float vxy_max = vt13.config.vxy_max, wr_max = vt13.config.wr_max;
-    const auto [nav_vx, nav_vy] = rotate(nav.command.vx, nav.command.vy, -gimbal.yaw2.measure);
+    const auto [nav_vx, nav_vy] = rotate(nav.vx, nav.vy, -gimbal.yaw2.measure);
     const float vx = std::clamp(nav_vx, -vxy_max, vxy_max);
     const float vy = std::clamp(nav_vy, -vxy_max, vxy_max);
-    if (nav.command.action_flag == 0) {
+    if (nav.action_flag == 0) {
         chassis.set_mode(ChassisSteer::FOLLOW_MODE);
         chassis.set_speed(vx, vy, 0);
     } else {

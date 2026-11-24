@@ -5,13 +5,13 @@ RefereeRelay::RefereeRelay(const Config& config)
     : config(config) {
     // 串口：字节原样入队，待发上 CAN
     config.uart.add_rx_callback([this](const uint8_t* data, const size_t size) {
-        to_can_drop += size - to_can.push(data, size);
+        to_can_drop += to_can.push(data, size);
     });
 
     // CAN：只收 rx_id 帧，载荷待发往串口
     config.can.add_rx_callback([this](const CanFrame& frame) {
         if (frame.id == this->config.rx_id && frame.size <= 8)
-            to_uart_drop += frame.size - to_uart.push(frame.data, frame.size);
+            to_uart_drop += to_uart.push(frame.data, frame.size);
     });
 }
 

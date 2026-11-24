@@ -31,9 +31,9 @@ python -I agents/tasks/12-vt13_control/test_vt13.py
 python -I agents/tasks/13-referee_relay/compile_arm.py
 ```
 
-- `test_fifo.py`：Fifo 回绕、满时部分写入、peek/pop、[] 读写；Referee 连续 40 帧使接收环形多次回绕、超过 118 B 载荷丢弃
-- `test_referee_sender.py`：图形位段与协议表逐位比对、组帧与 CRC、0x0301 30 Hz 间隔、0x0308 编码与不限频、0x0120 位段、本机 ID 未知暂停、无选手端丢弃 UI、MODIFY 合并、`clear_ui()` 保留 0x0120、CAN 忙续发、队列满拒绝；RobotUi 11 个初始布局加 2 份最新仪表的顺序与数值
-- `test_referee_relay.py`：编译实际 RefereeRelay、Referee、RefereeSender、CRC，下板接 Can(1)、上板接 Can(2)，由测试搬运 CAN 帧；覆盖下板 0x00 帧 5 字节分包后 0x0201/0x0202 解析、CAN 忙时保留、上板 RefereeSender 0x01 帧 0x0301 拼接还原、串口忙时缓存、ID 过滤、`to_uart` 与 `to_can` 溢出分别只保留 256 B、1024 B
+- `test_fifo.py`：单元素和批量 `push` 均在队满时弹出最旧元素。覆盖空批次、超容量批次、被挤出元素计数、回绕、peek/pop 和下标；Referee 连续 40 帧使接收环形多次回绕、超过 118 B 载荷丢弃
+- `test_referee_sender.py`：图形位段与协议表逐位比对、组帧与 CRC、0x0301 30 Hz 间隔、0x0308 编码与不限频、0x0120 位段、本机 ID 未知暂停、无选手端丢弃 UI、MODIFY 合并、`clear_ui()` 保留 0x0120；CAN 忙时已组帧保留、其余请求只保留最新 20 个；RobotUi 初始布局和仪表的顺序与数值
+- `test_referee_relay.py`：编译实际 RefereeRelay、Referee、RefereeSender、CRC，下板接 Can(1)、上板接 Can(2)，由测试搬运 CAN 帧；覆盖下板 0x00 帧 5 字节分包后 0x0201/0x0202 解析、CAN 忙时保留、上板 RefereeSender 0x01 帧 0x0301 拼接还原、串口忙时缓存、ID 过滤；溢出后逐字节核对 `to_uart` 保留最新 256 B、`to_can` 保留最新 1024 B
 - `test_vt13.py` 新增：遥控帧、60 B 0x0311、0x0310、CRC 损坏的 0x0311、遥控帧混合后按 7 字节分包送入，只回调一次完整 0x0311 且后续遥控帧照常解析；61 B 载荷不回调
 - `compile_arm.py`：借用 `build/leg-leg_down`、`build/leg-leg_up`、`build/sentry` 的 compile_commands 参数，ARM GCC 单独编译涉及的 lib 与 app 文件，未执行完整固件构建
 

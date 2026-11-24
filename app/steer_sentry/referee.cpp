@@ -1,5 +1,6 @@
 #include "referee.hpp"
 #include "app.hpp"
+#include "bsp/irq_lock.hpp"
 #include "chassis.hpp"
 #include "gimbal.hpp"
 #include "shooter.hpp"
@@ -59,7 +60,11 @@ void referee_loop() {
     ui.pitch_angle = gimbal.pitch.imu.measure;
     ui.is_hurt = has_hurt && hurt_timer.elapsed() < HURT_TIMEOUT;
     ui.hurt_dir = hurt_dir - gimbal.yaw.imu.measure; // 相对云台
-    ui.is_aim_detect = aim.vision.is_detect;
+    {
+        const IrqLock lock;
+        ui.is_aim_detect = aim.is_detect;
+        ui.aim = status_color(aim.is_connect); // 自瞄
+    }
     ui.super_cap = super_cap.energy_ratio();
     if (!super_cap.is_connect)
         ui.cap = RobotUi::PINK;
@@ -86,6 +91,5 @@ void referee_loop() {
     ui.rub_left_stage1 = ui.rub_left_stage2 = motor_color(rub1.status(MOTOR_OVERHEAT, shooter.bullet_speed.ref != 0)); // 发射机构
     ui.rub_right_stage1 = ui.rub_right_stage2 = motor_color(rub2.status(MOTOR_OVERHEAT, shooter.bullet_speed.ref != 0));
     ui.shoot = motor_color(shoot.status(MOTOR_OVERHEAT));
-    ui.aim = status_color(aim.is_connect_vision); // 自瞄
     ui.update(referee_sender);
 }

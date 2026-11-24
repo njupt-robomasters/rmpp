@@ -310,7 +310,7 @@ void ChassisLeg::update_jump(const float dt) {
                     jump.step = 3;
                     jump.hold_time = 0;
                 }
-            } else { // 落地缓冲，从进入阶段起计时，不等待触地
+            } else if (jump.step == 3) { // 落地缓冲，从进入阶段起计时，不等待触地
                 jump.hold_time += dt;
                 if (jump.hold_time >= config.jump_buffer_time)
                     jump = {};

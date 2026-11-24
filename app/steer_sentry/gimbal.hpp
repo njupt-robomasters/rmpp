@@ -66,4 +66,4 @@ inline GimbalDualYaw gimbal({yaw1, yaw2, pitch}, {
                                                      .pitch_max = 15 * deg,
                                                  });
 
-void gimbal_loop();
+void gimbal_loop(bool is_detect, Angle target_yaw, Angle target_pitch, float distance);

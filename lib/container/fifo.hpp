@@ -9,29 +9,31 @@ class Fifo {
     size_t size = 0; // 元素个数；外部只读
 
   private:
-    T items[N]{};
+    T data[N]{};
     size_t head = 0; // 队首下标
 
   public:
-    // 追加至多 n 个，返回实际个数；满时剩余的不写入
-    size_t push(const T* values, const size_t n) {
-        const size_t count = std::min(n, N - size);
-        for (size_t i = 0; i < count; i++)
-            items[(head + size + i) % N] = values[i];
-        size += count;
-        return count;
+    // 追加到队尾；满时弹出最旧元素
+    void push(const T& value) {
+        if (size == N)
+            pop(1);
+        data[(head + size) % N] = value;
+        size++;
     }
 
-    // 追加 1 个；满时返回 false
-    bool push(const T& value) {
-        return push(&value, 1) == 1;
+    // 按序追加，返回被挤出的元素总数；单批超过容量时仍只保留最新 N 个
+    size_t push(const T* values, const size_t n) {
+        const size_t dropped = n - std::min(n, N - size);
+        for (size_t i = 0; i < n; i++)
+            push(values[i]);
+        return dropped;
     }
 
     // 复制队首至多 n 个，不取出，返回实际个数
     size_t peek(T* values, const size_t n) const {
         const size_t count = std::min(n, size);
         for (size_t i = 0; i < count; i++)
-            values[i] = items[(head + i) % N];
+            values[i] = data[(head + i) % N];
         return count;
     }
 
@@ -56,10 +58,10 @@ class Fifo {
 
     // i 须小于 size
     T& operator[](const size_t i) {
-        return items[(head + i) % N];
+        return data[(head + i) % N];
     }
 
     const T& operator[](const size_t i) const {
-        return items[(head + i) % N];
+        return data[(head + i) % N];
     }
 };

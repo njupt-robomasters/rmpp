@@ -71,12 +71,12 @@ extern bool can_busy;
 // 组裁判协议帧：0xA5 帧头、CRC8、命令码、载荷、CRC16
 static std::vector<uint8_t> make_frame(const uint16_t cmd_id, const void* data, const size_t size) {
     std::vector<uint8_t> frame{0xA5, static_cast<uint8_t>(size), static_cast<uint8_t>(size >> 8), 0};
-    frame.push_back(CRC8::check_sum(frame.data(), 4));
+    frame.push_back(crc8_referee(frame.data(), 4));
     frame.push_back(static_cast<uint8_t>(cmd_id));
     frame.push_back(static_cast<uint8_t>(cmd_id >> 8));
     const auto* bytes = static_cast<const uint8_t*>(data);
     frame.insert(frame.end(), bytes, bytes + size);
-    const uint16_t crc = CRC16::check_sum(frame.data(), static_cast<uint32_t>(frame.size()));
+    const uint16_t crc = crc16_referee(frame.data(), static_cast<uint32_t>(frame.size()));
     frame.push_back(static_cast<uint8_t>(crc));
     frame.push_back(static_cast<uint8_t>(crc >> 8));
     return frame;
@@ -167,7 +167,7 @@ int main() {
     relay.send();
     assert(uart_sent[1].size() == expected.size());
     assert(std::memcmp(uart_sent[1].data() + 5, expected.data() + 5, expected.size() - 5) == 0); // seq 由 RefereeSender 维护
-    assert(uart_sent[1][0] == 0xA5 && CRC8::verify(uart_sent[1].data(), 4, uart_sent[1][4]));
+    assert(uart_sent[1][0] == 0xA5 && crc8_referee(uart_sent[1].data(), 4) == uart_sent[1][4]);
     uart_sent[1].clear();
 
     // 下板只收 0x01 帧
@@ -176,26 +176,34 @@ int main() {
     relay.send();
     assert(uart_sent[1].empty());
 
-    // to_uart 溢出：缓冲区 256 B，串口忙时 40 帧 320 B 只留 256 B
+    // to_uart 溢出：320 B 丢掉最早的 64 B，按序发出最新 256 B
     uart_busy = true;
-    for (int i = 0; i < 40; i++)
+    for (size_t offset = 0; offset < 320; offset += 8) {
+        CanFrame frame{.id = 0x01, .size = 8};
+        for (size_t index = 0; index < frame.size; index++)
+            frame.data[index] = static_cast<uint8_t>(offset + index);
         for (const auto& callback : can_callbacks[1])
-            callback(CanFrame{.id = 0x01, .size = 8, .data = {1, 2, 3, 4, 5, 6, 7, 8}});
+            callback(frame);
+    }
     uart_busy = false;
     relay.send();
     assert(uart_sent[1].size() == 256);
+    for (size_t index = 0; index < uart_sent[1].size(); index++)
+        assert(uart_sent[1][index] == static_cast<uint8_t>(64 + index));
 
-    // to_can 溢出：缓冲区 1024 B，1200 B 按 400 B 分包进入，超出部分丢弃
-    std::vector<uint8_t> flood(1200, 0x11);
+    // to_can 溢出：1200 B 按 400 B 分包进入，仅转发最后 1024 B
+    std::vector<uint8_t> flood(1200);
+    for (size_t index = 0; index < flood.size(); index++)
+        flood[index] = static_cast<uint8_t>(index);
     uart_receive(1, flood, 400);
-    size_t flood_bytes = 0;
+    std::vector<uint8_t> forwarded;
     for (int i = 0; i < 200; i++) {
         relay.send();
         for (const auto& frame : can_sent[1])
-            flood_bytes += frame.size;
+            forwarded.insert(forwarded.end(), frame.data, frame.data + frame.size);
         can_sent[1].clear();
     }
-    assert(flood_bytes == 1024);
+    assert(forwarded == std::vector<uint8_t>(flood.end() - 1024, flood.end()));
 
     std::puts("PASS: up split and parse, can busy, down concat, uart busy, id filter, overflow");
 }

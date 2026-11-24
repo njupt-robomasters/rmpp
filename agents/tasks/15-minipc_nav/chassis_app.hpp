@@ -60,7 +60,7 @@ inline struct {
     struct { struct { Angle measure; } ecd; } yaw;
     struct { Angle measure; } yaw2;
 } gimbal;
-inline Nav nav(Cdc(2), {});
+inline Nav nav({.cdc = Cdc(2)});
 inline bool test_enable = true, test_active = true, test_fn = true;
 inline bool sentry_enable() { return test_enable; }
 inline bool sentry_active() { return test_active; }

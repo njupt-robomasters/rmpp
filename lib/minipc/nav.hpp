@@ -2,46 +2,40 @@
 
 #include "bsp/cdc.hpp"
 #include "bsp/timer.hpp"
-#include "math/unit.hpp"
+#include "container/fifo.hpp"
 
 class Nav {
-  private:
-    static constexpr std::size_t FRAME_SIZE = 17;
-
   public:
     struct Config {
-        float timeout = 100 * ms;
-    };
+        Cdc cdc;
+        float timeout = 0.1f; // 断联超时，s
+    } const config;
 
-  private:
-    const Config config;
-
-  public:
     bool is_connect = false;
 
-    // vx/vy 为雷达所在大 yaw 系速度，m/s；yaw 为协议角度，rad，当前仅保存
-    struct Command {
-        float vx = 0;
-        float vy = 0;
-        float yaw = 0;
-        uint8_t action_flag = 0; // 0 随头，1 小陀螺；pitch1 当前全程失能
-    } command;
+    // 导航指令，接收回调解析，断联时为 0
+    uint8_t action_flag = 0; // 0 随头，1 小陀螺；pitch1 当前全程失能
+    float vx = 0, vy = 0;    // 雷达所在大 yaw 系速度，m/s
+    float yaw = 0;           // 协议角度，rad；当前仅保存
 
   private:
-    Command pending;
-    bool has_command = false;
-    uint8_t rx_buf[FRAME_SIZE]{};
-    std::size_t rx_size = 0;
-    Timer callback_timer;
+    // 下行原始帧，最近一帧有效数据；断联后保留供 SWD 查看
+    struct __attribute__((packed)) RxFrame {
+        uint8_t sof[2];      // A5 5A
+        float vx, vy, yaw;   // 小端 float32
+        uint8_t action_flag; // 0 随头，1 小陀螺
+        uint16_t crc;        // CRC16/MODBUS，覆盖 sof 与 crc 之间的字节，低字节在前
+    } raw{};
+
+    Fifo<uint8_t, sizeof(RxFrame)> rx_fifo; // 未解析字节，USB 接收中断写入
+    Timer callback_timer;                   // 用于断联检测
 
   public:
-    Nav(Cdc cdc, const Config& config);
+    explicit Nav(const Config& config);
 
-    // 主循环发布完整指令快照；超时清空输出并置为离线
+    // 每周期调用：断联检测，断联时指令复位为 0
     void update();
 
   private:
-    void callback(const uint8_t* data, std::size_t size);
-    static uint16_t crc16_modbus(const uint8_t* data, std::size_t size);
-    static float read_float(const uint8_t* data);
+    void callback(const uint8_t* data, size_t size);
 };

@@ -6,8 +6,6 @@
 #include <vector>
 
 class VT13 {
-  public:
-
   private:
     static constexpr size_t COMMAND_MAX = 60;  // 0x0311 自定义指令最大长度，B
     static constexpr size_t RX_CAPACITY = 128; // 接收缓冲，B；最长帧为 0x0311 的 69 B，加帧头前乱码余量
@@ -19,9 +17,9 @@ class VT13 {
     // 运行时可由 app 修改，下次 update() 生效
     struct Config {
         Uart uart;
-        float timeout = 0.5f;     // 断联检测超时时间
-        float deadline = 0.05f;   // 摇杆死区，小于此值认为是0
-        uint16_t mouse_max = 500; // 鼠标xy最大速度
+        float timeout = 0.5f;     // 断联超时，s
+        float dead_zone = 0.05f;  // 摇杆死区，归一化值；绝对值小于此值时为 0
+        uint16_t mouse_max = 540; // 鼠标 x/y 满量程，原始计数；对应归一化值 ±1
 
         // 平移：摇杆满量程与合成速度上限，m/s；键盘加速度、松手减速度，m/s^2，INFINITY 为无斜坡
         float vxy_max = 0;
@@ -46,7 +44,7 @@ class VT13 {
         ERR,
     };
 
-    bool is_connect = false; // 连接标志
+    bool is_connect = false;
 
     // 操控量，update() 计算，断联时为 0
     bool is_enable = false;               // N、S 挡使能
@@ -57,7 +55,7 @@ class VT13 {
     float bullet_freq = 0;                // 弹频，发/秒；负值反转拨弹
     bool is_aim = false;                  // 自瞄
 
-    // 遥控器
+    // 原始输入，接收回调解析，断联时复位
     struct Rc {
         float x = 0, y = 0, pitch = 0, yaw = 0;                         // 摇杆，±1
         float wheel = 0;                                                // 左上角拨轮，±1
@@ -65,14 +63,12 @@ class VT13 {
         bool pause = false, trigger = false, fn = false, photo = false; // 按钮
     } rc;
 
-    // 鼠标
     struct Mouse {
-        float yaw = 0, pitch = 0;
-        int16_t wheel = 0;
-        bool left = false, right = false, middle = false;
+        float yaw = 0, pitch = 0;                         // 移动速度，按 mouse_max 归一化
+        int16_t wheel = 0;                                // 滚轮，原始计数
+        bool left = false, right = false, middle = false; // 按键
     } mouse;
 
-    // 键盘
     struct Key {
         bool w = false, s = false, a = false, d = false;
         bool shift = false, ctrl = false;
@@ -81,7 +77,7 @@ class VT13 {
     } key;
 
   private:
-    // 通道原始值
+    // 遥控帧原始值，最近一帧有效数据；断联后保留供 SWD 查看
     struct __attribute__((packed)) {
         uint8_t sof_1 : 8;   // 0xA9
         uint8_t sof_2 : 8;   // 0x53
@@ -108,17 +104,17 @@ class VT13 {
         uint8_t reserved_2bit : 2;
 
         uint16_t key : 16;   // 键盘按键
-        uint16_t crc16 : 16; // CRC校验，CRC-16/CCITT-FALSE多项式 P(x) = x^16 + x^12 + x^5 + 1（对应0x1021），初始值0xFFFF，无输入输出反转，无异或
+        uint16_t crc16 : 16; // crc16_referee，覆盖 crc16 前的全部字节
     } raw{};
 
-    float key_vx = 0, key_vy = 0, key_wr = 0; // 键盘斜坡速度
-    std::vector<RxCallback> callbacks_0311;
-    Fifo<uint8_t, RX_CAPACITY> rx; // 未解析字节，串口接收中断写入
-    Timer callback_timer;          // 用于断联检测
+    float key_vx = 0, key_vy = 0, key_wr = 0; // 键盘斜坡速度，m/s、rad/s
+    std::vector<RxCallback> callbacks_0311;   // 0x0311 载荷回调，接收中断内调用
+    Fifo<uint8_t, RX_CAPACITY> rx_fifo;       // 未解析字节，串口接收中断写入
+    Timer callback_timer;                     // 用于断联检测
     Timer update_timer;
 
   public:
-    VT13(const Config& config);
+    explicit VT13(const Config& config);
 
     void add_0311_callback(RxCallback callback);
 
@@ -127,12 +123,12 @@ class VT13 {
 
   private:
     // 串口接收回调：遥控帧与图传链路裁判帧混合在同一串口
-    void callback(const uint8_t data[], size_t size);
+    void callback(const uint8_t* data, size_t size);
 
     void parse_raw();
 
-    // 解析摇杆值，归一化到±1
-    float get_joy_stick(uint16_t value) const;
+    // 摇杆原始值 364~1024~1684 归一化到 ±1，死区内为 0
+    float get_joystick(uint16_t value) const;
 
     // 按住正向键时负速度清零后加速，反向键同理，松开时减速到 0
     static float get_key_speed(float speed, bool positive, bool negative, float max, float acceleration, float deceleration, float dt);

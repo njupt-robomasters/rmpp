@@ -43,11 +43,9 @@ class RefereeSender {
     struct Config {
         Can can;            // 经 RefereeRelay 转发的常规链路
         uint32_t tx_id = 1; // 本板发送 CAN ID；对应 RefereeRelay rx_id
-    };
+    } const config;
 
   private:
-    const Config config;
-
     uint16_t robot_id = 0; // 本机 ID，0 为未知；未知时暂停发送
 
     // 待发请求，组帧时补发送者；receiver_id 为 0 表示本机选手端
