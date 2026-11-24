@@ -38,7 +38,7 @@ class ChassisLeg {
         const float (*lqr_fit)[10][6];  // LQR 增益拟合系数 [4 输出][10 状态][6 项]，项序 1、Ll、Lr、Ll²、Ll·Lr、Lr²
         float theta_ref = 0.07f;        // 目标腿倾角，rad，后摆为正
         float x_max = 0.1f;             // 位移积分限幅，m
-        float wheel_work_speed = 50.0f; // 轮子额定转速，rad/s；直行目标上限 = 该值 × 轮半径，边走边转按较快一侧轮缘等比缩小
+        float wheel_work_speed = 65.0f; // 轮子额定转速，rad/s；直行目标上限 = 该值 × 轮半径，边走边转按较快一侧轮缘等比缩小
 
         // 倒地与自救
         float fall_theta_front = -63 * deg; // 相对腿角下限，rad，后摆为正；任一腿超出判定倒地
