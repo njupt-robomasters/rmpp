@@ -67,17 +67,9 @@ inline Pid::Config leg_length_pid = {.kp = 1750, .kd = 100, .max_out = 180};
 inline Pid::Config leg_angle_pid = {.kp = 140, .kd = 7, .max_out = 80};
 // 横滚 PD：误差 rad → 腿长修正 m；微分用 gyro.x，外部工程为 10 阶最小二乘微分
 inline Pid::Config roll_pid = {.kp = 1.3f, .kd = 0.004f, .max_out = 0.4f};
-// 底盘：其余参数取 ChassisLeg::Config 默认值，与外部工程一致
+// 底盘：绑定 PID 参数与 LQR 系数，其余参数取 ChassisLeg::Config 默认值
 inline ChassisLeg chassis({left_front, left_back, right_back, right_front, left_wheel, right_wheel},
                           {
-                              .mass = 22.75f,
-                              .spring_force = 450.0f,
-                              .wheel_radius = 0.06f,
-                              .wheel_distance = 0.488f,
-                              .active_link = 0.210f,
-                              .passive_link = 0.248f,
-                              .leg_min = 0.14f,
-                              .leg_max = 0.33f,
                               .leg_length_pid = &leg_length_pid,
                               .leg_angle_pid = &leg_angle_pid,
                               .roll_pid = &roll_pid,

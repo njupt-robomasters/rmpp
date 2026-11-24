@@ -21,29 +21,24 @@ class ChassisLeg {
   public:
     struct Config {
         // 质量与几何
-        float mass = 0;                 // 整车质量，kg
-        float spring_force = 0;         // 气弹簧标称推力，N
-        float wheel_radius = 0;         // m
-        float wheel_distance = 0;       // 左右轮距，m
-        float active_link = 0;          // 主动杆长 AB=ED，m
-        float passive_link = 0;         // 从动杆长 BC=DC，m
-        float leg_min = 0, leg_max = 0; // 目标腿长范围，m；leg_min 也是自救站起与跳跃收腿腿长，leg_max 也是起跳腿长
+        float mass = 22.75f;                    // 整车质量，kg
+        float spring_force = 450.0f;            // 气弹簧标称推力，N
+        float wheel_radius = 0.06f;             // 轮半径，m
+        float wheel_distance = 0.488f;          // 左右轮距，m
+        float active_link = 0.210f;             // 主动杆长 AB=ED，m
+        float passive_link = 0.248f;            // 从动杆长 BC=DC，m
+        float leg_min = 0.14f, leg_max = 0.33f; // 目标腿长范围，m；leg_min 也是自救站起与跳跃收腿腿长，leg_max 也是起跳腿长
 
         // 控制器，误差均为“目标减反馈”
         const Pid::Config* leg_length_pid; // 腿长 PD：m → 轴向力 N，伸腿为正；微分取 -d_L，不含目标变化
         const Pid::Config* leg_angle_pid;  // 相对腿角 PD：rad → 摆动力矩 N·m，后摆为正
         const Pid::Config* roll_pid;       // 横滚 PD：rad → 腿长修正 m；右侧低时输出为负，左腿缩短、右腿伸长
 
-        // LQR 增益与误差限幅
-        const float (*lqr_fit)[10][6]; // LQR 增益拟合系数 [4 输出][10 状态][6 项]，项序 1、Ll、Lr、Ll²、Ll·Lr、Lr²
-
-        // LQR 目标与误差限幅
-        float theta_ref = 0.07f;     // 目标腿倾角，rad，后摆为正
-        float x_err_max = 6.0f;      // 位移误差限幅，误差已乘 10
-        float yaw_err_max = 1.25f;   // 航向误差限幅，rad；非负
-        float theta_err_max = 0.45f; // 腿倾角误差限幅，rad
-        float pitch_err_max = 0.25f; // 俯仰误差限幅，rad
-        float x_max = 0.1f;          // 位移积分限幅，m
+        // LQR 增益与目标
+        const float (*lqr_fit)[10][6];  // LQR 增益拟合系数 [4 输出][10 状态][6 项]，项序 1、Ll、Lr、Ll²、Ll·Lr、Lr²
+        float theta_ref = 0.07f;        // 目标腿倾角，rad，后摆为正
+        float x_max = 0.1f;             // 位移积分限幅，m
+        float wheel_work_speed = 50.0f; // 轮子额定转速，rad/s；直行目标上限 = 该值 × 轮半径，边走边转按较快一侧轮缘等比缩小
 
         // 倒地与自救
         float fall_theta_front = -63 * deg; // 相对腿角下限，rad，后摆为正；任一腿超出判定倒地
@@ -233,6 +228,12 @@ class ChassisLeg {
 
     // LQR 平衡：按腿长插值增益，计算轮端力矩 Tw 与摆动力矩 Tt
     void calc_lqr();
+
+    // 轴向力在两关节上形成的反向力矩幅值，N·m
+    float calc_axial_torque(const Leg& leg) const;
+
+    // 分配：四路满足 [lower, upper] 且比例不超过 1 时返回最大可行比例，无解返回 -1
+    static float maximum_share(const float base[4], const float change[4], const float lower[4], const float upper[4]);
 
     // 力映射：由 L、Fn 和机构极性的摆动力矩 Tt 更新 T_A、T_E
     void map_force(Leg& leg, float Tt) const;

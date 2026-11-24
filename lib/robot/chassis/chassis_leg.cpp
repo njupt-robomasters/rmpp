@@ -388,28 +388,67 @@ void ChassisLeg::calc_lqr() {
     const float Ll = leg[0].L, Lr = leg[1].L;
     const float terms[6] = {1, Ll, Lr, Ll * Ll, Ll * Lr, Lr * Lr};
 
-    // 状态误差，均为“目标减反馈”；云台相对航向限幅，小陀螺时上板发 0 即不追踪
+    // 目标限速：直行目标上限为轮子额定转速乘轮半径，边走边转按较快一侧轮缘速度等比缩小两个目标
+    const float travel_speed = config.wheel_work_speed * config.wheel_radius;
+    const float rim_target = std::fabs(vx) + std::fabs(wr) * config.wheel_distance / 2;
+    const float target_share = rim_target > travel_speed ? travel_speed / rim_target : 1;
+
+    // 状态误差，均为“目标减反馈”；位移误差乘 10 以匹配固件拟合表；小陀螺时上板发 0 即不追踪航向
     const float err[10] = {
-        std::clamp((0 - body.x) * 10, -config.x_err_max, config.x_err_max),                       // 前向位移，前进为正
-        vx - body.d_x,                                                                            // 前向速度，前进为正
-        std::clamp(gimbal_yaw, -config.yaw_err_max, config.yaw_err_max),                          // 航向角，跟随模式为云台相对底盘航向
-        d_yaw_ref - body.d_yaw_gyro,                                                              // 航向角速度，逆时针为正
-        std::clamp(config.theta_ref - leg[0].theta, -config.theta_err_max, config.theta_err_max), // 左腿倾角，后摆为正
-        0 - leg[0].d_theta,                                                                       // 左腿倾角速度
-        std::clamp(config.theta_ref - leg[1].theta, -config.theta_err_max, config.theta_err_max), // 右腿倾角，后摆为正
-        0 - leg[1].d_theta,                                                                       // 右腿倾角速度
-        std::clamp(0 - body.pitch, -config.pitch_err_max, config.pitch_err_max),                  // 俯仰，低头为正
-        0 - body.d_pitch,                                                                         // 俯仰角速度，低头为正
+        (0 - body.x) * 10,                          // 前向位移，前进为正
+        target_share * vx - body.d_x,               // 前向速度，前进为正
+        gimbal_yaw,                                 // 航向角，跟随模式为云台相对底盘航向
+        target_share * d_yaw_ref - body.d_yaw_gyro, // 航向角速度，逆时针为正
+        config.theta_ref - leg[0].theta,            // 左腿倾角，后摆为正
+        0 - leg[0].d_theta,                         // 左腿倾角速度
+        config.theta_ref - leg[1].theta,            // 右腿倾角，后摆为正
+        0 - leg[1].d_theta,                         // 右腿倾角速度
+        0 - body.pitch,                             // 俯仰，低头为正
+        0 - body.d_pitch,                           // 俯仰角速度，低头为正
     };
 
+    // 贡献分组：运动四项为位移、前进速度、航向、旋转速度，姿态六项为两腿角及角速度、俯仰及角速度
     // 输出 [0/1] 左/右轮力矩，前进为正；[2/3] 左/右摆动力矩，后摆为正
-    float out[4]{};
+    float base[4]{}, motion[4]{};
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 10; j++) {
             float k = 0;
             for (int n = 0; n < 6; n++)
                 k += config.lqr_fit[i][j][n] * terms[n];
-            out[i] += k * err[j];
+            if (j < 4)
+                motion[i] += k * err[j];
+            else
+                base[i] += k * err[j];
+        }
+    }
+
+    float out[4];
+    for (int i = 0; i < 4; i++)
+        out[i] = base[i] + motion[i];
+
+    // 跳跃期间关节余量被伸腿力占用，不做分配，由电机自身限幅
+    if (!jump.is_active) {
+        // 四路额定区间：轮取电机力矩上限；腿摆由两关节平分，当拍轴向力矩先占用各关节余量
+        const float wheel_max = motor.left_wheel.config.max_torque;
+        const float joint_max = motor.left_front.config.max_torque;
+        float lower[4] = {-wheel_max, -wheel_max, 0, 0};
+        float upper[4] = {wheel_max, wheel_max, 0, 0};
+        for (int i = 0; i < 2; i++) {
+            const float swing_max = 2 * std::max(joint_max - std::fabs(calc_axial_torque(leg[i])), 0.0f);
+            lower[2 + i] = -swing_max;
+            upper[2 + i] = swing_max;
+        }
+
+        // 姿态组优先：运动组按四路都能满足的最大共同比例让位；全不可行时运动归零，再整体缩小姿态组
+        const float share = maximum_share(base, motion, lower, upper);
+        if (share >= 0) {
+            for (int i = 0; i < 4; i++)
+                out[i] = base[i] + share * motion[i];
+        } else {
+            const float zero[4]{};
+            const float base_share = std::max(maximum_share(zero, base, lower, upper), 0.0f);
+            for (int i = 0; i < 4; i++)
+                out[i] = base_share * base[i];
         }
     }
 
@@ -419,15 +458,38 @@ void ChassisLeg::calc_lqr() {
     leg[1].Tt = out[3];
 }
 
-void ChassisLeg::map_force(Leg& leg, const float Tt) const {
+float ChassisLeg::calc_axial_torque(const Leg& leg) const {
     const float a = config.active_link, b = config.passive_link;
 
     // ∠OCB 为轮轴 C 处 CO 与 CB 的夹角
     const float cos_ocb = (leg.L * leg.L + b * b - a * a) / (2 * leg.L * b);
     const float tan_ocb = std::sqrt(1 - cos_ocb * cos_ocb) / cos_ocb;
 
+    // 轴向力形成反向关节力矩
+    return 0.5f * leg.Fn * leg.L * tan_ocb;
+}
+
+float ChassisLeg::maximum_share(const float base[4], const float change[4], const float lower[4], const float upper[4]) {
+    float minimum = 0, maximum = 1;
+    for (int i = 0; i < 4; i++) {
+        if (change[i] == 0) {
+            if (base[i] < lower[i] || base[i] > upper[i])
+                return -1;
+            continue;
+        }
+
+        // 每路的可行区间换算为比例区间，与已有区间求交
+        const float first = (lower[i] - base[i]) / change[i];
+        const float second = (upper[i] - base[i]) / change[i];
+        minimum = std::max(minimum, std::min(first, second));
+        maximum = std::min(maximum, std::max(first, second));
+    }
+    return minimum <= maximum ? maximum : -1;
+}
+
+void ChassisLeg::map_force(Leg& leg, const float Tt) const {
     // 轴向力形成反向关节力矩，摆动力矩由两关节同向平分
-    const float T1 = 0.5f * leg.Fn * leg.L * tan_ocb;
+    const float T1 = calc_axial_torque(leg);
     const float T2 = 0.5f * Tt;
     leg.Ta = T1 + T2;
     leg.Te = -T1 + T2;
