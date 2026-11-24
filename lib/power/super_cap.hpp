@@ -49,13 +49,9 @@ class SuperCap {
             float lambda = 0.98f; // 遗忘因子，协方差迹小于初值时生效
             float p_init = 100;   // 初始协方差对角元
         } rls = {};
-    };
-
-  private:
-    const Config config;
+    } const config;
 
     // 指令
-  public:
     Mode mode = OFF;
 
   private:
