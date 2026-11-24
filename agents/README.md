@@ -69,3 +69,4 @@ agents/
 - `19-leg_spin_power/`：历史轮端功率限幅实验、日志分析与归档提交；当前轮腿直接使用 LQR 输出
 - `20-protocol_unify/`：Nav、Aim、VT13、Referee 协议接收统一写法，minipc/rc/referee 命名、注释与 CRC 自由函数整理；ARM 编译脚本与主机测试记录
 - `21-minipc_protocol/`：自瞄与导航协议重构（单字节帧头、CRC 带帧头、自瞄上下行改四元数与目标角、导航加过洞标志/坐标/上行目标点）；对接文档见根目录 `docs/minipc_protocol.md`，主机测试见任务目录
+- `22-leg_torque_alloc/`：轮腿力矩分配（目标按轮子额定转速限速、姿态组优先、运动组共同退让、腿摆按当拍轴向力矩折算关节余量）；主机测试与上车核对项见任务目录
