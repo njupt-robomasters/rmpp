@@ -55,7 +55,7 @@ static void send() {
     rub2.send();
 
     if (send_cnt % 5 == 0) {
-        aim.set_imu(attitude.yaw, attitude.pitch, attitude.roll);
+        aim.set_attitude(attitude.q);
         aim.set_referee(referee.robot_status.robot_id < 100, referee.shoot_data.initial_speed);
         aim.send();
     }

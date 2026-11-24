@@ -68,3 +68,4 @@ agents/
 - `18-leg_link_ui/`：UI 槽位改为 yaw1/yaw2/pitch1/pitch2、中心弧固定绿色；下板状态帧回传使能与 6 个电机状态、FSi6X 优先；使能后首次 pause 才使能、删除自救授权；删除 `use_angle_loop`
 - `19-leg_spin_power/`：历史轮端功率限幅实验、日志分析与归档提交；当前轮腿直接使用 LQR 输出
 - `20-protocol_unify/`：Nav、Aim、VT13、Referee 协议接收统一写法，minipc/rc/referee 命名、注释与 CRC 自由函数整理；ARM 编译脚本与主机测试记录
+- `21-minipc_protocol/`：自瞄与导航协议重构（单字节帧头、CRC 带帧头、自瞄上下行改四元数与目标角、导航加过洞标志/坐标/上行目标点）；对接文档见根目录 `docs/minipc_protocol.md`，主机测试见任务目录

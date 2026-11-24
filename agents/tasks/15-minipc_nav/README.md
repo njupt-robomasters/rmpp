@@ -55,3 +55,5 @@ g++ -std=c++23 -O2 -Wall -Wextra -Werror -DEIGEN_DONT_VECTORIZE -DEIGEN_MAX_ALIG
 Nav 改用 `Config.cdc`、帧长 FIFO 和 `packed RxFrame`，Aim 与 Nav 共用一个 MODBUS CRC 函数。保留 Nav 的整帧快照、滑窗重同步、数值校验和 100 ms 超时。`nav_test.cpp` 新增生产 CRC 对标准向量 `123456789` 的检查，以及旧半帧的尾段先于 `update()` 到达的超时测试。主机 Nav/pitch1 测试 90,583 项通过，两块板各自的 Nav、Aim、app 和 chassis 共 8 个 ARM 对象编译通过。此前记录的 Aim 业务回归仍单独跟踪。
 
 后续 `../20-protocol_unify/` 删除了 Nav 的数值检查、`has_command` 与回调内超时判断，`command` 展开为同名公开成员；`nav_test.cpp` 已同步。
+
+`../21-minipc_protocol/` 已把本目录记录的 17 字节协议替换为单字节帧头的四个帧，`aim_test.cpp`、`nav_test.cpp`、`support.hpp` 随之更新；本文档中的帧长与 flag 描述为当时版本。

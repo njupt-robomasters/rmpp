@@ -14,24 +14,41 @@ class Nav {
     bool is_connect = false;
 
     // 导航指令，接收回调解析，断联时为 0
-    uint8_t action_flag = 0; // 0 随头，1 小陀螺；pitch1 当前全程失能
-    float vx = 0, vy = 0;    // 雷达所在大 yaw 系速度，m/s
-    float yaw = 0;           // 协议角度，rad；当前仅保存
+    bool is_through_hole = false; // 过洞为 1，其余为 0
+    float vx = 0, vy = 0;         // 雷达所在大 yaw 系速度，m/s
+    float yaw = 0;                // 协议角度，rad；当前仅保存
+    float x = 0, y = 0;           // 上位机自定位的当前坐标，m
 
   private:
+    static constexpr uint8_t SOF_RX = 0xA3; // 下行帧头
+    static constexpr uint8_t SOF_TX = 0xA4; // 上行帧头
+
     // 下行原始帧，最近一帧有效数据；断联后保留供 SWD 查看
     struct __attribute__((packed)) RxFrame {
-        uint8_t sof[2];      // A5 5A
-        float vx, vy, yaw;   // 小端 float32
-        uint8_t action_flag; // 0 随头，1 小陀螺
-        uint16_t crc;        // CRC16/MODBUS，覆盖 sof 与 crc 之间的字节，低字节在前
-    } raw{};
+        uint8_t sof;             // A3
+        uint8_t is_through_hole; // 过洞为 1，其余为 0
+        float vx, vy;            // 大 yaw 系速度，m/s
+        float yaw;               // rad
+        float x, y;              // 当前坐标，m
+        uint16_t crc;            // CRC16/MODBUS，覆盖帧头至 y，低字节在前
+    } raw_rx{};
+
+    // 上行原始帧，set_target() 直接写入，send() 补 CRC 后发出；供 SWD 查看
+    struct __attribute__((packed)) TxFrame {
+        uint8_t sof = SOF_TX; // A4
+        float x = 0, y = 0;   // 目标坐标，m
+        uint16_t crc = 0;     // CRC16/MODBUS，覆盖帧头至 y，低字节在前
+    } raw_tx;
 
     Fifo<uint8_t, sizeof(RxFrame)> rx_fifo; // 未解析字节，USB 接收中断写入
     Timer callback_timer;                   // 用于断联检测
 
   public:
     explicit Nav(const Config& config);
+
+    void set_target(float x, float y);
+
+    void send();
 
     // 每周期调用：断联检测，断联时指令复位为 0
     void update();

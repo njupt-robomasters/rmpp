@@ -14,6 +14,7 @@ static uint64_t now_us = 1000000;
 static uint32_t irq_depth = 0;
 static int checks = 0;
 static std::vector<Cdc::RxCallback> cdc_callbacks[4];
+static std::vector<uint8_t> cdc_tx[4];
 static std::vector<Can::RxCallback> can_callbacks;
 static CanFrame last_can;
 
@@ -45,6 +46,10 @@ IrqLock::~IrqLock() {
 
 void Cdc::add_rx_callback(RxCallback callback) const {
     cdc_callbacks[id].push_back(std::move(callback));
+}
+
+void Cdc::send(const uint8_t* data, const std::size_t size) const {
+    cdc_tx[id].assign(data, data + size);
 }
 
 void Can::add_rx_callback(RxCallback callback) const {
@@ -80,18 +85,20 @@ static uint16_t reference_crc(const uint8_t* bytes, const std::size_t size) {
     return crc;
 }
 
-static std::array<uint8_t, 17> make_frame(const float vx, const float vy, const float yaw, const uint8_t flag) {
-    std::array<uint8_t, 17> bytes{0xA5, 0x5A};
-    const float values[] = {vx, vy, yaw};
-    for (int i = 0; i < 3; i++) {
+// 导航下行 24 字节：A3、过洞标志、vx、vy、yaw、x、y、CRC16；CRC 覆盖从帧头到 y
+static std::array<uint8_t, 24> make_frame(
+    const float vx, const float vy, const float yaw, const float x, const float y, const uint8_t is_through_hole) {
+    std::array<uint8_t, 24> bytes{0xA3};
+    bytes[1] = is_through_hole;
+    const float values[] = {vx, vy, yaw, x, y};
+    for (int i = 0; i < 5; i++) {
         uint32_t bits;
         std::memcpy(&bits, &values[i], 4);
         for (int j = 0; j < 4; j++)
             bytes[2 + 4 * i + j] = static_cast<uint8_t>(bits >> (8 * j));
     }
-    bytes[14] = flag;
-    const uint16_t crc = reference_crc(bytes.data() + 2, 13);
-    bytes[15] = static_cast<uint8_t>(crc);
-    bytes[16] = static_cast<uint8_t>(crc >> 8);
+    const uint16_t crc = reference_crc(bytes.data(), 22);
+    bytes[22] = static_cast<uint8_t>(crc);
+    bytes[23] = static_cast<uint8_t>(crc >> 8);
     return bytes;
 }

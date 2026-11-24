@@ -152,7 +152,7 @@ flowchart LR
 ## 编译接口
 
 - `Can` 没有默认构造，硬件编号由应用显式指定；电机型号以 `static constexpr` 保存电流与转矩量程、默认减速比，按实际外部调用决定是否公开，具体权限见 motor.md
-- Nav 构造参数独立传入 CDC，采用 17 字节 MODBUS CRC 导航下行协议。Aim 通过 `Config` 传入 CDC，采用 18 字节下行和 21 字节上行协议
+- Nav 构造参数独立传入 CDC，采用 `A3`/`A4` 单字节帧头的导航下行与上行协议。Aim 通过 `Config` 传入 CDC，采用 `A1`/`A2` 单字节帧头的自瞄下行与上行协议
 - jelly_sentry 使用 CDC1 自瞄、CDC2 导航。C 板 steer_sentry 共用 CDC1。接口与坐标转换见 `minipc.md`
 
 ## 验证记录

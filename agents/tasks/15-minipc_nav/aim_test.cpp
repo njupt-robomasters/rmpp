@@ -9,9 +9,9 @@
 #include <utility>
 #include <vector>
 
-static constexpr std::array<uint8_t, 18> RX_GOLDEN{
-    0xA5,
-    0x5B,
+static constexpr std::array<uint8_t, 17> RX_GOLDEN{
+    0xA1,
+    0x01,
     0x01,
     0x00,
     0x00,
@@ -21,36 +21,38 @@ static constexpr std::array<uint8_t, 18> RX_GOLDEN{
     0x00,
     0x70,
     0x41,
-    0x01,
     0x00,
     0x00,
     0x60,
     0x40,
-    0x91,
-    0x34,
+    0x04,
+    0xD8,
 };
-static constexpr std::array<uint8_t, 21> TX_GOLDEN{
-    0xA5,
-    0x5A,
-    0x00,
-    0x00,
-    0x80,
-    0x3F,
-    0x00,
-    0x00,
-    0x80,
-    0xBF,
-    0x00,
-    0x00,
-    0x80,
-    0xBF,
+static constexpr std::array<uint8_t, 24> TX_GOLDEN{
+    0xA2,
     0x00,
     0x00,
     0x00,
     0xC8,
     0x41,
-    0x5D,
-    0x3D,
+    0x00,
+    0x00,
+    0x00,
+    0x3F,
+    0x00,
+    0x00,
+    0x80,
+    0xBE,
+    0x00,
+    0x00,
+    0x40,
+    0x3F,
+    0x00,
+    0x00,
+    0x60,
+    0x3F,
+    0xD5,
+    0xDF,
 };
 
 static Cdc::RxCallback receive;
@@ -86,18 +88,18 @@ static void set_rx_crc(std::array<uint8_t, RX_GOLDEN.size()>& frame) {
     constexpr uint16_t TABLE[]{0x0000, 0xCC01, 0xD801, 0x1400, 0xF001, 0x3C00, 0x2800, 0xE401,
                                0xA001, 0x6C00, 0x7800, 0xB401, 0x5000, 0x9C01, 0x8801, 0x4400};
     uint16_t crc = 0xFFFF;
-    for (size_t offset = 2; offset < frame.size() - 2; offset++) {
+    for (size_t offset = 0; offset < frame.size() - 2; offset++) {
         crc ^= frame[offset];
         crc = (crc >> 4) ^ TABLE[crc & 15];
         crc = (crc >> 4) ^ TABLE[crc & 15];
     }
-    frame[16] = static_cast<uint8_t>(crc);
-    frame[17] = static_cast<uint8_t>(crc >> 8);
+    frame[15] = static_cast<uint8_t>(crc);
+    frame[16] = static_cast<uint8_t>(crc >> 8);
 }
 
 static void check_target(const Aim& aim) {
     assert(aim.is_connect && aim.is_detect && aim.is_fire);
-    assert(aim.yaw == 30 * deg && aim.pitch == -15 * deg && aim.distance == 3.5f);
+    assert(aim.yaw == 30 * deg && aim.pitch == 15 * deg && aim.distance == 3.5f);
 }
 
 static void check_disconnect(const Aim& aim) {
@@ -120,9 +122,9 @@ int main() {
     // 噪声、重叠帧头后粘包：字段按载荷原样映射，识别标志为 0 时其余字段照常发布
     Aim aim(config);
     auto no_target = RX_GOLDEN;
-    no_target[2] = 0;
+    no_target[1] = 0;
     set_rx_crc(no_target);
-    std::vector<uint8_t> stream{0x33, 0xA5, 0xA5};
+    std::vector<uint8_t> stream{0x33, 0xA1, 0xA1};
     stream.insert(stream.end(), RX_GOLDEN.begin(), RX_GOLDEN.end());
     stream.insert(stream.end(), no_target.begin(), no_target.end());
     receive(stream.data(), stream.size());
@@ -130,7 +132,7 @@ int main() {
 
     // CRC 错误帧不刷新连接，超时后断联复位
     now = 201 * ms;
-    for (const size_t offset : {2, 11, 15, 16, 17}) {
+    for (const size_t offset : {0, 1, 2, 5, 12, 15, 16}) {
         auto bad = RX_GOLDEN;
         bad[offset] ^= 0x80;
         receive(bad.data(), bad.size());
@@ -166,7 +168,7 @@ int main() {
     check_target(aim);
 
     // 上行：set_*() 直接写发送帧，send() 补 CRC；不做数值检查
-    aim.set_imu(1 * deg, 1 * deg, -1 * deg);
+    aim.set_attitude(Quaternionf(0.875f, 0.5f, -0.25f, 0.75f));
     aim.set_referee(false, 25);
     assert(tx_count == 0);
     aim.send();
@@ -175,10 +177,10 @@ int main() {
     assert(tx_count == 2 && std::ranges::equal(tx, TX_GOLDEN));
     aim.set_referee(true, -1);
     aim.send();
-    assert(tx_count == 3 && tx[14] == 1);
+    assert(tx_count == 3 && tx[1] == 1);
     const uint8_t minus_one[]{0x00, 0x00, 0x80, 0xBF};
-    assert(std::equal(tx.begin() + 15, tx.begin() + 19, minus_one));
-    aim.set_imu(std::numeric_limits<float>::quiet_NaN(), 0, 0);
+    assert(std::equal(tx.begin() + 2, tx.begin() + 6, minus_one));
+    aim.set_attitude(Quaternionf(std::numeric_limits<float>::quiet_NaN(), 0, 0, 0));
     aim.send();
     assert(tx_count == 4);
     std::puts("Aim protocol tests passed");

@@ -14,7 +14,7 @@ static void control_by_vt13() {
 }
 
 // 自主：导航速度为大 yaw 雷达系，经负小 yaw 角转换到云台系；导航或大小 yaw 离线时停止
-// flag 0 随头；flag 1 小陀螺，平移越快转速越低，插值输入限幅，超量程指令保持旋转正方向
+// 过洞 1 随头对准枪口、平移照常；过洞 0 小陀螺，平移越快转速越低，插值输入限幅，超量程指令保持旋转正方向
 static void control_by_auto() {
     if (!nav.is_connect || !yaw1.is_connect || !yaw2.is_connect) {
         chassis.set_mode(ChassisMatrix::DETACH_MODE);
@@ -26,7 +26,7 @@ static void control_by_auto() {
     const auto [nav_vx, nav_vy] = rotate(nav.vx, nav.vy, -gimbal.yaw2.measure);
     const float vx = std::clamp(nav_vx, -vxy_max, vxy_max);
     const float vy = std::clamp(nav_vy, -vxy_max, vxy_max);
-    if (nav.action_flag == 0) {
+    if (nav.is_through_hole) {
         chassis.set_mode(ChassisMatrix::FOLLOW_MODE);
         chassis.set_speed(vx, vy, 0);
     } else {

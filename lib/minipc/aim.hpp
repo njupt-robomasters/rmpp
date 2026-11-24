@@ -14,30 +14,34 @@ class Aim {
 
     bool is_connect = false;
 
-    // 自瞄目标，接收回调解析，断联时为 0；角度为最终 IMU 头的世界系目标，pitch 绕 Y 轴右手为正
+    // 自瞄目标，接收回调解析，断联时为 0；角度为最终 IMU 头的世界系目标
+    // 线上 yaw 俯视逆时针为正，pitch 向下为正，内部同号
     bool is_detect = false;
     Angle yaw, pitch;
     bool is_fire = false;
     float distance = 0; // 目标距离，m
 
   private:
+    static constexpr uint8_t SOF_RX = 0xA1; // 下行帧头
+    static constexpr uint8_t SOF_TX = 0xA2; // 上行帧头
+
     // 下行原始帧，最近一帧有效数据；断联后保留供 SWD 查看
     struct __attribute__((packed)) RxFrame {
-        uint8_t sof[2];    // A5 5B
+        uint8_t sof;       // A1
         uint8_t is_detect; // 识别到目标为 1
-        float yaw, pitch;  // 度；pitch 抬头为正
         uint8_t is_fire;   // 允许开火为 1
+        float yaw, pitch;  // 度；yaw 逆时针为正，pitch 向下为正
         float distance;    // m
-        uint16_t crc;      // CRC16/MODBUS，覆盖 sof 与 crc 之间的字节，低字节在前
+        uint16_t crc;      // CRC16/MODBUS，覆盖帧头至距离，低字节在前
     } raw_rx{};
 
     // 上行原始帧，set_*() 直接写入，send() 补 CRC 后发出；供 SWD 查看
     struct __attribute__((packed)) TxFrame {
-        uint8_t sof[2] = {0xA5, 0x5A};
-        float yaw = 0, pitch = 0, roll = 0; // 最终 IMU 头姿态，度；pitch 抬头为正，roll 由后向前看顺时针为正
-        uint8_t is_red = 1;                 // 红方 1，蓝方 0
-        float bullet_speed = 0;             // 裁判实测初速，m/s
-        uint16_t crc = 0;                   // CRC16/MODBUS，覆盖 sof 与 crc 之间的字节，低字节在前
+        uint8_t sof = SOF_TX;                 // A2
+        uint8_t is_red = 1;                   // 红方 1，蓝方 0
+        float bullet_speed = 0;               // 裁判实测初速，m/s
+        float qx = 0, qy = 0, qz = 0, qw = 1; // 最终 IMU 头姿态四元数，x y z w，机体到世界
+        uint16_t crc = 0;                     // CRC16/MODBUS，覆盖帧头至 qw，低字节在前
     } raw_tx;
 
     Fifo<uint8_t, sizeof(RxFrame)> rx_fifo; // 未解析字节，USB 接收中断写入
@@ -46,7 +50,7 @@ class Aim {
   public:
     explicit Aim(const Config& config);
 
-    void set_imu(Angle yaw, Angle pitch, Angle roll);
+    void set_attitude(const Quaternionf& quaternion);
     void set_referee(bool is_red, float bullet_speed);
 
     void send();

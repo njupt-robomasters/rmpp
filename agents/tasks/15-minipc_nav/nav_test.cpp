@@ -2,14 +2,15 @@
 #include "minipc/crc16_modbus.hpp"
 #include "robot/gimbal/gimbal_fold.hpp"
 #include "motor/dm4310.hpp"
+#include <algorithm>
 #include <limits>
 
 static void protocol_test() {
     const uint8_t check_text[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9'};
     CHECK(reference_crc(check_text, 9) == 0x4B37);
     CHECK(crc16_modbus(check_text, sizeof(check_text)) == 0x4B37u);
-    const std::array<uint8_t, 17> golden{0xA5, 0x5A, 0, 0, 0x80, 0x3F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x9A, 0xE6};
-    CHECK(make_frame(1, 0, 0, 0) == golden);
+    const std::array<uint8_t, 24> golden{0xA3, 0x00, 0, 0, 0x80, 0x3F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x8A, 0x78};
+    CHECK(make_frame(1, 0, 0, 0, 0, 0) == golden);
     int aim_packets = 0;
     Cdc(1).add_rx_callback([&](const uint8_t*, std::size_t) { aim_packets++; });
     Nav nav({.cdc = Cdc(2)});
@@ -27,9 +28,9 @@ static void protocol_test() {
         CHECK(nav.is_connect == (i == golden.size() - 1));
     }
     near(nav.vx, 1);
-    CHECK(nav.action_flag == 0);
+    CHECK(!nav.is_through_hole);
 
-    const auto other = make_frame(-1.25f, 2.5f, -0.75f, 1);
+    const auto other = make_frame(-1.25f, 2.5f, -0.75f, 1.5f, -2.5f, 1);
     for (std::size_t split = 0; split <= other.size(); split++) {
         feed(2, other.data(), split);
         nav.update();
@@ -38,13 +39,15 @@ static void protocol_test() {
         near(nav.vx, -1.25f);
         near(nav.vy, 2.5f);
         near(nav.yaw, -0.75f);
-        CHECK(nav.action_flag == 1);
+        near(nav.x, 1.5f);
+        near(nav.y, -2.5f);
+        CHECK(nav.is_through_hole);
     }
 
     // 连续完整帧、重叠帧头、每个位置插入或丢失一个字节，随后均恢复到黄金帧
-    for (int position = 0; position < 17; position++) {
+    for (int position = 0; position < 24; position++) {
         for (const bool insert : {false, true}) {
-            std::vector<uint8_t> stream{0x55, 0xA5, 0xA5};
+            std::vector<uint8_t> stream{0x55, 0xA3, 0xA3};
             std::vector<uint8_t> damaged(other.begin(), other.end());
             if (insert)
                 damaged.insert(damaged.begin() + position, 0x33);
@@ -56,12 +59,15 @@ static void protocol_test() {
             nav.update();
             near(nav.vx, 1);
             near(nav.vy, 0);
-            CHECK(nav.action_flag == 0);
+            near(nav.x, 0);
+            near(nav.y, 0);
+            CHECK(!nav.is_through_hole);
         }
     }
     std::vector<uint8_t> joined;
     for (int i = 0; i < 100; i++) {
-        const auto frame = make_frame(static_cast<float>(i), -static_cast<float>(i), i * 0.01f, i % 2);
+        const auto frame = make_frame(
+            static_cast<float>(i), -static_cast<float>(i), i * 0.01f, i * 0.1f, -i * 0.2f, i % 2);
         joined.insert(joined.end(), frame.begin(), frame.end());
     }
     for (std::size_t offset = 0; offset < joined.size(); offset += 7)
@@ -69,7 +75,9 @@ static void protocol_test() {
     nav.update();
     near(nav.vx, 99);
     near(nav.vy, -99);
-    CHECK(nav.action_flag == 1);
+    near(nav.x, 9.9f);
+    near(nav.y, -19.8f);
+    CHECK(nav.is_through_hole);
 
     now_us += 60000;
     auto corrupted = other;
@@ -82,21 +90,25 @@ static void protocol_test() {
     CHECK(!nav.is_connect);
     near(nav.vx, 0);
     near(nav.yaw, 0);
+    near(nav.x, 0);
+    near(nav.y, 0);
+    CHECK(!nav.is_through_hole);
 
-    // 超时后首帧可分片恢复，flag=1 直接生效；重复状态保持一致
+    // 超时后首帧可分片恢复，过洞标志直接生效；重复状态保持一致
     for (int i = 0; i < 5; i++) {
         feed(2, other.data(), 8);
         nav.update();
-        feed(2, other.data() + 8, 9);
+        feed(2, other.data() + 8, other.size() - 8);
         nav.update();
-        CHECK(nav.is_connect && nav.action_flag == 1);
+        CHECK(nav.is_connect && nav.is_through_hole);
+        near(nav.x, 1.5f);
     }
 
-    // 校验通过即原样接收，不检查浮点有限性和 flag 范围
-    const auto unchecked = make_frame(NAN, INFINITY, -INFINITY, 2);
+    // 校验通过即原样接收，不检查浮点有限性
+    const auto unchecked = make_frame(NAN, INFINITY, -INFINITY, 3, -4, 2);
     feed(2, unchecked.data(), unchecked.size());
     nav.update();
-    CHECK(nav.is_connect && std::isnan(nav.vx) && std::isinf(nav.vy) && nav.action_flag == 2);
+    CHECK(nav.is_connect && std::isnan(nav.vx) && std::isinf(nav.vy) && nav.is_through_hole);
 
     // 断联只在 update 检查：超时前的半帧与超时后的尾段拼成完整帧时照常接收
     feed(2, golden.data(), 8);
@@ -118,6 +130,16 @@ static void protocol_test() {
     near(nav.vx, -1.25f);
     CHECK(aim_packets == 1);
 
+    // 上行：set_target() 直接写发送帧，send() 补 CRC；目标坐标原样发出
+    nav.set_target(1.5f, -2.5f);
+    nav.send();
+    const std::array<uint8_t, 11> target_golden{0xA4, 0x00, 0x00, 0xC0, 0x3F, 0x00, 0x00, 0x20, 0xC0, 0xDC, 0xA2};
+    CHECK(cdc_tx[2].size() == target_golden.size());
+    CHECK(std::equal(cdc_tx[2].begin(), cdc_tx[2].end(), target_golden.begin()));
+    nav.set_target(NAN, INFINITY);
+    nav.send();
+    CHECK(cdc_tx[2].size() == target_golden.size());
+
     // 噪声流与恢复：固定随机种子便于复现
     uint32_t random = 7;
     for (int trial = 0; trial < 2000; trial++) {
@@ -130,7 +152,7 @@ static void protocol_test() {
         feed(2, noise.data(), noise.size());
         nav.update();
         near(nav.vx, 1);
-        CHECK(nav.action_flag == 0);
+        CHECK(!nav.is_through_hole);
     }
     cdc_callbacks[1].clear();
     cdc_callbacks[2].clear();

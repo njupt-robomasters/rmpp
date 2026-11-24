@@ -135,10 +135,10 @@
 
 ## jelly_sentry 导航与 pitch1
 
-- CDC1 用于 Aim 收发，CDC2 接 Nav 的 17 字节导航下行帧。主循环先执行 `nav.update()`，再执行 `chassis_loop()`
-- 导航按大 yaw 雷达系速度接入，经负小 yaw 角转换到云台系；flag=0 随 IMU 头，flag=1 不随头并使用小陀螺。人工底盘输入优先接管，导航超时或 yaw 反馈离线停止自主运动
+- CDC1 用于 Aim 收发，CDC2 接 Nav 的导航下行帧（`A3`，24 字节）。主循环先执行 `nav.update()`，再执行 `chassis_loop()`
+- 导航按大 yaw 雷达系速度接入，经负小 yaw 角转换到云台系；过洞标志为 1 时随 IMU 头、平移照常，为 0 时不随头并使用小陀螺。人工底盘输入优先接管，导航超时或 yaw 反馈离线停止自主运动
 - pitch1 当前全程失能，GimbalFold 的总使能接口和每次 update 固定关闭该轴，清 PID 并写零输出，保留反馈与失能帧发送；其余三轴正常控制
-- 协议、坐标公式、flag 和离线处理详见 `minipc.md`；验证见 `../tasks/15-minipc_nav/README.md`
+- 协议、坐标公式、过洞标志和离线处理详见 `minipc.md`；验证见 `../tasks/21-minipc_protocol/README.md`
 
 ## jelly_sentry CAN 发送调度
 
