@@ -1,5 +1,7 @@
 #include "chassis.cpp"
 
+void Cdc::send(const uint8_t*, const std::size_t) const {}
+
 static void run() {
     now_us += 1000;
     nav.update();

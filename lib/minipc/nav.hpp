@@ -6,7 +6,8 @@
 
 class Nav {
   private:
-    static constexpr std::size_t FRAME_SIZE = 17;
+    static constexpr std::size_t FRAME_SIZE = 17, TX_FRAME_SIZE = 8;
+    static constexpr float SEND_PERIOD = 1.0f / 200; // 5 ms
 
   public:
     struct Config {
@@ -14,6 +15,7 @@ class Nav {
     };
 
   private:
+    const Cdc cdc;
     const Config config;
 
   public:
@@ -32,13 +34,14 @@ class Nav {
     bool has_command = false;
     uint8_t rx_buf[FRAME_SIZE]{};
     std::size_t rx_size = 0;
-    Timer callback_timer;
+    Timer send_timer, callback_timer;
 
   public:
     Nav(Cdc cdc, const Config& config);
 
-    // 主循环发布完整指令快照；超时清空输出并置为离线
-    void update();
+    // 发布导航指令；大 yaw 在线时以 200 Hz 上报相对底盘角，rad，[-pi, pi)
+    // 无参数调用仅接收导航指令
+    void update(float yaw = 0, bool is_yaw_connect = false);
 
   private:
     void callback(const uint8_t* data, std::size_t size);

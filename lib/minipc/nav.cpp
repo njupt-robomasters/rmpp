@@ -5,23 +5,38 @@
 #include <cstring>
 
 Nav::Nav(const Cdc cdc, const Config& config)
-    : config(config) {
+    : cdc(cdc), config(config) {
     cdc.add_rx_callback([this](const uint8_t* data, const std::size_t size) { callback(data, size); });
 }
 
-void Nav::update() {
-    // USB 回调与主循环共享待发布指令及计时器，短临界区保证整帧一致
-    const IrqLock lock;
-    is_connect = has_command && callback_timer.elapsed() <= config.timeout;
-    if (is_connect) {
-        command = pending;
-    } else {
-        command = {};
-        if (has_command) {
-            has_command = false;
-            rx_size = 0;
+void Nav::update(const float yaw, const bool is_yaw_connect) {
+    {
+        // USB 回调与主循环共享待发布指令及计时器，短临界区保证整帧一致
+        const IrqLock lock;
+        is_connect = has_command && callback_timer.elapsed() <= config.timeout;
+        if (is_connect) {
+            command = pending;
+        } else {
+            command = {};
+            if (has_command) {
+                has_command = false;
+                rx_size = 0;
+            }
         }
     }
+
+    if (!is_yaw_connect || send_timer.elapsed() < SEND_PERIOD)
+        return;
+    send_timer.restart();
+    if (!std::isfinite(yaw))
+        return;
+
+    uint8_t frame[TX_FRAME_SIZE]{0xA5, 0x5A};
+    minipc_write_float(frame + 2, yaw);
+    const uint16_t crc = minipc_crc16_modbus(frame + 2, 4);
+    frame[6] = static_cast<uint8_t>(crc);
+    frame[7] = static_cast<uint8_t>(crc >> 8);
+    cdc.send(frame, sizeof(frame));
 }
 
 void Nav::callback(const uint8_t* data, const std::size_t size) {

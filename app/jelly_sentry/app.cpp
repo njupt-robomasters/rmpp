@@ -146,7 +146,7 @@ extern "C" void app_main() {
             // 上位机数据：弹速取裁判系统实测初速
             aim.set_referee(referee.robot_status.robot_id < 100, referee.shoot_data.initial_speed);
             aim.update(attitude.yaw, attitude.pitch, attitude.roll);
-            nav.update();
+            nav.update(gimbal.yaw1.measure, yaw1.is_connect);
 
             chassis_loop();
             gimbal_loop();

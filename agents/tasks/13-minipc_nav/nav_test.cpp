@@ -3,6 +3,8 @@
 #include "motor/dm4310.hpp"
 #include <limits>
 
+void Cdc::send(const uint8_t*, const std::size_t) const {}
+
 static void protocol_test() {
     const uint8_t check_text[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9'};
     CHECK(reference_crc(check_text, 9) == 0x4B37);
