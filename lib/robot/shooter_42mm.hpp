@@ -10,10 +10,10 @@
 // 42mm 发射机构：四 VESC 摩擦轮速度模式，拨弹电机位置闭环，发射信号上升沿拨一发，空闲时抖动下弹
 class Shooter42mm {
   private:
-    static constexpr float RUB12_RATIO = 0.5f; // 摩擦轮 1、2 相对弹速的速度比
-    static constexpr float SHOOT_FINISH_RATIO = 0.95f;       // 用于检查拨弹完成
-    static constexpr float SHAKE_FREQ = 1;                   // 抖动频率
-    static constexpr float SHAKE_AMP = 1;                    // 抖动幅度（一个弹 = 1）
+    static constexpr float RUB12_RATIO = 0.5f;         // 摩擦轮 1、2 相对弹速的速度比
+    static constexpr float SHOOT_FINISH_RATIO = 0.95f; // 用于检查拨弹完成
+    static constexpr float SHAKE_FREQ = 1;             // 抖动频率
+    static constexpr float SHAKE_AMP = 1;              // 抖动幅度（一个弹 = 1）
 
     // 设备绑定
     struct Motors {

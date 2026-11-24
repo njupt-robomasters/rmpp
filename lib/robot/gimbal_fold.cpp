@@ -45,7 +45,11 @@ void GimbalFold::turn_yaw(const float delta) {
 }
 
 void GimbalFold::set_chassis_wr(const float chassis_wr) {
-    this->chassis_wr = chassis_wr;
+    this->chassis_wr = std::isfinite(chassis_wr) ? chassis_wr : 0;
+}
+
+void GimbalFold::set_yaw_window(const bool is_yaw_window) {
+    this->is_yaw_window = is_yaw_window;
 }
 
 void GimbalFold::set_pitch1_angle(const Angle angle) {
@@ -53,7 +57,7 @@ void GimbalFold::set_pitch1_angle(const Angle angle) {
 }
 
 void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
-    const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
+    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
 
     yaw.imu.measure = imu_yaw;
     pitch.imu.measure = imu_pitch;
@@ -131,8 +135,23 @@ void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
         pitch.ecd.ref = pitch.imu.ref - pitch.imu_minus_ecd;
     }
 
-    // 分配大小 yaw：大 yaw 直接设为总目标，小 yaw 补偿大 yaw 尚未转到的部分并限位
-    yaw1.ref = yaw.ecd.ref;
+    // 大小 yaw 分配
+    // 窗口模式：识别到目标时大轴保持世界朝向，小轴优先追踪；超出限位的部分交给大轴
+    // 普通模式：大轴持续跟随总目标；小轴离线时由大轴承担剩余误差
+    const bool can_yaw_window = is_yaw_window && mode == IMU_MODE && can_yaw1 && can_yaw2;
+    if (can_yaw_window) {
+        if (!is_yaw_window_ready)
+            yaw1_world_ref = yaw1.measure + yaw.imu_minus_ecd;
+        const float offset = Angle(yaw.imu.ref - yaw1_world_ref);
+        const float limited_offset = std::clamp(offset, config.yaw2.min, config.yaw2.max);
+        yaw1_world_ref += offset - limited_offset;
+        yaw1.ref = yaw1_world_ref - yaw.imu_minus_ecd;
+    } else {
+        yaw1.ref = yaw.ecd.ref;
+        if (mode == IMU_MODE && !motor.yaw2.is_connect)
+            yaw1.ref -= yaw2.measure;
+    }
+    is_yaw_window_ready = can_yaw_window;
     const float yaw2_ref = Angle(yaw.ecd.ref - yaw1.measure);
     yaw2.ref = std::clamp(yaw2_ref, config.yaw2.min, config.yaw2.max);
     const bool is_yaw2_limit = float(yaw2.ref) != yaw2_ref;
@@ -143,9 +162,10 @@ void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
     pitch.ecd.ref = pitch2_ref;
     pitch1.ref = std::clamp(float(pitch1.ref), config.pitch1.min, config.pitch1.max);
 
-    // 大 yaw 串级 PID，圆周误差；速度前馈抵消底盘旋转并叠加云台转速
+    // 大 yaw 串级 PID；底盘旋转补偿始终叠加，窗口模式下云台转速由小轴承担
     if (can_yaw1) {
-        const float speed_ref = yaw_position_pid.calculate(dt, Angle(yaw1.ref - yaw1.measure)) - chassis_wr + yaw_speed;
+        const float speed_ff = -chassis_wr + (can_yaw_window ? 0 : yaw_speed);
+        const float speed_ref = yaw_position_pid.calculate(dt, Angle(yaw1.ref - yaw1.measure)) + speed_ff;
         motor.yaw1.set_output(yaw_speed_pid.calculate(dt, speed_ref - motor.yaw1.speed));
         yaw_speed_pid.track(motor.yaw1.torque_ref);
     } else {
@@ -181,8 +201,7 @@ void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
     // pitch1 保留反馈更新与失能帧发送，输出固定为零
     motor.pitch1.set_output(0);
 
-    // 传递软件限位到 imu 参考系
-    yaw.imu.ref = yaw1.ref + yaw.imu_minus_ecd;
+    // 传递软件限位到 imu 参考系；yaw 总目标不回写，窗口模式下视觉角度持续有效
     pitch.imu.ref = pitch.ecd.ref + pitch.imu_minus_ecd;
 }
 

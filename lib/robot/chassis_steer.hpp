@@ -43,8 +43,6 @@ class Steer {
 // 控制方式由 ChassisSteerSpeed、ChassisSteerTorque 实现；接口与 ChassisMatrix 一致
 // 国际单位制：半径 m，速度 m/s，角速度 rad/s，力 N
 class ChassisSteer {
-  private:
-
   protected:
     Motor* const wheel[4]; // 轮电机
 

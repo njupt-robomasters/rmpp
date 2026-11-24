@@ -4,8 +4,6 @@
 
 // 固定六状态 EKF：机体到世界的四元数，以及机体 X/Y 陀螺仪剩余零偏
 class QuaternionEkf : public Attitude {
-  private:
-
   public:
     struct Config {
         float quaternion_noise = 10.0f;       // 四元数过程噪声强度，>= 0

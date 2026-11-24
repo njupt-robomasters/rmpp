@@ -5,8 +5,6 @@
 #include <algorithm>
 #include <cmath>
 
-static constexpr float WR_MIN = 60 * rpm; // 导航满速平移时的小陀螺角速度，rad/s；与底盘功率控制保留转速一致
-
 // VT13：摇杆叠加键盘斜坡，速度为 IMU 头的云台系，断联时为 0
 static void control_by_vt13() {
     chassis.set_mode(ChassisMatrix::DETACH_MODE);

@@ -5,13 +5,7 @@
 #include "gimbal.hpp"
 #include "melody/music/c5d5g5.hpp"
 #include "shooter.hpp"
-#include <cmath>
 #include <tuple>
-
-// RGB 色彩循环
-static constexpr float RGB_PERIOD = 1; // 循环周期，s
-static float rgb_hue = 0;
-static Timer rgb_timer;
 
 static void setup() {
     // 大 yaw 零位从 KvStore 读取，未标定时为 0；标定方法见 gimbal.cpp 组合键
@@ -23,9 +17,6 @@ static void setup() {
 static void send() {
     static uint32_t send_cnt = 0;
     send_cnt++;
-
-    // 运行时可写周期的分频计数，周期 0、1 均为每拍发送
-    static uint32_t pitch1_cnt = 0, pitch2_cnt = 0, yaw2_cnt = 0, shoot_cnt = 0;
 
     // CAN1：裁判发送每拍至多 1 帧
     referee_sender.send();
@@ -43,43 +34,27 @@ static void send() {
     if (send_cnt % 10 == 0)
         super_cap.send();
 
-    // CAN2：pitch1、pitch2 发送周期由 gimbal.hpp 的可写变量决定；pitch1 始终发送失能帧
-    if (++pitch1_cnt >= pitch1_send_period_ms) {
-        pitch1_cnt = 0;
+    // CAN2：pitch2 每拍，pitch1 每 4 拍（失能帧，保持反馈）
+    pitch2.send();
+    if (send_cnt % 4 == 0)
         pitch1.send();
-    }
-    if (++pitch2_cnt >= pitch2_send_period_ms) {
-        pitch2_cnt = 0;
-        pitch2.send();
-    }
 
-    // CAN3：小 yaw 7025 转矩与读角度交替，各占发送频率的一半
-    if (++yaw2_cnt >= yaw2_send_period_ms) {
-        yaw2_cnt = 0;
+    // CAN3：小 yaw 7025 每 2 拍（转矩与读角度各一次，合计 500 Hz）
+    if (send_cnt % 2 == 0)
         yaw2.send();
-    }
 
-    // CAN2：两路 P630，VESC 速度模式；失能时驱动发送零电流
+    // CAN2：摩擦轮 VESC 每拍；拨弹 EL05 每 2 拍
     rub1.send();
     rub2.send();
-
-    // CAN2：EL05 发送周期由 shooter.hpp 的可写变量决定
-    if (++shoot_cnt >= shoot_send_period_ms) {
-        shoot_cnt = 0;
+    if (send_cnt % 2 == 0)
         shoot.send();
-    }
 
-    if (send_cnt % 5 == 0) {
-        aim.set_attitude(attitude.q);
-        aim.set_referee(referee.robot_status.robot_id < 100, referee.shoot_data.initial_speed);
-        aim.send();
-    }
+    // 自瞄上行 200 Hz
+    if (send_cnt % 5 == 0)
+        minipc_send();
 }
 
 static void loop() {
-    rgb_hue = std::fmod(rgb_hue + rgb_timer.restart() / RGB_PERIOD, 1.0f);
-    rgb.set_hsv(rgb_hue, 1, 1);
-
     melody.update();
     vt13.update();
     attitude.update();

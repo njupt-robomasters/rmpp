@@ -1,15 +1,12 @@
 #pragma once
 
 #include "bsp/kv_store.hpp"
-#include "bsp/rgb.hpp"
 #include "melody/melody.hpp"
-#include "minipc/aim.hpp"
-#include "minipc/nav.hpp"
+#include "minipc.hpp"
 #include "rc/vt13.hpp"
 #include "referee.hpp"
 
-// 板载 WS2812 与蜂鸣器
-inline Rgb rgb;
+// 板载蜂鸣器
 inline Melody melody({});
 
 // 持久化参数（W25Q64），当前只保存大 yaw 零位 yaw_offset
@@ -30,10 +27,6 @@ inline VT13 vt13({
     .bullet_speed = 5.0f,
     .bullet_freq = 20.0f,
 });
-
-// 上位机独立通道：CDC1 自瞄，CDC2 导航（单字节帧头 + 载荷 + MODBUS CRC）
-inline Aim aim({.cdc = Cdc(1)});
-inline Nav nav({.cdc = Cdc(2)});
 
 // fn 开关：VT13 在 N、S 挡时 fn 键置位、pause 键清除，失能或断联时清除
 // 底盘、云台、发射共用同一锁存状态，同一周期内重复调用结果不变

@@ -8,7 +8,6 @@
 // 姿态由调用方每周期经 update() 传入云台系 IMU 的 yaw、pitch
 class GimbalDualYaw {
   private:
-
     struct Motors {
         Motor &yaw1, &yaw2, &pitch;
     } motor;

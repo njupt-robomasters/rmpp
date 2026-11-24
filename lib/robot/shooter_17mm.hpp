@@ -8,6 +8,7 @@
 // 17mm 发射机构：双 VESC 摩擦轮速度模式，拨弹电机速度闭环；摩擦轮与拨弹电机各自处理掉线
 class Shooter17mm {
   private:
+    static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s
 
     // 设备绑定
     struct Motors {
@@ -21,7 +22,7 @@ class Shooter17mm {
         const Pid::Config* shoot_pid_config;
         float bullet_per_angle = 1.0f / rev; // 每弧度发射弹数，默认每转一发
         float rub_radius = 0.03f;            // 摩擦轮半径
-        float block_time = 0.2f;             // 卡弹检测时间，s；拨弹 PID 输出持续饱和达到该时间判定卡弹
+        float block_time = 0.5f;             // 卡弹检测时间，s；拨弹 PID 输出持续饱和达到该时间判定卡弹
         float reverse_time = 0.25f;          // 卡弹倒转时间
         uint16_t heat_protect = 0;           // 剩余热量保护阈值
     };
@@ -58,7 +59,7 @@ class Shooter17mm {
         REVERSE,
     } state = STOP;
 
-    float shoot_output = 0; // 拨弹 PID 输出，单位随电机 set_output()；update() 末尾保存，失能时为 0
+    float shoot_output = 0;
 
     // 拨弹闭环
     Pid shoot_pid;

@@ -12,8 +12,6 @@
 // 各电机离线只影响自身：输出零并清空自身 PID，恢复后从实测重新闭环
 // 国际单位制：角度 rad，角速度 rad/s，力矩 Nm，电流 A
 class GimbalFold {
-  private:
-
   public:
     enum Mode {
         ECD_MODE,
@@ -71,15 +69,22 @@ class GimbalFold {
   private:
     const Config config;
     const Motors motor;
-    Pid yaw_speed_pid, yaw_position_pid, pitch_speed_pid, pitch_position_pid;
-    Pid yaw2_speed_pid, yaw2_position_pid;
-    Pid pitch1_speed_pid, pitch1_position_pid;
+
+    // 指令
+    bool is_enable = false;
+    bool is_yaw_window = false; // 自瞄窗口：识别到目标时大轴保持世界朝向，小轴优先追踪
     Mode mode = IMU_MODE;
     float yaw_speed = 0, pitch_speed = 0; // 云台目标转速，rad/s
     float chassis_wr = 0;                 // 底盘旋转前馈，rad/s
-    bool is_enable = false;
+
+    Pid yaw_speed_pid, yaw_position_pid, pitch_speed_pid, pitch_position_pid;
+    Pid yaw2_speed_pid, yaw2_position_pid;
+    Pid pitch1_speed_pid, pitch1_position_pid;
+
     bool is_yaw_ready = false, is_pitch_ready = false;
     bool is_yaw1_ready = false, is_yaw2_ready = false;
+    bool is_yaw_window_ready = false;
+    Angle yaw1_world_ref; // 窗口模式下大轴保持的世界朝向，rad
     Timer update_timer;
 
   public:
@@ -91,6 +96,9 @@ class GimbalFold {
     void set_angle(Angle yaw, Angle pitch);
     void turn_yaw(float delta);
     void set_chassis_wr(float chassis_wr);
+
+    // 自瞄识别到目标时启用小 yaw 优先窗口：大轴保持世界朝向，小轴追踪目标；超出小轴限位由大轴补足
+    void set_yaw_window(bool is_yaw_window);
 
     // 保存折叠关节目标角；当前失能策略在 update 中将其恢复为实测角
     void set_pitch1_angle(Angle angle);

@@ -6,8 +6,6 @@
 
 // 板载 BMI088：读取、零偏与安装方向修正、校准及恒温加热
 class Imu {
-  private:
-
   public:
     struct Config {
         Quaternionf orientation = Quaternionf::Identity(); // 传感器到机体

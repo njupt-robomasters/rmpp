@@ -14,7 +14,8 @@ class Uart {
 
   public:
     // 编号不存在时各操作静默返回
-    constexpr explicit Uart(const int id) : id(id) {}
+    constexpr explicit Uart(const int id)
+        : id(id) {}
 
     // 上次 DMA 发送已完成
     bool can_send() const;

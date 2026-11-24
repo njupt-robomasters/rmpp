@@ -6,7 +6,8 @@
 #include <cmath>
 
 // 自主扫描：yaw 匀速旋转，pitch 在 IMU [PITCH_MIN, PITCH_MAX] 内往返，rad/s
-static constexpr float YAW_SPEED = 180 * deg_s, PITCH_SPEED = 60 * deg_s;
+// static constexpr float YAW_SPEED = 180 * deg_s, PITCH_SPEED = 60 * deg_s;
+static constexpr float YAW_SPEED = 0 * deg_s, PITCH_SPEED = 0 * deg_s;
 static constexpr Angle PITCH_MIN = -22 * deg, PITCH_MAX = 0 * deg;
 
 // 自主锁定：自瞄有效距离，m；脱锁时间，s；不高于此血量放弃锁定
@@ -20,7 +21,7 @@ static Timer lock_lost_timer;      // 识别到有效目标时重新开始
 
 static bool last_calib = false, last_r = false;
 
-// VT13：摇杆叠加鼠标；pitch 取 -pitch_speed，保持迁移前摇杆上推目标增大的方向；R 键掉头
+// VT13：摇杆叠加鼠标；pitch 取 -pitch_speed，保持摇杆上推目标增大的方向；R 键掉头
 // photo 或鼠标右键自瞄，识别到目标时跟随视觉角度；裁判自检阶段 yaw 叠加匀速旋转
 static void control_by_vt13(const bool is_detect, const Angle target_yaw, const Angle target_pitch) {
     if (vt13.key.r && !last_r)
@@ -83,6 +84,8 @@ void gimbal_loop(const bool is_detect, const Angle target_yaw, const Angle targe
         control_by_vt13(is_detect, target_yaw, target_pitch);
     }
 
+    // 识别到装甲板时小 yaw 优先追踪（窗口模式）
+    gimbal.set_yaw_window(is_detect);
     // 小陀螺前馈；底盘转速未知时关闭
     gimbal.set_chassis_wr(std::isfinite(chassis.wr.measure) ? chassis.wr.measure : 0);
     gimbal.update(attitude.yaw, attitude.pitch);

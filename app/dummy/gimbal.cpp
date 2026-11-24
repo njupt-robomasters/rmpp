@@ -2,7 +2,7 @@
 #include "app.hpp"
 #include <algorithm>
 
-static constexpr float SPEED_MAX = 60 * rpm;             // 摇杆满量程对应的云台转速
+static constexpr float SPEED_MAX = 60 * rpm; // 摇杆满量程对应的云台转速
 
 static Pid yaw_pid(&yaw_pid_config);
 static Timer update_timer;

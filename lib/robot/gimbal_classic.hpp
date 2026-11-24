@@ -9,8 +9,6 @@
 // 内环：IMU 角速度经 pitch 关节角换算到电机轴，yaw、pitch 目标与反馈均为绝对角速度
 // 外环（可选）：世界 yaw/pitch 角度闭环，输出的世界角速率修正换算到电机轴后叠加到速度指令
 class GimbalClassic {
-  private:
-
   public:
     struct Motors {
         Motor &yaw, &pitch;
