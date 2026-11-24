@@ -28,6 +28,7 @@ static void protocol_test() {
         CHECK(nav.is_connect == (i == golden.size() - 1));
     }
     near(nav.vx, 1);
+    near(nav.yaw, 0);
     CHECK(!nav.is_through_hole);
 
     const auto other = make_frame(-1.25f, 2.5f, -0.75f, 1.5f, -2.5f, 1);
@@ -130,14 +131,21 @@ static void protocol_test() {
     near(nav.vx, -1.25f);
     CHECK(aim_packets == 1);
 
-    // 上行：set_target() 直接写发送帧，send() 补 CRC；目标坐标原样发出
+    // 上行编码器角为 π/4 rad，下行转角 +π/2 rad 表示从大 yaw 当前朝向逆时针转 90°
     nav.set_target(1.5f, -2.5f);
-    nav.send();
-    const std::array<uint8_t, 11> target_golden{0xA4, 0x00, 0x00, 0xC0, 0x3F, 0x00, 0x00, 0x20, 0xC0, 0xDC, 0xA2};
+    nav.send(pi / 4);
+    const std::array<uint8_t, 15> target_golden{0xA4, 0xDB, 0x0F, 0x49, 0x3F, 0x00, 0x00, 0xC0, 0x3F, 0x00, 0x00, 0x20, 0xC0, 0x41, 0x20};
     CHECK(cdc_tx[2].size() == target_golden.size());
     CHECK(std::equal(cdc_tx[2].begin(), cdc_tx[2].end(), target_golden.begin()));
+    const std::array<uint8_t, 24> turn_golden{0xA3, 0, 0, 0, 0x80, 0x3F, 0, 0, 0, 0, 0xDB, 0x0F, 0xC9, 0x3F, 0, 0, 0, 0, 0, 0, 0, 0, 0x5D, 0xEB};
+    for (int repeat = 0; repeat < 2; repeat++) {
+        feed(2, turn_golden.data(), turn_golden.size());
+        near(nav.yaw, pi / 2);
+    }
+    feed(2, golden.data(), golden.size());
+    near(nav.yaw, 0);
     nav.set_target(NAN, INFINITY);
-    nav.send();
+    nav.send(0);
     CHECK(cdc_tx[2].size() == target_golden.size());
 
     // 噪声流与恢复：固定随机种子便于复现
