@@ -32,7 +32,7 @@ def main():
         "motor": (TASK / "layout_motor_regression.cpp", [
             "motor/motor.cpp", "motor/m3508.cpp", "motor/m2006.cpp", "motor/gm6020.cpp",
             "motor/x630.cpp", "motor/rm6623.cpp", "motor/rmdl7025.cpp", "motor/vesc.cpp",
-            "robot/shooter/shooter_17mm.cpp", "pid/pid.cpp",
+            "robot/shooter_17mm.cpp", "pid/pid.cpp",
         ]),
         "cap": (ROOT / "agents/tasks/06-super_cap_capacitance/sim.cpp", ["power/super_cap.cpp"]),
         "power": (ROOT / "agents/tasks/06-super_cap_capacitance/power_sim.cpp", ["power/super_cap.cpp"]),

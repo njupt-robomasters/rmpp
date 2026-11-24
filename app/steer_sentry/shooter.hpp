@@ -2,7 +2,7 @@
 
 #include "motor/m3508.hpp"
 #include "motor/vesc.hpp"
-#include "robot/shooter/shooter_17mm.hpp"
+#include "robot/shooter_17mm.hpp"
 
 // 摩擦轮
 inline Vesc rub1({

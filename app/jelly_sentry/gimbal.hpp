@@ -3,7 +3,7 @@
 #include "attitude/quaternion_ekf.hpp"
 #include "motor/dm4310.hpp"
 #include "motor/rmdl7025.hpp"
-#include "robot/gimbal/gimbal_fold.hpp"
+#include "robot/gimbal_fold.hpp"
 
 // 惯性测量单元与姿态解算：MC02 倒装在 pitch2 云台头上
 // orientation：传感器到机体的安装旋转，Z-Y-X 欧拉角

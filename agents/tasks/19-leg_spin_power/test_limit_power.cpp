@@ -2,7 +2,7 @@
 #include "lqr_fit.hpp"
 #include "motor/dm8009.hpp"
 #include "motor/m3508.hpp"
-#include "robot/chassis/chassis_leg.hpp"
+#include "robot/chassis_leg.hpp"
 #include <cmath>
 #include <cstdio>
 

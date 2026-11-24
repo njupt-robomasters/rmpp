@@ -19,7 +19,7 @@ def main():
     baseline.mkdir(parents=True, exist_ok=True)
     for stem in ["gimbal", "gimbal_classic", "gimbal_dual_yaw"]:
         for suffix in [".hpp", ".cpp"]:
-            relative = f"lib/robot/gimbal/{stem}{suffix}"
+            relative = f"lib/robot/{stem}{suffix}"
             if args.baseline_root:
                 text = (args.baseline_root / relative).read_text(encoding="utf-8")
             else:
@@ -30,7 +30,7 @@ def main():
             (baseline / (stem + suffix)).write_text(text, encoding="utf-8")
     sources = [TASK / "gimbal_standalone_test.cpp", *baseline.glob("*.cpp")]
     sources += [ROOT / "lib" / unit for unit in [
-        "robot/gimbal/gimbal_classic.cpp", "robot/gimbal/gimbal_dual_yaw.cpp",
+        "robot/gimbal_classic.cpp", "robot/gimbal_dual_yaw.cpp",
         "motor/motor.cpp", "pid/pid.cpp",
     ]]
     exe = OUT / "gimbal_standalone_test.exe"

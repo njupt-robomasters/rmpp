@@ -2,7 +2,7 @@
 
 #include "motor/x630.hpp"
 #include "power/super_cap.hpp"
-#include "robot/chassis/chassis_matrix.hpp"
+#include "robot/chassis_matrix.hpp"
 
 // 轮速 PID，误差 rad/s → 电流 A；四轮共用
 inline Pid::Config wheel_pid_config = {

@@ -2,7 +2,7 @@
 #include "motor/dm4310.hpp"
 #include "motor/vesc.hpp"
 #include "motor/x630.hpp"
-#include "robot/shooter/shooter_17mm.hpp"
+#include "robot/shooter_17mm.hpp"
 #include <cassert>
 #include <cmath>
 #include <cstdio>

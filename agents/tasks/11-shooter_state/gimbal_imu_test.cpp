@@ -1,5 +1,5 @@
 // 编译真实云台、Motor、PID，仅模拟时钟和 CAN 电机反馈
-#include "robot/gimbal/gimbal_classic.hpp"
+#include "robot/gimbal_classic.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>

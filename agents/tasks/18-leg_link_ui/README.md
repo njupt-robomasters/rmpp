@@ -16,8 +16,8 @@
 - `app/leg/leg_protocol.hpp`：控制帧删除自救位，功率 11 位 0.25 W/LSB 改为 12 位 0.125 W/LSB（4095 不限）；状态帧 3 字节改 4 字节，增加下板使能与 6 个 2 位电机状态
 - `app/leg/leg_down/chassis.cpp`：FSi6X 在线时优先接管，否则按上板指令；不再透传自救；`chassis_write_can_frame()` 按下板电机对象填状态
 - `app/leg/leg_up/chassis.cpp`：使能后首次 pause 上升沿置位锁存，之后 pause 切换腿长；失能或下板断联复位锁存
-- `lib/robot/chassis/chassis_leg.*`：保留 `allow_rescue` 与 `set_allow_rescue()`；控制帧删除自救位，`control_by_up()` 固定授权，FSi6X 保留 SWB 授权；`is_enable` 移到 public 供状态帧读取
-- `lib/robot/gimbal/gimbal_classic.*`：删除 `use_angle_loop`，始终运行角度外环；`leg_up/gimbal.hpp` 同步删除配置项
+- `lib/robot/chassis_leg.*`：保留 `allow_rescue` 与 `set_allow_rescue()`；控制帧删除自救位，`control_by_up()` 固定授权，FSi6X 保留 SWB 授权；`is_enable` 移到 public 供状态帧读取
+- `lib/robot/gimbal_classic.*`：删除 `use_angle_loop`，始终运行角度外环；`leg_up/gimbal.hpp` 同步删除配置项
 - `agents/tasks/11-shooter_state/gimbal_imu_test.cpp`：Fixture 改为用角度 PID 的 kp 模拟关闭外环，删除速度模式下外环目标跟随实测的断言
 
 ## 协议

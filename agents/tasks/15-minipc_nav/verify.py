@@ -32,7 +32,7 @@ def main():
     for header in ["chassis.hpp", "gimbal.hpp"]:
         (OUT / header).write_text('#include "app.hpp"\n', encoding="utf-8")
     cases = {
-        "nav_test": [ROOT / "lib/robot/gimbal/gimbal_fold.cpp",
+        "nav_test": [ROOT / "lib/robot/gimbal_fold.cpp",
                      ROOT / "lib/motor/motor.cpp", ROOT / "lib/pid/pid.cpp"],
         "chassis_test": [],
     }

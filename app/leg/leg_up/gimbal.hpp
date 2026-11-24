@@ -2,7 +2,7 @@
 
 #include "attitude/quaternion_ekf.hpp"
 #include "motor/gm6020.hpp"
-#include "robot/gimbal/gimbal_classic.hpp"
+#include "robot/gimbal_classic.hpp"
 
 // imu
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = 180 * deg, .pitch = 0 * deg, .roll = 0 * deg}),

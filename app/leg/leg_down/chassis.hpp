@@ -5,7 +5,7 @@
 #include "lqr_fit.hpp"
 #include "motor/dm8009.hpp"
 #include "motor/m3508.hpp"
-#include "robot/chassis/chassis_leg.hpp"
+#include "robot/chassis_leg.hpp"
 
 // imu
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = 180 * deg, .pitch = 0 * deg, .roll = 0 * deg}),

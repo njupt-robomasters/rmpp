@@ -18,7 +18,7 @@ def main():
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     units = ["motor/motor.cpp", "motor/vesc.cpp", "motor/x630.cpp",
-             "robot/shooter/shooter_17mm.cpp", "pid/pid.cpp"]
+             "robot/shooter_17mm.cpp", "pid/pid.cpp"]
     exe = OUT / "output_state_test.exe"
     subprocess.run([args.cxx, "-std=c++23", "-O2", "-Wall", "-Wextra",
                     "-I" + str(ROOT / "lib"), "-I" + str(ROOT / "lib/third_party/eigen-3.4.0"),
@@ -28,9 +28,9 @@ def main():
     if args.arm_build is None:
         return
     rows = json.loads((args.arm_build / "compile_commands.json").read_text())
-    sources = ["lib/robot/gimbal/gimbal_classic.cpp",
-               "lib/robot/gimbal/gimbal_dual_yaw.cpp", "lib/robot/shooter/shooter_17mm.cpp",
-               "lib/robot/shooter/shooter_42mm.cpp"]
+    sources = ["lib/robot/gimbal_classic.cpp",
+               "lib/robot/gimbal_dual_yaw.cpp", "lib/robot/shooter_17mm.cpp",
+               "lib/robot/shooter_42mm.cpp"]
     sources += [p.relative_to(ROOT).as_posix() for p in (ROOT / "lib/motor").glob("*.cpp")]
     sources += ["app/leg/leg_up/app.cpp", "app/leg/leg_up/gimbal.cpp", "app/leg/leg_up/shooter.cpp",
                 "app/infantry/gimbal.cpp", "app/steer_sentry/gimbal.cpp", "app/examples/gimbal/app.cpp"]

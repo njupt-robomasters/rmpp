@@ -3,7 +3,7 @@
 #include "motor/gm6020.hpp"
 #include "motor/m3508.hpp"
 #include "power/super_cap.hpp"
-#include "robot/chassis/chassis_steer.hpp"
+#include "robot/chassis_steer.hpp"
 
 // 电机参数
 static constexpr float REDUCTION = 14.0f;                                                   // 轮电机总减速比暂用 14:1

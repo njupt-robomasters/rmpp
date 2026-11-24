@@ -20,7 +20,7 @@
 
 ## 修改
 
-`lib/robot/chassis/chassis_leg.cpp` `limit_power()`：
+`lib/robot/chassis_leg.cpp` `limit_power()`：
 
 - A 输入限幅：balance、drive 先按各轮 `max_torque` 限幅，再进入功率二次式；`Tw` 合成后同样限幅，日志值与实际下发一致。
 - B 防止自锁：drive 的 gain 解为 0 时，再按同一规则求平衡力矩的衰减系数 `balance_gain`，`Tw = balance_gain·(平衡 + gain·驱动)`。`power_ref` 为 0 表示未设置，此时保持平衡力矩（沿用原语义）；`power_ref` 为无穷大时不进该分支。

@@ -9,7 +9,7 @@ OUT = ROOT / "agents/out/19-leg_spin_power"
 
 SOURCES = [
     TASK / "test_limit_power.cpp",
-    *(ROOT / p for p in ["lib/motor/motor.cpp", "lib/motor/m3508.cpp", "lib/pid/pid.cpp", "lib/power/motor_power.cpp", "lib/robot/chassis/chassis_leg.cpp"]),
+    *(ROOT / p for p in ["lib/motor/motor.cpp", "lib/motor/m3508.cpp", "lib/pid/pid.cpp", "lib/power/motor_power.cpp", "lib/robot/chassis_leg.cpp"]),
 ]
 
 

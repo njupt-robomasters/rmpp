@@ -1,8 +1,8 @@
 // 主机差分回归：独立云台与重构前实现在相同反馈、指令和时钟下逐周期比较
 #include "baseline/gimbal_classic.hpp"
 #include "baseline/gimbal_dual_yaw.hpp"
-#include "robot/gimbal/gimbal_classic.hpp"
-#include "robot/gimbal/gimbal_dual_yaw.hpp"
+#include "robot/gimbal_classic.hpp"
+#include "robot/gimbal_dual_yaw.hpp"
 #include <cassert>
 #include <cmath>
 #include <cstdio>

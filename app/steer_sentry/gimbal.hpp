@@ -3,7 +3,7 @@
 #include "attitude/quaternion_ekf.hpp"
 #include "motor/dm4310.hpp"
 #include "motor/gm6020.hpp"
-#include "robot/gimbal/gimbal_dual_yaw.hpp"
+#include "robot/gimbal_dual_yaw.hpp"
 
 // 惯性测量单元与姿态解算
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = -90 * deg}),

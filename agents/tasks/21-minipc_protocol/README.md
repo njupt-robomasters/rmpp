@@ -34,7 +34,7 @@
 New-Item -ItemType Directory -Force agents/out/21-minipc_protocol
 g++ -std=c++23 -O2 -Wall -Wextra -Werror -DEIGEN_DONT_VECTORIZE -DEIGEN_MAX_ALIGN_BYTES=0 -Ilib -isystem lib/third_party/eigen-3.4.0 agents/tasks/15-minipc_nav/aim_test.cpp lib/minipc/aim.cpp -o agents/out/21-minipc_protocol/aim_test.exe
 & agents/out/21-minipc_protocol/aim_test.exe
-g++ -std=c++23 -O1 -Wall -Wextra -Wno-unknown-pragmas -Wno-unused-function -DEIGEN_DONT_VECTORIZE -DEIGEN_MAX_ALIGN_BYTES=0 -Iagents/tasks/15-minipc_nav -Ilib -isystem lib/third_party/eigen-3.4.0 agents/tasks/15-minipc_nav/nav_test.cpp lib/minipc/nav.cpp lib/robot/gimbal/gimbal_fold.cpp lib/motor/motor.cpp lib/pid/pid.cpp -o agents/out/21-minipc_protocol/nav_test.exe
+g++ -std=c++23 -O1 -Wall -Wextra -Wno-unknown-pragmas -Wno-unused-function -DEIGEN_DONT_VECTORIZE -DEIGEN_MAX_ALIGN_BYTES=0 -Iagents/tasks/15-minipc_nav -Ilib -isystem lib/third_party/eigen-3.4.0 agents/tasks/15-minipc_nav/nav_test.cpp lib/minipc/nav.cpp lib/robot/gimbal_fold.cpp lib/motor/motor.cpp lib/pid/pid.cpp -o agents/out/21-minipc_protocol/nav_test.exe
 & agents/out/21-minipc_protocol/nav_test.exe
 ```
 

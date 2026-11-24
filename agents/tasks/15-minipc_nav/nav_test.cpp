@@ -1,6 +1,6 @@
 #include "support.hpp"
 #include "minipc/crc16_modbus.hpp"
-#include "robot/gimbal/gimbal_fold.hpp"
+#include "robot/gimbal_fold.hpp"
 #include "motor/dm4310.hpp"
 #include <algorithm>
 #include <limits>

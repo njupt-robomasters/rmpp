@@ -2,7 +2,7 @@
 
 #include "motor/m3508.hpp"
 #include "motor/vesc.hpp"
-#include "robot/shooter/shooter_17mm.hpp"
+#include "robot/shooter_17mm.hpp"
 
 static constexpr float RUB_RELEASE_SPEED = 30 * rpm; // 摩擦轮关闭后低于此转速释放
 
