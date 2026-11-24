@@ -8,7 +8,7 @@
 - C 板 `app/steer_sentry` 只有一路 CDC，`Nav({.cdc = Cdc(1)})` 与 Aim 配置共用端口；底盘自主控制与 jelly_sentry 相同，坐标转换和 flag 仲裁见下节，flag 0 因未配跟随 PID 只平移不旋转
 - Nav 构造注册 USB 接收回调；对象在回调使用期间持续存活，现有应用均为全局实例
 - `nav.update()` 在主循环的 `chassis_loop()` 前调用，公开只读输出为 `is_connect`、`is_through_hole`、`vx`、`vy`、`yaw`、`x`、`y`
-- 已移除旧 `chassis_speed`、`target_position` 接口及两处应用只在本地赋值的 GO_CENTER/GO_HOME 占位流程；目标点与返航由上位机规划，目标点/状态上行协议待约定
+- 目标点与返航由上位机规划；导航上行格式见下节，哨兵应用尚未接入目标坐标来源或调度发送
 
 ## 自瞄收发
 
@@ -23,7 +23,7 @@
 
 ## 导航收发
 
-下行 24 字节、上行 11 字节，小端 IEEE 754 float32：
+下行 24 字节、上行 15 字节，两向 yaw 均用 rad，浮点为小端 IEEE 754 float32：
 
 | 偏移 | 字节数 | 字段 | 含义 |
 | --- | --- | --- | --- |
@@ -31,12 +31,14 @@
 | 1 | 1 | is_through_hole | 过洞为 1，其余为 0 |
 | 2 | 4 | vx | 雷达所在大 yaw 系前向速度，m/s |
 | 6 | 4 | vy | 大 yaw 系左向速度，m/s |
-| 10 | 4 | yaw | 上位机角度，rad；当前解析和保存，具体控制用途待约定 |
+| 10 | 4 | yaw | 相对大 yaw 当前朝向的期望转角，rad；俯视逆时针为正 |
 | 14 | 4 | x | 上位机自定位的当前坐标 x，m；当前仅保存 |
 | 18 | 4 | y | 当前坐标 y，m；当前仅保存 |
 | 22 | 2 | CRC16 | MODBUS，低字节在前 |
 
-上行 `A4`、目标 x、目标 y、CRC16：坐标在偏移 1 和 5，CRC 在 9，共 11 字节。`set_target()` 直接写入 `raw_tx`，`send()` 补 CRC 后发出；目标坐标来源未接入，应用暂未调用。
+上行 `A4`、大 yaw 编码器角、目标 x、目标 y、CRC16：偏移依次为 0、1、5、9、13。`set_target(x, y)` 写入目标点，`send(yaw_ecd)` 写入本次实测角并计算 CRC。角度取 `gimbal.yaw1.measure`（雷达系相对底盘系的 `q1`），总云台角 `gimbal.yaw.ecd.measure` 还包含小 yaw。
+
+下行 `nav.yaw` 原样保存期望转角。`0` 表示保持大 yaw 当前朝向，`+π/2` 表示从当前朝向逆时针转 90°。目前两个哨兵应用均未使用该字段驱动大 yaw。
 
 Aim 与 Nav 共用 `lib/minipc/crc16_modbus.hpp`。CRC 初值 0xFFFF，反射多项式 0xA001，无结果异或；两向均覆盖从帧头到 CRC 前的全部字节。独立于裁判系统的 CRC16。参考帧（过洞=0、vx=1、其余 0）：
 

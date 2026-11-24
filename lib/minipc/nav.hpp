@@ -16,7 +16,7 @@ class Nav {
     // 导航指令，接收回调解析，断联时为 0
     bool is_through_hole = false; // 过洞为 1，其余为 0
     float vx = 0, vy = 0;         // 雷达所在大 yaw 系速度，m/s
-    float yaw = 0;                // 协议角度，rad；当前仅保存
+    float yaw = 0;                // 相对大 yaw 当前朝向的期望转角，rad；俯视逆时针为正
     float x = 0, y = 0;           // 上位机自定位的当前坐标，m
 
   private:
@@ -28,14 +28,15 @@ class Nav {
         uint8_t sof;             // A3
         uint8_t is_through_hole; // 过洞为 1，其余为 0
         float vx, vy;            // 大 yaw 系速度，m/s
-        float yaw;               // rad
+        float yaw;               // 相对大 yaw 当前朝向的期望转角，rad；俯视逆时针为正
         float x, y;              // 当前坐标，m
         uint16_t crc;            // CRC16/MODBUS，覆盖帧头至 y，低字节在前
     } raw_rx{};
 
-    // 上行原始帧，set_target() 直接写入，send() 补 CRC 后发出；供 SWD 查看
+    // 上行原始帧，set_target() 设置目标点，send() 写入实测角并补 CRC
     struct __attribute__((packed)) TxFrame {
         uint8_t sof = SOF_TX; // A4
+        float yaw = 0;        // 大 yaw 相对底盘的编码器角，rad；俯视逆时针为正
         float x = 0, y = 0;   // 目标坐标，m
         uint16_t crc = 0;     // CRC16/MODBUS，覆盖帧头至 y，低字节在前
     } raw_tx;
@@ -48,7 +49,7 @@ class Nav {
 
     void set_target(float x, float y);
 
-    void send();
+    void send(float yaw_ecd); // 本次采样的大 yaw 编码器角，rad
 
     // 每周期调用：断联检测，断联时指令复位为 0
     void update();
