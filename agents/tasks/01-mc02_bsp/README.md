@@ -8,6 +8,12 @@
 
 长期结论已写入 `agents/docs/bsp.md`、`architecture.md`、`imu.md`、`build.md`、`music.md`
 
+## Horco 探针与两路电机掉线：对方实测（2026-11-21）
+
+- **探针连接**：Joushua233 使用的 Horco CMSIS-DAP v2 同时提供 WinUSB 和 HID。默认后端读取芯片信息时报 `CMSIS-DAP CMD_INFO failed`，重插后仍复现；显式选择 HID 后，成功只读识别 STM32H7。本目录保留其 `cmsis-dap-hid.cfg` 供同型号探针选用，各工作区原有 OpenOCD 配置保持不变。
+- **掉线证据**：机构上下活动时，第一轮两路 DM4310 同时离线约 15 秒后一起恢复，EL05 持续在线，CAN2 未记录 bus-off；第二轮两路 DM4310 同步恢复，同一总线上的 EL05 在全部 400 个采样点都有新反馈。优先检查两路 DM4310 共用的活动线束、接头及供电；具体故障点仍待实测。
+- **原始记录**：`Joushua233/rmpp@0bdfd7b` 的 `agents/tasks/17-probe_connection/README.md` 和 `agents/tasks/01-mc02_bsp/README.md`。上述结果来自对方设备，本次合入未连接硬件。
+
 ## 复现构建
 
 CLion 自带工具未加入 PATH 时：

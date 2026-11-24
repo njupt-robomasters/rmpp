@@ -10,3 +10,4 @@ logs/
 .claude/
 .agents/
 agents/out/
+agents/.tools/

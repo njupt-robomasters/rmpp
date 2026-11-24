@@ -11,11 +11,9 @@
 // 新框架 attitude.pitch 绕机体 Y 轴（旧框架绕 X）；实测只加 roll = 180° 时抬枪口变化的是 attitude.roll
 // 再绕 Z 转 -90° 重排机体轴，使俯仰轴对齐机体 Y；实测抬枪口时 attitude.pitch 与 pitch2.angle 同向变化
 // gyro_offset、gravity：用 imu.start_calibration() 静止校准后填入；未校准时为 0 与 9.81
-// temperature：调试阶段频繁 halt，沿用旧框架做法关闭加热（目标 0 ℃）；调试结束后改为 50，并在恒温下重新校准零偏
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = -90 * deg, .pitch = 0 * deg, .roll = 180 * deg}),
                 .gyro_offset = Vector3f(0.0f, 0.0f, 0.0f),
-                .gravity = 9.81f,
-                .temperature = 0.0f});
+                .gravity = 9.81f});
 inline QuaternionEkf attitude(imu, {});
 
 // 达妙电机：tx_id 为调试助手中的 CAN ID，rx_id 为 Master ID；上位机 PMAX 改为 3.14159，MIT 模式
@@ -129,8 +127,7 @@ inline GimbalFold gimbal({yaw1, yaw2, pitch1, pitch2}, {
                                                                .max = 40 * deg,
                                                            },
                                                            .pitch1 = {
-                                                               .speed_pid_config = &pitch1_speed_pid,
-                                                               .position_pid_config = &pitch1_position_pid,
+                                                               .speed_pid_config = &pitch1_speed_pid, .position_pid_config = &pitch1_position_pid,
                                                                .min = -90 * deg, // TODO: 折叠极限
                                                                .max = 0 * deg,   // TODO: 展开极限
                                                            },

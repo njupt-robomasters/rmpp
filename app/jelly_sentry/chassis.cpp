@@ -13,19 +13,23 @@ static void control_by_vt13() {
     chassis.set_speed(vt13.vx, vt13.vy, vt13.wr);
 }
 
-// 自主：导航速度为大 yaw 雷达系，经负小 yaw 角转换到云台系；导航或大小 yaw 离线时停止
+// 自主：导航与 VT13 平移速度按云台头部的前、左方向分别相加；导航掉线时只取遥控平移，方向反馈掉线时停车
 // 过洞 1 随头对准枪口、平移照常；过洞 0 小陀螺，平移越快转速越低，插值输入限幅，超量程指令保持旋转正方向
 static void control_by_auto() {
-    if (!nav.is_connect || !yaw1.is_connect || !yaw2.is_connect) {
+    if (!yaw1.is_connect || !yaw2.is_connect) {
         chassis.set_mode(ChassisMatrix::DETACH_MODE);
         chassis.set_speed(0, 0, 0);
         return;
     }
+    if (!nav.is_connect) {
+        chassis.set_mode(ChassisMatrix::DETACH_MODE);
+        chassis.set_speed(vt13.vx, vt13.vy, 0);
+        return;
+    }
 
     const float vxy_max = vt13.config.vxy_max, wr_max = vt13.config.wr_max;
-    const auto [nav_vx, nav_vy] = rotate(nav.vx, nav.vy, -gimbal.yaw2.measure);
-    const float vx = std::clamp(nav_vx, -vxy_max, vxy_max);
-    const float vy = std::clamp(nav_vy, -vxy_max, vxy_max);
+    const float vx = std::clamp(nav.vx + vt13.vx, -vxy_max, vxy_max);
+    const float vy = std::clamp(nav.vy + vt13.vy, -vxy_max, vxy_max);
     if (nav.is_through_hole) {
         chassis.set_mode(ChassisMatrix::FOLLOW_MODE);
         chassis.set_speed(vx, vy, 0);

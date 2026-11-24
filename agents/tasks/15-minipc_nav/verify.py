@@ -29,6 +29,8 @@ def main():
               "-I" + str(ROOT / "app/jelly_sentry")]
     shutil.copyfile(ROOT / "app/jelly_sentry/chassis.cpp", OUT / "chassis.cpp")
     shutil.copyfile(TASK / "chassis_app.hpp", OUT / "app.hpp")
+    for header in ["chassis.hpp", "gimbal.hpp"]:
+        (OUT / header).write_text('#include "app.hpp"\n', encoding="utf-8")
     cases = {
         "nav_test": [ROOT / "lib/robot/gimbal/gimbal_fold.cpp",
                      ROOT / "lib/motor/motor.cpp", ROOT / "lib/pid/pid.cpp"],
