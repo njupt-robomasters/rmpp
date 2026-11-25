@@ -35,7 +35,7 @@ melody.play_poly(YOU); // 复音模式：演奏
 
 普通模式与旧播放器等价：旋律主声部即“最高音抢占”的单音结果。两种模式互相打断，后一次播放生效。
 
-复音合成（方案来源见 `tasks/02-buzzer_timbre/README.md`）：
+复音合成（方案来源见 `agents/02-buzzer_timbre/README.md`）：
 
 - 每个声部为 PolyBLEP 限带方波乘衰减包络；包络由 `Envelope {decay, sustain}` 描述
 - 组内按各声部幅度平方和开方归一，组间按 `melody_share` 分配摆幅；无伴奏时旋律独占

@@ -4,7 +4,7 @@
 
 ## mc02 BSP 适配与 C 板优化
 
-状态：代码与文档完成，编译通过，待用户审计和上板。结论见 `docs/bsp.md`，过程与待用户操作见 `tasks/01-mc02_bsp/README.md`
+状态：代码与文档完成，编译通过，待用户审计和上板。结论见 `docs/bsp.md`，过程与待用户操作见 `agents/01-mc02_bsp/README.md`
 
 - mc02 `main.c` USER CODE 2 的 `bsp_init()`/`app_main()` 调用尚未添加（用户操作）
 - OUT_5V 供电的是哪一路 CAN 接口：待看原理图图片或实测后写入 `board/power_hpp` 注释
@@ -65,11 +65,11 @@
 
 ## 四舵轮底盘
 
-状态：代码完成并合入 master，编译通过，待用户审计与上车。结论与上车核对项见 `tasks/03-quad_steer/README.md`
+状态：代码完成并合入 master，编译通过，待用户审计与上车。结论与上车核对项见 `agents/03-quad_steer/README.md`
 
 ## 轮腿底盘迁移
 
-状态：代码完成，`leg` 编译通过，待用户审计与上车。worktree `../rmpp-leg-chassis`，分支 `leg_chassis`；结论与上车核对项见 `tasks/04-leg_chassis/README.md`
+状态：代码完成，`leg` 编译通过，待用户审计与上车。worktree `../rmpp-leg-chassis`，分支 `leg_chassis`；结论与上车核对项见 `agents/04-leg_chassis/README.md`
 
 - 待做：虚拟 IMU（云台 IMU + 关节角）
 - 2026-11-18 上下板 CAN 通信（暂不含键鼠）、下板跟随与轮端功率控制已在主工作区实现，`leg_up`、`leg_down` 的 app 与 lib 对象编译通过，待用户审计与上车；结论见 `docs/application.md`“轮腿上下板通信”“轮腿功率控制”
@@ -106,16 +106,16 @@
 
 ### jelly_sentry 超电待上车
 
-- 已接入默认 CAN1 ID 0x061/0x051，在线 VT13 的 C 挡优先失能，N/S 挡启用超电 BOOST。N 挡双传送带与拨盘停转，S 挡运行双传送带，拨盘取 VT13 弹频（trigger 加 pitch 摇杆或鼠标左键）。人工 OFF 与裁判失联优先关闭超电，实现和验证见 `docs/application.md` 与 `tasks/06-super_cap_capacitance/README.md`
+- 已接入默认 CAN1 ID 0x061/0x051，在线 VT13 的 C 挡优先失能，N/S 挡启用超电 BOOST。N 挡双传送带与拨盘停转，S 挡运行双传送带，拨盘取 VT13 弹频（trigger 加 pitch 摇杆或鼠标左键）。人工 OFF 与裁判失联优先关闭超电，实现和验证见 `docs/application.md` 与 `agents/06-super_cap_capacitance/README.md`
 - 待用户审计：OFF 反馈、CHARGE 充电、BOOST 电压补偿衰减、断联与重连；结合实车供电支路核对超电实测和四轮模型功率。UI 按电容电压平方比显示储能百分比，满电电压默认 23.85 V，待实车核对
 
 ## 底盘深度重构、PID 回算、UI 下放
 
-状态：代码完成，受影响目标全部编译通过，待用户审计与上车。结论与上车核对项见 `tasks/03-quad_steer/README.md`
+状态：代码完成，受影响目标全部编译通过，待用户审计与上车。结论与上车核对项见 `agents/03-quad_steer/README.md`
 
 ## 全局代码优化
 
-状态：代码与文档完成，15 个预设全部编译通过，待用户审计与上车。基线 `8f01151`，过程与上车核对项见 `tasks/10-global_refactor/README.md`
+状态：代码与文档完成，15 个预设全部编译通过，待用户审计与上车。基线 `8f01151`，过程与上车核对项见 `agents/10-global_refactor/README.md`
 
 ## 后续任务
 
@@ -123,12 +123,12 @@
 
 ## jelly_sentry 并入 master
 
-状态：2026-11-20 从 rmpp-czk（HEAD 65b91de 加其未提交的 Nav 与 pitch1 失能改动）并入，jelly_sentry、sentry 的 app 与 lib 对象编译通过，待用户审计与上车；jelly_sentry_debug 按用户要求未并入。行为变化与上车核对项见 `tasks/16-jelly_sentry_merge/README.md`
+状态：2026-11-20 从 rmpp-czk（HEAD 65b91de 加其未提交的 Nav 与 pitch1 失能改动）并入，jelly_sentry、sentry 的 app 与 lib 对象编译通过，待用户审计与上车；jelly_sentry_debug 按用户要求未并入。行为变化与上车核对项见 `agents/16-jelly_sentry_merge/README.md`
 
 ## jelly_sentry EL05 / CAN2 调试
 
 - 7025 + PCAN 独立总线出现部分 ID 引起反馈间隔从稳定 2 ms 跳至十几 ms：PCAN 交替发送电流控制和位置查询；用户确认干扰帧仅改变 ID，其他发送配置相同、一次只测一个 ID。待核对总线上真实请求间隔、分命令应答数与错误帧；优先对照 CANID 滤波器开关。V4.3 协议 0x20/index=0x02 为滤波器，示例文字误写 0x01（实际为清零）；尚未发送设置或确认根因
-- EL05 已参考用户指定 old 分支改为 CAN2 私有扩展帧，电机/主机节点保留0x12/0x22；电机侧需核对 protocol_1=0（之前记录为2），详见 tasks/01-mc02_bsp/README.md
+- EL05 已参考用户指定 old 分支改为 CAN2 私有扩展帧，电机/主机节点保留0x12/0x22；电机侧需核对 protocol_1=0（之前记录为2），详见 agents/01-mc02_bsp/README.md
 - 两个4310在接入EL05后丢反馈的实机原因未确认；EmberProbe仍从旧工作区uart2can-master查找桥接，需同步会话工作目录到rmpp后读取总线错误状态
 - 本轮未完整链接、烧录、复位或硬件验证；待用户审计与台架测试
 
@@ -146,13 +146,13 @@
 
 ## VT13 操控量解析
 
-状态：代码与文档完成，leg-leg_up、sentry、examples-motor、examples-rc 的 app 与 lib 对象编译通过，主机测试通过，待用户审计与上车。结论见 `docs/application.md`“遥控器映射”，行为变化与上车核对项见 `tasks/12-vt13_control/README.md`
+状态：代码与文档完成，leg-leg_up、sentry、examples-motor、examples-rc 的 app 与 lib 对象编译通过，主机测试通过，待用户审计与上车。结论见 `docs/application.md`“遥控器映射”，行为变化与上车核对项见 `agents/12-vt13_control/README.md`
 
 ## 外部 worktree 类布局重构
 
-基线 `795e263`，类布局重构已并入 master，外部 worktree 随合并移除。完成成员尾下划线移除、实例配置与设备状态展平、SWD 排序、最小权限和声明与实现排序；保留主线暂存的轮腿 LQR 调整并完成适配。infantry 跳过编译验证。代码与验证结论见 `tasks/10-global_refactor/README.md`，待用户审计与上车。
+基线 `795e263`，类布局重构已并入 master，外部 worktree 随合并移除。完成成员尾下划线移除、实例配置与设备状态展平、SWD 排序、最小权限和声明与实现排序；保留主线暂存的轮腿 LQR 调整并完成适配。infantry 跳过编译验证。代码与验证结论见 `agents/10-global_refactor/README.md`，待用户审计与上车。
 
-2026-11-18 新一轮成员六组排序、函数调用序排序与最小权限调整（基线 `ba752f6`，分支 `refactor/class-member-order`）已并入 master，外部工作区 `../rmpp-class-order` 已移除，主工作区未提交的 `GimbalClassic` pitch 目标限位与 `TODO.md` 修改已合并保留。验证结论见 `tasks/10-global_refactor/README.md`。
+2026-11-18 新一轮成员六组排序、函数调用序排序与最小权限调整（基线 `ba752f6`，分支 `refactor/class-member-order`）已并入 master，外部工作区 `../rmpp-class-order` 已移除，主工作区未提交的 `GimbalClassic` pitch 目标限位与 `TODO.md` 修改已合并保留。验证结论见 `agents/10-global_refactor/README.md`。
 
 ## 轮腿 LQR 首版参数对照
 
@@ -161,7 +161,7 @@
 
 ## MiniPC 双 CDC 与导航控制协议
 
-状态：2026-11-20 实施，2026-11-24 按用户要求重构自瞄与导航协议；主机检查与两个哨兵的 ARM 对象编译通过，待用户审计和上板。结论见 `docs/minipc.md`，对接文档见根目录 `docs/minipc_protocol.md`，复现见 `tasks/21-minipc_protocol/README.md`
+状态：2026-11-20 实施，2026-11-24 按用户要求重构自瞄与导航协议；主机检查与两个哨兵的 ARM 对象编译通过，待用户审计和上板。结论见 `docs/minipc.md`，对接文档见根目录 `docs/minipc_protocol.md`，复现见 `agents/21-minipc_protocol/README.md`
 
 - jelly_sentry 使用 CDC1 自瞄、CDC2 导航；过洞标志为 1 随 IMU 头、平移照常，为 0 小陀螺；pitch1 全程失能并发送失能帧
 - 上板核对：两路 CDC 枚举及隔离、雷达与大 yaw 的安装偏角、负小 yaw 坐标转换方向、随头方向、人工接管和超时停止、pitch1 实际失能状态
@@ -171,4 +171,4 @@
 
 ## app 结构统一与哨兵控制拆分
 
-状态：2026-11-20 代码与文档完成，jelly_sentry、steer_sentry、leg-leg_up、leg-leg_down、dummy、examples-motor 的 app 与 lib 对象编译通过，待用户审计与上车。行为变化、修复与上车核对项见 `tasks/17-app_unify/README.md`
+状态：2026-11-20 代码与文档完成，jelly_sentry、steer_sentry、leg-leg_up、leg-leg_down、dummy、examples-motor 的 app 与 lib 对象编译通过，待用户审计与上车。行为变化、修复与上车核对项见 `agents/17-app_unify/README.md`

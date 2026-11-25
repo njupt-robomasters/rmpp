@@ -9,5 +9,5 @@ logs/
 .codex/
 .claude/
 .agents/
-agents/out/
+agents/tmp/
 agents/.tools/
