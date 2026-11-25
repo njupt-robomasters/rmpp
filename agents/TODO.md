@@ -117,9 +117,9 @@
 
 ## 后续任务
 
-- 上游合并（2026-11-20）：当前成果保存为6815d85，合入origin/master@7e57d2b并解决3项冲突；迁移EL05 Feedback、Motor角度接口、独立GimbalFold掉线测量保持及校准/调试入口。相关ARM对象编译与协议/状态机/云台/超电回归通过，未完整链接或操作硬件；详见tasks/12-upstream_merge_review/README.md
+- 上游合并（2026-11-20）：当前成果保存为6815d85，合入origin/master@7e57d2b并解决3项冲突；迁移EL05 Feedback、Motor角度接口、独立GimbalFold掉线测量保持及校准/调试入口。相关ARM对象编译与协议/状态机/云台/超电回归通过，未完整链接或操作硬件；详见tasks/14-upstream_merge_review/README.md
 
-- 上游合并（2026-11-15）：已保存基线 `4d59574`，合入 origin/master@f3b8e14 并适配 EL05、GimbalFold、jelly_sentry 与 10 个调试入口；按用户指定启用 CAN2 自动重发与 FIFO。局部编译与待实机核对项见 `tasks/12-upstream_merge_review/README.md`
+- 上游合并（2026-11-15）：已保存基线 `4d59574`，合入 origin/master@f3b8e14 并适配 EL05、GimbalFold、jelly_sentry 与 10 个调试入口；按用户指定启用 CAN2 自动重发与 FIFO。局部编译与待实机核对项见 `tasks/14-upstream_merge_review/README.md`
 - VQF 姿态算法：原样引入官方 C++ 实现（确认单精度选项），封装 `Vqf` 与 `QuaternionEkf` 并列
 
 ## jelly_sentry EL05 / CAN2 调试
@@ -154,30 +154,30 @@
 
 ## MiniPC 双 CDC 与导航控制协议
 
-状态：2026-11-20 已在当前工作区实施，协议/底盘/pitch1 主机检查及相关 ARM 对象编译通过，待用户审计和上板；结论见 `docs/minipc.md`，复现见 `tasks/13-minipc_nav/README.md`
+状态：2026-11-20 已在当前工作区实施，协议/底盘/pitch1 主机检查及相关 ARM 对象编译通过，待用户审计和上板；结论见 `docs/minipc.md`，复现见 `tasks/15-minipc_nav/README.md`
 
 - jelly_sentry 使用 CDC1 自瞄、CDC2 导航；flag=0 小陀螺，flag=1 随 IMU 头；pitch1 全程失能并发送失能帧
 - 上板核对：两路 CDC 枚举及隔离、导航和人工均以 IMU 头为前方、60 rpm 自动小陀螺、随头方向、人工接管和超时停止、pitch1 实际失能状态
-- 导航 yaw 字段当前解析保存，具体控制用途待上位机约定；导航状态/目标点上行协议后续补充
+- 导航 yaw 字段当前解析保存，具体控制用途待上位机约定；CDC2 已按 A4 周期上报大 yaw 编码器角，目标点 x/y 暂取零
 - pitch1 折叠/展开功能暂缓：flag=0 抬头、flag=1 折叠，仅在代码记录 TODO，后续启用时再确定目标角、编码器零点和动作流程
 
 ## MiniPC Aim 自瞄通信
 
 - 已按用户协议接入 CDC1，21 字节上行每 5 ms 发送，18 字节下行按有效新帧更新；Config::timeout 默认 200 ms，可在构造时配置
 - 视觉期望角为最终安装 IMU 的头部世界系目标；yaw 左正、线上 pitch 上正，内部 ZYX 弧度在边界换算；pitch1 保持全程失能
-- 上板核对收发帧率、与视觉共用的世界航向零点、pitch 上正及 roll 顺时针观察方向，验证丢目标/200 ms 超时后撤销开火许可；说明见 docs/minipc.md、复现见 tasks/14-minipc_aim/README.md
+- 上板核对收发帧率、与视觉共用的世界航向零点、pitch 上正及 roll 顺时针观察方向，验证丢目标/200 ms 超时后撤销开火许可；说明见 docs/minipc.md、复现见 tasks/23-minipc_aim/README.md
 
 ## jelly_sentry 大小 yaw 配合
 
 状态：2026-11-23 已接入识别状态分配切换，待用户审计和上板
 
-- `is_detect=0` 大轴持续追随、小轴补偿大轴误差；`is_detect=1` 小轴在 ±40° 内独立追踪，越界由大轴补足超出角度；位置环输出上限仍为720°/s
+- `is_detect=0` 大轴持续追随、小轴补偿大轴误差；`is_detect=1` 小轴在 ±50° 内独立追踪，越界由大轴补足超出角度；位置环输出上限仍为720°/s
 - 最终 IMU 头世界目标持续保留，大轴补偿底盘转速，小轴再扣除大轴实测转速；pitch1继续全程失能
-- 已删除大轴二次曲线加减速；上板核对检测切换、窗口两侧边界、底盘旋转保持、离线恢复和超调；详见 docs/application.md 及 tasks/15-yaw_window/README.md
+- 已删除大轴二次曲线加减速；上板核对检测切换、窗口两侧边界、底盘旋转保持、离线恢复和超调；详见 docs/application.md 及 tasks/24-yaw_window/README.md
 
 ## 大小 yaw 参数与正弦测试
 
 - 2026-11-21 已完成有限阶跃采样；按用户后续要求已删除全部 jelly_sentry 调试源码与预设，大小yaw最终实时调参值已保存到生产配置
 - 默认 20°、0.2 Hz、20 s；目标 ±30°、实测 ±35° 失能，pitch1 全程无输出；默认等待 request
 - 测大轴时小轴保持编码器中位；测小轴时大轴保持请求时编码器角度；波形直接驱动独立位置环
-- 后续由用户审计和授权上车；正弦、最终 PID、持续追随配合与生产 ±40° 小轴限位仍待验证。记录见 `tasks/16-yaw_pid/README.md`
+- 后续由用户审计和授权上车；正弦、最终 PID、持续追随配合与生产 ±50° 小轴限位仍待验证。记录见 `tasks/25-yaw_pid/README.md`

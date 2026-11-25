@@ -4,7 +4,7 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
-OUT = Path(__file__).resolve().parent / "out" / "leg_up_control"
+OUT = Path(__file__).resolve().parents[2] / "out/04-leg_chassis" / "leg_up_control"
 
 CAN_STUB = r"""
 #pragma once

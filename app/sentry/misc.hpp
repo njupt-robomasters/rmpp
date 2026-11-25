@@ -20,7 +20,7 @@ inline KvStore kv_store("sentry");
 inline VT13 vt13({.uart = Uart(6)});
 inline FSi6X fsi6x({.uart = Uart(3)});
 inline Aim aim(Cdc(1), {.timeout = 200 * ms});
-inline Nav nav(Cdc(1), {}); // C 板单 CDC，与自瞄配置共用端口
+inline Nav nav({.cdc = Cdc(1)}); // C 板单 CDC，与自瞄配置共用端口
 inline Referee referee({.bus = Can(1)});
 inline RobotUi ui(referee);
 

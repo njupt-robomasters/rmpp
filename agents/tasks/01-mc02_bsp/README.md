@@ -35,7 +35,7 @@ done
 - 原因：Keep IO State 开启时 MOSI 始终推挽。发完、SPE 仍开时 MOSI 保持最后发出的位；HAL `SPI_CloseTransfer` 关闭 SPE 后，MOSI 变为 FIFO 中某个已发字节的首位。旧编码 0xC0/0xF8 首位为 1，线路常高，WS2812 无法锁存
 - 实测（`idle_level.tcl`、`idle_long.tcl`）：MSB first 时关 SPE 后取字节最高位，LSB first 时取最低位，即该字节首发位；1、2 字节帧取第 0 字节，24 字节帧取第 16 字节（正好倒数第 8 个，推测与 SPI6 的 8 字节 FIFO 有关，未核对手册）
 - 处理：保留 Keep IO State 推挽输出，编码右移一位为 0x60/0x7C，与达妙例程一致；待用户烧录确认
-- 脚本在 `out/`：`sample.tcl` 采样 PA7，`zero_byte.tcl`、`keepio_off.tcl`、`cpol_cpha.tcl`、`idle_level.tcl`、`idle_long.tcl` 会 halt 并改写 SPI6，运行前须经用户同意
+- 脚本在 `agents/out/01-mc02_bsp/`：`sample.tcl` 采样 PA7，`zero_byte.tcl`、`keepio_off.tcl`、`cpol_cpha.tcl`、`idle_level.tcl`、`idle_long.tcl` 会 halt 并改写 SPI6，运行前须经用户同意
 
 ## 实现中的坑
 
@@ -90,19 +90,19 @@ done
 - 两份本地 PDF 均未找到“回复上限 500 Hz”的明确条款；此前 2 ms 建议不能在本次分析中当作已核实厂家硬上限
 - 建议验证：固定全部发送参数，仅切换 0x20/0x26 或 0x40/0x50；保存各 10 秒带时间戳 trace，比较命令数、应答数、间隔分布与错误帧；按 DATA[0] 区分同 ID 下不同回复。用户决定是否在静止台架执行一次滤波器设置并复测，不周期写 FLASH
 - 后续判据：请求仍稳定但应答减少/停顿，支持电机接收处理、应答发送或链路错误方向；请求本身同时拉长则先查 PCAN 实际发送与总线访问。若合并两种回复每 2 ms 一帧，单种回复正常应约每 4 ms 一帧，不把不同命令混合统计判成单命令漏答
-- 本轮只读资料和代码、记录分析；未修改工程代码、连接或操作电机。PDF 渲染核对图放在本任务 out/，未进行硬件验证，根因未确认
+- 本轮只读资料和代码、记录分析；未修改工程代码、连接或操作电机。PDF 渲染核对图放在本任务 agents/out/01-mc02_bsp/，未进行硬件验证，根因未确认
 
 ### 电机总线调整（2026-11-15）
 
 - 按用户要求把小 yaw 7025 从 CAN2 移到 CAN3，两个 P630 摩擦轮从 CAN3 移到 CAN2，共用实例使相关调试入口同步生效
 - 保留 7025 标准帧 0x141/0x241、P630 VESC 扩展帧节点 0x21/0x22，以及原参数、发送周期与发送注释开关；EL05 和两路 pitch 仍在 CAN2
 - 整车与 gimbal、gimbal_motor、shooter、shooter_rub、shooter_shoot 五个调试入口的 rmpp_app 局部编译通过，零警告；imu_calib 检查无须重编译
-- 格式检查覆盖修改代码与注释；日志见 out/*_can_swap.log。未完整链接、烧录或硬件操作
+- 格式检查覆盖修改代码与注释；日志见 agents/out/01-mc02_bsp/*_can_swap.log。未完整链接、烧录或硬件操作
 
 ### 大小 yaw 同步震荡只读诊断（2026-11-16）
 
 - 使用 EmberProbe 现有采样连接，ELF 为 `build/jelly_sentry/rmpp.elf`，SHA-256 `03734b37577385611fad9d6c099f11c5317132f67eece5b07f072ed4fff828a1`，Bridge 报告与最后烧录记录匹配；未执行 Flash 比对、halt、复位或变量写入
-- 采集 200 点、50 ms 间隔，实际跨度 9.989 s；数据见 `out/yaw_oscillation_20261116.csv`。采样期间两台 yaw 持续在线且使能，IMU_MODE；航向目标固定 0.109864 rad，速度输入 0
+- 采集 200 点、50 ms 间隔，实际跨度 9.989 s；数据见 `agents/out/01-mc02_bsp/yaw_oscillation_20261116.csv`。采样期间两台 yaw 持续在线且使能，IMU_MODE；航向目标固定 0.109864 rad，速度输入 0
 - 大 yaw 实测范围 2.123~2.564 rad，小 yaw -0.189~0.205 rad；小 yaw 目标在 ±0.698132 rad 间约每 0.45 s 换向，大 yaw 力矩指令约 ±1.95 Nm。IMU yaw 经圆周差分后与编码器合成角变化率相关系数 -0.9993；各电机位置差分与自身速度相关系数分别 +0.9960、+0.9938
 - 判断：IMU 航向与两电机合成角的正方向相反，IMU 位置外环形成正反馈，误差绕过 ±π 时改变最短旋转方向，带动两电机同步往返；需要先统一方向，再评价 PID 参数
 - 诊断时实时方向为 yaw1=false、yaw2=true，offset 分别 0.332255、5.319590 rad；用户随后确认修改，已将源码方向设为 yaw1=true、yaw2=false，与 IMU 航向统一，保留原始零点与大 yaw 的 KvStore 加载逻辑；待更新固件后人工低输出测试
@@ -123,8 +123,8 @@ done
 主机测试复现（支持C++23的主机编译器）：
 
 ```sh
-c++ -std=c++23 -O0 -DEIGEN_DONT_VECTORIZE -Wno-unknown-pragmas -Ilib -Ilib/third_party/eigen-3.4.0 agents/tasks/01-mc02_bsp/el05_protocol_test.cpp lib/motor/el05.cpp lib/motor/motor.cpp -o agents/tasks/01-mc02_bsp/out/el05_protocol_test.exe
-agents/tasks/01-mc02_bsp/out/el05_protocol_test.exe
+c++ -std=c++23 -O0 -DEIGEN_DONT_VECTORIZE -Wno-unknown-pragmas -Ilib -Ilib/third_party/eigen-3.4.0 agents/tasks/01-mc02_bsp/el05_protocol_test.cpp lib/motor/el05.cpp lib/motor/motor.cpp -o agents/out/01-mc02_bsp/el05_protocol_test.exe
+agents/out/01-mc02_bsp/el05_protocol_test.exe
 ```
 
 ### EL05 上位机能打开适配器但搜不到电机（2026-11-19）
@@ -169,7 +169,7 @@ agents/tasks/01-mc02_bsp/out/el05_protocol_test.exe
 - 在线判定超时为 100 ms；pitch1、pitch2 发送周期分别为 4 ms、1 ms。有效反馈冻结期间 callback_timer.dt 保留最后一次间隔，分析断联时长须看 last_cycles 与主机采样时间
 - 已确认直接触发链为两路 pitch 有效反馈停更超过 100 ms → 标记离线 → pitch2 闭环输出归零。优先核对两路 pitch 共用的活动 CAN 线束、接头及供电分支；具体断点待量测，发送链路/帧内容仍需总线 trace 核实
 - 第三轮计划读取周期使能时间等发送侧证据，完成 257/400 点后报 OPENOCD_TCL_ERROR，scatter memory read failed (-400)，retryable=false；响应未提供这 257 点，未纳入结论。随后确认采样 stopped、调试 none，未自动重试
-- 原始两轮 CSV 和统计归档 out/pitch_disconnect_20261121_1.csv、_2.csv、_summary.json。本轮未修改固件、运行变量、寄存器、SVD 或共享观察列表，未烧录、复位、halt
+- 原始两轮 CSV 和统计归档 agents/out/01-mc02_bsp/pitch_disconnect_20261121_1.csv、_2.csv、_summary.json。本轮未修改固件、运行变量、寄存器、SVD 或共享观察列表，未烧录、复位、halt
 - 后续核实：安全失能后检查活动线束与端子；由用户量测两路 pitch 电源输入电压，并在故障时抓 CAN2 控制帧 0x10/0x11、反馈帧 0x20/0x21，区分供电、支线与发送/反馈协议路径
 
 ### USB-CAN 断开后的持杆与C挡对照（2026-11-19）

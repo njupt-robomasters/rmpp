@@ -9,4 +9,5 @@ logs/
 .codex/
 .claude/
 .agents/
-agents/
+agents/out/
+agents/.tools/

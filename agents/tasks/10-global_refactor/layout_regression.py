@@ -7,7 +7,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
-OUT = TASK / "out/layout_regression"
+OUT = Path(__file__).resolve().parents[2] / "out/10-global_refactor/layout_regression"
 
 
 def main():

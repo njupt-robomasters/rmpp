@@ -1,79 +1,66 @@
 #include "nav.hpp"
-#include "bsp/irq_lock.hpp"
-#include "protocol.hpp"
-#include <cmath>
-#include <cstring>
+#include "crc16_modbus.hpp"
+#include <cstddef>
 
-Nav::Nav(const Cdc cdc, const Config& config)
-    : cdc(cdc), config(config) {
-    cdc.add_rx_callback([this](const uint8_t* data, const std::size_t size) { callback(data, size); });
+Nav::Nav(const Config& config)
+    : config(config) {
+    config.cdc.add_rx_callback([this](const uint8_t* data, const size_t size) { callback(data, size); });
 }
 
-void Nav::update(const float yaw, const bool is_yaw_connect) {
-    {
-        // USB 回调与主循环共享待发布指令及计时器，短临界区保证整帧一致
-        const IrqLock lock;
-        is_connect = has_command && callback_timer.elapsed() <= config.timeout;
-        if (is_connect) {
-            command = pending;
-        } else {
-            command = {};
-            if (has_command) {
-                has_command = false;
-                rx_size = 0;
-            }
-        }
-    }
-
-    if (!is_yaw_connect || send_timer.elapsed() < SEND_PERIOD)
-        return;
-    send_timer.restart();
-    if (!std::isfinite(yaw))
-        return;
-
-    uint8_t frame[TX_FRAME_SIZE]{0xA5, 0x5A};
-    minipc_write_float(frame + 2, yaw);
-    const uint16_t crc = minipc_crc16_modbus(frame + 2, 4);
-    frame[6] = static_cast<uint8_t>(crc);
-    frame[7] = static_cast<uint8_t>(crc >> 8);
-    cdc.send(frame, sizeof(frame));
+void Nav::set_target(const float x, const float y) {
+    raw_tx.x = x;
+    raw_tx.y = y;
 }
 
-void Nav::callback(const uint8_t* data, const std::size_t size) {
-    // 超时前的半帧丢弃，新连接允许从任意分片开始接收
-    if (has_command && callback_timer.elapsed() > config.timeout) {
-        has_command = false;
-        rx_size = 0;
-    }
+void Nav::send(const float yaw_ecd) {
+    raw_tx.yaw = yaw_ecd;
+    auto* bytes = reinterpret_cast<uint8_t*>(&raw_tx);
+    raw_tx.crc = crc16_modbus(bytes, offsetof(TxFrame, crc));
+    config.cdc.send(bytes, sizeof(raw_tx));
+}
 
-    for (std::size_t i = 0; i < size; i++) {
-        rx_buf[rx_size++] = data[i];
-        while (rx_size >= 2) {
-            if (rx_buf[0] != 0xA5 || rx_buf[1] != 0x5A) {
-                std::memmove(rx_buf, rx_buf + 1, --rx_size);
+void Nav::update() {
+    // 断联检测：指令复位，原始帧保留
+    if (callback_timer.elapsed() > config.timeout) {
+        is_connect = false;
+        is_through_hole = false;
+        vx = vy = yaw = 0;
+        x = y = 0;
+    }
+}
+
+void Nav::callback(const uint8_t* data, const size_t size) {
+    for (size_t index = 0; index < size; index++) {
+        rx_fifo.push(data[index]);
+        while (rx_fifo.size >= 1) {
+            // 帧头不符：丢弃 1 字节重新对齐
+            if (rx_fifo[0] != SOF_RX) {
+                rx_fifo.pop(1);
                 continue;
             }
-            if (rx_size < FRAME_SIZE)
+            if (rx_fifo.size < sizeof(raw_rx))
                 break;
 
-            const uint16_t crc = rx_buf[15] | (static_cast<uint16_t>(rx_buf[16]) << 8);
-            const Command received{
-                .vx = minipc_read_float(rx_buf + 2),
-                .vy = minipc_read_float(rx_buf + 6),
-                .yaw = minipc_read_float(rx_buf + 10),
-                .action_flag = rx_buf[14],
-            };
-            if (minipc_crc16_modbus(rx_buf + 2, 13) != crc ||
-                !std::isfinite(received.vx) || !std::isfinite(received.vy) || !std::isfinite(received.yaw) ||
-                received.action_flag > 1) {
-                std::memmove(rx_buf, rx_buf + 1, --rx_size);
+            // CRC 不符：丢弃 1 字节，帧内出现的帧头可重新对齐
+            RxFrame frame;
+            auto* bytes = reinterpret_cast<uint8_t*>(&frame);
+            rx_fifo.peek(bytes, sizeof(frame));
+            if (crc16_modbus(bytes, offsetof(RxFrame, crc)) != frame.crc) {
+                rx_fifo.pop(1);
                 continue;
             }
+            rx_fifo.pop(sizeof(frame));
 
-            pending = received;
-            has_command = true;
+            // 有效帧：保存原始帧并解析
+            raw_rx = frame;
+            is_through_hole = raw_rx.is_through_hole;
+            vx = raw_rx.vx;
+            vy = raw_rx.vy;
+            yaw = raw_rx.yaw;
+            x = raw_rx.x;
+            y = raw_rx.y;
+            is_connect = true;
             callback_timer.restart();
-            rx_size = 0;
         }
     }
 }

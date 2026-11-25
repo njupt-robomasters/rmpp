@@ -132,6 +132,7 @@ extern "C" void app_main() {
     yaw1.config.offset = kv_store.read("yaw_offset");
     melody.play(C5D5G5);
 
+    Timer nav_send_timer;
     Timer loop_timer;
     while (true) {
         if (loop_timer.elapsed() > 1 * ms) {
@@ -146,10 +147,14 @@ extern "C" void app_main() {
             // 上位机数据：弹速取裁判系统实测初速
             aim.set_referee(referee.robot_status.robot_id < 100, referee.shoot_data.initial_speed);
             aim.update(attitude.yaw, attitude.pitch, attitude.roll);
-            nav.update(gimbal.yaw1.measure, yaw1.is_connect);
+            nav.update();
 
             chassis_loop();
             gimbal_loop();
+            if (yaw1.is_connect && std::isfinite(gimbal.yaw1.measure) && nav_send_timer.elapsed() >= 5 * ms) {
+                nav_send_timer.restart();
+                nav.send(gimbal.yaw1.measure);
+            }
             shooter_loop();
 
             if (vt13.key.f) // F 键刷新 UI

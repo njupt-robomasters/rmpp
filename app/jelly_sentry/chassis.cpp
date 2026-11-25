@@ -53,10 +53,10 @@ void chassis_loop() {
         // 有效 flag 选择旋转模式，人工平移保持该模式；离线时停止自动控制
         if (nav.is_connect && yaw1.is_connect && yaw2.is_connect) {
             if (!has_manual_input) {
-                vx = nav.command.vx;
-                vy = nav.command.vy;
+                vx = nav.vx;
+                vy = nav.vy;
             }
-            if (nav.command.action_flag == 1) {
+            if (nav.is_through_hole) {
                 control_mode = ChassisMatrix::FOLLOW_MODE;
             } else if (wr == 0) {
                 // 人工主动旋转优先，否则保持自动小陀螺转速

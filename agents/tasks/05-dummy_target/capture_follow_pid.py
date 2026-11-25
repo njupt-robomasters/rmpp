@@ -38,7 +38,7 @@ def main():
     parser.add_argument("--seconds", type=float, default=180)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    out = Path(__file__).parent / "out" / "follow_pid"
+    out = Path(__file__).resolve().parents[2] / "out/05-dummy_target" / "follow_pid"
     out.mkdir(parents=True, exist_ok=True)
     ocd = OpenOcd()
     print("target:", ocd.command("targets"), flush=True)

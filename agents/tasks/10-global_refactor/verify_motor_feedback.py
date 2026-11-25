@@ -7,7 +7,7 @@ import re
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
-OUT = Path(__file__).resolve().parent / "out/motor_feedback/arm"
+OUT = Path(__file__).resolve().parents[2] / "out/10-global_refactor/motor_feedback/arm"
 PRESETS = ["dummy", "infantry", "sentry", "leg-leg_down", "leg-leg_up", "examples-motor", "examples-gimbal", "test"]
 
 

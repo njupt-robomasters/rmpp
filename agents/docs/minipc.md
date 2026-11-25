@@ -2,50 +2,11 @@
 
 ## 通道与接口
 
-- mc02 `app/jelly_sentry`：`Aim(Cdc(1), {.timeout = 200 * ms})` 使用第一路双向通信，`Nav(Cdc(2), {})` 独立使用第二路
-- C 板 `app/sentry` 只有一路 CDC，Nav 调用同步迁移为 `Nav(Cdc(1), {})`，与 Aim 配置共用端口；其底盘保留原有导航小陀螺和人工叠加策略，本轮的 flag 模式仲裁位于 jelly_sentry
+- mc02 `app/jelly_sentry`：`Aim(Cdc(1), {.timeout = 200 * ms})` 使用第一路双向通信，`Nav({.cdc = Cdc(2)})` 独立使用第二路
+- C 板 `app/sentry` 只有一路 CDC，Nav 调用同步迁移为 `Nav({.cdc = Cdc(1)})`，与 Aim 配置共用端口；其底盘保留原有导航小陀螺和人工叠加策略，本轮的 flag 模式仲裁位于 jelly_sentry
 - Nav 构造注册 USB 接收回调；对象在回调使用期间持续存活，现有应用均为全局实例
-- `nav.update()` 在主循环的 `chassis_loop()` 前调用，公开只读输出为 `is_connect` 和 `command.{vx,vy,yaw,action_flag}`
-- 已移除旧 `chassis_speed`、`target_position` 接口及两处应用只在本地赋值的 GO_CENTER/GO_HOME 占位流程；目标点与返航由上位机规划，目标点/状态上行协议待约定
-
-## 导航下行协议
-
-固定 17 字节，小端 IEEE 754 float32：
-
-| 偏移 | 字节数 | 字段 | 含义 |
-| --- | --- | --- | --- |
-| 0 | 2 | SOF | A5 5A |
-| 2 | 4 | vx | 最终 IMU 头坐标系前向速度，m/s |
-| 6 | 4 | vy | 最终 IMU 头坐标系左向速度，m/s |
-| 10 | 4 | yaw | 上位机角度，rad；当前解析和保存，具体控制用途待约定 |
-| 14 | 1 | action_flag | 0 允许小陀螺，1 随头；当前 pitch1 全程失能 |
-| 15 | 2 | CRC16 | MODBUS，低字节在前 |
-
-CRC 初值 0xFFFF，反射多项式 0xA001，无结果异或，覆盖偏移 2–14 共 13 字节。独立于裁判系统的 CRC16。参考帧（vx=1、vy=0、yaw=0、flag=0）：
-
-```text
-A5 5A 00 00 80 3F 00 00 00 00 00 00 00 00 00 9A E6
-```
-
-回调逐字节寻找帧头，收齐后检查 CRC、三个浮点数的有限性及 flag 的 0/1 范围。坏帧滑动一个字节重新同步；支持分片、粘包、噪声与重叠帧头。有效帧覆盖待发布指令，`update()` 用短 `IrqLock` 发布完整快照，主循环读取期间保持一致。
-
-默认 100 ms 无有效帧则离线，公开 command 清零，坏帧持续到达也会超时。超时清除旧连接半帧，新连接首帧允许任意分片。应用依据 `is_connect` 判断有效性，离线时清零后的 flag=0 不会启动小陀螺。
-
-## MCU → 导航：大 yaw 实测角
-
-`jelly_sentry` 调用 `nav.update(gimbal.yaw1.measure, yaw1.is_connect)`，由 Nav 内部判断大 yaw 在线并通过 CDC2 每 5 ms 上报一次，固定 8 字节。无参数 `nav.update()` 维持仅接收行为：
-
-| 偏移 | 字节数 | 字段 | 含义 |
-| --- | --- | --- | --- |
-| 0 | 2 | SOF | A5 5A |
-| 2 | 4 | yaw | 大 yaw 相对底盘的实测角，float32 小端，rad，范围 [-π, π)，左转为正 |
-| 6 | 2 | CRC16 | MODBUS，小端，覆盖偏移 2–5 共 4 字节 |
-
-角度已应用电机零位、方向和减速比；电机离线时暂停上报，CDC 忙时沿用 BSP 丢弃策略。yaw=1 rad 的参考帧：
-
-```text
-A5 5A 00 00 80 3F 21 F4
-```
+- 主循环调用 nav.update() 检查超时，通过 vx、vy、yaw、is_through_hole、x、y 读取 A3 下行数据。超时默认 100 ms。
+- CDC2 导航上行使用 A4，15 字节。每 5 ms 采样大 yaw 相对底盘的实测角，电机在线且角度有限时发送。目标点尚无数据源，x、y 取默认零。完整帧定义见 [导航协议](../../docs/minipc_protocol.md)。
 
 ## jelly_sentry 控制链路与坐标
 
@@ -80,7 +41,7 @@ A5 5A 00 00 80 3F 21 F4
 - 导航 flag 和总云台使能均不会启用 pitch1。共享 GimbalFold 的云台调试目标同样遵循此策略；其他三轴保持现有控制
 - 软件检查与主机测试覆盖失能状态、零电流/力矩目标和失能帧。实机是否已运行新固件及物理输出状态由用户更新固件后核对
 
-验证脚本与本轮结果见 `../tasks/13-minipc_nav/README.md`。
+验证脚本与本轮结果见 `../tasks/15-minipc_nav/README.md`。
 
 ## Aim 自瞄双向协议
 
@@ -114,7 +75,7 @@ A5 5A 00 00 80 3F 21 F4
 | 12 | 4 | distance，float32，m，非负 |
 | 16 | 2 | 小端 MODBUS CRC16，覆盖偏移 2–15 共 14 字节 |
 
-全部多字节字段为小端，浮点为 IEEE 754 float32。Aim 和 Nav 共用 `lib/minipc/protocol.hpp` 的 CRC 与浮点编解码；裁判 CRC 保持独立。接收支持拆包、粘包、噪声与滑动重同步。CRC、标志范围、有限浮点和非负距离全部通过才刷新计时；中断写 pending，主循环用短临界区取得完整快照。
+全部多字节字段为小端，浮点为 IEEE 754 float32。Aim 使用 `lib/minipc/protocol.hpp` 的 CRC 与浮点编解码；裁判 CRC 保持独立。接收支持拆包、粘包、噪声与滑动重同步。CRC、标志范围、有限浮点和非负距离全部通过才刷新计时；中断写 pending，主循环用短临界区取得完整快照。
 
 有效的 `is_detect=0` 帧保持通信在线并立即清空目标和开火许可。超过 Config::timeout 后，is_connect_vision=false，vision 全部恢复默认，is_detect/is_fire=false；持续坏帧也会超时。接收时间作为指令新鲜度依据，上位机重发旧结果时需自行管理结果年龄。
 
@@ -127,4 +88,4 @@ A5 5A 00 00 80 3F 21 F4
 - 大小 yaw 分配采用 ±45° 小轴工作窗口，大轴在窗口内保持世界朝向、超限后追随至 ±35° 内，小陀螺由大轴反向补偿；目标始终指向最终 IMU 头，详见 `application.md`“jelly_sentry 大小 yaw 工作窗口”
 - 原 Aim 中未用于本协议的公开 imu 写入、比赛阶段/剩余时间字段已移除；裁判输入经 set_referee 设置。全景相机占位 a0 继续保持 NAN，其协议待后续约定
 
-本轮验证与复现见 `../tasks/14-minipc_aim/README.md`。上板核对头部 yaw/pitch 正方向和 roll 观察方向，确认视觉与 MCU 使用相同世界航向零点。
+本轮验证与复现见 `../tasks/23-minipc_aim/README.md`。上板核对头部 yaw/pitch 正方向和 roll 观察方向，确认视觉与 MCU 使用相同世界航向零点。

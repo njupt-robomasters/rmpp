@@ -45,7 +45,7 @@ void chassis_loop() {
     // 自主导航速度，按平移速度在最大转速和保留转速间插值小陀螺
     float vx = 0, vy = 0, wr = 0;
     if (sentry_active() && nav.is_connect) {
-        std::tie(vx, vy) = rotate(nav.command.vx, nav.command.vy, yaw2.angle);
+        std::tie(vx, vy) = rotate(nav.vx, nav.vy, yaw2.angle);
         const float speed = std::hypotf(vx, vy);
         wr = map(speed, 0.0f, VXY_MAX, FSI6X_WR_MAX, WR_MIN);
     }

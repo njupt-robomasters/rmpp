@@ -14,7 +14,7 @@
 - 目标力矩绝对值连续达到block_torque并持续block_time后反向运行reverse_time；阈值0沿用电机max_torque。STOP 清两个累计时间，使能时保持零速度闭环，失能时输出零电流并清 PID，恢复时当周期拨弹
 - 负弹频正常反转，退弹方向和速度跟随当前有符号弹频；保留拨弹独立于摩擦轮的现有修改
 - 状态机先确定目标速度，再统一执行速度 PID；卡弹检测读取上一周期 torque_ref，切换到 REVERSE/FEED 后下一周期改变目标速度。2026-11-18 按用户要求由等比例换算的电流目标改为直接比较力矩目标
-- 该次调整的 Shooter17mm 与整车应用对象编译、格式检查通过。主机复用现有状态机场景验证卡滞计时、反转、停止和 dt 限幅，通过；Zig 主机编译副本省略独立的 DM 浮点模板输出测试，日志在 `out/torque_state_compile.log`
+- 该次调整的 Shooter17mm 与整车应用对象编译、格式检查通过。主机复用现有状态机场景验证卡滞计时、反转、停止和 dt 限幅，通过；Zig 主机编译副本省略独立的 DM 浮点模板输出测试，日志在 `agents/out/11-shooter_state/torque_state_compile.log`
 - `Motor::set_output(float)` 返回 void，基类调用虚函数 set_current，DM 系列覆盖为 set_torque
 - 云台和 17/42 mm 发射机构删除 PidOutput 配置和外部输出跟踪；PID 单位与限幅由 app 负责
 - 保留显式 set_current、set_torque 及 VESC 命令、X630 静音处理
@@ -30,7 +30,7 @@ python agents/tasks/11-shooter_state/verify.py --cxx g++ --arm-build build/leg-l
 - 基类引用输出分派、DM 力矩、VESC 电流报文和 X630 静音测试通过
 - 19 个源码的 ARM 对象编译通过，无警告：8 个电机源码、5 个云台/发射机构源码，以及 leg_up 三个源码、infantry/sentry 云台、gimbal 示例入口
 - 修改源码的 clang-format 检查及 git diff --check 通过
-- 未执行完整固件链接或硬件操作；产物在 out/，不入库
+- 未执行完整固件链接或硬件操作；产物在 agents/out/11-shooter_state/，不入库
 
 ## 实车核对
 
@@ -57,7 +57,7 @@ python agents/tasks/11-shooter_state/verify_gimbal.py --cxx g++
 
 ARM 对象编译通过且无警告：两个云台源码，以及 `leg_up`、`infantry`、`sentry`、`examples-gimbal` 的全部应用源码，共 16 个对象。clang-format 与 `git diff --check` 通过；本轮未执行完整固件链接和硬件操作。
 
-合并提交 `925e031`：解决两个基类文件的修改/删除冲突，保留其简化内容于独立类；leg_up 新增的编码器模式调用同步改为 `GimbalClassic::ECD_MODE`。合并后的主工作区对照 `8a42d69` 再次通过 12,000 周期、186,000 项比较，相关应用对象和格式检查通过；电机示例对象检查通过。日志和测试产物位于主工作区 `out/gimbal_standalone/`，外部 worktree 的对象编译日志归档至其中的 `external_worktree_logs/`。
+合并提交 `925e031`：解决两个基类文件的修改/删除冲突，保留其简化内容于独立类；leg_up 新增的编码器模式调用同步改为 `GimbalClassic::ECD_MODE`。合并后的主工作区对照 `8a42d69` 再次通过 12,000 周期、186,000 项比较，相关应用对象和格式检查通过；电机示例对象检查通过。日志和测试产物位于主工作区 `agents/out/11-shooter_state/gimbal_standalone/`，外部 worktree 的对象编译日志归档至其中的 `external_worktree_logs/`。
 
 ## GimbalClassic IMU 速度闭环
 
@@ -74,7 +74,7 @@ python agents/tasks/11-shooter_state/verify_gimbal_imu.py --arm
 ```
 
 - 主机编译真实 Classic、Motor、PID，仅模拟时钟和反馈；6,374 项检查通过（同步扁平字段，增加速度目标、失能清零与反馈刷新检查，移除旧差值观测断言）。覆盖整圈关节转速恢复（含正负90度）、枪口自旋和底盘运动的轴向投影、倾斜姿态下四元数外环误差下降、正负90度初始化、反号等价四元数、穿过竖直位置的外环连续性、两种配置、目标积分与 dt 限幅、角度回绕、电机速度噪声隔离、前馈叠加、pitch 双向电流/力矩保护、安装反向、积分回算及失能/断联恢复
-- 真实 ARM 编译通过且无警告：Classic 源码，以及 infantry（5 个）、leg_up（3 个）、gimbal 示例（1 个）全部应用源码，共 10 个对象；日志和产物放在本任务 `out/gimbal_imu/`
+- 真实 ARM 编译通过且无警告：Classic 源码，以及 infantry（5 个）、leg_up（3 个）、gimbal 示例（1 个）全部应用源码，共 10 个对象；日志和产物放在本任务 `agents/out/11-shooter_state/gimbal_imu/`
 - 当前 Classic 头文件、源码和主机测试源码通过同版本 clang-format 检查，相关 diff 空白检查通过；此前三处 app 接口迁移已通过格式检查
 - 上节 `verify_gimbal.py` 是旧 ECD/IMU 接口的历史差分验证，复现时使用当时的提交；当前行为验证使用本节入口
 - 本轮未执行完整固件链接、烧录、复位或硬件测试；上车前核对 IMU 安装轴与 ECD pitch 零点、正方向。实际实例保留原 pitch 保护范围（负15度至正30度）；反馈和四元数外环在90度处可计算，输出仍受 ECD 保护范围约束

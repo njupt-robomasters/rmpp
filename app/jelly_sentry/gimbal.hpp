@@ -133,8 +133,8 @@ inline GimbalFold gimbal({yaw1, yaw2, pitch1, pitch2}, {
                                                            .yaw2 = {
                                                                .speed_pid_config = &yaw2_speed_pid,
                                                                .position_pid_config = &yaw2_position_pid,
-                                                               .min = -40 * deg,
-                                                               .max = 40 * deg,
+                                                               .min = -50 * deg,
+                                                               .max = 50 * deg,
                                                            },
                                                            .pitch1 = {
                                                                .speed_pid_config = &pitch1_speed_pid,
