@@ -74,8 +74,7 @@ void gimbal_loop() {
 
     gimbal.set_enable(sentry_enable());
 
-    // yaw 零点校准：VT13 C 挡按住 fn 和 photo，按下时触发一次
-    // 按大 yaw 多圈角更新 offset，使单圈与多圈反馈同时归零，写入 KvStore，蜂鸣器响 G5G5G5
+    // yaw 零点校准：C 挡按住 fn 和 photo，按下沿触发；更新 offset 后写入 KvStore
     const bool calib = vt13.rc.mode == VT13::C && vt13.rc.fn && vt13.rc.photo;
     if (calib && !last_calib) {
         if (yaw1.is_connect)
@@ -85,7 +84,7 @@ void gimbal_loop() {
     }
     last_calib = calib;
 
-    if (sentry_active()) {
+    if (sentry_in_game() || fn_latched()) {
         control_by_auto(is_detect, target_yaw, target_pitch, distance);
     } else {
         is_lock = scan_up = false;

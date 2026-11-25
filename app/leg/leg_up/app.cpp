@@ -40,8 +40,8 @@ static void send() {
         Can(2).send(frame200);
     }
 
-    // 自瞄上行 200 Hz
-    if (send_cnt % 5 == 0)
+    // CDC
+    if (send_cnt % 4 == 0) // 自瞄 250 Hz
         aim.send();
 }
 

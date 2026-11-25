@@ -24,7 +24,7 @@ inline Vesc rub2({
 });
 
 // 拨弹电机
-inline Pid::Config shoot_pid = {
+inline Pid::Config shoot_pid_config = {
     .kp = (20) / (40 * rpm),
     .max_out = 20,
 };
@@ -38,7 +38,7 @@ inline M3508 shoot({
 
 // 发射机构
 inline Shooter17mm shooter({rub1, rub2, shoot}, {
-                                                    .shoot_pid_config = &shoot_pid,
+                                                    .shoot_pid_config = &shoot_pid_config,
                                                     .bullet_per_angle = 9.0f * (41.0f / 50.0f) * (1.0f / rev),
                                                     .heat_protect = 80,
                                                 });

@@ -42,9 +42,11 @@ static void send() {
     if (send_cnt % 2 == 0) // 小yaw 500Hz
         yaw2.send();
 
-    // 自瞄上行 200 Hz
-    if (send_cnt % 5 == 0)
-        minipc_send();
+    // CDC
+    if (send_cnt % 4 == 0) // 自瞄 250 Hz
+        aim.send();
+    else if (send_cnt % 4 == 2) // 导航 250 Hz
+        nav.send();
 }
 
 static void loop() {

@@ -13,7 +13,7 @@ static constexpr float WHEEL_RADIUS = 66.0f * mm;
 static constexpr float MAX_F = M3508::MAX_TORQUE / WHEEL_RADIUS * 4; // 四轮满电流时的总牵引力，N
 
 // 底盘速度 PID：速度误差 m/s → 牵引力 N
-inline Pid::Config vxyz_pid = {
+inline Pid::Config vxyz_pid_config = {
     .kp = MAX_F / 1.0f,
     .ki = MAX_F / 0.01f,
     .max_i = MAX_F,
@@ -22,7 +22,7 @@ inline Pid::Config vxyz_pid = {
 };
 
 // 底盘跟随 PID：云台相对底盘角度 rad → 旋转角速度 rad/s
-inline Pid::Config follow_pid = {
+inline Pid::Config follow_pid_config = {
     .kp = 5.0f,
     .max_out = 360.0f * deg,
 };
@@ -59,8 +59,8 @@ inline ChassisMatrixTorque chassis({&w1, &w2, &w3, &w4}, {
                                                              .chassis_radius = CHASSIS_RADIUS,
                                                              .wheel_radius = WHEEL_RADIUS,
                                                              .wheel_resistance = 0.194f,
-                                                             .speed_pid_config = &vxyz_pid,
-                                                             .follow_pid_config = &follow_pid,
+                                                             .speed_pid_config = &vxyz_pid_config,
+                                                             .follow_pid_config = &follow_pid_config,
                                                          });
 
 void chassis_loop();

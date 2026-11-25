@@ -1,27 +1,16 @@
 #include "shooter.hpp"
 #include "app.hpp"
-#include "bsp/irq_lock.hpp"
 #include "minipc.hpp"
-#include <algorithm>
 
-// 操控参数
-static constexpr float BULLET_FREQ_STEP = 5.0f;      // C、Z 键每次增减的最高弹频，发/秒
-static constexpr float BULLET_FREQ_MIN = 5.0f;       // 最高弹频下限，发/秒
-static constexpr float BULLET_FREQ_MAX = 25.0f;      // 最高弹频上限，发/秒
-static constexpr float DOUBLE_CLICK_TIME = 250 * ms; // 双击左键判定时间
-
-// 右键双击强制开火
+// 右键按住时双击左键强制开火，松开左键或右键退出
 static bool has_click = false, is_force_shoot = false;
-static bool last_left = false, last_z = false, last_c = false;
-static Timer click_timer; // 按下左键时重新开始
+static bool last_left = false;
+static Timer click_timer;
 
-// VT13：S 挡运行双传送带；trigger 按 pitch 摇杆倍率、鼠标左键按最高弹频，负弹频反转拨盘
-// 人工自瞄需视觉开火许可；按住右键时 DOUBLE_CLICK_TIME 内两次按下左键强制开火，松开左键或右键退出
-// 裁判系统识别为步兵（红 3、蓝 103）时 C、Z 键按下一次增减最高弹频，下一周期由 VT13 生效
+// VT13：人工自瞄需视觉开火许可；右键按住时 250 ms 内双击左键强制开火
 static void control_by_vt13(const bool is_fire) {
-    // 每周期让点击记录过期，避免长按右键跨过计数器回绕后误判双击
     const auto& mouse = vt13.mouse;
-    if (has_click && click_timer.elapsed() >= DOUBLE_CLICK_TIME)
+    if (has_click && click_timer.elapsed() >= 250 * ms)
         has_click = false;
     if (!mouse.right) {
         is_force_shoot = has_click = false;
@@ -36,35 +25,23 @@ static void control_by_vt13(const bool is_fire) {
     }
     last_left = mouse.left;
 
-    const bool is_infantry = referee.robot_status.robot_id == 3 || referee.robot_status.robot_id == 103;
-    if (is_infantry) {
-        const int step = static_cast<int>(vt13.key.c && !last_c) - static_cast<int>(vt13.key.z && !last_z);
-        vt13.config.bullet_freq = std::clamp(vt13.config.bullet_freq + step * BULLET_FREQ_STEP, BULLET_FREQ_MIN, BULLET_FREQ_MAX);
-    }
-    last_c = vt13.key.c;
-    last_z = vt13.key.z;
-
     const bool can_fire = !vt13.is_aim || is_force_shoot || is_fire;
     shooter.set_bullet_speed(vt13.bullet_speed);
     shooter.set_bullet_freq(can_fire ? vt13.bullet_freq : 0);
 }
 
-// 自主：双传送带常开，视觉开火许可时按最高弹频
+// 自主：视觉开火许可时按最高弹频
 static void control_by_auto(const bool is_fire) {
     shooter.set_bullet_speed(vt13.config.bullet_speed);
     shooter.set_bullet_freq(is_fire ? vt13.config.bullet_freq : 0);
 }
 
 void shooter_loop() {
-    // aim 在 CDC 中断内更新，与 gimbal_loop 读取保持一致
-    const bool is_fire = [] {
-        const IrqLock lock;
-        return aim.is_fire;
-    }();
+    const bool is_fire = aim.is_fire;
 
-    // VT13 N 挡只允许底盘和云台使能，发射机构失能
+    // N 挡只允许底盘和云台使能，发射机构失能
     shooter.set_enable(sentry_enable() && vt13.rc.mode != VT13::N);
-    if (sentry_active())
+    if (sentry_in_game() || fn_latched())
         control_by_auto(is_fire);
     else
         control_by_vt13(is_fire);

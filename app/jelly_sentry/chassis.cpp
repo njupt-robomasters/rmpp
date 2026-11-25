@@ -12,36 +12,30 @@ static void control_by_vt13() {
     chassis.set_speed(vt13.vx, vt13.vy, vt13.wr);
 }
 
-// 自主：导航与 VT13 平移速度按云台头部的前、左方向分别相加；导航掉线时只取遥控平移，方向反馈掉线时停车
-// 过洞 1 随头对准枪口、平移照常；过洞 0 小陀螺，平移越快转速越低，插值输入限幅，超量程指令保持旋转正方向
+// 自主：过洞随头，其余小陀螺；方向反馈掉线停车
 static void control_by_auto() {
     if (!yaw1.is_connect || !yaw2.is_connect) {
         chassis.set_mode(ChassisMatrix::DETACH_MODE);
         chassis.set_speed(0, 0, 0);
         return;
     }
-    if (!nav.is_connect) {
-        chassis.set_mode(ChassisMatrix::DETACH_MODE);
-        chassis.set_speed(vt13.vx, vt13.vy, 0);
-        return;
-    }
 
-    const float vxy_max = vt13.config.vxy_max, wr_max = vt13.config.wr_max;
-    const float vx = std::clamp(nav.vx + vt13.vx, -vxy_max, vxy_max);
-    const float vy = std::clamp(nav.vy + vt13.vy, -vxy_max, vxy_max);
+    const float vx = nav.vx + vt13.vx;
+    const float vy = nav.vy + vt13.vy;
     if (nav.is_through_hole) {
         chassis.set_mode(ChassisMatrix::FOLLOW_MODE);
         chassis.set_speed(vx, vy, 0);
     } else {
-        const float speed = std::clamp(std::hypot(vx, vy), 0.0f, vxy_max);
         chassis.set_mode(ChassisMatrix::DETACH_MODE);
-        chassis.set_speed(vx, vy, map(speed, 0.0f, vxy_max, wr_max, WR_MIN));
+        // 平移越快转速越低，合速度线性插值到小陀螺转速
+        const float speed = std::clamp(std::hypot(vx, vy), 0.0f, vt13.config.vxy_max);
+        chassis.set_speed(vx, vy, map(speed, 0.0f, vt13.config.vxy_max, vt13.config.wr_max, WR_MIN));
     }
 }
 
 void chassis_loop() {
     chassis.set_enable(sentry_enable());
-    if (sentry_active())
+    if (sentry_in_game() || fn_latched())
         control_by_auto();
     else
         control_by_vt13();
@@ -49,18 +43,8 @@ void chassis_loop() {
     // 前进正方向为云台方向
     chassis.set_gimbal_yaw(gimbal.yaw.ecd.measure);
 
-    // 超电：裁判离线或 VT13 C 挡 OFF；VT13 N/S 挡和比赛 BOOST；自检和倒计时 CHARGE；其余 OFF
-    const auto progress = referee.game_status.game_progress;
-    if (!referee.is_connect || vt13.rc.mode == VT13::C)
-        super_cap.set_mode(SuperCap::OFF);
-    else if (vt13.is_enable || sentry_in_game())
-        super_cap.set_mode(SuperCap::BOOST);
-    else if (progress == Referee::REFEREE_SELF_CHECK || progress == Referee::COUNTDOWN_5SEC)
-        super_cap.set_mode(SuperCap::CHARGE);
-    else
-        super_cap.set_mode(SuperCap::OFF);
-
-    // 功率上限与缓冲能量来自裁判系统；离线时沿用最后值，启动默认 120 W / 60 J
+    // 超级电容
+    super_cap.set_mode(vt13.is_enable || sentry_in_game() ? SuperCap::BOOST : SuperCap::OFF);
     super_cap.set_referee_limit(referee.robot_status.chassis_power_limit);
     super_cap.set_referee_energy(referee.power_heat_data.buffer_energy);
     super_cap.update();

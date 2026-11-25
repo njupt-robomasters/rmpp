@@ -12,8 +12,11 @@ void Nav::set_target(const float x, const float y) {
     raw_tx.y = y;
 }
 
-void Nav::send(const float yaw_ecd) {
+void Nav::set_yaw_ecd(const float yaw_ecd) {
     raw_tx.yaw = yaw_ecd;
+}
+
+void Nav::send() {
     auto* bytes = reinterpret_cast<uint8_t*>(&raw_tx);
     raw_tx.crc = crc16_modbus(bytes, offsetof(TxFrame, crc));
     config.cdc.send(bytes, sizeof(raw_tx));

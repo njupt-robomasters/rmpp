@@ -49,7 +49,9 @@ class Nav {
 
     void set_target(float x, float y);
 
-    void send(float yaw_ecd); // 本次采样的大 yaw 编码器角，rad
+    void set_yaw_ecd(float yaw_ecd); // 上行大 yaw 相对底盘的编码器角，rad；send() 写入
+
+    void send();
 
     // 每周期调用：断联检测，断联时指令复位为 0
     void update();
