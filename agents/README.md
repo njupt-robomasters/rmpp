@@ -68,3 +68,4 @@ agents/
 - `21-minipc_protocol/`：自瞄与导航协议重构（单字节帧头、CRC 带帧头、自瞄上下行改四元数与目标角、导航加过洞标志/坐标/上行目标点）；对接文档见根目录 `docs/minipc_protocol.md`，主机测试见任务目录
 - `22-leg_torque_alloc/`：轮腿力矩分配（目标按轮子额定转速限速、姿态组优先、运动组共同退让、腿摆按当拍轴向力矩折算关节余量）；主机测试与上车核对项见任务目录
 - `23-agents_guides/`：可复制到其他项目的两份 `AGENTS.md`，分别是沟通版和 RoboMaster 赛事沟通版
+- `24-leg_power_alloc/`：轮腿双轮净机械功率闭式分配（移植 wheel_leg_lab `limit_wheel_power()`）、两腿稳姿态增益拟合表、板间协议恢复功率目标；与仿真算法逐工况对照

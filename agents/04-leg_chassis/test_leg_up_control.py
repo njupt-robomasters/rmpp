@@ -59,6 +59,7 @@ struct {
 struct SuperCap {
     enum Mode { OFF, BOOST } mode = OFF;
     unsigned updates = 0;
+    float power_chassis_ref = 87.3f;
     void set_mode(Mode value) { mode = value; }
     void set_referee_limit(float) {}
     void set_referee_energy(float) {}
@@ -200,7 +201,7 @@ int main() {
     chassis_loop(); // 未超时，数据保留
     assert(leg_protocol.received.is_fallen && leg_protocol.received.is_enable);
 
-    // 上板帧位布局：使能 0、跳跃 1、vx 2..14、wr 15..30、yaw 31..43、腿长 44..52、保留 53..63
+    // 上板帧位布局：使能 0、跳跃 1、vx 2..14、wr 15..30、yaw 31..43、腿长 44..52、功率 53..63
     const LegUpFrame layout{
         .is_enable = true,
         .trigger_jump = true,
@@ -208,6 +209,7 @@ int main() {
         .wr = 2.345f,
         .yaw = -3.0f,
         .leg_length = 0.257f,
+        .power_ref = 80.0f,
     };
     layout.pack(frame);
     assert(field(frame, 0, 1) == 1 && field(frame, 1, 1) == 1);
@@ -215,7 +217,7 @@ int main() {
     assert(field(frame, 15, 16) == 2345);
     assert(field(frame, 31, 13) == ((1u << 13) - 3000));
     assert(field(frame, 44, 9) == 257);
-    assert(field(frame, 53, 11) == 0);
+    assert(field(frame, 53, 11) == 320);
 
     // 下板帧位布局：倒地 0、使能 1、wr 2..17、6 个电机 18..29、保留 30..31
     LegDownFrame status;
@@ -285,6 +287,22 @@ int main() {
         assert(decoded.unpack(frame));
         assert(std::fabs(decoded.leg_length - std::clamp(length, 0.0f, 0.511f)) <= 0.000501f);
     }
+
+    // 功率目标：0.25 W/LSB，有限值限幅到 0..511.5 W，INFINITY 编码为 2047；上板取超电 power_chassis_ref
+    for (const float power : {-10.0f, 0.0f, 0.1f, 80.0f, 87.3f, 511.5f, 600.0f}) {
+        const LegUpFrame input{.power_ref = power};
+        input.pack(frame);
+        assert(decoded.unpack(frame));
+        assert(std::fabs(decoded.power_ref - std::clamp(power, 0.0f, 511.5f)) <= 0.125f);
+    }
+    {
+        const LegUpFrame input{.power_ref = INFINITY};
+        input.pack(frame);
+        assert(field(frame, 53, 11) == 2047);
+        assert(decoded.unpack(frame) && std::isinf(decoded.power_ref));
+    }
+    frame = cycle();
+    assert(received_up.unpack(frame) && received_up.power_ref == 87.25f);
 }
 """
 
