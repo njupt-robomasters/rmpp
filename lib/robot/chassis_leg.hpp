@@ -12,7 +12,6 @@
 // 姿态由调用方每周期传入底盘机体的 q 与 gyro，可来自本板 IMU 或云台换算的虚拟 IMU
 class ChassisLeg {
   private:
-    // 设备绑定
     struct Motors {
         DM8009 &left_front, &left_back, &right_back, &right_front; // 关节：面向输出轴逆时针为正；零位时 A 杆方位角 π、E 杆 0
         M3508 &left_wheel, &right_wheel;                           // 轮：转速与力矩均以车前进为正
@@ -29,7 +28,7 @@ class ChassisLeg {
         float passive_link = 0.248f;            // 从动杆长 BC=DC，m
         float leg_min = 0.14f, leg_max = 0.33f; // 目标腿长范围，m；leg_min 也是自救站起与跳跃收腿腿长，leg_max 也是起跳腿长
 
-        // 控制器，误差均为“目标减反馈”
+        // 控制器，误差均为"目标减反馈"
         const Pid::Config* leg_length_pid; // 腿长 PD：m → 轴向力 N，伸腿为正；微分取 -d_L，不含目标变化
         const Pid::Config* leg_angle_pid;  // 相对腿角 PD：rad → 摆动力矩 N·m，后摆为正
         const Pid::Config* roll_pid;       // 横滚 PD：rad → 腿长修正 m；右侧低时输出为负，左腿缩短、右腿伸长
@@ -55,34 +54,6 @@ class ChassisLeg {
         float jump_buffer_length = 0.22f;   // 落地缓冲目标腿长，m
         float jump_buffer_time = 0.5f;      // 落地缓冲时间，s
     } const config;
-
-  private:
-    // 倒地与自救
-    enum class Fall {
-        UPRIGHT, // 车体正向
-        HEAD,    // 头部着地
-        TAIL,    // 尾部着地
-    };
-
-    // 指令
-    bool is_enable = false; // 底盘使能状态，由 set_enable() 更新
-    bool allow_rescue = false;
-    bool trigger_jump = false;
-    float vx = 0, wr = 0; // 前向速度 m/s 前进为正；航向角速度目标 rad/s 逆时针为正
-    float gimbal_yaw = 0;
-    float leg_length;
-    float power_ref = 0; // 双轮净机械功率上限 Σ Tw·ω，W；INFINITY 不限
-
-  public:
-    // 车体运动：姿态为传入 q 换算的标准 Z-Y-X 欧拉角，角速度取机体系 gyro；前向运动与 d_yaw_wheel 由轮腿运动学得出
-    struct {
-        float pitch = 0, d_pitch = 0; // rad、rad/s；低头为正（绕机体 +Y）；与外部工程 imu_pitch 同号
-        float roll = 0, d_roll = 0;   // rad、rad/s；右侧低为正（绕机体 +X）；与外部工程 imu_roll 相反
-        float d_yaw_gyro = 0;         // 陀螺仪航向角速度，rad/s；俯视逆时针为正（绕机体 +Z）
-        float d_yaw_wheel = 0;        // 轮速航向角速度，rad/s，右侧前向速度较大（逆时针）为正
-        float x = 0;                  // 前向位移积分，m，前进为正；有速度指令或动作期间清零
-        float d_x = 0;                // 前向速度，m/s，前进为正
-    } body;
 
   private:
     // 五连杆示意（站立姿态）：关节电机 A、E 同轴装于 O，A 驱动 AB、E 驱动 ED；C 为轮轴
@@ -138,7 +109,7 @@ class ChassisLeg {
         float Fg = 0; // 单腿重力沿腿分量，N，非负
         float Fs = 0; // 气弹簧等效伸腿力，N，非负
 
-        // 虚拟力：控制计算输出
+        // 虚拟力：VMC 控制计算输出
         float Fn = 0; // 虚拟腿轴向力，N，伸腿为正
         float Tt = 0; // 虚拟腿摆动力矩，N·m，后摆为正
 
@@ -150,23 +121,46 @@ class ChassisLeg {
     bool is_motor_ok = false; // 全部电机在线且关节已使能无报错；否则全部电机输出零
 
   public:
-    // 倒地与自救，外部只读 is_fallen
+    // 车体运动：姿态为传入 q 换算的标准 Z-Y-X 欧拉角，角速度取机体系 gyro；前向运动与 d_yaw_wheel 由轮腿运动学得出
     struct {
-        bool is_fallen = false;    // 倒地锁存，站起完成、失能或跳跃时清除
-        bool is_running = false;   // 自救运行中
-        Fall fall = Fall::UPRIGHT; // 启动时的倒地方向
-        int flip_step[2]{};        // 翻转阶段：0 进入翻转区间、1 继续翻转、2 完成
-        int stand_step[2]{};       // 站起阶段：0 摆腿、1 收腿
-        float target_theta[2]{};   // 目标相对腿角，rad，后摆为正
+        float pitch = 0, d_pitch = 0; // rad、rad/s；低头为正（绕机体 +Y）；与外部工程 imu_pitch 同号
+        float roll = 0, d_roll = 0;   // rad、rad/s；右侧低为正（绕机体 +X）；与外部工程 imu_roll 相反
+        float d_yaw_gyro = 0;         // 陀螺仪航向角速度，rad/s；俯视逆时针为正（绕机体 +Z）
+        float d_yaw_wheel = 0;        // 轮速航向角速度，rad/s，右侧前向速度较大（逆时针）为正
+        float x = 0;                  // 前向位移积分，m，前进为正；有速度指令或动作期间清零
+        float d_x = 0;                // 前向速度，m/s，前进为正
+    } body;
+
+    // 底盘使能状态，外部只读
+    bool is_enable = false;
+
+    // 倒地与自救，外部只读 state
+    struct Rescue {
+        enum class State { UPRIGHT = 0,
+                           FALLEN,
+                           RUNNING }; // UPRIGHT 为默认值 0，rescue = {} 可安全复位
+        enum class FallDir { NORMAL,
+                             HEAD,
+                             TAIL }; // 正向倒地、头部着地、尾部着地
+
+        State state = State::UPRIGHT;  // 自救状态；站起完成、失能或跳跃时复位
+        FallDir dir = FallDir::NORMAL; // 启动时的倒地方向，RUNNING 状态下有效
+        int flip_step[2]{};            // 翻转阶段：0 进入翻转区间、1 继续翻转、2 完成
+        int stand_step[2]{};           // 站起阶段：0 摆腿、1 收腿
+        float target_theta[2]{};       // 目标相对腿角，rad，后摆为正
     } rescue;
 
   private:
-    // 跳跃
-    struct {
-        bool is_active = false; // 跳跃运行中
-        int step = 0;           // 0 起跳、1 收腿、2 收腿保持、3 落地缓冲
-        float force = 0;        // 单腿跳跃力，N，伸腿为正
-        float hold_time = 0;    // 阶段 2、3 已保持时间，s
+    struct Jump {
+        enum class State { IDLE = 0,
+                           TAKEOFF,
+                           RETRACT,
+                           HOLD,
+                           BUFFER }; // IDLE 为默认值 0，jump = {} 可安全复位
+
+        State state = State::IDLE; // 当前跳跃阶段；IDLE 表示未激活
+        float force = 0;           // 单腿跳跃力，N，伸腿为正
+        float hold_time = 0;       // 阶段 HOLD、BUFFER 已保持时间，s
     } jump;
 
     // 功率：calc_lqr() 计算，跳跃期间不更新
@@ -174,6 +168,15 @@ class ChassisLeg {
 
     // 控制器
     float d_yaw_ref = 0;
+
+    // 指令
+    bool allow_rescue = false;
+    bool trigger_jump = false;
+    float vx = 0, wr = 0; // 前向速度 m/s 前进为正；航向角速度目标 rad/s 逆时针为正
+    float gimbal_yaw = 0;
+    float leg_length;
+    float power_ref = 0; // 双轮净机械功率上限 Σ Tw·ω，W；INFINITY 不限
+
     Pid leg_length_pid[2], leg_angle_pid[2], roll_pid;
 
     // 跨周期状态
@@ -222,7 +225,6 @@ class ChassisLeg {
 
     // 自救：站起为正向摆腿收腿；翻转完成后转入站起
     void rescue_stand(float dt);
-
     void rescue_flip(float side, float dt);
 
     // 跳跃状态机
@@ -243,6 +245,6 @@ class ChassisLeg {
     // 分配：四路满足 [lower, upper] 且比例不超过 1 时返回最大可行比例，无解返回 -1
     static float maximum_share(const float base[4], const float change[4], const float lower[4], const float upper[4]);
 
-    // 力映射：由 L、Fn 和机构极性的摆动力矩 Tt 更新 T_A、T_E
-    void map_force(Leg& leg, float Tt) const;
+    // VMC 力映射：由 L、Fn 和机构极性的摆动力矩 Tt 更新 T_A、T_E
+    void vmc_map(Leg& leg, float Tt) const;
 };

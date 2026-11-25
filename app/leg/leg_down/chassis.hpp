@@ -2,10 +2,9 @@
 
 #include "../leg_protocol.hpp"
 #include "attitude/quaternion_ekf.hpp"
-#include "lqr_fit.hpp"
 #include "motor/dm8009.hpp"
 #include "motor/m3508.hpp"
-#include "robot/chassis_leg.hpp"
+#include "robot/chassis_leg_lqr.hpp"
 
 // IMU：安装于车体，前进方向对齐机体 X 轴
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = 180 * deg, .pitch = 0 * deg, .roll = 0 * deg}),
@@ -61,18 +60,17 @@ inline M3508 right_wheel({
     .is_invert = false,
 });
 
-// 腿长 PD：误差 m → 轴向力 N，伸腿为正
-inline Pid::Config leg_length_pid = {.kp = 1750, .kd = 100, .max_out = 180};
-// 相对腿角 PD：误差 rad → 摆动力矩 N·m，后摆为正
-inline Pid::Config leg_angle_pid = {.kp = 140, .kd = 7, .max_out = 80};
-// 横滚 PD：误差 rad → 腿长修正 m；微分用 gyro.x，外部工程为 10 阶最小二乘微分
-inline Pid::Config roll_pid = {.kp = 1.3f, .kd = 0.004f, .max_out = 0.4f};
-// 底盘：绑定 PID 参数与 LQR 系数，其余参数取 ChassisLeg::Config 默认值
+// 底盘 PID 配置
+inline Pid::Config leg_length_pid_config = {.kp = 1750, .kd = 100, .max_out = 180}; // 腿长 PD：m → 轴向力 N
+inline Pid::Config leg_angle_pid_config = {.kp = 140, .kd = 7, .max_out = 80};      // 相对腿角 PD：rad → 摆动力矩 N·m
+inline Pid::Config roll_pid_config = {.kp = 1.3f, .kd = 0.004f, .max_out = 0.4f};   // 横滚 PD：rad → 腿长修正 m
+
+// 底盘：PID 参数在 app 层定义，LQR 系数来自 chassis_leg_lqr.hpp，其余参数取 ChassisLeg::Config 默认值
 inline ChassisLeg chassis({left_front, left_back, right_back, right_front, left_wheel, right_wheel},
                           {
-                              .leg_length_pid = &leg_length_pid,
-                              .leg_angle_pid = &leg_angle_pid,
-                              .roll_pid = &roll_pid,
+                              .leg_length_pid = &leg_length_pid_config,
+                              .leg_angle_pid = &leg_angle_pid_config,
+                              .roll_pid = &roll_pid_config,
                               .lqr_fit = LQR_FIT,
                               .lqr_posture_fit = LQR_POSTURE_FIT,
                               .lqr_r = LQR_R,

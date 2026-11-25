@@ -50,7 +50,7 @@ void chassis_loop() {
     // 姿态来自本板 IMU；换用虚拟 IMU 时传入换算后的底盘 q 与 gyro
     chassis.update(attitude.q, imu.gyro);
 
-    leg_protocol.is_fallen = chassis.rescue.is_fallen;
+    leg_protocol.is_fallen = chassis.rescue.state != ChassisLeg::Rescue::State::UPRIGHT;
     leg_protocol.is_enable = chassis.is_enable;
     leg_protocol.wr = chassis.body.d_yaw_gyro;
     leg_protocol.motor[0] = joint_state(left_front);

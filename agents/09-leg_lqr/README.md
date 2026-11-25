@@ -7,11 +7,11 @@
 ## 复现
 
 - `lqr_model.py`：方程对加速度、角度、力矩线性，numpy 直接组装 A、B，`scipy` 求 Riccati，不需要 MATLAB/sympy；另给机体重心水平偏移 d 的扰动列 E
-- `gen_lqr_fit.py`：按 `lqr_model.py` 顶部的机体参数与 Q、R 生成 `app/leg/leg_down/lqr_fit.hpp`（输出已与 clang-format 一致）；改参数后重跑即可替换
+- `gen_lqr_fit.py`：按 `lqr_model.py` 顶部的机体参数与 Q、R 生成 LQR 系数头文件（输出已与 clang-format 一致）；改参数后重跑，将生成的 `LQR_FIT`、`LQR_POSTURE_FIT`、`LQR_R` 数值手动更新到 `lib/robot/chassis_leg_lqr.hpp` 对应常量
 - `offset_analysis.py`：按本工程实际用法（C 拟合增益、`x_max`）求稳态
 
 ```sh
-python gen_lqr_fit.py
+python gen_lqr_fit.py                                        # 生成到 app/leg/leg_down/lqr_fit.hpp，再迁移到 chassis_leg_lqr.hpp
 python lqr_model.py ../../app/leg/leg_down/lqr_fit.hpp
 python offset_analysis.py ../../app/leg/leg_down/lqr_fit.hpp
 ```
