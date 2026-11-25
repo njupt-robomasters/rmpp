@@ -6,7 +6,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
-OUT = Path(__file__).resolve().parents[2] / 'out/25-yaw_pid'
+OUT = ROOT / 'agents/out/25-yaw_pid'
 BUNDLES = Path(os.environ['LOCALAPPDATA']) / 'stm32cube/bundles'
 
 

@@ -3,23 +3,16 @@
 #include "chassis.hpp"
 #include "melody/music/c5d5g5.hpp"
 
+// 发送拍数，send() 末尾递增；偶拍发送左腿并计算底盘，奇拍发送右腿
+static uint32_t send_cnt = 0;
+
 static void setup() {
     melody.play(C5D5G5);
-    Can(1).add_rx_callback(chassis_can_callback);
 }
 
-static void loop() {
-    melody.update();
-    fsi6x.update();
-    attitude.update();
-
+static void send() {
     // CAN1 左右关节交替发送，每个关节 500 Hz；偶拍与奇拍各 3 帧，匹配 3 个发送邮箱
-    static uint32_t send_cnt = 0;
-    const uint32_t cnt = send_cnt++;
-    if (cnt % 2 == 0) {
-        // 底盘只在发送左腿的一拍计算，保证两侧关节反馈都已刷新
-        chassis_loop();
-
+    if (send_cnt % 2 == 0) {
         left_front.send();
         left_back.send();
         CanFrame frame{.id = 0x200, .size = 8};
@@ -30,10 +23,26 @@ static void loop() {
         right_back.send();
         right_front.send();
 
-        CanFrame frame;
-        chassis_write_can_frame(frame);
-        Can(1).send(frame);
+        // 第 3 帧：底盘状态帧 0x003 与下板裁判帧 0x00 轮流，各 250 Hz
+        if (send_cnt % 4 == 1) {
+            leg_protocol.send();
+        } else {
+            referee_relay.send();
+        }
     }
+    send_cnt++;
+}
+
+static void loop() {
+    melody.update();
+    fsi6x.update();
+    attitude.update();
+
+    // 底盘只在发送左腿的一拍计算（500 Hz），保证两侧关节反馈都已刷新
+    if (send_cnt % 2 == 0)
+        chassis_loop();
+
+    send();
 }
 
 extern "C" void app_main() {

@@ -1,25 +1,16 @@
 #pragma once
 
-#include <cstdint>
-
-#include "pid/pid.hpp"
-
-#include "bsp/can.hpp"
-#include "bsp/imu.hpp"
-
 #include "attitude/quaternion_ekf.hpp"
-#include "gimbal_fold.hpp"
-#include "math/unit.hpp"
 #include "motor/dm4310.hpp"
 #include "motor/rmdl7025.hpp"
+#include "robot/gimbal_fold.hpp"
 
 // 惯性测量单元与姿态解算：MC02 倒装在 pitch2 云台头上
 // orientation：传感器到机体的安装旋转，Z-Y-X 欧拉角
 // 旧框架实测为绕左右轴翻转 180°（旧 pitch = 180°）；旧安装矩阵为 Rz(-yaw) Rx(pitch) Ry(roll)，同一物理旋转即新 roll = 180°
 // 新框架 attitude.pitch 绕机体 Y 轴（旧框架绕 X）；实测只加 roll = 180° 时抬枪口变化的是 attitude.roll
 // 再绕 Z 转 -90° 重排机体轴，使俯仰轴对齐机体 Y；实测抬枪口时 attitude.pitch 与 pitch2.angle 同向变化
-// gyro_offset、gravity：IMU 校准后填入；未校准时为 0 与 9.81
-// temperature：恒温目标 50 ℃，温度稳定后静止校准零偏
+// gyro_offset、gravity：IMU 校准后填入；temperature：恒温 50 ℃，温度稳定后静止校准零偏
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = -90 * deg, .pitch = 0 * deg, .roll = 180 * deg}),
                 .gyro_offset = Vector3f(0.0f, 0.0f, 0.0f),
                 .gravity = 9.81f,
@@ -28,7 +19,7 @@ inline QuaternionEkf attitude(imu, {});
 
 // 达妙电机：tx_id 为调试助手中的 CAN ID，rx_id 为 Master ID；上位机 PMAX 改为 3.14159，MIT 模式
 // 同一路总线上反馈按 data[0] 低 4 位区分电机，tx_id 低 4 位不能重复
-// PID 使用 SI 单位，带积分回算和误差输入低通；大小 yaw 参数已同步 EmberProbe 实测调参值
+// 以下 PID 为上车实测参数，带积分回算、误差输入低通
 
 // 大 yaw：DM4310，CAN1，MIT 纯力矩；位置环 rad → rad/s，速度环 rad/s → Nm
 inline Pid::Config yaw1_speed_pid = {
@@ -63,8 +54,6 @@ inline Pid::Config yaw2_position_pid = {
     .max_out = 720 * deg_s,
 };
 // 大小 yaw 正方向与 IMU 航向一致；offset 为小 yaw 回中时的原始角度
-// 运行时可写发送周期，单位 ms；主循环约 1 ms，7025 建议取 2~99
-inline volatile uint32_t yaw2_send_period_ms = 2;
 inline RMDL7025 yaw2({
     .can = Can(3),
     .tx_id = 0x141,
@@ -87,8 +76,6 @@ inline Pid::Config pitch1_position_pid = {
     .max_out = 90 * deg_s,
 };
 // TODO: 上车确认方向；offset 为展开（工作姿态）时的原始角度
-// 运行时可写发送周期，单位 ms，建议取 1~99，避免超过反馈超时
-inline volatile uint32_t pitch1_send_period_ms = 4;
 inline DM4310 pitch1({
     .can = Can(2),
     .tx_id = 0x10,
@@ -112,8 +99,6 @@ inline Pid::Config pitch2_position_pid = {
     .max_out = 720 * deg_s,
 };
 // offset 为枪管水平时的原始角度（实测）；TODO: 上车确认方向
-// 运行时可写发送周期，单位 ms，建议取 1~99，避免超过反馈超时
-inline volatile uint32_t pitch2_send_period_ms = 1;
 inline DM4310 pitch2({
     .can = Can(2),
     .tx_id = 0x11,
@@ -146,4 +131,4 @@ inline GimbalFold gimbal({yaw1, yaw2, pitch1, pitch2}, {
                                                            .pitch2_gravity = {.torque = 0, .phase = 0 * deg},
                                                        });
 
-void gimbal_loop();
+void gimbal_loop(bool is_detect, Angle target_yaw, Angle target_pitch, float distance);

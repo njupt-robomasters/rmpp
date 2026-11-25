@@ -7,6 +7,7 @@
 ### 原则
 
 - 简洁、直观、可人工审计优先
+- 应用代码及业务模块禁止使用 `static_assert`。字节序、浮点表示和协议帧布局等检查放在测试中
 - 同类问题使用统一写法
 - 删除重复实现、无效中间层、旧接口和依赖
 - 不增加兼容包装，不为假设需求保留兜底
@@ -38,7 +39,7 @@
 - 硬件设备由 app 定义；只服务一个机构的设备（电机）由该机构持有并调用其 `update()`；被多处使用或与机构业务无关的设备（姿态、超电）由 app 调用 `update()` 和设置，再把结果交给机构
 - 公开输出按物理量集中组织
 - 成员默认 private，变量不加尾随下划线；逐项核对当前调用，类内使用或仅供 SWD 观察的变量与常量保持 private，外部确需访问的才用 public，子类确需访问的用 protected；公开成员变量外部只读，只经 `set_*`、`update` 修改，不提供读取函数
-- 固定配置按值保存为 `const Config config`，使用处直接读取，不再逐项复制同名成员；需要解析默认值、校准或运行时设置的参数按实际用途持有，经 set_* 修改；Motor 使用 `Config config`，零值在构造时补齐，offset 由外部直接维护；Pid 保留指向调用方可调参数的只读引用
+- 固定配置按值保存为 `const Config config`，使用处直接读取，不再逐项复制同名成员；需要解析默认值、校准或运行时设置的参数按实际用途持有，经 set_* 修改；Motor 使用 `Config config`，零值在构造时补齐，offset 由外部直接维护；VT13 使用公开的 `Config config`，app 可直接修改操控参数；Pid 保留指向调用方可调参数的只读引用
 - 积分、微分步长由持有方在 `update()` 开头计一次周期、按本类 `DT_MIN`/`DT_MAX` 限幅，再传给 PID 等组件；`Timer` 不限幅
 - 标量成员默认值写 `= 0`，不写 `{}`
 - 固定硬件绑定不提供运行时修改
@@ -79,9 +80,22 @@
 - 电机型号在具体类中保留 `MAX_CURRENT`、`MAX_TORQUE`、`REDUCTION` 常量，构造时作为默认值传给 `Motor`；不使用 kt，电流与力矩按二者之比换算
 - PID 由持有方传入 `dt`；不使用的分支调用 `clear()`，clear 后首帧不差分
 
+### 协议接收
+
+适用于 `lib/minipc`（Nav、Aim）、`lib/rc/vt13`、`lib/referee/referee` 等字节流协议；FSi6X 的 SBUS 无校验，按空闲中断整帧接收
+
+- 成员：`raw`（多方向时 `raw_rx`、`raw_tx`）保存最近一帧有效原始帧，断联后保留供 SWD 查看；`rx_fifo` 保存未解析字节，只在接收回调内读写；`callback_timer` 用于断联检测
+- `callback(const uint8_t* data, size_t size)` 逐字节 `rx_fifo.push()`，在 `while` 中依次：帧头不符丢弃 1 字节；不足整帧 `break`；校验不符丢弃 1 字节；有效帧整帧出队，复制到 `raw` 后解析，最后置 `is_connect` 并重启 `callback_timer`
+- 定长帧用 `packed` 结构体 `peek()` 到局部变量，校验通过再赋给 `raw`；CRC 字段按小端 `uint16_t` 直接比较
+- 只做协议规定的帧头、长度和 CRC 校验，字段原样映射，不额外检查浮点有限性或取值范围
+- 断联只在 `update()` 检查：超时后 `is_connect = false` 并清零解析结果，不清 `rx_fifo` 和 `raw`
+- 发送帧需要 SWD 诊断时保存为成员 `raw_tx`，`set_*()` 直接写入，`send()` 补 CRC 后发出
+- CRC 为自由函数：`crc8_referee`、`crc16_referee`（`referee/crc.hpp`），`crc16_modbus`（`minipc/crc16_modbus.hpp`）
+
 ### 表达
 
 - 多分支使用清晰的 `if`、`else if` 或提前返回，不使用嵌套三目
+- 位运算的掩码和移位量使用无符号字面量，如 `1u << 0u`、`0xFFu`；按位表达式中的零值写 `0u`
 - 参数使用对应物理量名称；与成员重名时用 `this->`
 - 不会重新赋值的局部变量和按值参数在定义中尽量使用 `const`；声明中不重复顶层 `const`
 - 指针和引用按实际修改语义限定
@@ -113,6 +127,29 @@
 ## 注释与格式
 
 - 注释精炼，优先用简短中文概括代码段职责；不直观处再补充配置、单位、边界、约束或原因，单句尽量不加句号
+- 注释服务于上车前的逐行审计：读者对照需求逐段核对含义、单位、方向和条件，无需反推代码
+- 变量与 Config 字段的行尾注释写“含义，单位；方向、条件或约定”，逗号接单位，分号接约定；同组注释由 clang-format 对齐
+- 相关变量成组声明，组前注释写组名、计算位置和失效值；Config 组前注释写“组名：各字段含义，单位”，组内字段顺序与注释一致
+- 主流程按输出对象或处理步骤分段，段间空行；段首注释写“对象：输入来源与映射规则；特殊条件”，按键、挡位、方向写出具体对应，优先级和互斥条件写明先后
+- 示例（`lib/rc/vt13`）：
+
+```cpp
+// 平移：摇杆满量程与合成速度上限，m/s；键盘加速度、松手减速度，m/s^2
+float vxy_max = 0;
+float axy = 0, dxy = 0;
+
+// 操控量，update() 计算，断联时为 0
+bool is_enable = false; // N、S 挡使能
+float wr = 0;           // 旋转角速度，rad/s；逆时针为正
+
+// 云台：摇杆叠加鼠标，摇杆上推抬头；按住 trigger 时 pitch 摇杆改为调弹频
+const float pitch_stick = rc.trigger ? 0 : rc.pitch;
+yaw_speed = std::clamp((rc.yaw + mouse.yaw) * config.yaw_speed_max, -config.yaw_speed_max, config.yaw_speed_max);
+
+// 发射：trigger 时 pitch 摇杆为最高弹频倍率，负值反转；否则鼠标左键按最高弹频
+if (rc.trigger)
+    bullet_freq = rc.pitch * config.bullet_freq;
+```
 - STM32 生成代码和第三方原始代码保持原样；生成文件中的应用修改放在 USER CODE 区域
 - 遵循根 `.clang-format`，使用 `tools/format_code.py` 调用 CLion 同版本 clang-format
 - 只格式化本任务修改的手写代码

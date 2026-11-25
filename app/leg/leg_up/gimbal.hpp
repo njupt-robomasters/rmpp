@@ -2,12 +2,9 @@
 
 #include "attitude/quaternion_ekf.hpp"
 #include "motor/gm6020.hpp"
-#include "robot/gimbal/gimbal_classic.hpp"
+#include "robot/gimbal_classic.hpp"
 
-static constexpr float YAW_SPEED_MAX = 360 * deg_s;   // yaw 最大角速度，rad/s
-static constexpr float PITCH_SPEED_MAX = 360 * deg_s; // pitch 最大角速度，rad/s
-
-// 惯性测量单元与姿态解算
+// imu
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = 180 * deg, .pitch = 0 * deg, .roll = 0 * deg}),
                 .gyro_offset = Vector3f(0.00127f, 0.00077f, 0.000271f),
                 .gravity = 9.7423f});
@@ -15,8 +12,8 @@ inline QuaternionEkf attitude(imu, {});
 
 // yaw电机
 inline Pid::Config yaw_speed_pid_config = {
-    .kp = 3.0f,
-    .ki = 10.0f,
+    .kp = 2.4f,
+    .ki = 8.0f,
     .max_i = 1.0f,
     .max_out = GM6020::MAX_CURRENT,
 };
@@ -30,7 +27,7 @@ inline GM6020 yaw({
     .tx_id = 0x1fe,
     .rx_id = 0x205,
     .is_invert = true,
-    .offset = 5.048f,
+    .offset = 5.06981f,
 });
 
 // pitch电机
@@ -47,7 +44,7 @@ inline GM6020 pitch({
     .tx_id = 0x1fe,
     .rx_id = 0x206,
     .is_invert = true,
-    .offset = 4.836f,
+    .offset = 0.05522f,
 });
 
 // 云台
@@ -58,7 +55,6 @@ inline GimbalClassic gimbal({yaw, pitch}, {
                                               .pitch_angle_pid_config = &pitch_angle_pid_config,
                                               .pitch_min = -30 * deg,
                                               .pitch_max = 15 * deg,
-                                              .use_angle_loop = true,
                                           });
 
 void gimbal_loop();

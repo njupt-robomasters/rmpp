@@ -13,7 +13,6 @@ class RMDL7025 : public Motor {
     static constexpr float MAX_TORQUE = 4.1f;
     static constexpr float REDUCTION = 1;
 
-    float temperature = 0;   // 电机温度，℃
     uint32_t send_count = 0; // 奇偶决定本次发送的报文
 
   public:

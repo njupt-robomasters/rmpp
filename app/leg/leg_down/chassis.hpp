@@ -1,23 +1,19 @@
-#pragma once
+﻿#pragma once
 
+#include "../leg_protocol.hpp"
 #include "attitude/quaternion_ekf.hpp"
 #include "lqr_fit.hpp"
 #include "motor/dm8009.hpp"
 #include "motor/m3508.hpp"
-#include "robot/chassis/chassis_leg.hpp"
+#include "robot/chassis_leg.hpp"
 
-// 硬件参数沿用 SOLDIER_LEG_4/Chassis；LQR 使用首版 Python 模型生成值，待实车对照
-// 极性核查见 agents/tasks/04-leg_chassis
-
-// 底盘 C 板：传感器 +X 朝车后、+Y 朝车右、+Z 朝上，即相对机体系（X 前、Y 左、Z 上）绕 Z 转 180°
-// 由外部工程腿倾角与横滚补偿的闭环极性反推；上车前用手低头应见 attitude.pitch 增大、右侧压低应见 attitude.roll 增大
+// imu
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = 180 * deg, .pitch = 0 * deg, .roll = 0 * deg}),
                 .gyro_offset = Vector3f(-0.00069f, -0.00059f, 0.00114f),
                 .gravity = 9.5909f});
 inline QuaternionEkf attitude(imu, {});
 
 // 关节 DM8009：CAN1；面向输出轴逆时针为正，不反向
-// offset 取外部工程 pos = wrap(raw + c) 中 c 的相反数，使 angle 零位对应 A 杆方位角 π、E 杆 0
 inline DM8009 left_front({
     .can = Can(1),
     .tx_id = 0x11,
@@ -71,34 +67,17 @@ inline Pid::Config leg_length_pid = {.kp = 1750, .kd = 100, .max_out = 180};
 inline Pid::Config leg_angle_pid = {.kp = 140, .kd = 7, .max_out = 80};
 // 横滚 PD：误差 rad → 腿长修正 m；微分用 gyro.x，外部工程为 10 阶最小二乘微分
 inline Pid::Config roll_pid = {.kp = 1.3f, .kd = 0.004f, .max_out = 0.4f};
-// 云台跟随 PID：云台相对底盘 yaw 误差 rad → 航向角速度 rad/s
-inline Pid::Config follow_pid_config = {.kp = 6.0f, .max_out = 180 * deg_s};
-
-// 底盘：其余参数取 ChassisLeg::Config 默认值，与外部工程一致
+// 底盘：绑定 PID 参数与 LQR 系数，其余参数取 ChassisLeg::Config 默认值
 inline ChassisLeg chassis({left_front, left_back, right_back, right_front, left_wheel, right_wheel},
                           {
-                              .mass = 22.75f,
-                              .spring_force = 450.0f,
-                              .wheel_radius = 0.06f,
-                              .wheel_distance = 0.488f,
-                              .active_link = 0.210f,
-                              .passive_link = 0.248f,
-                              .leg_min = 0.14f,
-                              .leg_max = 0.33f,
                               .leg_length_pid = &leg_length_pid,
                               .leg_angle_pid = &leg_angle_pid,
                               .roll_pid = &roll_pid,
-                              .follow_pid = &follow_pid_config,
                               .lqr_fit = LQR_FIT,
-                              .wheel_resistance = 0.194f,
                           });
+
+// 上下板 CAN1 经滑环连接，协议见 ../leg_protocol.hpp；接收回调在构造时注册
+inline LegDownProtocol leg_protocol(Can(1));
 
 // 底盘计算，每 2 次循环调用一次（500 Hz）
 void chassis_loop();
-
-// 上下板 CAN1 经滑环连接，协议见 ../leg_protocol.hpp
-// 组 0x003 状态帧
-void chassis_write_can_frame(CanFrame& frame);
-
-// 接收 0x002 控制帧，由 setup() 注册到 Can(1)
-void chassis_can_callback(const CanFrame& frame);

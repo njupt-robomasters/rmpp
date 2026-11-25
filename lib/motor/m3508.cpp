@@ -41,7 +41,7 @@ void M3508::can_callback(const CanFrame& frame) {
 
     // 解析can报文
     const auto* data = frame.data;
-    motor_temperature = static_cast<int8_t>(data[6]);
+    temperature = static_cast<int8_t>(data[6]);
 
     // 调用上级回调；转速、电流为有符号 16 位，先转 int16_t 保留反转符号
     Motor::can_callback({

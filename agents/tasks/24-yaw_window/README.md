@@ -1,5 +1,7 @@
 # 大小 yaw 配合调整
 
+2026-11-25 历史记录保留，云台实现已移至 lib/robot/gimbal_fold.*，产物使用 agents/out/24-yaw_window/。当前生产配置与协议验证见任务 14、15、21。
+
 ## 当前实现（2026-11-21）
 
 - 用户要求参考 https://github.com/Joushua233/rmpp/tree/old 的哨兵逻辑，PID参数先保持不变

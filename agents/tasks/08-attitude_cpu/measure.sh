@@ -1,15 +1,16 @@
 #!/bin/sh
-# 烧录 out/<变体>/rmpp.elf，运行 18 s 后读取统计变量（需 C 板连接 CMSIS-DAP）
-# 用法：sh agents/tasks/08-attitude_cpu/measure.sh og og_nodebug ...（仓库根目录）
-T=agents/out/08-attitude_cpu
+# Flash agents/out/08-attitude_cpu/<variant>/rmpp.elf and sample runtime counters
+# Usage: sh agents/tasks/08-attitude_cpu/measure.sh og og_nodebug ...
+ROOT=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
+
 for name in "$@"; do
-    elf=$T/$name/rmpp.elf
+    elf="$ROOT/agents/out/08-attitude_cpu/$name/rmpp.elf"
     addr() { arm-none-eabi-nm -C "$elf" | awk -v s="$1" '$3==s{print "0x"$1}'; }
     openocd -f boards/c_board/openocd.cfg -c "init; reset halt; program $elf verify; reset run; sleep 18000; \
         echo [mdw $(addr imu_cycles) 3]; echo [mdw $(addr attitude_cycles) 3]; echo [mdw $(addr app_monitor) 4]; echo [mdw $(addr SystemCoreClock)]; shutdown" \
-        > $T/$name.measure.log 2>&1
+        > "$ROOT/agents/out/08-attitude_cpu/$name.measure.log" 2>&1
     echo "== $name"
-    grep -E "^0x" $T/$name.measure.log | python -c "
+    grep -E "^0x" "$ROOT/agents/out/08-attitude_cpu/$name.measure.log" | python -c "
 import sys,struct
 rows=[l.split(':')[1].split() for l in sys.stdin]
 f=lambda h:struct.unpack('<f',struct.pack('<I',int(h,16)))[0]

@@ -18,7 +18,7 @@
 
 ```sh
 cd agents/tasks/06-super_cap_capacitance
-g++ -std=c++23 -O2 -Wall -Wextra -I../../../lib -I../../../lib/math sim.cpp ../../../lib/power/super_cap.cpp -o agents/out/06-super_cap_capacitance/sim.exe && ./out/sim.exe
+g++ -std=c++23 -O2 -Wall -Wextra -I../../../lib -I../../../lib/math sim.cpp ../../../lib/power/super_cap.cpp -o ../../out/06-super_cap_capacitance/sim.exe && ../../out/06-super_cap_capacitance/sim.exe
 ```
 
 结论（10 s 内收敛）：
@@ -43,7 +43,7 @@ g++ -std=c++23 -O2 -Wall -Wextra -I../../../lib -I../../../lib/math sim.cpp ../.
 `power_sim.cpp`：底盘固定需求、按 `chassis_ref` 限幅（可设模型低估），超电 DCDC 把电池侧稳在 `battery_ref`，电容 8 V 止放、满电停充，裁判 10 Hz 结算
 
 ```sh
-g++ -std=c++23 -O2 -I../../../lib -I../../../lib/math power_sim.cpp ../../../lib/power/super_cap.cpp -o agents/out/06-super_cap_capacitance/power_sim.exe && ./out/power_sim.exe
+g++ -std=c++23 -O2 -I../../../lib -I../../../lib/math power_sim.cpp ../../../lib/power/super_cap.cpp -o ../../out/06-super_cap_capacitance/power_sim.exe && ../../out/06-super_cap_capacitance/power_sim.exe
 ```
 
 结论（60 W 裁判上限，需求 200 W，OFF → CHARGE → BOOST → CHARGE → OFF）：

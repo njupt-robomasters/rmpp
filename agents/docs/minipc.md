@@ -1,91 +1,83 @@
 # MiniPC 通信与导航
 
+对外对接文档（发给上位机同学）见根目录 `docs/minipc_protocol.md`。
+
 ## 通道与接口
 
-- mc02 `app/jelly_sentry`：`Aim(Cdc(1), {.timeout = 200 * ms})` 使用第一路双向通信，`Nav({.cdc = Cdc(2)})` 独立使用第二路
-- C 板 `app/sentry` 只有一路 CDC，Nav 调用同步迁移为 `Nav({.cdc = Cdc(1)})`，与 Aim 配置共用端口；其底盘保留原有导航小陀螺和人工叠加策略，本轮的 flag 模式仲裁位于 jelly_sentry
+- mc02 `app/jelly_sentry` 使用 `Aim({.cdc = Cdc(1)})` 自瞄和 `Nav({.cdc = Cdc(2)})` 导航
+- C 板 `app/steer_sentry` 只有一路 CDC，`Nav({.cdc = Cdc(1)})` 与 Aim 配置共用端口；底盘自主控制与 jelly_sentry 相同，坐标转换和 flag 仲裁见下节，flag 0 因未配跟随 PID 只平移不旋转
 - Nav 构造注册 USB 接收回调；对象在回调使用期间持续存活，现有应用均为全局实例
-- 主循环调用 nav.update() 检查超时，通过 vx、vy、yaw、is_through_hole、x、y 读取 A3 下行数据。超时默认 100 ms。
-- CDC2 导航上行使用 A4，15 字节。每 5 ms 采样大 yaw 相对底盘的实测角，电机在线且角度有限时发送。目标点尚无数据源，x、y 取默认零。完整帧定义见 [导航协议](../../docs/minipc_protocol.md)。
+- `nav.update()` 在主循环的 `chassis_loop()` 前调用，公开只读输出为 `is_connect`、`is_through_hole`、`vx`、`vy`、`yaw`、`x`、`y`
+- 目标点与返航由上位机规划；导航上行格式见下节，哨兵应用尚未接入目标坐标来源或调度发送
 
-## jelly_sentry 控制链路与坐标
+## 自瞄收发
 
-导航在整车使能、自主模式、Nav 在线且大小 yaw 均在线时生效。人工底盘输入优先接管速度，人工平移保持有效 flag 对应的小陀螺或随头模式；人工主动旋转优先于自动旋转，松开且键盘速度归零后恢复有效导航。Fn 仅启用自主模式。Nav 或 yaw 反馈离线时停止自动平移、自动旋转和随头，模式为 DETACH_MODE，人工仍可接管。
+- 下行 17 字节：`A1`、识别标志、开火标志、yaw、pitch、距离、CRC16。两个标志各占 1 字节，非 0 为真
+- 上行 24 字节：`A2`、红方标志、裁判实测初速、四元数 x y z w、CRC16。红方为 1，蓝方为 0
+- 浮点均为小端 IEEE 754 float32，角度用度，距离用 m，初速用 m/s。线上 yaw 俯视逆时针为正、pitch 向下为正，与内部 ZYX 右手系同号，收发都按载荷直接映射。四元数为最终 IMU 头姿态、机体到世界，取自 `attitude.q`
+- 两向 CRC16 均用 MODBUS，覆盖帧头至 CRC 前的字节，低字节先传
+- 帧结构用 `packed` 固定字段偏移，浮点和 CRC 成员按值访问。主机协议测试用固定字节帧检查布局和浮点表示
+- 接收按“协议接收”统一写法（`../docs/conventions.md`）解析：1 字节帧头不符或 CRC 不符各丢 1 字节重新对齐。CRC 通过后保存 `raw_rx`，直接更新 `is_connect`、`is_detect`、`yaw`、`pitch`、`is_fire`、`distance`；字段按载荷原样映射，识别标志为 0 时开火标志仍按载荷发布，由上位机保证无目标时不开火。两处哨兵 app 用短 `IrqLock` 读取同一帧供当轮云台和发射使用
+- `aim.update()` 只做断联检测，默认 100 ms 无有效帧后目标清零，`raw_rx` 保留
+- 发送帧 `raw_tx` 为私有成员：`set_attitude()`、`set_referee()` 直接写入，`send()` 补 CRC 后交给 CDC 复制发出，SWD 可查看最近一次发送内容。应用每 5 个主循环周期设置后调用 `aim.send()`，1 kHz 主循环下名义 200 Hz
 
-人工和导航平移统一使用最终 IMU 头坐标系，X 前、Y 左，逆时针为正：
+## 导航收发
 
-- B：底盘本体
-- H：小 yaw 后的 IMU 头/枪口云台系，人工、导航速度及 ChassisMatrix::set_speed 使用此系
+下行 24 字节、上行 15 字节，两向 yaw 均用 rad，浮点为小端 IEEE 754 float32：
 
-令 q1 为大 yaw 相对底盘角，q2 为小 yaw 相对大 yaw 角，总角 q=q1+q2：
+| 偏移 | 字节数 | 字段 | 含义 |
+| --- | --- | --- | --- |
+| 0 | 1 | SOF | `A3` |
+| 1 | 1 | is_through_hole | 过洞为 1，其余为 0 |
+| 2 | 4 | vx | 雷达所在大 yaw 系前向速度，m/s |
+| 6 | 4 | vy | 大 yaw 系左向速度，m/s |
+| 10 | 4 | yaw | 相对大 yaw 当前朝向的期望转角，rad；俯视逆时针为正 |
+| 14 | 4 | x | 上位机自定位的当前坐标 x，m；当前仅保存 |
+| 18 | 4 | y | 当前坐标 y，m；当前仅保存 |
+| 22 | 2 | CRC16 | MODBUS，低字节在前 |
+
+上行 `A4`、大 yaw 编码器角、目标 x、目标 y、CRC16：偏移依次为 0、1、5、9、13。`set_target(x, y)` 写入目标点，`send(yaw_ecd)` 写入本次实测角并计算 CRC。角度取 `gimbal.yaw1.measure`（雷达系相对底盘系的 `q1`），总云台角 `gimbal.yaw.ecd.measure` 还包含小 yaw。
+
+jelly_sentry 的 minipc_send() 由 1 kHz 主循环每 5 拍调用，在大 yaw 在线且实测角有限时，通过 CDC2 发送 15 字节 A4 上行。目标坐标尚无数据源，x/y 默认零；无需导航下行在线即可上报。
+
+下行 `nav.yaw` 原样保存期望转角。`0` 表示保持大 yaw 当前朝向，`+π/2` 表示从当前朝向逆时针转 90°。目前两个哨兵应用均未使用该字段驱动大 yaw。
+
+Aim 与 Nav 共用 `lib/minipc/crc16_modbus.hpp`。CRC 初值 0xFFFF，反射多项式 0xA001，无结果异或；两向均覆盖从帧头到 CRC 前的全部字节。独立于裁判系统的 CRC16。参考帧（过洞=0、vx=1、其余 0）：
 
 ```text
-上位机直接下发 H 系速度 v_H
-底盘内部 H 系 → B 系：v_B = R(q) v_H
+A3 00 00 00 80 3F 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 8A 78
 ```
 
-总角取 `gimbal.yaw.ecd.measure`。导航接入处直接使用 vx/vy，坐标旋转由底盘内部按总云台角完成。
+Nav 按“协议接收”统一写法解析：`rx_fifo` 容量为一帧，1 字节帧头不符或 CRC 不符时丢弃 1 字节重新对齐，CRC 通过后整帧出队、保存私有 `raw_rx` 并直接更新公开指令。浮点有限性和标志取值不检查，按载荷原样发布。
 
-| 有效 flag | 模式 | 旋转策略 |
+断联只在 `update()` 检查：默认 100 ms 无有效帧则离线，公开指令清零，`raw_rx` 保留供 SWD 查看；坏帧持续到达也会超时。超时不清 `rx_fifo`，避免主循环与接收中断同时改写；旧半帧与新字节只有凑成 CRC 正确的整帧才会被接收。应用依据 `is_connect` 判断有效性，清零后的过洞标志为 0，底盘走小陀螺但速度为零。底盘读取 `vx`、`vy` 时未加锁，两次读取之间若到达新帧，会混用相邻两帧的分量。
+
+## 哨兵控制链路与坐标
+
+导航只在自主控制（`sentry_active()`：哨兵身份比赛中，或 VT13 fn 锁存测试）中生效；非自主时底盘只由 VT13 控制。自主模式下，折叠哨兵将导航和 VT13 的前后、左右速度分别相加，每轴限幅 ±5 m/s；小陀螺按合成后的平移速度调速。导航掉线时退出自动旋转，平移只取 VT13，松杆停车；导航恢复后重新叠加。舵轮哨兵自主平移只取导航，导航掉线时停车。两车自主行驶时，任一 yaw 反馈丢失均停车；人工模式均只取 VT13。
+
+三个平面坐标系均为 X 前、Y 左，逆时针为正：
+
+- B：底盘本体
+- L：固连大 yaw 的雷达系，按雷达安装轴与大 yaw 对齐处理
+- H：小 yaw 后的 IMU 头/枪口云台系，人工速度及 ChassisMatrix::set_speed 使用此系
+
+- **折叠哨兵 `jelly_sentry`**：导航与遥控速度都用 H 系，底盘按头部相对车身的总角 `gimbal.yaw.ecd.measure` 换算一次。雷达朝前、头部朝左时，导航"向前"让车往左走。
+- **舵轮哨兵 `steer_sentry`**：上位机按 L 系发速度，应用先按 `-gimbal.yaw2.measure` 转到 H 系，底盘再按总角转到 B 系。上述场景中，导航"向前"沿雷达朝向行驶。
+
+| 过洞标志 | 模式 | 旋转策略 |
 | --- | --- | --- |
-| 1 | FOLLOW_MODE | 关闭小陀螺，无人工旋转输入时由跟随 PID 对准 IMU 头，人工平移保持随头 |
-| 0 | DETACH_MODE | 关闭随头，无人工旋转输入时以 60 rpm 自动小陀螺旋转，人工平移保持小陀螺 |
+| 1 | FOLLOW_MODE | 导航 wr 输入为 0，由跟随 PID 根据总云台相对底盘角对准 IMU 头，平移照常 |
+| 0 | DETACH_MODE | 关闭随头，平移速度 0→5 m/s 时，小陀螺输入 120→60 rpm；插值速度限在此范围 |
 
-模式随最新有效 flag 持续设置。平移每轴限幅 ±5 m/s，人工主动旋转限幅 ±100 rpm，自动小陀螺为 60 rpm，随头 PID 上限保持 60 rpm，底盘继续执行原有轮电机闭环和超电功率控制。yaw 字段目前仅供协议和 SWD 观察。pitch1 的 flag=0 抬头、flag=1 折叠仅记录为 TODO，当前保持失能。
+模式随最新有效 flag 持续设置。平移每轴限幅 ±5 m/s，旋转输入限幅 ±120 rpm，底盘继续执行原有轮电机闭环和超电功率控制。yaw 字段目前仅供协议和 SWD 观察。
 
 ## pitch1 固定失能
 
 - `GimbalFold::set_enable()` 对 pitch1 固定调用 `set_enable(false)` 并写零原生输出
 - 每次 `GimbalFold::update()` 再固定 pitch1 失能，更新反馈、清空 pitch1 两级 PID，目标跟踪实测，最终 `set_output(0)`；pitch1 位置环和重力补偿输出计算已撤除
 - 主应用保留默认 4 ms 的 `pitch1.send()`；DmMotor 在失能分支发送 `FF FF FF FF FF FF FF FD`，CAN ID 0x10，输出目标为零
-- 导航 flag 和总云台使能均不会启用 pitch1。共享 GimbalFold 的云台调试目标同样遵循此策略；其他三轴保持现有控制
+- 导航 flag 和总云台使能均不会启用 pitch1；其他三轴保持现有控制
 - 软件检查与主机测试覆盖失能状态、零电流/力矩目标和失能帧。实机是否已运行新固件及物理输出状态由用户更新固件后核对
 
 验证脚本与本轮结果见 `../tasks/15-minipc_nav/README.md`。
-
-## Aim 自瞄双向协议
-
-`Aim` 保存 CDC 句柄和只读 Config。`Config::timeout` 为固定指令有效期，默认 `200 * ms`，从最后一帧有效视觉数据计时，与接收帧率独立。修改示例：`Aim aim(Cdc(1), {.timeout = 100 * ms});`。设备和 Config 均显式传入。
-
-应用每周期执行 `set_referee(is_red, bullet_speed)`，再调用 `update(attitude.yaw, attitude.pitch, attitude.roll)`，测量来自最终安装 IMU 的头部；弹速取裁判 `shoot_data.initial_speed`（m/s），蓝方为 0、红方为 1。Aim 内部以 5 ms 周期上报，视觉结果在每次 update 中发布。
-
-### MCU → 视觉：21 字节，200 Hz
-
-| 偏移 | 长度 | 字段 |
-| --- | --- | --- |
-| 0 | 2 | A5 5A |
-| 2 | 4 | 头部 yaw，float32，deg，左正 |
-| 6 | 4 | 头部 pitch，float32，deg，上正 |
-| 10 | 4 | 头部 roll，float32，deg，沿枪口由后向前看顺时针正 |
-| 14 | 1 | is_red，0 蓝、1 红 |
-| 15 | 4 | bullet_speed，float32，m/s |
-| 19 | 2 | 小端 MODBUS CRC16，覆盖偏移 2–18 共 17 字节 |
-
-上报持续进行，CDC 忙时沿用 BSP 的丢弃策略，下一周期发送最新数据。姿态非有限值时跳过该次上报，非法弹速按 0 上报。
-
-### 视觉 → MCU：18 字节，随新结果发送
-
-| 偏移 | 长度 | 字段 |
-| --- | --- | --- |
-| 0 | 2 | A5 5B |
-| 2 | 1 | is_detect，0/1 |
-| 3 | 4 | 最终 IMU 头期望 yaw，float32，deg，左正 |
-| 7 | 4 | 最终 IMU 头期望 pitch，float32，deg，上正 |
-| 11 | 1 | is_fire，0/1 |
-| 12 | 4 | distance，float32，m，非负 |
-| 16 | 2 | 小端 MODBUS CRC16，覆盖偏移 2–15 共 14 字节 |
-
-全部多字节字段为小端，浮点为 IEEE 754 float32。Aim 使用 `lib/minipc/protocol.hpp` 的 CRC 与浮点编解码；裁判 CRC 保持独立。接收支持拆包、粘包、噪声与滑动重同步。CRC、标志范围、有限浮点和非负距离全部通过才刷新计时；中断写 pending，主循环用短临界区取得完整快照。
-
-有效的 `is_detect=0` 帧保持通信在线并立即清空目标和开火许可。超过 Config::timeout 后，is_connect_vision=false，vision 全部恢复默认，is_detect/is_fire=false；持续坏帧也会超时。接收时间作为指令新鲜度依据，上位机重发旧结果时需自行管理结果年龄。
-
-### 最终 IMU 头的角度语义
-
-- 目标为与上传 IMU 姿态相同世界参考系的头部绝对 yaw/pitch，包含视觉提前量与弹道补偿
-- 项目内部采用右手 ZYX 弧度：yaw 绕 Z 左正，pitch 绕 Y 正向为低头，roll 绕 X 正向从头部后方沿枪口看为顺时针
-- 线上 yaw/roll = 内部角 / deg；线上 pitch = -内部 pitch / deg。下行相应反向换算，并由 Angle 归一化
-- 现有 `gimbal_loop()` 将 `aim.vision.yaw/pitch` 传入 IMU_MODE 的 `gimbal.set_angle()`，GimbalFold 分配大小 yaw 与 pitch2；pitch1 继续固定失能，导航控制仍使用 CDC2
-- 大小 yaw 分配采用 ±45° 小轴工作窗口，大轴在窗口内保持世界朝向、超限后追随至 ±35° 内，小陀螺由大轴反向补偿；目标始终指向最终 IMU 头，详见 `application.md`“jelly_sentry 大小 yaw 工作窗口”
-- 原 Aim 中未用于本协议的公开 imu 写入、比赛阶段/剩余时间字段已移除；裁判输入经 set_referee 设置。全景相机占位 a0 继续保持 NAN，其协议待后续约定
-
-本轮验证与复现见 `../tasks/23-minipc_aim/README.md`。上板核对头部 yaw/pitch 正方向和 roll 观察方向，确认视觉与 MCU 使用相同世界航向零点。

@@ -135,7 +135,7 @@ void Imu::update() {
     temperature = raw_temperature * 0.125f + 23.0f;
 
     // 加热闭环：[0, 1] 占空比换算为 PWM 比较值；按 ARR 换算，ARR+1 在满占空比时会使 16 位 CCR 溢出为 0
-    const float duty = std::clamp(temperature_pid.calculate(std::clamp(update_timer.restart(), DT_MIN, DT_MAX), target_temperature - temperature), 0.0f, 1.0f);
+    const float duty = std::clamp(temperature_pid.calculate(std::clamp(update_timer.restart(), 0.0001f, 0.01f), target_temperature - temperature), 0.0f, 1.0f);
     temperature_pid.track(duty);
     __HAL_TIM_SET_COMPARE(&htim10, TIM_CHANNEL_1, static_cast<uint32_t>(__HAL_TIM_GET_AUTORELOAD(&htim10) * duty));
 

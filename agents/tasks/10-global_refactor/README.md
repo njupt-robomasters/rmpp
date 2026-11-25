@@ -90,9 +90,9 @@ python agents/tasks/10-global_refactor/layout_regression.py --baseline 795e263
 - 应用对象编译：dummy、examples-attitude/cdc/gimbal/kv_store/melody/motor/rc/referee/rgb、leg_down、leg_up、sentry、test，共 14 个预设
 - 公共库与手写 BSP：dummy 覆盖 C 板，examples-cdc 覆盖 mc02
 - 主机差分回归：layout_motor_regression.cpp 验证八类电机反馈、限幅、零点、离线处理、CAN 命令及 17 mm 发射机构电流/力矩输出；sim.cpp 验证超电容量/ESR；power_sim.cpp 验证功率与虚拟缓冲能量；layout_melody_regression.cpp 比较直驱音符时序、带伴奏和纯旋律的复音浮点采样。分别编译基线与当前实现，要求输出逐字节一致
-- `layout_regression.py` 只读取指定 Git 基线，提取文件与构建产物放在本任务 agents/out/10-global_refactor/layout_regression；包含生成和第三方目录的工程文件未改动
-- 保留的应用告警：motor 示例两个未使用函数；leg_up/gimbal.cpp 的 is_auto_aim 未使用
-- 构建日志和差分结果位于 agents/out/10-global_refactor/；最终状态以本节对应执行结果为准，早期失败尝试也保留在 agents/out/10-global_refactor/ 便于追溯
+- `layout_regression.py` 只读取指定 Git 基线，提取文件与构建产物放在`agents/out/10-global_refactor/layout_regression/`；包含生成和第三方目录的工程文件未改动
+- 保留的应用告警：motor 示例两个未使用函数；leg_up/gimbal.cpp 的 is_aim 未使用
+- 构建日志和差分结果位于 out/；最终状态以本节对应执行结果为准，早期失败尝试也保留在 out/ 便于追溯
 
 类布局重构已并入 master，外部 worktree 随合并移除；待用户审阅 SWD 展开顺序与接口后决定上车测试。
 
@@ -100,7 +100,7 @@ python agents/tasks/10-global_refactor/layout_regression.py --baseline 795e263
 
 用户确认撤销固定配置逐项展开的写法：云台、17/42 mm 发射机构、矩阵/舵轮/轮腿底盘、超级电容、QuaternionEkf、Melody、FSi6X、VT13、Referee、Aim、Nav 按值保存 `const Config config`，使用处直接读取字段。超级电容 RLS 固定参数统一读取 `config.rls`；PID 状态、运动学矩阵及蜂鸣器预计算的采样周期、增益步长和采样数继续独立保存。电机解析后的量程/零点与 IMU 校准状态按原职责维护。
 
-验证：本轮新增修改的 13 个公共库源码对象编译通过，dummy、leg_up、leg_down 应用对象编译通过；26 个新增修改源码的格式检查与 diff 检查通过。复用本目录现有四组主机回归，对比修改前 HEAD 与当前代码，电机及 17 mm 发射机构、超电辨识、功率管理、蜂鸣器的输出逐字节一致，产物位于 `agents/out/10-global_refactor/config_regression/`。逐文件核对确认函数体仅改变配置字段访问路径。未执行完整固件链接或硬件操作。
+验证：本轮新增修改的 13 个公共库源码对象编译通过，dummy、leg_up、leg_down 应用对象编译通过；26 个新增修改源码的格式检查与 diff 检查通过。复用本目录现有四组主机回归，对比修改前 HEAD 与当前代码，电机及 17 mm 发射机构、超电辨识、功率管理、蜂鸣器的输出逐字节一致，产物位于 `out/config_regression/`。逐文件核对确认函数体仅改变配置字段访问路径。未执行完整固件链接或硬件操作。
 
 轮腿补充调整：力映射角度按实际顶点命名为 ∠OCB（cos_ocb、tan_ocb）；设置接口统一为 set_allow_rescue(allow_rescue)、set_trigger_jump(trigger_jump)、set_leg_length(leg_length)，同步 leg_down 调用点；update_kin 合入 update，保留原执行顺序。轮腿源码与 leg_down 的 chassis.cpp、app.cpp 对象编译通过，格式及 diff 检查通过。
 
@@ -114,7 +114,7 @@ python agents/tasks/10-global_refactor/layout_regression.py --baseline 795e263
 - 删除原来供 `set_zero()` 读取的 `position_multi` 成员，多圈位置换算直接在反馈处理中完成；功率计算和发射机构读取量程的调用点同步迁移
 - 新增 `motor_config_test.cpp`，覆盖默认值补齐、显式配置、电流/力矩限幅与换算、反向反馈、外部校零和超时；历史布局测试保留当时接口，本轮使用新测试及任务 11 的原生输出/拨弹测试
 
-验证：两板 timer.cpp ARM 对象编译通过；配置回归及任务 11 主机测试通过；24 个相关源码 ARM 对象编译通过，无警告。21 个工程源码及 DM 模板、新测试的格式检查与 `git diff --check` 通过。未执行完整固件链接或硬件操作；新增对象和测试产物位于本任务 `agents/out/10-global_refactor/`，任务 11 验证产物沿用其 `agents/out/10-global_refactor/`。
+验证：两板 timer.cpp ARM 对象编译通过；配置回归及任务 11 主机测试通过；24 个相关源码 ARM 对象编译通过，无警告。21 个工程源码及 DM 模板、新测试的格式检查与 `git diff --check` 通过。未执行完整固件链接或硬件操作；新增对象和测试产物位于 `agents/out/10-global_refactor/`，任务 11 验证产物沿用 `agents/out/11-shooter_state/`。
 
 ### angle、多圈零点与配置优先布局
 
@@ -134,9 +134,9 @@ python agents/tasks/10-global_refactor/layout_regression.py --baseline 795e263
 python agents/tasks/10-global_refactor/verify_angle_layout.py --source-root <原工作区> --mc02-build <mc02构建目录>
 ```
 
-对象及逐文件日志位于 `agents/out/10-global_refactor/angle_layout/arm/`，电机回归源码沿用 `motor_config_test.cpp`；云台与拨弹回归入口沿用任务 11 的 `verify_gimbal_imu.py` 和 `verify.py`。
+对象及逐文件日志位于 `out/angle_layout/arm/`，电机回归源码沿用 `motor_config_test.cpp`；云台与拨弹回归入口沿用任务 11 的 `verify_gimbal_imu.py` 和 `verify.py`。
 
-合并验证（2026-11-17）：主线快照 `c576037`、外部实现 `d888b40`、外部记录 `c48610b`，合并提交 `87ef1f8`，无冲突。合并后 82 个角度/布局 ARM 对象及两板 Timer 对象编译通过；电机配置与多圈角度、原生输出/拨弹、云台 IMU 3280 项检查通过。57 个相关工程源码格式检查与 diff 检查通过。外部日志归档至 `agents/out/10-global_refactor/angle_layout/external_logs/`。未执行完整固件链接、硬件操作或推送。
+合并验证（2026-11-17）：主线快照 `c576037`、外部实现 `d888b40`、外部记录 `c48610b`，合并提交 `87ef1f8`，无冲突。合并后 82 个角度/布局 ARM 对象及两板 Timer 对象编译通过；电机配置与多圈角度、原生输出/拨弹、云台 IMU 3280 项检查通过。57 个相关工程源码格式检查与 diff 检查通过。外部日志归档至 `out/angle_layout/external_logs/`。未执行完整固件链接、硬件操作或推送。
 
 ### 电机可选反馈 Feedback
 
@@ -147,7 +147,7 @@ python agents/tasks/10-global_refactor/verify_angle_layout.py --source-root <原
 - 行为差异：RMD 断联清零后，若先收到 0x94 角度帧，电流/力矩保持 0，直到 0xA1 应答到达（原实现会用旧 raw_current 恢复旧值）
 - `Feedback` 成员带 `= {}` 默认初始化，避免主机 `-Wextra` 对省略的指定成员报 missing-field-initializers
 
-验证：`verify_motor_feedback.py` 复用 `build/` 下 8 个 C 板预设的编译数据库，编译全部 lib/、app/ 手写源码共 253 个 ARM 对象（含 DM 模板实例化），0 失败 0 警告；产物在 `agents/out/10-global_refactor/motor_feedback/arm/`。`motor_config_test.cpp` 新增力矩单传换算、空反馈保持上次值的检查，与任务 11 原生输出/拨弹、GimbalClassic IMU 3280 项回归均通过。未链接固件，未操作硬件。
+验证：`verify_motor_feedback.py` 复用 `build/` 下 8 个 C 板预设的编译数据库，编译全部 lib/、app/ 手写源码共 253 个 ARM 对象（含 DM 模板实例化），0 失败 0 警告；产物在 `out/motor_feedback/arm/`。`motor_config_test.cpp` 新增力矩单传换算、空反馈保持上次值的检查，与任务 11 原生输出/拨弹、GimbalClassic IMU 3280 项回归均通过。未链接固件，未操作硬件。
 
 ```sh
 python agents/tasks/10-global_refactor/verify_motor_feedback.py

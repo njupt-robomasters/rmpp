@@ -1,5 +1,5 @@
 #include "../15-minipc_nav/support.hpp"
-#include "gimbal_fold.hpp"
+#include "robot/gimbal_fold.hpp"
 
 static void detect_near(const float actual, const float expected, const int line) {
     if (!std::isfinite(actual) || std::fabs(actual - expected) >= 2e-5f)

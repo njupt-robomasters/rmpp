@@ -15,7 +15,6 @@ class SuperCap {
   private:
     static constexpr float BUFFER_FULL = 60;  // 裁判缓冲能量上限，J
     static constexpr float UNLIMITED = 65535; // 裁判不限功率时的上限读数
-    static constexpr float DT_MAX = 0.1f;     // update() 积分步长上限，s；避免首次调用的大间隔
 
   public:
     enum Mode {
@@ -30,6 +29,8 @@ class SuperCap {
         uint32_t tx_id = 0x061, rx_id = 0x051;
         float timeout = 0.1f;  // 应答超时判断断联，s
         float current_fc = 10; // 应答电流（chassis、cap 共用）低通截止频率，Hz
+
+        float voltage_full = 23.85f; // 满电电容电压，V；用于计算储能占比
 
         // 缓冲能量折算倍数：cutoff 为零，满 60 J 为 gain_max，其间线性；裁判与虚拟缓冲能量共用
         float buffer_cutoff = 30;     // 倍数为零的缓冲能量，J
@@ -48,21 +49,22 @@ class SuperCap {
             float lambda = 0.98f; // 遗忘因子，协方差迹小于初值时生效
             float p_init = 100;   // 初始协方差对角元
         } rls = {};
-    };
-
-  private:
-    const Config config;
+    } const config;
 
     // 指令
     Mode mode = OFF;
-    float referee_limit = 120; // 裁判电池侧功率上限原始读数，W
-    float energy_referee = 60; // 裁判缓冲能量，J
 
+  private:
+    float referee_limit = 120; // 裁判电池侧功率上限原始读数，W
+    float referee_energy = 60; // 裁判缓冲能量，J
+
+  public:
     bool is_connect = false;
 
     // 应答电压
+    float voltage_cap = 0; // 电容电压
+  private:
     float voltage_chassis = 0; // 底盘口（电池侧）电压
-    float voltage_cap = 0;     // 电容电压
 
     // 应答电流，已低通
     float current_chassis = 0; // 底盘负载电流
@@ -116,6 +118,9 @@ class SuperCap {
 
     // 发送一帧命令；调用周期由调用方控制，须小于控制器 100 ms 心跳超时
     void send() const;
+
+    bool is_cap_voltage_low() const;
+    float energy_ratio() const;
 
     // 每个控制周期调用：断联检测、电池侧目标、虚拟缓冲能量与底盘功率目标；底盘失能时也调用
     void update();

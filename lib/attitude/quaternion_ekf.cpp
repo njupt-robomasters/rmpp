@@ -26,7 +26,7 @@ void QuaternionEkf::reset_bias() {
 }
 
 void QuaternionEkf::solve(const Vector3f& gyro, const Vector3f& accel) {
-    const float dt = std::clamp(solve_timer.restart(), DT_MIN, DT_MAX);
+    const float dt = std::clamp(solve_timer.restart(), 0.0001f, 0.01f);
 
     // 扣除剩余零偏后，恒角速度在 dt 内的旋转增量；极小角用一阶近似，避免除零
     const Vector3f rate{gyro.x() - bias.x(), gyro.y() - bias.y(), gyro.z()};

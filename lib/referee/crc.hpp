@@ -1,23 +1,10 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
-class CRC8 {
-  private:
-    static const uint8_t TABLE[256];
+// 裁判系统帧头 CRC8：多项式 0x31 反射为 0x8C，初值 0xFF，无结果异或；VT13 图传链路共用
+uint8_t crc8_referee(const uint8_t* data, size_t size);
 
-  public:
-    static uint8_t check_sum(const uint8_t data[], uint32_t len);
-
-    static bool verify(const uint8_t data[], uint32_t len, uint8_t crc8);
-};
-
-class CRC16 {
-  private:
-    static const uint16_t TABLE[256];
-
-  public:
-    static uint16_t check_sum(const uint8_t data[], uint32_t len);
-
-    static bool verify(const uint8_t data[], uint32_t len, uint16_t crc16);
-};
+// 裁判系统整帧 CRC16：多项式 0x1021 反射为 0x8408，初值 0xFFFF，无结果异或；VT13 遥控帧与图传链路共用
+uint16_t crc16_referee(const uint8_t* data, size_t size);

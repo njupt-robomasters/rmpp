@@ -8,7 +8,7 @@
 #include "motor/rmdl7025.hpp"
 #include "motor/vesc.hpp"
 #include "motor/x630.hpp"
-#include "robot/shooter/shooter_17mm.hpp"
+#include "robot/shooter_17mm.hpp"
 #include <cmath>
 #include <cstdio>
 #include <limits>

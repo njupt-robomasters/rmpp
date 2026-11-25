@@ -9,7 +9,7 @@ import subprocess
 import tarfile
 
 ROOT = Path(__file__).resolve().parents[3]
-OUT = Path(__file__).resolve().parents[2] / "out/14-upstream_merge_review"
+OUT = ROOT / "agents/out/14-upstream_merge_review"
 REPO = OUT / "review.git"
 summary = json.loads((OUT / "summary.json").read_text())
 tree = summary["results"]["working"]["tree"]
@@ -20,7 +20,7 @@ with tarfile.open(fileobj=io.BytesIO(archive)) as files:
     files.extractall(candidate, filter="data")
 
 commands = json.loads((ROOT / "build/jelly_sentry/compile_commands.json").read_text())
-sources = ["lib/motor/el05.cpp", "lib/robot/shooter/shooter_17mm.cpp",
+sources = ["lib/motor/el05.cpp", "lib/robot/shooter_17mm.cpp",
            "app/jelly_sentry/gimbal_fold.cpp", "app/jelly_sentry/gimbal.cpp",
            "app/jelly_sentry/app.cpp", "app/jelly_sentry/chassis.cpp",
            "app/jelly_sentry/shooter.cpp"]

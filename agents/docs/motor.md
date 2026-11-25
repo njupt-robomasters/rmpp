@@ -72,7 +72,7 @@
 
 ## EL05 私有协议
 
-- 使用上游平铺 `Motor::Config`，解析后经 `Motor::Feedback` 传入torque/speed/angle，由基类按 `max_current/max_torque` 换算电流；当前 jelly_sentry 拨弹 PID 和电机限幅均为6 Nm，电流量程为 `6/0.94` A，保留实测换算比例；卡弹目标力矩阈值为5.5 Nm
+- 使用上游平铺 `Motor::Config`，解析后经 `Motor::Feedback` 传入torque/speed/angle，由基类按 `max_current/max_torque` 换算电流；当前app显式使用5 Nm与 `5/0.94` A保留实测比例
 - 参考 Joushua233/rmpp 的 old@e7bbcb7 中 EL05 和 sentry/pitch，使用 1 Mbps 经典扩展帧，8 字节；tx_id 为电机节点、rx_id 为主机节点，二者均为 8 位，电机侧 protocol_1=0
 - 手册印刷页 30 的通信类型 2：扩展 ID bit28~24 为类型2，bit23~22 模式、bit21~16 六项故障、bit15~8 电机节点、bit7~0 主机节点；Byte0~1 角度、Byte2~3 速度、Byte4~5 力矩均为16位大端，Byte6~7 为温度0.1℃
 - 运控类型1把力矩编码到 ID bit23~8；数据区 p/v/kp/kd 置零，主控闭环输出力矩。使能为类型3、停止为类型4，ID bit15~8 为主机节点、bit7~0 为电机节点；停止帧 Byte0=1 清错

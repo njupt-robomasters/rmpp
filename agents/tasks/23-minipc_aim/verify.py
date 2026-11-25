@@ -9,7 +9,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
-OUT = Path(__file__).resolve().parents[2] / "out/23-minipc_aim"
+OUT = ROOT / "agents/out/23-minipc_aim"
 
 
 def main():
@@ -22,7 +22,7 @@ def main():
     for name, source, extra in [
         ("aim_test", TASK / "aim_test.cpp", ["lib/minipc/aim.cpp", "lib/minipc/nav.cpp"]),
         ("nav_test", TASK.parent / "15-minipc_nav/nav_test.cpp",
-         ["lib/minipc/nav.cpp", "app/jelly_sentry/gimbal_fold.cpp", "lib/motor/motor.cpp", "lib/pid/pid.cpp"]),
+         ["lib/minipc/nav.cpp", "lib/robot/gimbal_fold.cpp", "lib/motor/motor.cpp", "lib/pid/pid.cpp"]),
     ]:
         exe = OUT / (name + ".exe")
         result = subprocess.run([*command, "-I" + str(ROOT / "app/jelly_sentry"), str(source),

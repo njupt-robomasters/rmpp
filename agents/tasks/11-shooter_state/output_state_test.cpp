@@ -2,7 +2,7 @@
 #include "motor/dm4310.hpp"
 #include "motor/vesc.hpp"
 #include "motor/x630.hpp"
-#include "robot/shooter/shooter_17mm.hpp"
+#include "robot/shooter_17mm.hpp"
 #include <cassert>
 #include <cmath>
 #include <cstdio>
@@ -120,19 +120,31 @@ int main() {
         assert(motor.current_ref > 0);
     }
 
-    // 独立阈值低于电机最大力矩，未达到电机限幅也能检测并按配置反转
-    const Pid::Config threshold_pid = {.kp = 5, .max_out = 20};
-    Shooter17mm threshold({rub, rub, motor}, {.shoot_pid_config = &threshold_pid, .bullet_per_angle = 1, .block_torque = 1, .block_time = 0.0025f, .reverse_time = 0.0015f});
-    threshold.set_enable(true);
-    threshold.set_bullet_freq(1);
-    motor.set_output(0);
+    // PID 输出饱和即计卡弹：max_out 低于电机限幅时，按 PID 限幅检测并按配置反转
+    const Pid::Config saturate_pid = {.kp = 5, .max_out = 5};
+    Shooter17mm saturate({rub, rub, motor}, {.shoot_pid_config = &saturate_pid, .bullet_per_angle = 1, .block_time = 0.0025f, .reverse_time = 0.0015f});
+    saturate.set_enable(true);
+    saturate.set_bullet_freq(2);
     for (int i = 0; i < 7; i++) {
         now_us += 1000;
         motor.feedback();
-        threshold.update();
-        assert(std::fabs(motor.torque_ref) < motor.config.max_torque);
-        assert(std::fabs(motor.torque_ref) > 1);
+        saturate.update();
+        assert(std::fabs(motor.current_ref) == 5);
         assert((motor.current_ref > 0) == (i < 4 || i == 6));
+    }
+
+    // 堵转时 P 输出低于 max_out 则不饱和，持续前进
+    saturate.set_bullet_freq(0.5f);
+    for (int i = 0; i < 4; i++) {
+        now_us += 1000;
+        motor.feedback();
+        saturate.update();
+    }
+    for (int i = 0; i < 10; i++) {
+        now_us += 1000;
+        motor.feedback();
+        saturate.update();
+        assert(motor.current_ref == 2.5f);
     }
 
     // 基类引用分派：默认电流与 DM 力矩

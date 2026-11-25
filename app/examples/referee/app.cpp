@@ -1,7 +1,7 @@
 #include "bsp/monitor.hpp"
 #include "referee/referee.hpp"
 
-static Referee referee({.bus = Can(1)});
+static Referee referee({.can = Can(1)});
 
 static void setup() {}
 

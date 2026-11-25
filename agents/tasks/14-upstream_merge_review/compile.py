@@ -7,8 +7,8 @@ import re
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
-OUT = Path(__file__).resolve().parents[2] / "out/14-upstream_merge_review"
-OUT.mkdir(parents=True, exist_ok=True)
+OUT = ROOT / "agents/out/14-upstream_merge_review"
+OUT.mkdir(exist_ok=True)
 cache = (ROOT / "build/jelly_sentry/CMakeCache.txt").read_text(encoding="utf-8")
 cmake = re.search(r"CMAKE_COMMAND:INTERNAL=(.*)", cache)[1]
 ninja = re.search(r"CMAKE_MAKE_PROGRAM:FILEPATH=(.*)", cache)[1]

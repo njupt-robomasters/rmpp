@@ -37,32 +37,23 @@ struct Referee {
 
 struct VT13 {
     enum Mode { C, N, S };
-    bool is_connect = false;
-    Mode mode = N;
-    float x = 0, y = 0, wheel = 0;
-    struct { bool w = false, s = false, a = false, d = false, shift = false, ctrl = false; } key;
-};
-
-struct FSi6X {
-    enum { UP, MID, DOWN };
-    bool is_connect = false;
-    int swc = MID;
-    float x = 0, y = 0;
+    struct { Mode mode = N; } rc;
+    struct { float vxy_max = 5, wr_max = 120 * rpm; } config;
+    bool is_enable = true;
+    float vx = 0, vy = 0, wr = 0;
 };
 
 inline ChassisMatrix chassis;
 inline SuperCap super_cap;
 inline Referee referee;
 inline VT13 vt13;
-inline FSi6X fsi6x;
 inline struct { bool is_connect = true; } yaw1, yaw2;
 inline struct {
     struct { struct { Angle measure; } ecd; } yaw;
     struct { Angle measure; } yaw2;
 } gimbal;
 inline Nav nav({.cdc = Cdc(2)});
-inline bool test_enable = true, test_active = true, test_fn = true;
+inline bool test_enable = true, test_active = true;
 inline bool sentry_enable() { return test_enable; }
 inline bool sentry_active() { return test_active; }
 inline bool sentry_in_game() { return false; }
-inline bool rc_fn() { return test_fn; }

@@ -1,93 +1,63 @@
+#include "chassis.hpp"
 #include "app.hpp"
-#include "bsp/timer.hpp"
+#include "gimbal.hpp"
+#include "math/math.hpp"
 #include <algorithm>
+#include <cmath>
 
-// 操控参数
-static constexpr float VXY_MAX = 5.0f;     // 平移最大速度，m/s；100W下2.3m/s，不限功率3.2m/s
-static constexpr float WR_MAX = 100 * rpm; // 旋转最大角速度，rad/s；100W下107rpm，不限功率155rpm
-static constexpr float NAV_WR = 60 * rpm;  // 导航自动小陀螺角速度，rad/s
-static constexpr float AXY = 100.0f;       // 键盘平移加速度，m/s^2
-static constexpr float DXY = 100.0f;       // 键盘平移减速度，m/s^2
-static constexpr float AR = 1000 * rpm;    // 键盘旋转角加速度，rad/s^2
-static constexpr float DR = 1000 * rpm;    // 键盘旋转角减速度，rad/s^2
+// VT13：摇杆叠加键盘斜坡，速度为 IMU 头的云台系，断联时为 0
+static void control_by_vt13() {
+    chassis.set_mode(ChassisMatrix::DETACH_MODE);
+    chassis.set_speed(vt13.vx, vt13.vy, vt13.wr);
+}
 
-// 跨周期状态
-static Timer loop_timer;
-static float key_vx = 0, key_vy = 0, key_wr = 0;
+// 自主：导航与 VT13 平移速度按云台头部的前、左方向分别相加；导航掉线时只取遥控平移，方向反馈掉线时停车
+// 过洞 1 随头对准枪口、平移照常；过洞 0 小陀螺，平移越快转速越低，插值输入限幅，超量程指令保持旋转正方向
+static void control_by_auto() {
+    if (!yaw1.is_connect || !yaw2.is_connect) {
+        chassis.set_mode(ChassisMatrix::DETACH_MODE);
+        chassis.set_speed(0, 0, 0);
+        return;
+    }
+    if (!nav.is_connect) {
+        chassis.set_mode(ChassisMatrix::DETACH_MODE);
+        chassis.set_speed(vt13.vx, vt13.vy, 0);
+        return;
+    }
 
-// 按住正向或反向键时加速，松开时减速到 0
-static float key_speed(const float speed, const bool positive, const bool negative, const float maximum, const float acceleration, const float deceleration, const float dt) {
-    if (positive)
-        return std::clamp(std::max(speed, 0.0f) + acceleration * dt, -maximum, maximum);
-    if (negative)
-        return std::clamp(std::min(speed, 0.0f) - acceleration * dt, -maximum, maximum);
-    if (speed > 0)
-        return std::max(0.0f, speed - deceleration * dt);
-    return std::min(0.0f, speed + deceleration * dt);
+    const float vxy_max = vt13.config.vxy_max, wr_max = vt13.config.wr_max;
+    const float vx = std::clamp(nav.vx + vt13.vx, -vxy_max, vxy_max);
+    const float vy = std::clamp(nav.vy + vt13.vy, -vxy_max, vxy_max);
+    if (nav.is_through_hole) {
+        chassis.set_mode(ChassisMatrix::FOLLOW_MODE);
+        chassis.set_speed(vx, vy, 0);
+    } else {
+        const float speed = std::clamp(std::hypot(vx, vy), 0.0f, vxy_max);
+        chassis.set_mode(ChassisMatrix::DETACH_MODE);
+        chassis.set_speed(vx, vy, map(speed, 0.0f, vxy_max, wr_max, WR_MIN));
+    }
 }
 
 void chassis_loop() {
-    const float dt = loop_timer.restart();
-
-    const bool is_enable = sentry_enable();
-    chassis.set_enable(is_enable);
-
-    // 键盘：WASD 平移，Shift、Ctrl 旋转；断联时直接清零
-    if (vt13.is_connect) {
-        key_vx = key_speed(key_vx, vt13.key.w, vt13.key.s, VXY_MAX, AXY, DXY, dt);
-        key_vy = key_speed(key_vy, vt13.key.a, vt13.key.d, VXY_MAX, AXY, DXY, dt);
-        key_wr = key_speed(key_wr, vt13.key.shift, vt13.key.ctrl, WR_MAX, AR, DR, dt);
-    } else {
-        key_vx = key_vy = key_wr = 0;
-    }
-
-    // 人工输入优先接管速度；人工与导航平移均以最终 IMU 头为前方
-    float vx = (vt13.x + fsi6x.x) * VXY_MAX + key_vx;
-    float vy = (vt13.y + fsi6x.y) * VXY_MAX + key_vy;
-    float wr = vt13.wheel * WR_MAX + key_wr;
-    const bool has_manual_input = vt13.x != 0 || vt13.y != 0 || vt13.wheel != 0 ||
-                                  fsi6x.x != 0 || fsi6x.y != 0 ||
-                                  key_vx != 0 || key_vy != 0 || key_wr != 0;
-    auto control_mode = ChassisMatrix::DETACH_MODE;
-    if (is_enable && sentry_active()) {
-        // 有效 flag 选择旋转模式，人工平移保持该模式；离线时停止自动控制
-        if (nav.is_connect && yaw1.is_connect && yaw2.is_connect) {
-            if (!has_manual_input) {
-                vx = nav.vx;
-                vy = nav.vy;
-            }
-            if (nav.is_through_hole) {
-                control_mode = ChassisMatrix::FOLLOW_MODE;
-            } else if (wr == 0) {
-                // 人工主动旋转优先，否则保持自动小陀螺转速
-                wr = NAV_WR;
-            }
-        }
-    }
-    chassis.set_mode(control_mode);
-    chassis.set_speed(std::clamp(vx, -VXY_MAX, VXY_MAX), std::clamp(vy, -VXY_MAX, VXY_MAX), std::clamp(wr, -WR_MAX, WR_MAX));
+    chassis.set_enable(sentry_enable());
+    if (sentry_active())
+        control_by_auto();
+    else
+        control_by_vt13();
 
     // 前进正方向为云台方向
     chassis.set_gimbal_yaw(gimbal.yaw.ecd.measure);
 
-    // 超电：裁判离线或遥控显式关闭时 OFF；VT13 N/S 挡和比赛使用 BOOST
-    // 自检和倒计时默认 CHARGE；FSi6X SWC 上/中/下对应 OFF/CHARGE/BOOST
-    const bool is_cap_off = (fsi6x.is_connect && fsi6x.swc == FSi6X::UP) ||
-                            (vt13.is_connect && vt13.mode == VT13::C);
+    // 超电：裁判离线或 VT13 C 挡 OFF；VT13 N/S 挡和比赛 BOOST；自检和倒计时 CHARGE；其余 OFF
     const auto progress = referee.game_status.game_progress;
-    SuperCap::Mode cap_mode = SuperCap::OFF;
-    if (!referee.is_connect || is_cap_off) {
-        cap_mode = SuperCap::OFF;
-    } else if ((vt13.is_connect && (vt13.mode == VT13::N || vt13.mode == VT13::S)) || sentry_in_game()) {
-        cap_mode = SuperCap::BOOST;
-    } else if (progress == Referee::REFEREE_SELF_CHECK || progress == Referee::COUNTDOWN_5SEC) {
-        cap_mode = SuperCap::CHARGE;
-    } else if (fsi6x.is_connect && fsi6x.swc == FSi6X::DOWN) {
-        cap_mode = SuperCap::BOOST;
-    } else if (fsi6x.is_connect && fsi6x.swc == FSi6X::MID) {
-        cap_mode = SuperCap::CHARGE;
-    }
-    super_cap.set_mode(cap_mode);
+    if (!referee.is_connect || vt13.rc.mode == VT13::C)
+        super_cap.set_mode(SuperCap::OFF);
+    else if (vt13.is_enable || sentry_in_game())
+        super_cap.set_mode(SuperCap::BOOST);
+    else if (progress == Referee::REFEREE_SELF_CHECK || progress == Referee::COUNTDOWN_5SEC)
+        super_cap.set_mode(SuperCap::CHARGE);
+    else
+        super_cap.set_mode(SuperCap::OFF);
 
     // 功率上限与缓冲能量来自裁判系统；离线时沿用最后值，启动默认 120 W / 60 J
     super_cap.set_referee_limit(referee.robot_status.chassis_power_limit);

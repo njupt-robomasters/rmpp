@@ -1,37 +1,25 @@
 # 上游合并与接口适配
 
-## 合并预检（2026-11-24，尚未执行合并）
+## Joushua233/master 合入审阅（2026-11-24 至 11-25，外部工作区）
 
-- 本地 `master` 为 `10e2767af510120fd8021bc566367c8bfad8daa7`，已拉取的 `origin/master` 为 `741379a4fb042e9491f3d4ced60e9d6a2dd85ef7`，共同祖先 `7e57d2b396af1b7fe72804dce86a7ba9795dc191`；本地独有10提交、上游独有11提交
-- 当前15个已跟踪文件有未提交修改，暂存区为空；未跟踪路径与上游没有同路径覆盖。最近的 yaw 窗口、PID、导航约定等包含在工作区快照中，实施前应先保存这些成果
-- 复用 `node agents/tasks/14-upstream_merge_review/review.cjs`，在任务 `agents/out/14-upstream_merge_review/review.git` 的独立对象库和索引预演；原分支、真实索引和工程源码保持原状。本轮仅预演和静态核对，未编译、测试或操作硬件
-- 仅合并已提交HEAD及纳入当前已跟踪修改的两次预演，冲突路径集合相同，均为29项：15项内容冲突、11项双方新增、3项修改/删除。工作区候选树为 `ec14041fed90996fb9edad7da44042799d1d0799`，完整路径见 `agents/out/14-upstream_merge_review/summary.json` 和 `agents/out/14-upstream_merge_review/working_merge.txt`
+审阅 worktree 从本地 `45c743f` 建立；对方为 `0bdfd7b`，共同祖先为 `7e57d2b`。直接三方合并会报 30 个路径冲突。本地 `3d71eb8` 已按模块移植过对方 `65b91de` 和当时未提交的导航改动（见 `../16-jelly_sentry_merge/README.md`），因此按模块核对上次移植后的新行为，避免把旧接口和调试目录再次带回。
 
-### 冲突分布与推荐处理
+| 项目 | 两边的实际差异 | 本轮处理 |
+| --- | --- | --- |
+| mc02 探针与掉线记录 | 对方用 HID 恢复了 Horco 探针通信，并记录了两路电机同时掉线的观测 | 配置和证据收入 `../01-mc02_bsp/`；不更改本机调试设置 |
+| 测试工具 | 对方在 `agents/.tools/` 安装主机工具 | 合入该目录的 Git 忽略规则，任务产物仍放本地约定的 `agents/out/` |
+| CubeMX 生成文件 | `.ioc` 仅版本不同；对应生成代码是空行和 USER CODE 标签名称差异 | 保留本地生成文件 |
+| 路径、驱动、预设 | `app/sentry` 在本地已改名为 `app/steer_sentry`；EL05 实现文件两端内容相同；本地已撤掉整车调试预设 | 保留本地结构，不恢复旧入口 |
+| 导航报文与模式 | 外部工作区基线为 17 字节、flag 0 随头；本地主线 `5510c9c` 为 24 字节、过洞标志 1 随头。对方用 17 字节、flag 1 随头 | 合入时按主线 24 字节协议翻译：过洞标志 1 对应随头，测试用例与文档已对齐 |
+| 导航速度的前方 | 主工作区对接文档以雷达朝向为前方，对方以云台头部为前方 | 用户确认"雷达朝前、云台朝左时往左走"。折叠哨兵直接采用头部系速度，导航和遥控逐轴相加；舵轮哨兵沿用雷达系 |
+| 自主行驶时的人工输入与转速 | 本地自主平移只取导航；对方允许人工接管，自主旋转固定 60 rpm | 用户确认导航与 VT13 平移逐轴相加后限幅，小陀螺按合成平移指令线性减速。原地 120 rpm，2.5 m/s 时 90 rpm，5 m/s 时 60 rpm |
+| 导航掉线，遥控和方向反馈正常 | 本地自主模式下整车底盘停车；对方撤销导航指令，仍响应摇杆 | 用户确认摇杆推右时车往右走。撤掉自动平移和旋转，保留 VT13 平移；收到新导航帧时恢复叠加，任一方向反馈丢失仍停车 |
+| 姿态传感器加热 | 原折叠哨兵把目标温度设为 0 ℃，对方设为 50 ℃；本地 leg 上下板均使用 `Imu::Config` 的默认温控 | 参考 leg，折叠哨兵去掉目标温度覆盖，共用默认的 45 ℃ 和温控 PID |
+| 机构参数和控制 | 对方还有云台识别和发射机构改动，其配置针对实测样机 | 保留本地实现 |
 
-| 范围 | 数量 | 处理方向 |
-| --- | ---: | --- |
-| `app/jelly_sentry/` 的 app、chassis、gimbal、shooter 各一对 hpp/cpp | 8 | 保留本地整车行为及实测配置，逐项迁移上游VT13、裁判和UI接口 |
-| `app/sentry/app.cpp`、`chassis.cpp`、`misc.hpp` | 3 | 上游将该应用重组为 `steer_sentry`；对照迁移本地差异后采用新目录和预设 |
-| `lib/minipc/aim.cpp`、`nav.cpp`、`nav.hpp` | 3 | 21/18字节自瞄和17字节导航帧已经一致；整合CRC/浮点编解码实现，保留本地导航坐标及flag语义 |
-| `lib/motor/el05.hpp` | 1 | 上游把temperature统一移入Motor；移除子类同名字段，保留私有扩展帧、节点和力矩语义 |
-| `lib/referee/referee.hpp` | 1 | 采用上游接收/发送拆分和新配置，保留hurt/shoot公开测量及hurt_sequence |
-| `lib/robot/shooter/shooter_17mm.*` | 2 | 本地按目标力矩阈值卡滞，上游按PID输出持续饱和卡滞；推荐先保留本地实机策略和参数 |
-| `.gitignore`、文档及历史测试 | 11 | 合并忽略规则与知识记录，整理重复迁入的任务记录；按最终接口调整相关脚本 |
+24 字节协议与坐标方向：`steer_sentry` 上位机按雷达系发速度，`jelly_sentry` 上位机按云台头部系发速度，两者均由上位机按各自约定填写 `vx`/`vy`；`docs/minipc_protocol.md` 已分别说明。
 
-### 自动合并后的结构与行为风险
-
-- **同名云台实现重复**：候选树同时存在 `app/jelly_sentry/gimbal_fold.*` 和上游新增 `lib/robot/gimbal/gimbal_fold.*`，两者均定义全局 `GimbalFold`，app/lib的递归源码收集会编译两份，形成重复定义。推荐将当前本地实现迁入上游库路径并只保留一份，窗口接口及所有调用同步迁移
-- **当前云台行为**：保留 `is_detect=1` 小轴 ±40° 窗口、越界大轴补足，`is_detect=0` 大轴追随/小轴补偿，底盘转速前馈及二次曲线已删除的状态。上游库实现尚无窗口接口；其末尾还用大轴参考重写头部目标，移植时继续保留本地最终头部目标保持策略
-- **实测参数**：保留yaw1速度环kp=3、ki=0.15、位置环kp=5；yaw2速度环kp=2、ki=0.1、位置环kp=15，小轴offset=3.192 rad；保留pitch2当前参数、5 Nm输出上限和IMU 50℃。上游相应配置仍是较早初值
-- **导航语义**：本地速度为最终IMU头坐标系，flag=0为60 rpm小陀螺、flag=1随头；上游速度为大yaw雷达系，先按负小yaw角旋转，flag=0随头、flag=1小陀螺且转速随平移变化。推荐沿用当前本地约定、人工接管策略和pitch1固定失能，代码及协议注释一起保留
-- **遥控接口**：上游原始量移至 `vt13.rc`，新增 `vx/vy/wr`、`yaw_speed/pitch_speed`、`bullet_speed/bullet_freq`、`is_enable/is_aim`。原地保留旧调用会产生编译错误；直接取上游app会移除FSi6X、鼠标角加速度限制和全景检查分支，并改变photo/trigger、反向拨弹与人工接管行为。推荐迁移接口时逐项保留本地映射，避免重复叠加上游已合成的摇杆/鼠标输入
-- **裁判/UI**：上游移除 `referee/ui.hpp`，新增 `RobotUi`、`RefereeSender` 和 app侧 `referee.*`；`Referee::Config.bus` 改为 `can`，发送从Referee分离。候选仍保留本地 `misc.*`，需统一全局实例、头文件、发送调度和逐字段UI刷新；VT13构造时应填入当前实际速度/弹速/弹频配置，上游这些字段默认0
-- **卡弹与射击参数**：本地 `block_torque=5.5 Nm`、PID/电机上限6 Nm、reverse_time=0.1 s、heat_protect=100；上游删除block_torque，按PID饱和判定，PID/电机上限5 Nm、reverse_time=0.25 s、heat_protect=80。推荐先保留本地卡弹和操控行为，把判定规则改变单独决策
-- **构建与板卡**：CMakePresets自动合并，接纳sentry→steer_sentry预设变化；逐对象核对候选树的mc02 .ioc和7个已修改生成文件，均与本地快照一致，CAN2 ENABLE/FIFO配置保留。上游没有修改这些生成文件
-- **忽略与脚本路径**：本地忽略 `agents/tasks/**/out/`、`agents/.tools/`，上游改为 `.agents/`、`agents/out/`；合并时保留既有工具/产物忽略，并同步新脚本输出目录约定。上游还将本地早期12/13任务复制为14/15目录，需整理索引与交叉引用
-
-实施建议：先保存当前成果，以本地整车行为为保留基线接纳上游库/遥控/裁判/UI结构，解决重复类和全局实例后仅编译受影响文件；验证范围保持精简，完整构建和硬件操作按用户后续要求执行
+11 月 25 日验证：`gimbal.hpp` 通过格式检查。`chassis.cpp` 通过 ARM GCC `-Werror` 对象编译。145 项底盘主机测试覆盖断线时摇杆右移、松杆停车、方向反馈丢失停车、重连后速度重新叠加，以及方向与转速约定，均通过。实际升温曲线尚未上板测量。
 
 ## 合入上游7e57d2b（2026-11-20）
 
@@ -119,7 +107,7 @@
 - 29 项基线/配置检查：PID 数值、发送周期、IMU 安装和俯仰零点/限位、11 个入口的实际发送开关、预设与 CAN2 配置一致性
 - 整车 rmpp_app、rmpp_lib、rmpp_bsp 及 FDCAN 初始化对象局部编译通过；10 个 jelly_sentry_debug 入口 rmpp_app 对象全部编译通过，零警告
 - clang-format 22.1.0 格式化并检查本次 16 个手写源码文件，`git diff --check` 检查任务改动
-- 编译命令与日志保存在 `agents/out/14-upstream_merge_review/compile_summary.json`、`agents/out/14-upstream_merge_review/*_compile.log`，工程对象产物仍使用默认 `build/`
+- 编译命令与日志保存在 `out/compile_summary.json`、`out/*_compile.log`，工程对象产物仍使用默认 `build/`
 - 本轮仅对象编译与静态基线核对；未完整链接、运行控制算法测试或操作硬件。CAN2 重发/FIFO 的实际负载、7025 干扰与 EL05/4310 反馈需用户审计后上板核对
 
 ## 合入上游 09766fa（2026-11-18）
@@ -130,3 +118,15 @@
 - `python agents/tasks/14-upstream_merge_review/verify_gimbal_fold.py` 对比 `a220339`。本机用 Zig 0.15.2 的 `zig c++`，通过 `--cxx <zig.exe> c++` 指定。6,000 周期、144,000 项比较通过，覆盖模式切换、掉线恢复、限位、重力补偿和四轴电流与力矩输出。主机编译提示第三方 Eigen 和 GCC 专用 pragma 的兼容警告
 - `python agents/tasks/06-super_cap_capacitance/verify_jelly_sentry.py` 的 750 项超电策略检查通过
 - Arm GCC 局部编译通过，覆盖公共库及 jelly_sentry、三个相关调试目标、sentry、infantry、leg_up、examples-motor、test。两个云台调试目标对象部分链接后无未解析的 GimbalFold 符号。格式与 diff 检查通过，未做完整固件链接或硬件验证
+
+- 2026-11-20 按用户要求将 `GimbalFold` 从 `app/jelly_sentry` 移至 `lib/robot/gimbal/gimbal_fold.*`，代码未改，jelly_sentry 改为包含 `robot/gimbal/gimbal_fold.hpp`；本目录与 15 的测试改用新路径
+
+## 合入上游 781c78e（2026-11-25）
+
+- 合并前检查点为 8280d88，保存上一轮的目录迁移、导航 A3/A4 接口和小 yaw ±50° 配置。本地独有历史任务保留为 23-minipc_aim、24-yaw_window、25-yaw_pid、26-probe_connection，共享任务编号与上游一致
+- 本次完成真正的分支合并。app、lib 接口采用上游：sentry 迁至 steer_sentry，GimbalFold 移入 lib/robot，裁判收发拆分，VT13 输出操控量，Aim/Nav 使用 A1–A4，发射机构使用上游 PID 输出饱和判卡滞。清理旧 misc、应用内 GimbalFold 与旧 minipc/protocol.hpp，避免重复定义和接口残留
+- 相对上游的生产代码差异集中在 jelly_sentry 的两个文件：gimbal.hpp 保留小 yaw ±50°；minipc.cpp 在 200 Hz 的 minipc_send() 中调用 nav.send(gimbal.yaw1.measure)，要求大 yaw 在线且角度有限。目标 x/y 尚无来源，默认零
+- .gitignore 与 AGENTS.md 按上游；测试产物均放 agents/out/<任务目录全名>/，任务目录下已无 out/。本地 2026-11-21 两路 pitch 同步断联诊断保留在任务 01；当前协议与发送调度说明已同步
+- 局部编译：jelly_sentry 的 rmpp_app、rmpp_lib、rmpp_bsp 对象目标全部通过，steer_sentry 六个应用源码对象通过，零警告。仅构建对象目标，未链接固件
+- 主机检查只运行现有 Nav/pitch1 和 Aim 协议用例。Nav/pitch1 90,968 项通过，Aim 协议通过，编译零警告；日志和 summary.json 位于 agents/out/14-upstream_merge_review/protocol/
+- 本次两个手写配置/发送源文件的 clang-format 检查通过，Git diff 空白检查与未合并项检查通过。硬件联调由用户审计后进行

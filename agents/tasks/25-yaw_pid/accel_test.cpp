@@ -1,5 +1,5 @@
 #include "../15-minipc_nav/support.hpp"
-#include "gimbal_fold.hpp"
+#include "robot/gimbal_fold.hpp"
 
 class TestMotor : public Motor {
   public:

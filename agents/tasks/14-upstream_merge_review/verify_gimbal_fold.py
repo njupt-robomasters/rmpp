@@ -8,7 +8,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
-OUT = Path(__file__).resolve().parents[2] / "out/14-upstream_merge_review/gimbal_fold"
+OUT = ROOT / "agents/out/14-upstream_merge_review/gimbal_fold"
 
 
 def main():
@@ -19,7 +19,7 @@ def main():
     baseline.mkdir(parents=True, exist_ok=True)
     for name in ("gimbal.hpp", "gimbal.cpp", "gimbal_fold.hpp", "gimbal_fold.cpp"):
         source = subprocess.check_output(
-            ["git", "show", f"a220339:lib/robot/gimbal/{name}"], cwd=ROOT
+            ["git", "show", f"a220339:lib/robot/{name}"], cwd=ROOT
         ).decode("utf-8")
         source = re.sub(r"\.position\b", ".angle", source.replace("Gimbal", "BaselineGimbal"))
         # 历史 Motor 的 position 离线保留；新 Motor 的 angle 超时归零，使用既有轴测量恢复旧反馈约定
@@ -34,7 +34,7 @@ def main():
         "-I" + str(ROOT / "lib/third_party/eigen-3.4.0"),
         "-I" + str(ROOT / "app/jelly_sentry"),
         str(TASK / "gimbal_fold_test.cpp"), *map(str, sorted(baseline.glob("*.cpp"))),
-        str(ROOT / "app/jelly_sentry/gimbal_fold.cpp"),
+        str(ROOT / "lib/robot/gimbal_fold.cpp"),
         str(ROOT / "lib/motor/motor.cpp"), str(ROOT / "lib/pid/pid.cpp"),
         "-o", str(exe),
     ], check=True)

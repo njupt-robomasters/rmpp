@@ -7,7 +7,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
-OUT = Path(__file__).resolve().parents[2] / "out/03-quad_steer/offline"
+OUT = ROOT / "agents/out/03-quad_steer/offline"
 
 
 def main():
@@ -18,7 +18,7 @@ def main():
         "motor": [ROOT / "agents/tasks/10-global_refactor/motor_config_test.cpp", ROOT / "lib/motor/motor.cpp"],
         "chassis": [TASK / "offline_test.cpp", *[ROOT / "lib" / p for p in
                     ["motor/motor.cpp", "pid/pid.cpp", "power/motor_power.cpp",
-                     "robot/chassis/chassis_matrix.cpp", "robot/chassis/chassis_steer.cpp"]]],
+                     "robot/chassis_matrix.cpp", "robot/chassis_steer.cpp"]]],
     }.items():
         exe = OUT / (name + ".exe")
         subprocess.run([*common, *map(str, sources), "-o", str(exe)], check=True)
@@ -26,9 +26,9 @@ def main():
 
     count = 0
     for preset, sources in {
-        "leg-leg_up": ["lib/motor/motor.cpp", "lib/robot/chassis/chassis_matrix.cpp",
-                   "lib/robot/chassis/chassis_steer.cpp", "app/leg/leg_up/chassis.cpp"],
-        "sentry": ["app/sentry/gimbal.cpp", "app/sentry/app.cpp"],
+        "leg-leg_up": ["lib/motor/motor.cpp", "lib/robot/chassis_matrix.cpp",
+                   "lib/robot/chassis_steer.cpp", "app/leg/leg_up/chassis.cpp"],
+        "steer_sentry": ["app/steer_sentry/gimbal.cpp", "app/steer_sentry/app.cpp"],
     }.items():
         rows = json.loads((ROOT / "build" / preset / "compile_commands.json").read_text(encoding="utf-8"))
         for source in sources:

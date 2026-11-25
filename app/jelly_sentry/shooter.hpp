@@ -1,15 +1,8 @@
 #pragma once
 
-#include <cstdint>
-
-#include "pid/pid.hpp"
-
-#include "bsp/can.hpp"
-
-#include "math/unit.hpp"
 #include "motor/el05.hpp"
 #include "motor/vesc.hpp"
-#include "robot/shooter/shooter_17mm.hpp"
+#include "robot/shooter_17mm.hpp"
 
 // 双传送带驱动（工程沿用 rub 名称）：2×P630，CAN2，VESC 扩展帧，电调内部速度环
 // tx_id/rx_id 为电调节点 ID；set_speed() 接收输出轴 rad/s，Vesc 按 reduction（含极对数）换算 ERPM
@@ -36,12 +29,9 @@ inline Vesc rub2({
 // 拨弹电机：灵足 EL05，CAN2 私有扩展帧，电机 ID 0x12 / 主机 ID 0x22；速度环 rad/s → Nm
 // 电机侧 protocol_1=0；使能 ID 0x03002212，运行反馈 ID 0x02801222（无故障）
 inline Pid::Config shoot_pid = {
-    .kp = (5.0f) / (60 * rpm),
+    .kp = 5.0f / (60 * rpm),
     .max_out = 6.0f,
 };
-// 力矩限幅与 PID 限幅同为 6 Nm；卡滞阈值为 5.5 Nm，反转时间在下方 shooter 配置中设置
-// 运行时可写发送周期，单位 ms，建议取 1~99，避免超过反馈超时
-inline volatile uint32_t shoot_send_period_ms = 2;
 inline EL05 shoot({
     .can = Can(2),
     .tx_id = 0x12,
@@ -55,10 +45,9 @@ inline EL05 shoot({
 inline Shooter17mm shooter({rub1, rub2, shoot}, {
                                                     .shoot_pid_config = &shoot_pid,
                                                     .bullet_per_angle = 9.0f / rev,
-                                                    .block_torque = 5.5f, // 目标力矩阈值，N·m
-                                                    .block_time = 0.2f,   // 连续超阈值时间，s
-                                                    .reverse_time = 0.1f, // 反转时间，s
+                                                    .block_time = 0.2f,
+                                                    .reverse_time = 0.1f,
                                                     .heat_protect = 100,
                                                 });
 
-void shooter_loop();
+void shooter_loop(bool is_fire);

@@ -4,4 +4,5 @@
 #include "rc/vt13.hpp"
 
 inline Melody melody({});
-inline VT13 vt13({.uart = Uart(6)});
+
+extern VT13 vt13;

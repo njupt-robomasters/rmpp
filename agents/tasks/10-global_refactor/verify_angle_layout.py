@@ -8,7 +8,7 @@ import re
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
-OUT = Path(__file__).resolve().parents[2] / "out/10-global_refactor/angle_layout/arm"
+OUT = ROOT / "agents/out/10-global_refactor/angle_layout/arm"
 
 
 def main():

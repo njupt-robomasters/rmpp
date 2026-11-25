@@ -104,10 +104,10 @@
             }
         },
         {
-            "name": "sentry",
+            "name": "steer_sentry",
             "inherits": "default",
             "cacheVariables": {
-                "RMPP_APP": "sentry",
+                "RMPP_APP": "steer_sentry",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },

@@ -2,19 +2,17 @@
 #include "app.hpp"
 #include <algorithm>
 
-static constexpr float SPEED_MAX = 60 * rpm;             // 摇杆满量程对应的云台转速
-static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s
+static constexpr float SPEED_MAX = 60 * rpm; // 摇杆满量程对应的云台转速
 
 static Pid yaw_pid(&yaw_pid_config);
 static Timer update_timer;
-static uint32_t yaw_send_count = 0; // yaw 发送分频计数
 
 // 观察量：云台世界系朝向目标与测量
 static Angle yaw_ref;
 static Angle yaw_measure;
 
 void gimbal_loop() {
-    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
+    const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
     attitude.update();
 
     // IMU 在底盘上：云台朝向 = 底盘航向 + 电机相对底盘角度
@@ -34,9 +32,4 @@ void gimbal_loop() {
         yaw.set_current(yaw_pid.calculate(dt, Angle(yaw_ref - yaw_measure), -yaw.speed));
     }
     yaw.update();
-
-    // RMDL7025 两种报文合计应答上限 500 Hz
-    if (yaw_send_count++ % 2 == 0) {
-        yaw.send();
-    }
 }

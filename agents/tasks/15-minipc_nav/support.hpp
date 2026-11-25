@@ -14,6 +14,7 @@ static uint64_t now_us = 1000000;
 static uint32_t irq_depth = 0;
 static int checks = 0;
 static std::vector<Cdc::RxCallback> cdc_callbacks[4];
+static std::vector<uint8_t> cdc_tx[4];
 static std::vector<Can::RxCallback> can_callbacks;
 static CanFrame last_can;
 
@@ -45,6 +46,10 @@ IrqLock::~IrqLock() {
 
 void Cdc::add_rx_callback(RxCallback callback) const {
     cdc_callbacks[id].push_back(std::move(callback));
+}
+
+void Cdc::send(const uint8_t* data, const std::size_t size) const {
+    cdc_tx[id].assign(data, data + size);
 }
 
 void Can::add_rx_callback(RxCallback callback) const {
@@ -80,6 +85,7 @@ static uint16_t reference_crc(const uint8_t* bytes, const std::size_t size) {
     return crc;
 }
 
+// 导航下行 24 字节：A3、过洞标志、vx、vy、yaw、x、y、CRC16；CRC 覆盖从帧头到 y
 static std::array<uint8_t, 24> make_frame(
     const float vx, const float vy, const float yaw, const float x, const float y, const uint8_t is_through_hole) {
     std::array<uint8_t, 24> bytes{0xA3};

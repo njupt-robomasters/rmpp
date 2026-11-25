@@ -73,6 +73,8 @@
 
 - 待做：虚拟 IMU（云台 IMU + 关节角）
 - 2026-11-18 上下板 CAN 通信（暂不含键鼠）、下板跟随与轮端功率控制已在主工作区实现，`leg_up`、`leg_down` 的 app 与 lib 对象编译通过，待用户审计与上车；结论见 `docs/application.md`“轮腿上下板通信”“轮腿功率控制”
+- 2026-11-23 轮腿航向前馈：上板 `vt13.wr` 非 0 时发手动角速度并令 `yaw = 0`（下板不追踪航向），为 0 时发遥控器 `vt13.yaw_speed` 作跟随前馈；下板 LQR 去掉 `wr == 0` 门控，`gimbal_yaw` 恒进航向误差；删除未使用的 `GimbalClassic::set_chassis_wr`。两应用编译通过，待上车核对前馈方向与小陀螺/跟随切换瞬间的影响
+- 2026-11-24 轮腿力矩分配：`calc_lqr()` 按仿真当前策略把十项贡献分运动组和姿态组，超限时运动组共同退让、姿态组优先，腿摆上限按当拍轴向力矩折算关节余量；`Config` 新增 `wheel_work_speed`、删除航向/腿角/俯仰三项误差限幅；双轮功率控制暂不移植。`leg-leg_down` 编译通过，主机测试 22 项通过，待用户审计与上车
 - 上车核对：follow 方向与 kp、`cos(yaw)` 投影方向、`power.estimate` 与 `super_cap.power_chassis` 对比、限功率时平衡是否稳定
 
 ## 超级电容 SuperCap
@@ -104,8 +106,8 @@
 
 ### jelly_sentry 超电待上车
 
-- 已接入默认 CAN1 ID 0x061/0x051，在线 VT13 的 C 挡优先失能，N/S 挡启用超电 BOOST。N 挡双传送带与拨盘停转，S 挡运行双传送带，扳机与左摇杆控制拨盘。人工 OFF 与裁判失联优先关闭超电，实现和验证见 `docs/application.md` 与 `tasks/06-super_cap_capacitance/README.md`
-- 待用户审计：OFF 反馈、CHARGE 充电、BOOST 电压补偿衰减、断联与重连；结合实车供电支路核对超电实测和四轮模型功率。UI 能量显示待确定满电电压与可用能量范围
+- 已接入默认 CAN1 ID 0x061/0x051，在线 VT13 的 C 挡优先失能，N/S 挡启用超电 BOOST。N 挡双传送带与拨盘停转，S 挡运行双传送带，拨盘取 VT13 弹频（trigger 加 pitch 摇杆或鼠标左键）。人工 OFF 与裁判失联优先关闭超电，实现和验证见 `docs/application.md` 与 `tasks/06-super_cap_capacitance/README.md`
+- 待用户审计：OFF 反馈、CHARGE 充电、BOOST 电压补偿衰减、断联与重连；结合实车供电支路核对超电实测和四轮模型功率。UI 按电容电压平方比显示储能百分比，满电电压默认 23.85 V，待实车核对
 
 ## 底盘深度重构、PID 回算、UI 下放
 
@@ -117,16 +119,17 @@
 
 ## 后续任务
 
-- 上游合并（2026-11-20）：当前成果保存为6815d85，合入origin/master@7e57d2b并解决3项冲突；迁移EL05 Feedback、Motor角度接口、独立GimbalFold掉线测量保持及校准/调试入口。相关ARM对象编译与协议/状态机/云台/超电回归通过，未完整链接或操作硬件；详见tasks/14-upstream_merge_review/README.md
-
-- 上游合并（2026-11-15）：已保存基线 `4d59574`，合入 origin/master@f3b8e14 并适配 EL05、GimbalFold、jelly_sentry 与 10 个调试入口；按用户指定启用 CAN2 自动重发与 FIFO。局部编译与待实机核对项见 `tasks/14-upstream_merge_review/README.md`
 - VQF 姿态算法：原样引入官方 C++ 实现（确认单精度选项），封装 `Vqf` 与 `QuaternionEkf` 并列
+
+## jelly_sentry 并入 master
+
+状态：2026-11-20 从 rmpp-czk（HEAD 65b91de 加其未提交的 Nav 与 pitch1 失能改动）并入，jelly_sentry、sentry 的 app 与 lib 对象编译通过，待用户审计与上车；jelly_sentry_debug 按用户要求未并入。行为变化与上车核对项见 `tasks/16-jelly_sentry_merge/README.md`
 
 ## jelly_sentry EL05 / CAN2 调试
 
 - 7025 + PCAN 独立总线出现部分 ID 引起反馈间隔从稳定 2 ms 跳至十几 ms：PCAN 交替发送电流控制和位置查询；用户确认干扰帧仅改变 ID，其他发送配置相同、一次只测一个 ID。待核对总线上真实请求间隔、分命令应答数与错误帧；优先对照 CANID 滤波器开关。V4.3 协议 0x20/index=0x02 为滤波器，示例文字误写 0x01（实际为清零）；尚未发送设置或确认根因
 - EL05 已参考用户指定 old 分支改为 CAN2 私有扩展帧，电机/主机节点保留0x12/0x22；电机侧需核对 protocol_1=0（之前记录为2），详见 tasks/01-mc02_bsp/README.md
-- 2026-11-21 EmberProbe 已在 rmpp 只读抓到上下摇动 pitch 时两路4310同步停有效反馈：首轮约15 s，第二轮采样起始即离线、19 s后恢复；同期CAN1大yaw和CAN2 EL05反馈持续，CAN2 bus-off及HAL错误码保持0。优先检查两路pitch共用活动线束、接头与供电分支，待电压量测及CAN2 trace核实；记录见 tasks/01-mc02_bsp/README.md
+- 2026-11-21 已在当前工作区只读采样确认两路 pitch 同步停有效反馈约 15 s/19 s，CAN2 EL05 和 CAN1 大 yaw 持续更新，CAN2 bus-off 与 HAL 错误码为 0。待用户核对活动线束、接头和供电，记录见 tasks/01-mc02_bsp/README.md
 - 本轮未完整链接、烧录、复位或硬件验证；待用户审计与台架测试
 
 ## Referee UART 与 app CAN 转发分层
@@ -141,6 +144,10 @@
 - 拟用 worktree `../rmpp-referee-uart`、分支 `refactor/referee-uart`；实现开始时核对基线及并行改动
 - 验证：格式检查、相关文件对象编译，覆盖 UART/CAN 字节流、分片、忙时重试、缓冲所有权和裁判解析的主机测试
 
+## VT13 操控量解析
+
+状态：代码与文档完成，leg-leg_up、sentry、examples-motor、examples-rc 的 app 与 lib 对象编译通过，主机测试通过，待用户审计与上车。结论见 `docs/application.md`“遥控器映射”，行为变化与上车核对项见 `tasks/12-vt13_control/README.md`
+
 ## 外部 worktree 类布局重构
 
 基线 `795e263`，类布局重构已并入 master，外部 worktree 随合并移除。完成成员尾下划线移除、实例配置与设备状态展平、SWD 排序、最小权限和声明与实现排序；保留主线暂存的轮腿 LQR 调整并完成适配。infantry 跳过编译验证。代码与验证结论见 `tasks/10-global_refactor/README.md`，待用户审计与上车。
@@ -154,30 +161,19 @@
 
 ## MiniPC 双 CDC 与导航控制协议
 
-状态：2026-11-20 已在当前工作区实施，协议/底盘/pitch1 主机检查及相关 ARM 对象编译通过，待用户审计和上板；结论见 `docs/minipc.md`，复现见 `tasks/15-minipc_nav/README.md`
+状态：2026-11-20 实施，2026-11-24 按用户要求重构自瞄与导航协议；主机检查与两个哨兵的 ARM 对象编译通过，待用户审计和上板。结论见 `docs/minipc.md`，对接文档见根目录 `docs/minipc_protocol.md`，复现见 `tasks/21-minipc_protocol/README.md`
 
-- jelly_sentry 使用 CDC1 自瞄、CDC2 导航；flag=0 小陀螺，flag=1 随 IMU 头；pitch1 全程失能并发送失能帧
-- 上板核对：两路 CDC 枚举及隔离、导航和人工均以 IMU 头为前方、60 rpm 自动小陀螺、随头方向、人工接管和超时停止、pitch1 实际失能状态
-- 导航 yaw 字段当前解析保存，具体控制用途待上位机约定；CDC2 已按 A4 周期上报大 yaw 编码器角，目标点 x/y 暂取零
-- pitch1 折叠/展开功能暂缓：flag=0 抬头、flag=1 折叠，仅在代码记录 TODO，后续启用时再确定目标角、编码器零点和动作流程
+- jelly_sentry 使用 CDC1 自瞄、CDC2 导航；过洞标志为 1 随 IMU 头、平移照常，为 0 小陀螺；pitch1 全程失能并发送失能帧
+- 上板核对：两路 CDC 枚举及隔离、雷达与大 yaw 的安装偏角、负小 yaw 坐标转换方向、随头方向、人工接管和超时停止、pitch1 实际失能状态
+- 导航上行发送大 yaw 相对底盘的编码器角及目标坐标；下行 yaw 是相对大 yaw 当前朝向的期望转角，两向均用 rad。jelly_sentry 已每 5 拍发送在线大 yaw 实测角，目标 x/y 默认零；steer_sentry 尚未接入上行发送，两车的下行大 yaw 转角当前仅保存，下行当前坐标 x/y 仍仅保存
+- 2026-11-24 协议：单字节帧头 `A1`–`A4`，CRC 覆盖帧头；自瞄上行改为红方标志、弹速与四元数，下行改为识别/开火标志、yaw、pitch、距离，pitch 向下为正；导航下行加过洞标志与坐标，新增导航上行目标点
+- pitch1 折叠/展开功能暂缓，后续启用时再确定目标角、编码器零点和动作流程
 
-## MiniPC Aim 自瞄通信
+## app 结构统一与哨兵控制拆分
 
-- 已按用户协议接入 CDC1，21 字节上行每 5 ms 发送，18 字节下行按有效新帧更新；Config::timeout 默认 200 ms，可在构造时配置
-- 视觉期望角为最终安装 IMU 的头部世界系目标；yaw 左正、线上 pitch 上正，内部 ZYX 弧度在边界换算；pitch1 保持全程失能
-- 上板核对收发帧率、与视觉共用的世界航向零点、pitch 上正及 roll 顺时针观察方向，验证丢目标/200 ms 超时后撤销开火许可；说明见 docs/minipc.md、复现见 tasks/23-minipc_aim/README.md
+状态：2026-11-20 代码与文档完成，jelly_sentry、steer_sentry、leg-leg_up、leg-leg_down、dummy、examples-motor 的 app 与 lib 对象编译通过，待用户审计与上车。行为变化、修复与上车核对项见 `tasks/17-app_unify/README.md`
 
-## jelly_sentry 大小 yaw 配合
+## 本地 yaw 与上车核对
 
-状态：2026-11-23 已接入识别状态分配切换，待用户审计和上板
-
-- `is_detect=0` 大轴持续追随、小轴补偿大轴误差；`is_detect=1` 小轴在 ±50° 内独立追踪，越界由大轴补足超出角度；位置环输出上限仍为720°/s
-- 最终 IMU 头世界目标持续保留，大轴补偿底盘转速，小轴再扣除大轴实测转速；pitch1继续全程失能
-- 已删除大轴二次曲线加减速；上板核对检测切换、窗口两侧边界、底盘旋转保持、离线恢复和超调；详见 docs/application.md 及 tasks/24-yaw_window/README.md
-
-## 大小 yaw 参数与正弦测试
-
-- 2026-11-21 已完成有限阶跃采样；按用户后续要求已删除全部 jelly_sentry 调试源码与预设，大小yaw最终实时调参值已保存到生产配置
-- 默认 20°、0.2 Hz、20 s；目标 ±30°、实测 ±35° 失能，pitch1 全程无输出；默认等待 request
-- 测大轴时小轴保持编码器中位；测小轴时大轴保持请求时编码器角度；波形直接驱动独立位置环
-- 后续由用户审计和授权上车；正弦、最终 PID、持续追随配合与生产 ±50° 小轴限位仍待验证。记录见 `tasks/25-yaw_pid/README.md`
+- 小 yaw 限位按用户决定保留 ±50°，窗口边缘与机械行程待用户上车审计
+- 本地窗口、PID 和探针历史记录保留在任务 24、25、26；旧 21/18 字节自瞄测试保留在任务 23，适用于检查点 8280d88，当前协议测试入口使用任务 15 和 21

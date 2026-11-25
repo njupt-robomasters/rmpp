@@ -1,4 +1,4 @@
-"""比较类布局重构前后的电机输出和超电仿真，产物放在任务 out/。"""
+"""比较类布局重构前后的电机输出和超电仿真，产物放在agents/out/10-global_refactor/。"""
 
 import argparse
 from pathlib import Path
@@ -7,7 +7,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
-OUT = Path(__file__).resolve().parents[2] / "out/10-global_refactor/layout_regression"
+OUT = ROOT / "agents/out/10-global_refactor/layout_regression"
 
 
 def main():
@@ -32,7 +32,7 @@ def main():
         "motor": (TASK / "layout_motor_regression.cpp", [
             "motor/motor.cpp", "motor/m3508.cpp", "motor/m2006.cpp", "motor/gm6020.cpp",
             "motor/x630.cpp", "motor/rm6623.cpp", "motor/rmdl7025.cpp", "motor/vesc.cpp",
-            "robot/shooter/shooter_17mm.cpp", "pid/pid.cpp",
+            "robot/shooter_17mm.cpp", "pid/pid.cpp",
         ]),
         "cap": (ROOT / "agents/tasks/06-super_cap_capacitance/sim.cpp", ["power/super_cap.cpp"]),
         "power": (ROOT / "agents/tasks/06-super_cap_capacitance/power_sim.cpp", ["power/super_cap.cpp"]),

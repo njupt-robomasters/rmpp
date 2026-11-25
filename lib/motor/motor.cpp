@@ -36,6 +36,16 @@ void Motor::set_torque(float torque) {
     current_ref = torque / config.max_torque * config.max_current;
 }
 
+Motor::Status Motor::status(const float overheat, const bool active) const {
+    if (!is_connect)
+        return Status::OFFLINE;
+    if (!is_enable || !active)
+        return Status::DISABLED;
+    if (temperature >= overheat)
+        return Status::OVERHEAT;
+    return Status::NORMAL;
+}
+
 void Motor::update() {
     // 断联检测：清零瞬时反馈，保留多圈角度及原始累计
     if (callback_timer.elapsed() > config.timeout) {

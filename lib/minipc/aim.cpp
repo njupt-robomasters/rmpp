@@ -1,92 +1,71 @@
 #include "aim.hpp"
-#include "bsp/irq_lock.hpp"
-#include "protocol.hpp"
-#include <cstring>
+#include "crc16_modbus.hpp"
+#include <cstddef>
 
-Aim::Aim(const Cdc cdc, const Config& config)
-    : cdc(cdc), config(config) {
-    cdc.add_rx_callback([this](const uint8_t* data, const std::size_t size) { callback(data, size); });
+Aim::Aim(const Config& config)
+    : config(config) {
+    config.cdc.add_rx_callback([this](const uint8_t* data, const size_t size) { callback(data, size); });
+}
+
+void Aim::set_attitude(const Quaternionf& quaternion) {
+    raw_tx.qx = quaternion.x();
+    raw_tx.qy = quaternion.y();
+    raw_tx.qz = quaternion.z();
+    raw_tx.qw = quaternion.w();
 }
 
 void Aim::set_referee(const bool is_red, const float bullet_speed) {
-    referee.is_red = is_red;
-    referee.bullet_speed = std::isfinite(bullet_speed) && bullet_speed >= 0 ? bullet_speed : 0;
+    raw_tx.is_red = is_red;
+    raw_tx.bullet_speed = bullet_speed;
 }
 
-void Aim::update(const Angle yaw, const Angle pitch, const Angle roll) {
-    // USB 回调只写 pending，主循环读取同一帧的目标与开火许可
-    {
-        const IrqLock lock;
-        is_connect_vision = has_vision && callback_timer.elapsed() <= config.timeout;
-        if (is_connect_vision) {
-            vision = pending;
-        } else {
-            vision = {};
-            if (has_vision) {
-                has_vision = false;
-                rx_size = 0;
-            }
-        }
-    }
-
-    if (send_timer.elapsed() < SEND_PERIOD)
-        return;
-    send_timer.restart();
-    if (!std::isfinite(float(yaw)) || !std::isfinite(float(pitch)) || !std::isfinite(float(roll)))
-        return;
-
-    // ZYX pitch 右手正方向为低头，线上协议为抬头正；roll 沿枪口由后向前看为顺时针正
-    uint8_t frame[TX_FRAME_SIZE]{0xA5, 0x5A};
-    minipc_write_float(frame + 2, float(yaw) / deg);
-    minipc_write_float(frame + 6, -float(pitch) / deg);
-    minipc_write_float(frame + 10, float(roll) / deg);
-    frame[14] = referee.is_red;
-    minipc_write_float(frame + 15, referee.bullet_speed);
-    const uint16_t crc = minipc_crc16_modbus(frame + 2, 17);
-    frame[19] = static_cast<uint8_t>(crc);
-    frame[20] = static_cast<uint8_t>(crc >> 8);
-    cdc.send(frame, sizeof(frame));
+void Aim::send() {
+    auto* bytes = reinterpret_cast<uint8_t*>(&raw_tx);
+    raw_tx.crc = crc16_modbus(bytes, offsetof(TxFrame, crc));
+    config.cdc.send(bytes, sizeof(raw_tx));
 }
 
-void Aim::callback(const uint8_t* data, const std::size_t size) {
-    if (has_vision && callback_timer.elapsed() > config.timeout) {
-        has_vision = false;
-        rx_size = 0;
+void Aim::update() {
+    // 断联检测：目标复位，原始帧保留
+    if (callback_timer.elapsed() > config.timeout) {
+        is_connect = false;
+        is_detect = is_fire = false;
+        yaw = pitch = 0;
+        distance = 0;
     }
+}
 
-    for (std::size_t i = 0; i < size; i++) {
-        rx_buf[rx_size++] = data[i];
-        while (rx_size >= 2) {
-            if (rx_buf[0] != 0xA5 || rx_buf[1] != 0x5B) {
-                std::memmove(rx_buf, rx_buf + 1, --rx_size);
+void Aim::callback(const uint8_t* data, const size_t size) {
+    for (size_t index = 0; index < size; index++) {
+        rx_fifo.push(data[index]);
+        while (rx_fifo.size >= 1) {
+            // 帧头不符：丢弃 1 字节重新对齐
+            if (rx_fifo[0] != SOF_RX) {
+                rx_fifo.pop(1);
                 continue;
             }
-            if (rx_size < RX_FRAME_SIZE)
+            if (rx_fifo.size < sizeof(raw_rx))
                 break;
 
-            const uint16_t crc = rx_buf[16] | (static_cast<uint16_t>(rx_buf[17]) << 8);
-            const float yaw = minipc_read_float(rx_buf + 3);
-            const float pitch = minipc_read_float(rx_buf + 7);
-            const float distance = minipc_read_float(rx_buf + 12);
-            if (minipc_crc16_modbus(rx_buf + 2, 14) != crc || rx_buf[2] > 1 || rx_buf[11] > 1 ||
-                !std::isfinite(yaw) || !std::isfinite(pitch) || !std::isfinite(distance) || distance < 0) {
-                std::memmove(rx_buf, rx_buf + 1, --rx_size);
+            // CRC 不符：丢弃 1 字节，帧内出现的帧头可重新对齐
+            RxFrame frame;
+            auto* bytes = reinterpret_cast<uint8_t*>(&frame);
+            rx_fifo.peek(bytes, sizeof(frame));
+            if (crc16_modbus(bytes, offsetof(RxFrame, crc)) != frame.crc) {
+                rx_fifo.pop(1);
                 continue;
             }
+            rx_fifo.pop(sizeof(frame));
 
-            pending = {};
-            if (rx_buf[2] == 1) {
-                pending = {
-                    .is_detect = true,
-                    .yaw = yaw * deg,
-                    .pitch = -pitch * deg,
-                    .is_fire = rx_buf[11] == 1,
-                    .distance = distance,
-                };
-            }
-            has_vision = true;
+            // 有效帧：保存原始帧并解析，线上 pitch 向下为正，与内部同号
+            raw_rx = frame;
+            is_detect = raw_rx.is_detect;
+            yaw = raw_rx.yaw * deg;
+            pitch = raw_rx.pitch * deg;
+            is_fire = raw_rx.is_fire;
+            distance = raw_rx.distance;
+            is_connect = true;
             callback_timer.restart();
-            rx_size = 0;
         }
     }
 }

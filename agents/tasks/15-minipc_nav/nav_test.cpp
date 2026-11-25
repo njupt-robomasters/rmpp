@@ -1,15 +1,9 @@
-#include "minipc/crc16_modbus.hpp"
-#include <algorithm>
 #include "support.hpp"
-#include "gimbal_fold.hpp"
+#include "minipc/crc16_modbus.hpp"
+#include "robot/gimbal_fold.hpp"
 #include "motor/dm4310.hpp"
+#include <algorithm>
 #include <limits>
-
-static std::vector<uint8_t> cdc_tx[4];
-
-void Cdc::send(const uint8_t* data, const std::size_t size) const {
-    cdc_tx[id].assign(data, data + size);
-}
 
 static void protocol_test() {
     const uint8_t check_text[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9'};

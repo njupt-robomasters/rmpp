@@ -1,6 +1,6 @@
 // 真实控制代码差分回归，驱动反馈与计时由主机模拟
 #include "baseline/gimbal_fold.hpp"
-#include "gimbal_fold.hpp"
+#include "robot/gimbal_fold.hpp"
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>

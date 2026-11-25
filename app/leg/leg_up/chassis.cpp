@@ -1,60 +1,69 @@
 #include "chassis.hpp"
 #include "app.hpp"
 #include "gimbal.hpp"
-
-// 下发指令，chassis_loop() 写入、chassis_write_can_frame() 组帧
-static LegUpFrame up;
-static bool down_is_connect = false;
-static Timer callback_timer;
+#include "referee.hpp"
 
 void chassis_loop() {
-    // 超级电容
-    super_cap.set_mode(SuperCap::OFF);
-    super_cap.update();
-
     // 下板断联检测
-    if (callback_timer.elapsed() > LEG_TIMEOUT) {
-        down_is_connect = false;
-        down = {};
-    }
+    leg_protocol.update();
 
-    up.is_enable = vt13.is_connect && (vt13.mode == VT13::N || vt13.mode == VT13::S) && down_is_connect;
-    up.trigger_jump = vt13.fn;
-    up.vx = vt13.x * std::cos(yaw.angle) * VX_MAX;
-    up.wr = vt13.wheel * WR_MAX;
-    up.yaw = yaw.angle;
-    up.power_ref = super_cap.power_chassis_ref;
+    // 航向：小陀螺发手动角速度并禁用航向追踪，否则发遥控器云台 yaw 目标速度作跟随前馈与相对航向
+    const bool is_spin = vt13.wr != 0;
+    leg_protocol.trigger_jump = vt13.key.e || vt13.rc.fn;
+    leg_protocol.vx = vt13.vx * std::cos(yaw.angle);
+    leg_protocol.wr = is_spin ? vt13.wr : vt13.yaw_speed;
+    leg_protocol.yaw = is_spin ? 0.0f : yaw.angle;
 
+    // 使能后首次按下 pause 才下发底盘使能，防止误触；之后 pause 切换腿长，失能或下板断联复位
     static bool last_pause = false;
-    if (!up.is_enable) {
-        up.allow_rescue = false;
-        up.leg_length = 0.14f;
-    } else {
-        // pause：倒地时授权自救并保持，站立时切换腿长
-        if (vt13.pause && !last_pause) {
-            if (down.is_fallen) {
-                up.allow_rescue = true;
-            } else {
-                if (up.leg_length < 0.22f)
-                    up.leg_length = 0.22f;
-                else if (up.leg_length < 0.33f)
-                    up.leg_length = 0.33f;
-                else
-                    up.leg_length = 0.14f;
+    static bool last_z = false, last_x = false, last_c = false;
+    static bool is_leg_length_rising = true;
+    if (vt13.is_enable && leg_protocol.is_connect) { // vt13使能，且下板连接
+        if (vt13.rc.pause && !last_pause) {
+            if (!leg_protocol.is_enable) {
+                leg_protocol.is_enable = true;
+            } else if (is_leg_length_rising) { // LOW -> MID -> HIGH
+                if (leg_protocol.leg_length < LEG_LENGTH_MID) {
+                    leg_protocol.leg_length = LEG_LENGTH_MID;
+                } else {
+                    leg_protocol.leg_length = LEG_LENGTH_HIGH;
+                    is_leg_length_rising = false;
+                }
+            } else { // HIGH -> MID -> LOW
+                if (leg_protocol.leg_length > LEG_LENGTH_MID) {
+                    leg_protocol.leg_length = LEG_LENGTH_MID;
+                } else {
+                    leg_protocol.leg_length = LEG_LENGTH_LOW;
+                    is_leg_length_rising = true;
+                }
             }
         }
+    } else {
+        leg_protocol.is_enable = false;
+        leg_protocol.leg_length = LEG_LENGTH_LOW;
+        is_leg_length_rising = true;
     }
-    last_pause = vt13.pause;
-}
+    last_pause = vt13.rc.pause;
 
-void chassis_write_can_frame(CanFrame& frame) {
-    up.pack(frame);
-}
+    // 腿长直选：Z/X/C 按下沿分别选择低/中/高档
+    if (leg_protocol.is_enable) {
+        if (vt13.key.z && !last_z) {
+            leg_protocol.leg_length = LEG_LENGTH_LOW;
+            is_leg_length_rising = true;
+        } else if (vt13.key.x && !last_x) {
+            leg_protocol.leg_length = LEG_LENGTH_MID;
+        } else if (vt13.key.c && !last_c) {
+            leg_protocol.leg_length = LEG_LENGTH_HIGH;
+            is_leg_length_rising = false;
+        }
+    }
+    last_z = vt13.key.z;
+    last_x = vt13.key.x;
+    last_c = vt13.key.c;
 
-void chassis_can_callback(const CanFrame& frame) {
-    if (!down.unpack(frame))
-        return;
-
-    callback_timer.restart();
-    down_is_connect = true;
+    // 超级电容
+    super_cap.set_mode(vt13.is_enable ? SuperCap::BOOST : SuperCap::OFF);
+    super_cap.set_referee_limit(referee.robot_status.chassis_power_limit);
+    super_cap.set_referee_energy(referee.power_heat_data.buffer_energy);
+    super_cap.update();
 }

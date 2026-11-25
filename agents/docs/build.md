@@ -14,8 +14,6 @@ python tools/check_builds.py
 
 每个应用只生成一个默认 Debug 预设，名称不带 `-debug`，不自动生成 Release。需要 Release 时，在 CLion 复制为普通配置后修改构建类型，并使用独立构建目录；若复制结果仍含 `--preset`，移除该选项并显式设置对应的 `-DRMPP_APP=<应用路径>`
 
-2026-11-21 已删除 `app/jelly_sentry_debug/` 全部调试应用及预设；整车 `jelly_sentry` 预设保留，重新生成预设时按现有应用目录发现入口
-
 应用支持任意层级嵌套：脚本递归查找 `app/` 下的 `CMakeLists.txt`，以所在目录相对 `app/` 的路径设置 `RMPP_APP`，路径各级用连字符连接为预设名称。例如 `app/leg/leg_up/CMakeLists.txt` 对应 `leg-leg_up`，构建目录为 `build/leg-leg_up`；下板对应 `leg-leg_down`。共享协议位于 `app/leg/leg_protocol.hpp`
 
 ## 接口与板卡实现
@@ -154,8 +152,8 @@ flowchart LR
 ## 编译接口
 
 - `Can` 没有默认构造，硬件编号由应用显式指定；电机型号以 `static constexpr` 保存电流与转矩量程、默认减速比，按实际外部调用决定是否公开，具体权限见 motor.md
-- Nav 已接入 17 字节导航下行协议；Aim 已接入 21 字节上行/18 字节下行自瞄协议，200 Hz 上报、默认 200 ms 超时。两者共用 MODBUS CRC 和小端浮点编解码，设备独立于 Config 传入
-- jelly_sentry 使用 CDC1 自瞄、CDC2 导航；C 板 sentry 继续共用 CDC1。接口与坐标转换见 `minipc.md`
+- Nav 构造参数独立传入 CDC，采用 `A3`/`A4` 单字节帧头的导航下行与上行协议。Aim 通过 `Config` 传入 CDC，采用 `A1`/`A2` 单字节帧头的自瞄下行与上行协议
+- jelly_sentry 使用 CDC1 自瞄、CDC2 导航。C 板 steer_sentry 共用 CDC1。接口与坐标转换见 `minipc.md`
 
 ## 验证记录
 

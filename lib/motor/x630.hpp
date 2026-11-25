@@ -22,7 +22,6 @@ class X630 : public Motor {
   private:
     const float enter_current, exit_current, enter_speed;
 
-    float motor_temperature = 0; // 电机温度，℃
     bool is_mute = false;
 
   public:

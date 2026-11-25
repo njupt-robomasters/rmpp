@@ -32,7 +32,6 @@ class Vesc : public Motor {
 
     // 状态帧反馈
     float temp_fet = 0;
-    float temp_motor = 0;
     float current_in = 0;
     float voltage_in = 0;
     float duty_cycle = 0;

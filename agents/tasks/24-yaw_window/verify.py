@@ -8,7 +8,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
-OUT = Path(__file__).resolve().parents[2] / 'out/24-yaw_window'
+OUT = ROOT / 'agents/out/24-yaw_window'
 
 
 def main():
@@ -21,7 +21,7 @@ def main():
                '-DEIGEN_DONT_VECTORIZE', '-DEIGEN_MAX_ALIGN_BYTES=0',
                '-I' + str(ROOT / 'lib'), '-I' + str(ROOT / 'lib/third_party/eigen-3.4.0'),
                '-I' + str(ROOT / 'app/jelly_sentry'), str(TASK / 'yaw_test.cpp'),
-               *[str(ROOT / unit) for unit in ['app/jelly_sentry/gimbal_fold.cpp', 'lib/motor/motor.cpp', 'lib/pid/pid.cpp']],
+               *[str(ROOT / unit) for unit in ['lib/robot/gimbal_fold.cpp', 'lib/motor/motor.cpp', 'lib/pid/pid.cpp']],
                '-o', str(exe)]
     subprocess.run(command, cwd=ROOT, env=env, check=True)
     result = subprocess.run([str(exe)], cwd=ROOT, capture_output=True, text=True)

@@ -1,15 +1,16 @@
 #include "bsp/monitor.hpp"
-#include "math/angle.hpp"
 #include "motor/m3508.hpp"
 #include "pid/pid.hpp"
-#include "rc/fsi6x.hpp"
 #include "rc/vt13.hpp"
+#include "referee/referee_sender.hpp"
+#include <algorithm>
+#include <cmath>
 
 static constexpr float MAX_SPEED = 60 * rpm;
-static float speed_ref;
+static constexpr float SPEED_TOLERANCE = 5 * rpm;
+static constexpr float MOTOR_OVERHEAT = 80;
 
 static VT13 vt13({.uart = Uart(6)});
-static FSi6X fsi6x({.uart = Uart(3)});
 
 static M3508 motor({
     .can = Can(1),
@@ -25,35 +26,54 @@ static Pid::Config speed_pid_config = {
     .max_out = M3508::MAX_CURRENT,
 };
 
+// 观察量：转速目标，rad/s
+static float speed_ref = 0;
+static volatile RefereeSender::Color motor_status_color = RefereeSender::WHITE;
+
 static Pid speed_pid(&speed_pid_config);
+static Timer update_timer;
 
 static void setup() {}
 
+static void send() {
+    CanFrame frame{.id = 0x200, .size = 8};
+    motor.write_can_frame(frame);
+    Can(1).send(frame);
+}
+
 static void loop() {
-    static Timer loop_timer;
-    const float dt = loop_timer.restart();
+    const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
 
     vt13.update();
-    fsi6x.update();
     motor.update();
 
-    const bool is_enable = fsi6x.swa == FSi6X::DOWN || vt13.mode == VT13::N || vt13.mode == VT13::S;
-    motor.set_enable(is_enable);
-
-    if (is_enable) {
-        speed_ref = MAX_SPEED * (vt13.x + fsi6x.x);
-        const float current = speed_pid.calculate(dt, speed_ref - motor.speed);
-        motor.set_current(current);
+    // VT13 N、S 挡使能，摇杆 rc.x 控制转速
+    motor.set_enable(vt13.is_enable);
+    if (vt13.is_enable) {
+        speed_ref = MAX_SPEED * vt13.rc.x;
+        motor.set_current(speed_pid.calculate(dt, speed_ref - motor.speed));
     } else {
+        speed_ref = 0;
         speed_pid.clear();
         motor.set_current(0);
     }
 
-    // 发送 CAN 命令
-    CanFrame frame{.id = 0x200, .size = 8};
-    motor.write_can_frame(frame);
-    Can(1).send(frame);
-    // motor.send();
+    switch (motor.status(MOTOR_OVERHEAT, speed_ref != 0)) {
+    case Motor::Status::OFFLINE:
+        motor_status_color = RefereeSender::PINK;
+        break;
+    case Motor::Status::DISABLED:
+        motor_status_color = RefereeSender::WHITE;
+        break;
+    case Motor::Status::OVERHEAT:
+        motor_status_color = RefereeSender::ORANGE;
+        break;
+    case Motor::Status::NORMAL:
+        motor_status_color = std::fabs(speed_ref - motor.speed) > SPEED_TOLERANCE ? RefereeSender::CYAN : RefereeSender::GREEN;
+        break;
+    }
+
+    send();
 }
 
 extern "C" void app_main() {

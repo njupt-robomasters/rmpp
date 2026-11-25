@@ -1,5 +1,5 @@
 // 编译真实云台、Motor、PID，仅模拟时钟和 CAN 电机反馈
-#include "robot/gimbal/gimbal_classic.hpp"
+#include "robot/gimbal_classic.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -47,7 +47,8 @@ struct Fixture {
     TestMotor yaw, pitch;
     GimbalClassic gimbal;
 
-    Fixture(const bool use_angle_loop, const bool is_torque = true, const bool is_invert = false,
+    // angle_loop 为 false 时角度 PID 的比例增益置 0，等效只有速度内环
+    Fixture(const bool angle_loop, const bool is_torque = true, const bool is_invert = false,
             const float pitch_min = -0.3f, const float pitch_max = 0.5f)
         : yaw(false),
           pitch(is_torque, is_invert),
@@ -56,8 +57,8 @@ struct Fixture {
                                 .pitch_speed_pid_config = &speed_pid,
                                 .pitch_angle_pid_config = &angle_pid,
                                 .pitch_min = pitch_min,
-                                .pitch_max = pitch_max,
-                                .use_angle_loop = use_angle_loop}) {
+                                .pitch_max = pitch_max}) {
+        angle_pid.kp = angle_loop ? 1.0f : 0.0f;
         gimbal.set_enable(true);
     }
 
@@ -95,8 +96,9 @@ static void test_speed_feedback() {
         check(f.gimbal.pitch.speed_ref, -0.2f, "pitch speed command on motor axis");
         check(f.yaw.current_ref, 0.7f - 0.3f, "yaw error preserves absolute speed command");
         check(f.pitch.torque_ref, -0.35f, "pitch IMU feedback");
-        check(f.gimbal.yaw.angle_ref, f.gimbal.yaw.angle_measure, "speed mode yaw target follows measure");
-        check(f.gimbal.pitch.angle_ref, f.gimbal.pitch.angle_measure, "speed mode pitch target follows measure");
+        // 角度 PID 比例增益为 0：外环目标仍积分，修正为零，等效速度内环
+        check(f.gimbal.yaw.speed_ref - f.gimbal.yaw.speed_measure, 0.7f - 0.3f, "speed mode yaw error unchanged");
+        check(f.gimbal.pitch.speed_ref - f.gimbal.pitch.speed_measure, -0.35f, "speed mode pitch error unchanged");
     }
     f.gimbal.set_angle(1.5f, 1.2f);
     f.step();

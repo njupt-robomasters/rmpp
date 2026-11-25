@@ -8,6 +8,12 @@
 
 长期结论已写入 `agents/docs/bsp.md`、`architecture.md`、`imu.md`、`build.md`、`music.md`
 
+## Horco 探针与两路电机掉线：对方实测（2026-11-21）
+
+- **探针连接**：Joushua233 使用的 Horco CMSIS-DAP v2 同时提供 WinUSB 和 HID。默认后端读取芯片信息时报 `CMSIS-DAP CMD_INFO failed`，重插后仍复现；显式选择 HID 后，成功只读识别 STM32H7。本目录保留其 `cmsis-dap-hid.cfg` 供同型号探针选用，各工作区原有 OpenOCD 配置保持不变。
+- **掉线证据**：机构上下活动时，第一轮两路 DM4310 同时离线约 15 秒后一起恢复，EL05 持续在线，CAN2 未记录 bus-off；第二轮两路 DM4310 同步恢复，同一总线上的 EL05 在全部 400 个采样点都有新反馈。优先检查两路 DM4310 共用的活动线束、接头及供电；具体故障点仍待实测。
+- **原始记录**：`Joushua233/rmpp@0bdfd7b` 的 `agents/tasks/17-probe_connection/README.md` 和 `agents/tasks/01-mc02_bsp/README.md`。上述结果来自对方设备，本次合入未连接硬件。
+
 ## 复现构建
 
 CLion 自带工具未加入 PATH 时：
@@ -90,19 +96,19 @@ done
 - 两份本地 PDF 均未找到“回复上限 500 Hz”的明确条款；此前 2 ms 建议不能在本次分析中当作已核实厂家硬上限
 - 建议验证：固定全部发送参数，仅切换 0x20/0x26 或 0x40/0x50；保存各 10 秒带时间戳 trace，比较命令数、应答数、间隔分布与错误帧；按 DATA[0] 区分同 ID 下不同回复。用户决定是否在静止台架执行一次滤波器设置并复测，不周期写 FLASH
 - 后续判据：请求仍稳定但应答减少/停顿，支持电机接收处理、应答发送或链路错误方向；请求本身同时拉长则先查 PCAN 实际发送与总线访问。若合并两种回复每 2 ms 一帧，单种回复正常应约每 4 ms 一帧，不把不同命令混合统计判成单命令漏答
-- 本轮只读资料和代码、记录分析；未修改工程代码、连接或操作电机。PDF 渲染核对图放在本任务 agents/out/01-mc02_bsp/，未进行硬件验证，根因未确认
+- 本轮只读资料和代码、记录分析；未修改工程代码、连接或操作电机。PDF 渲染核对图放在`agents/out/01-mc02_bsp/`，未进行硬件验证，根因未确认
 
 ### 电机总线调整（2026-11-15）
 
 - 按用户要求把小 yaw 7025 从 CAN2 移到 CAN3，两个 P630 摩擦轮从 CAN3 移到 CAN2，共用实例使相关调试入口同步生效
 - 保留 7025 标准帧 0x141/0x241、P630 VESC 扩展帧节点 0x21/0x22，以及原参数、发送周期与发送注释开关；EL05 和两路 pitch 仍在 CAN2
 - 整车与 gimbal、gimbal_motor、shooter、shooter_rub、shooter_shoot 五个调试入口的 rmpp_app 局部编译通过，零警告；imu_calib 检查无须重编译
-- 格式检查覆盖修改代码与注释；日志见 agents/out/01-mc02_bsp/*_can_swap.log。未完整链接、烧录或硬件操作
+- 格式检查覆盖修改代码与注释；日志见 out/*_can_swap.log。未完整链接、烧录或硬件操作
 
 ### 大小 yaw 同步震荡只读诊断（2026-11-16）
 
 - 使用 EmberProbe 现有采样连接，ELF 为 `build/jelly_sentry/rmpp.elf`，SHA-256 `03734b37577385611fad9d6c099f11c5317132f67eece5b07f072ed4fff828a1`，Bridge 报告与最后烧录记录匹配；未执行 Flash 比对、halt、复位或变量写入
-- 采集 200 点、50 ms 间隔，实际跨度 9.989 s；数据见 `agents/out/01-mc02_bsp/yaw_oscillation_20261116.csv`。采样期间两台 yaw 持续在线且使能，IMU_MODE；航向目标固定 0.109864 rad，速度输入 0
+- 采集 200 点、50 ms 间隔，实际跨度 9.989 s；数据见 `out/yaw_oscillation_20261116.csv`。采样期间两台 yaw 持续在线且使能，IMU_MODE；航向目标固定 0.109864 rad，速度输入 0
 - 大 yaw 实测范围 2.123~2.564 rad，小 yaw -0.189~0.205 rad；小 yaw 目标在 ±0.698132 rad 间约每 0.45 s 换向，大 yaw 力矩指令约 ±1.95 Nm。IMU yaw 经圆周差分后与编码器合成角变化率相关系数 -0.9993；各电机位置差分与自身速度相关系数分别 +0.9960、+0.9938
 - 判断：IMU 航向与两电机合成角的正方向相反，IMU 位置外环形成正反馈，误差绕过 ±π 时改变最短旋转方向，带动两电机同步往返；需要先统一方向，再评价 PID 参数
 - 诊断时实时方向为 yaw1=false、yaw2=true，offset 分别 0.332255、5.319590 rad；用户随后确认修改，已将源码方向设为 yaw1=true、yaw2=false，与 IMU 航向统一，保留原始零点与大 yaw 的 KvStore 加载逻辑；待更新固件后人工低输出测试
@@ -160,6 +166,16 @@ agents/out/01-mc02_bsp/el05_protocol_test.exe
 - 标量采样归档out/el05_no_turn_20261119.csv；已请求用户确认上位机是否断开，并在可运行时保持S挡、扳机与左摇杆以继续定位。该操作状态尚未获得回复
 - 最后一次采样OpenOCD启动失败；查询sampling_status为stopped后重试一次variables_read仍返回OPENOCD_START_FAILED，USB枚举仍能看到Horco CMSIS-DAP v2序列号d8cd1ad9。停止重复连接，待恢复探针/目标连接再核对持杆状态。本轮未改工程代码、烧录、复位、halt或改写内存/寄存器
 
+### USB-CAN 断开后的持杆与C挡对照（2026-11-19）
+
+- 用户确认USB-CAN已断开，并保持S挡、扳机及左摇杆；Ember重新读取成功，所选ELF与上节同一SHA，Bridge仍报告匹配。期间未执行复位；新读数中的系统累计周期比上节小，只按当前每段数据分析
+- S挡30点/100 ms采样：trigger持续1，pitch达到+1及-1，bullet_freq.ref达到+20及-20，机构/电机使能为1，heat_protect=0；EL05全程is_connect=0、state=STOP、torque_ref=0。有效反馈计时固定10774699819，使能刷新计时持续更新。已定位直接停转条件为有效反馈超时触发机构STOP与驱动零力矩保护
+- 同轮单次读数两路pitch在线、反馈时间持续推进；CAN2状态BUSY，HAL ErrorCode=0，bus_off_count=0，AutoRetransmission=0。当前源码同时启用pitch1 250 Hz、pitch2 1000 Hz、rub1/rub2各1000 Hz、EL05 500 Hz请求
+- 用户随后切C挡，30点采样仍为EL05离线、两路pitch在线；EL05最后反馈时间已更新到64739511907、mode=Motor(2)、fault=0，随后整段不再更新。EL05应答呈间歇状态，C挡本轮未稳定恢复
+- 优先待验证方向：关闭自动重发时仲裁丢失可取消EL05请求或使能帧。Bosch M_CAN User Manual v3.3.1第3.1.7节说明DAR下仲裁失败/发送错误后取消发送：https://www.bosch-semiconductors.com/media/ip_modules/pdf_2/m_can/mcan_users_manual_v331.pdf 。现有HAL错误码和bus-off计数不覆盖该类仲裁取消；尚未读取TXBTO/TXBCF或取得总线trace，根因保留待验证
+- 进一步寄存器只读诊断需在Ember绑定匹配SVD，当前svd为空，未调用寄存器读写、修改配置或绕过工具。对照可由用户在CubeMX启用FDCAN2 Auto Retransmission并生成、更新固件后进行；.ioc及生成代码保持由用户操作
+- 采样归档out/el05_held_and_C_20261119.csv。本轮仅只读诊断与记录，未改工程代码、烧录、复位、halt或改写运行参数；现有共享采样状态未主动改变
+
 ### pitch 上下摆动时两路 DM4310 同步断联（2026-11-21）
 
 - 用户要求只读诊断，确认现象在上下摇动 pitch 时出现；采样期间未断电或拔线
@@ -171,13 +187,3 @@ agents/out/01-mc02_bsp/el05_protocol_test.exe
 - 第三轮计划读取周期使能时间等发送侧证据，完成 257/400 点后报 OPENOCD_TCL_ERROR，scatter memory read failed (-400)，retryable=false；响应未提供这 257 点，未纳入结论。随后确认采样 stopped、调试 none，未自动重试
 - 原始两轮 CSV 和统计归档 agents/out/01-mc02_bsp/pitch_disconnect_20261121_1.csv、_2.csv、_summary.json。本轮未修改固件、运行变量、寄存器、SVD 或共享观察列表，未烧录、复位、halt
 - 后续核实：安全失能后检查活动线束与端子；由用户量测两路 pitch 电源输入电压，并在故障时抓 CAN2 控制帧 0x10/0x11、反馈帧 0x20/0x21，区分供电、支线与发送/反馈协议路径
-
-### USB-CAN 断开后的持杆与C挡对照（2026-11-19）
-
-- 用户确认USB-CAN已断开，并保持S挡、扳机及左摇杆；Ember重新读取成功，所选ELF与上节同一SHA，Bridge仍报告匹配。期间未执行复位；新读数中的系统累计周期比上节小，只按当前每段数据分析
-- S挡30点/100 ms采样：trigger持续1，pitch达到+1及-1，bullet_freq.ref达到+20及-20，机构/电机使能为1，heat_protect=0；EL05全程is_connect=0、state=STOP、torque_ref=0。有效反馈计时固定10774699819，使能刷新计时持续更新。已定位直接停转条件为有效反馈超时触发机构STOP与驱动零力矩保护
-- 同轮单次读数两路pitch在线、反馈时间持续推进；CAN2状态BUSY，HAL ErrorCode=0，bus_off_count=0，AutoRetransmission=0。当前源码同时启用pitch1 250 Hz、pitch2 1000 Hz、rub1/rub2各1000 Hz、EL05 500 Hz请求
-- 用户随后切C挡，30点采样仍为EL05离线、两路pitch在线；EL05最后反馈时间已更新到64739511907、mode=Motor(2)、fault=0，随后整段不再更新。EL05应答呈间歇状态，C挡本轮未稳定恢复
-- 优先待验证方向：关闭自动重发时仲裁丢失可取消EL05请求或使能帧。Bosch M_CAN User Manual v3.3.1第3.1.7节说明DAR下仲裁失败/发送错误后取消发送：https://www.bosch-semiconductors.com/media/ip_modules/pdf_2/m_can/mcan_users_manual_v331.pdf 。现有HAL错误码和bus-off计数不覆盖该类仲裁取消；尚未读取TXBTO/TXBCF或取得总线trace，根因保留待验证
-- 进一步寄存器只读诊断需在Ember绑定匹配SVD，当前svd为空，未调用寄存器读写、修改配置或绕过工具。对照可由用户在CubeMX启用FDCAN2 Auto Retransmission并生成、更新固件后进行；.ioc及生成代码保持由用户操作
-- 采样归档out/el05_held_and_C_20261119.csv。本轮仅只读诊断与记录，未改工程代码、烧录、复位、halt或改写运行参数；现有共享采样状态未主动改变

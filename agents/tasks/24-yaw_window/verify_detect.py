@@ -5,7 +5,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
-OUT = Path(__file__).resolve().parents[2] / "out/24-yaw_window"
+OUT = ROOT / "agents/out/24-yaw_window"
 
 
 def main():
@@ -17,7 +17,7 @@ def main():
                "-Wno-unknown-pragmas", "-Wno-deprecated-declarations",
                "-DEIGEN_DONT_VECTORIZE", "-DEIGEN_MAX_ALIGN_BYTES=0",
                "-Ilib", "-Ilib/third_party/eigen-3.4.0", "-Iapp/jelly_sentry",
-               str(TASK / "detect_test.cpp"), "app/jelly_sentry/gimbal_fold.cpp",
+               str(TASK / "detect_test.cpp"), "lib/robot/gimbal_fold.cpp",
                "lib/motor/motor.cpp", "lib/pid/pid.cpp", "-o", str(exe)]
     subprocess.run(command, cwd=ROOT, env=env, check=True)
     result = subprocess.run([str(exe)], cwd=ROOT, capture_output=True, text=True)

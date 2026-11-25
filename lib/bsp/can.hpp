@@ -20,7 +20,8 @@ class Can {
 
   public:
     // 编号不存在时各操作静默返回
-    constexpr explicit Can(const int id) : id(id) {}
+    constexpr explicit Can(const int id)
+        : id(id) {}
 
     // 硬件邮箱或发送队列有空位
     bool can_send() const;

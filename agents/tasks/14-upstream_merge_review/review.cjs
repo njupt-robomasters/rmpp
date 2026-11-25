@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const root = path.resolve(__dirname, '../../..');
-const out = path.join(__dirname, '../../out', path.basename(__dirname));
+const out = path.join(__dirname, '../../out/14-upstream_merge_review');
 const repo = path.join(out, 'review.git');
 fs.mkdirSync(out, { recursive: true });
 

@@ -1,20 +1,22 @@
 #include "chassis.hpp"
-#include "../leg_protocol.hpp"
 #include "app.hpp"
 
+static constexpr float MOTOR_OVERHEAT = 80; // 电机温度报警阈值，℃
+
+using enum LegDownFrame::MotorState;
+
+static LegDownFrame::MotorState joint_state(const DM8009& motor);
+static LegDownFrame::MotorState wheel_state(const M3508& motor);
+
 // 上板指令，在 CAN 中断内解码
-static LegUpFrame up;
-static bool up_is_connect = false;
-static Timer callback_timer;
 
 static void control_by_up() {
-    chassis.set_enable(up.is_enable);
-    chassis.set_allow_rescue(up.allow_rescue);
-    chassis.set_trigger_jump(up.trigger_jump);
-    chassis.set_speed(up.vx, up.wr);
-    chassis.set_gimbal_yaw(up.yaw);
-    chassis.set_leg_length(up.leg_length);
-    chassis.set_power_ref(up.power_ref);
+    chassis.set_enable(leg_protocol.received.is_enable);
+    chassis.set_allow_rescue(true);
+    chassis.set_trigger_jump(leg_protocol.received.trigger_jump);
+    chassis.set_speed(leg_protocol.received.vx, leg_protocol.received.wr);
+    chassis.set_gimbal_yaw(leg_protocol.received.yaw);
+    chassis.set_leg_length(leg_protocol.received.leg_length);
 }
 
 static void control_by_fsi6x() {
@@ -31,37 +33,48 @@ static void control_by_fsi6x() {
         chassis.set_leg_length(0.22f);
     else if (fsi6x.swc == FSi6X::DOWN)
         chassis.set_leg_length(0.33f);
-
-    chassis.set_power_ref(INFINITY);
 }
 
 void chassis_loop() {
-    // 上板在线时由上板控制，断联时回退 FSi6X
-    if (callback_timer.elapsed() > LEG_TIMEOUT)
-        up_is_connect = false;
+    // 上板断联清空指令，使底盘失能
+    leg_protocol.update();
 
-    if (up_is_connect) {
-        control_by_up();
-    } else {
+    // FSi6X 在线时优先接管，避免上板协议错误导致误动作；否则按上板指令
+    if (fsi6x.is_connect)
         control_by_fsi6x();
-    }
+    else
+        control_by_up();
 
     // 姿态来自本板 IMU；换用虚拟 IMU 时传入换算后的底盘 q 与 gyro
     chassis.update(attitude.q, imu.gyro);
+
+    leg_protocol.is_fallen = chassis.rescue.is_fallen;
+    leg_protocol.is_enable = chassis.is_enable;
+    leg_protocol.wr = chassis.body.d_yaw_gyro;
+    leg_protocol.motor[0] = joint_state(left_front);
+    leg_protocol.motor[1] = joint_state(left_back);
+    leg_protocol.motor[2] = joint_state(right_back);
+    leg_protocol.motor[3] = joint_state(right_front);
+    leg_protocol.motor[4] = wheel_state(left_wheel);
+    leg_protocol.motor[5] = wheel_state(right_wheel);
 }
 
-void chassis_write_can_frame(CanFrame& frame) {
-    const LegDownFrame down{
-        .is_fallen = chassis.rescue.is_fallen,
-        .wr = chassis.body.d_yaw_gyro,
-    };
-    down.pack(frame);
+// 关节状态：反馈超时优先，其次达妙错误码与过热
+static LegDownFrame::MotorState joint_state(const DM8009& motor) {
+    if (!motor.is_connect)
+        return OFFLINE;
+    if (motor.err_code != DM8009::NONE && motor.err_code != DM8009::ENABLED)
+        return ERROR;
+    if (motor.temperature >= MOTOR_OVERHEAT)
+        return OVERHEAT;
+    return NORMAL;
 }
 
-void chassis_can_callback(const CanFrame& frame) {
-    if (!up.unpack(frame))
-        return;
-
-    callback_timer.restart();
-    up_is_connect = true;
+// 轮状态：反馈超时与过热
+static LegDownFrame::MotorState wheel_state(const M3508& motor) {
+    if (!motor.is_connect)
+        return OFFLINE;
+    if (motor.temperature >= MOTOR_OVERHEAT)
+        return OVERHEAT;
+    return NORMAL;
 }

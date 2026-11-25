@@ -42,7 +42,7 @@ cmake --build build/dummy --parallel 8
 
 - 用户授权烧录当前 dummy；`cmake --build build/dummy --parallel 8` 返回无待构建项。OpenOCD 烧录、校验成功并复位运行，此后只读采样，未暂停 MCU
 - `capture_follow_pid.py` 使用 OpenOCD TCL 6666 端口读取 SRAM；先逐段比对 Flash 与当前 ELF。变量地址来自本次 `build/dummy/rmpp.elf`，更换固件后须重新核对
-- 原始数据及分析输出：`agents/out/05-dummy_target/follow_pid/20261111_180613.csv`、同名 `.json`、`.analysis.json` 和 `.png`；输出不入库
+- 原始数据及分析输出：`out/follow_pid/20261111_180613.csv`、同名 `.json`、`.analysis.json` 和 `.png`；输出不入库
 - 第一轮 `mode=DETACH_MODE`，follow PID 无输出；按 SWA 下、SWB 下、SWD 非下重新操作后捕获到微分尖峰
 - 实际参数 `kp=10`、`ki=0`、`kd=2`、`max_out=6.2831855 rad/s`，`err_fc=d_fc=0`
 - `gimbal_loop()` 每至少 5 ms 发送一次；`RMDL7025::send()` 交替发送 0xA1 与 0x94。0xA1 更新电流/速度，0x94 更新角度，两种回复都调用公共回调。因此回调间隔约 5～6 ms，角度更新约 10～12 ms

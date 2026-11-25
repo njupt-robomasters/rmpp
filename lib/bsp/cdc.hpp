@@ -15,7 +15,8 @@ class Cdc {
 
   public:
     // 编号不存在时各操作静默返回
-    constexpr explicit Cdc(const int id) : id(id) {}
+    constexpr explicit Cdc(const int id)
+        : id(id) {}
 
     // 复制到端口发送缓冲区；size 为 1–2048，未枚举或上次发送未完成时丢弃
     void send(const uint8_t* data, std::size_t size) const;

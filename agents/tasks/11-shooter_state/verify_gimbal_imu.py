@@ -8,7 +8,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
-OUT = Path(__file__).resolve().parents[2] / "out/11-shooter_state/gimbal_imu"
+OUT = ROOT / "agents/out/11-shooter_state/gimbal_imu"
 
 
 def main():
@@ -23,7 +23,7 @@ def main():
         "-I" + str(ROOT / "lib"), "-I" + str(ROOT / "lib/third_party/eigen-3.4.0"),
         str(TASK / "gimbal_imu_test.cpp"),
         *[str(ROOT / "lib" / source) for source in [
-            "robot/gimbal/gimbal_classic.cpp", "motor/motor.cpp", "pid/pid.cpp",
+            "robot/gimbal_classic.cpp", "motor/motor.cpp", "pid/pid.cpp",
         ]], "-o", str(executable),
     ], check=True)
     subprocess.run([str(executable)], check=True)
@@ -34,7 +34,7 @@ def main():
         rows = json.loads((ROOT / "build" / name / "compile_commands.json").read_text())
         selected = [row for row in rows if "/app/" in row["file"].replace("\\", "/")]
         if name == "leg-leg_up":
-            selected += [row for row in rows if row["file"].endswith("/lib/robot/gimbal/gimbal_classic.cpp")]
+            selected += [row for row in rows if row["file"].endswith("/lib/robot/gimbal_classic.cpp")]
         for row in selected:
             source = Path(row["file"]).relative_to(ROOT).as_posix()
             output = OUT / (name + "_" + source.replace("/", "_") + ".obj")

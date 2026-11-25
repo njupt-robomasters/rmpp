@@ -10,7 +10,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
-OUT = Path(__file__).resolve().parents[2] / "out/15-minipc_nav"
+OUT = ROOT / "agents/out/15-minipc_nav"
 
 
 def main():
@@ -18,7 +18,7 @@ def main():
     parser.add_argument("--arm", action="store_true")
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
-    compiler = ROOT / "agents/.tools/ziglang/zig.exe"
+    compiler = OUT / "tools/ziglang/zig.exe"
     env = {**os.environ, "ZIG_GLOBAL_CACHE_DIR": str(OUT / "zig_cache"),
            "ZIG_LOCAL_CACHE_DIR": str(OUT / "zig_local_cache")}
     common = [str(compiler), "c++", "-std=c++23", "-O1", "-Wall", "-Wextra",
@@ -29,8 +29,10 @@ def main():
               "-I" + str(ROOT / "app/jelly_sentry")]
     shutil.copyfile(ROOT / "app/jelly_sentry/chassis.cpp", OUT / "chassis.cpp")
     shutil.copyfile(TASK / "chassis_app.hpp", OUT / "app.hpp")
+    for header in ["chassis.hpp", "gimbal.hpp"]:
+        (OUT / header).write_text('#include "app.hpp"\n', encoding="utf-8")
     cases = {
-        "nav_test": [ROOT / "app/jelly_sentry/gimbal_fold.cpp",
+        "nav_test": [ROOT / "lib/robot/gimbal_fold.cpp",
                      ROOT / "lib/motor/motor.cpp", ROOT / "lib/pid/pid.cpp"],
         "chassis_test": [],
     }

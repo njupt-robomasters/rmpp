@@ -1,27 +1,41 @@
 #pragma once
 
-#include "chassis.hpp"
-#include "gimbal.hpp"
-#include "math/unit.hpp"
-#include "misc.hpp"
-#include "shooter.hpp"
+#include "bsp/kv_store.hpp"
+#include "melody/melody.hpp"
+#include "minipc.hpp"
+#include "rc/vt13.hpp"
+#include "referee.hpp"
 
-// 遥控器使能：VT13 N、S 挡，或 FSi6X SWC 中、下挡；断联时不使能
-inline bool rc_enable() {
-    return (vt13.is_connect && (vt13.mode == VT13::N || vt13.mode == VT13::S)) ||
-           (fsi6x.is_connect && (fsi6x.swc == FSi6X::MID || fsi6x.swc == FSi6X::DOWN));
-}
+// 板载蜂鸣器
+inline Melody melody({});
 
-// fn 开关：FSi6X 优先取 SWA 下；VT13 在 N、S 挡时 fn 键置位、pause 键清除
+// 持久化参数（W25Q64），当前只保存大 yaw 零位 yaw_offset
+inline KvStore kv_store("jelly_sentry");
+
+// 遥控器：VT13 图传接 USART1（921600）
+// 平移 100W 下 2.3m/s、不限功率 3.2m/s，旋转 100W 下 107rpm、不限功率 155rpm；步兵身份下 C、Z 键调节最高弹频
+inline VT13 vt13({
+    .uart = Uart(1),
+    .vxy_max = 5.0f,
+    .axy = 100.0f,
+    .dxy = 100.0f,
+    .wr_max = 120 * rpm,
+    .ar = 1000 * rpm,
+    .dr = 1000 * rpm,
+    .yaw_speed_max = 360 * deg_s,
+    .pitch_speed_max = 360 * deg_s,
+    .bullet_speed = 5.0f,
+    .bullet_freq = 20.0f,
+});
+
+// fn 开关：VT13 在 N、S 挡时 fn 键置位、pause 键清除，失能或断联时清除
 // 底盘、云台、发射共用同一锁存状态，同一周期内重复调用结果不变
 inline bool rc_fn() {
     static bool is_fn = false;
-    if (fsi6x.is_connect) {
-        is_fn = fsi6x.swa == FSi6X::DOWN;
-    } else if (vt13.is_connect && (vt13.mode == VT13::N || vt13.mode == VT13::S)) {
-        if (vt13.fn)
+    if (vt13.is_enable) {
+        if (vt13.rc.fn)
             is_fn = true;
-        if (vt13.pause)
+        if (vt13.rc.pause)
             is_fn = false;
     } else {
         is_fn = false;
@@ -29,26 +43,22 @@ inline bool rc_fn() {
     return is_fn;
 }
 
-// 裁判系统识别为哨兵（红 7、蓝 107）
-inline bool referee_is_sentry() {
-    return referee.robot_status.robot_id == 7 || referee.robot_status.robot_id == 107;
-}
-
-// 比赛中且本机为哨兵
+// 比赛中且裁判系统识别为哨兵（红 7、蓝 107）
 inline bool sentry_in_game() {
-    return referee.game_status.game_progress == Referee::GAMING && referee_is_sentry();
+    const auto id = referee.robot_status.robot_id;
+    return referee.game_status.game_progress == Referee::GAMING && (id == 7 || id == 107);
 }
 
-// 自主模式：比赛中，或按下 fn 测试
+// 自主控制：比赛中，或按下 fn 测试；否则由 VT13 控制
 inline bool sentry_active() {
     return sentry_in_game() || rc_fn();
 }
 
-// 在线 VT13 的 C 挡优先失能；自检、倒计时和比赛中遥控器断联也保持使能
+// 整车使能：在线 VT13 的 C 挡优先失能，断联时挡位为 ERR；自检、倒计时和比赛中遥控器断联也保持使能
 inline bool sentry_enable() {
-    if (vt13.is_connect && vt13.mode == VT13::C)
+    if (vt13.rc.mode == VT13::C)
         return false;
 
     const auto progress = referee.game_status.game_progress;
-    return rc_enable() || progress == Referee::REFEREE_SELF_CHECK || progress == Referee::COUNTDOWN_5SEC || progress == Referee::GAMING;
+    return vt13.is_enable || progress == Referee::REFEREE_SELF_CHECK || progress == Referee::COUNTDOWN_5SEC || progress == Referee::GAMING;
 }

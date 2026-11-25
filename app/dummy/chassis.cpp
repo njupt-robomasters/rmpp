@@ -5,10 +5,8 @@
 
 // 操控参数
 static constexpr float VXY_MAX = 3.0f;     // 平移最大速度，m/s
-static constexpr float FSI6X_WR_MAX = 150 * rpm; // 手动旋转最大角速度
+static constexpr float WR_MAX = 150 * rpm; // 手动旋转最大角速度
 static constexpr float SPIN_WR = 60 * rpm; // 小陀螺角速度
-
-static uint32_t super_cap_send_count = 0; // 超电发送分频计数
 
 void chassis_loop() {
     const bool is_enable = fsi6x.swa == FSi6X::DOWN; // SWA 下挡使能
@@ -23,7 +21,7 @@ void chassis_loop() {
         if (is_spin)
             wr = SPIN_WR;
         else if (!is_follow)
-            wr = fsi6x.yaw * FSI6X_WR_MAX;
+            wr = fsi6x.yaw * WR_MAX;
     }
 
     // 底盘控制：小陀螺或跟随时以云台为前方，小陀螺角速度优先于跟随；云台离线时不跟随，以底盘原始前方
@@ -49,17 +47,4 @@ void chassis_loop() {
     // 底盘功率目标由超电给出
     chassis.set_power_ref(super_cap.power_chassis_ref);
     chassis.update();
-
-    // CAN1 0x200 组帧发送
-    CanFrame frame{.id = 0x200, .size = 8};
-    w1.write_can_frame(frame);
-    w2.write_can_frame(frame);
-    w3.write_can_frame(frame);
-    w4.write_can_frame(frame);
-    Can(1).send(frame);
-
-    // 超电 100 Hz 发送
-    if (super_cap_send_count++ % 10 == 0) {
-        super_cap.send();
-    }
 }
