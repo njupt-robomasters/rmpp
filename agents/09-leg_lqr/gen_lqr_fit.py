@@ -2,6 +2,8 @@
 
 LQR（Q_INT_S=0）：10 状态，增益矩阵 [4×10]，poly22 拟合为 [4][10][6]
 LQI（Q_INT_S>0）：增广 ∫s 第 11 状态，增益矩阵 [4×11]，拟合为 [4][11][6]，第 11 列为 K_∫s
+功率分配：锁定轮力矩，两腿角及角速度、俯仰及角速度六状态子系统用原 Q/R 求 LQR，
+取两腿对俯仰角速度的增益拟合为 [2][6]；同时写出 R 对角，供 ChassisLeg 在控制拍内求轮缺口的腿部映射
 
 与 Leg_Lqr__4.m 第 3 步相同：腿长表两两组合求 K，对每个 K_ij 做 poly22 最小二乘拟合
 用法：python gen_lqr_fit.py [输出路径]
@@ -42,6 +44,21 @@ def fit():
     return P, err
 
 
+def fit_posture():
+    """只用两腿稳姿态时两腿对俯仰角速度的增益，poly22 拟合为 [2][6]"""
+    X, Y = [], []
+    for ll in LEG[:, 0]:
+        for lr in LEG[:, 0]:
+            A, B, _ = model(ll, lr)
+            K = lqr(A[4:, 4:], B[4:, 2:], Q[4:, 4:], R[2:, 2:])
+            X.append([1, ll, lr, ll * ll, ll * lr, lr * lr])
+            Y.append(K[:, 5])
+    X, Y = np.array(X), np.array(Y)
+    P = np.linalg.lstsq(X, Y, rcond=None)[0].T
+    err = np.max(abs(X @ P.T - Y)) / np.max(abs(Y))
+    return P, err
+
+
 def num(v):
     s = f"{v:.6g}"
     if "." not in s and "e" not in s:
@@ -51,6 +68,7 @@ def num(v):
 
 def main():
     P, err = fit()
+    posture, posture_err = fit_posture()
     body = "、".join(f"{k} = {v:g}" for k, v in BODY.items())
     mode = f"LQI Q_∫s={Q_INT_S:g}" if USE_LQI else "LQR"
     state_comment = (
@@ -75,7 +93,20 @@ def main():
         lines += ["    {", f"        // {OUTPUTS[i]}"]
         lines += [f"        {{{', '.join(num(v) for v in P[i, j])}}}," for j in range(N_STATES)]
         lines.append("    },")
-    lines += ["};", ""]
+    lines += [
+        "};",
+        "",
+        "// 两腿稳姿态的俯仰角速度增益拟合系数 [左摆、右摆][项]，N·m/(rad/s)，后摆为正；项序同 LQR_FIT",
+        "// 锁定轮力矩，两腿倾角及角速度、俯仰及角速度六状态子系统按上述 Q、R 子块求 LQR",
+        f"// 拟合最大相对误差 {posture_err:.2%}",
+        "inline constexpr float LQR_POSTURE_FIT[2][6] = {",
+        *(f"    {{{', '.join(num(v) for v in row)}}}," for row in posture),
+        "};",
+        "",
+        "// LQR 出力权重 R 对角：左轮、右轮、左摆、右摆",
+        f"inline constexpr float LQR_R[4] = {{{', '.join(num(r) for r in np.diag(R))}}};",
+        "",
+    ]
     OUT.write_text("\n".join(lines), encoding="utf-8", newline="\n")
 
     np.set_printoptions(precision=4, suppress=True, linewidth=160)

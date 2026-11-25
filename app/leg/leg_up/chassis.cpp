@@ -64,9 +64,10 @@ void chassis_loop() {
     last_x = vt13.key.x;
     last_c = vt13.key.c;
 
-    // 超级电容
+    // 超级电容：按裁判功率上限与缓冲能量折算底盘功率目标，随控制帧下发
     super_cap.set_mode(vt13.is_enable ? SuperCap::BOOST : SuperCap::OFF);
     super_cap.set_referee_limit(referee.robot_status.chassis_power_limit);
     super_cap.set_referee_energy(referee.power_heat_data.buffer_energy);
     super_cap.update();
+    leg_protocol.power_ref = super_cap.power_chassis_ref;
 }

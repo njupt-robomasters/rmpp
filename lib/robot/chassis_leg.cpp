@@ -29,6 +29,10 @@ void ChassisLeg::set_trigger_jump(const bool trigger_jump) {
     this->trigger_jump = trigger_jump;
 }
 
+void ChassisLeg::set_power_ref(const float power_ref) {
+    this->power_ref = power_ref;
+}
+
 void ChassisLeg::set_speed(const float vx, const float wr) {
     this->vx = vx;
     this->wr = wr;
@@ -409,16 +413,15 @@ void ChassisLeg::calc_lqr() {
 
     // 贡献分组：运动四项为位移、前进速度、航向、旋转速度，姿态六项为两腿角及角速度、俯仰及角速度
     // 输出 [0/1] 左/右轮力矩，前进为正；[2/3] 左/右摆动力矩，后摆为正
-    float base[4]{}, motion[4]{};
+    float k[4][10]{}, base[4]{}, motion[4]{};
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 10; j++) {
-            float k = 0;
             for (int n = 0; n < 6; n++)
-                k += config.lqr_fit[i][j][n] * terms[n];
+                k[i][j] += config.lqr_fit[i][j][n] * terms[n];
             if (j < 4)
-                motion[i] += k * err[j];
+                motion[i] += k[i][j] * err[j];
             else
-                base[i] += k * err[j];
+                base[i] += k[i][j] * err[j];
         }
     }
 
@@ -426,7 +429,7 @@ void ChassisLeg::calc_lqr() {
     for (int i = 0; i < 4; i++)
         out[i] = base[i] + motion[i];
 
-    // 跳跃期间关节余量被伸腿力占用，不做分配，由电机自身限幅
+    // 跳跃期间关节余量被伸腿力占用，不做分配与功率修正，由电机自身限幅
     if (!jump.is_active) {
         // 四路额定区间：轮取电机力矩上限；腿摆由两关节平分，当拍轴向力矩先占用各关节余量
         const float wheel_max = motor.left_wheel.config.max_torque;
@@ -449,6 +452,54 @@ void ChassisLeg::calc_lqr() {
             const float base_share = std::max(maximum_share(zero, base, lower, upper), 0.0f);
             for (int i = 0; i < 4; i++)
                 out[i] = base_share * base[i];
+        }
+
+        // 功率：双轮净机械功率 Σ Tw·ω 超过 power_ref 时，把轮力矩投影到功率线上，轮缺口经腿部映射补给两腿
+        // 约束作用于已相加的轮力矩，保留运动项与扶正项的抵消；制动（负功率）与不限功率（INFINITY）直接通过
+        const Vector2f omega(motor.left_wheel.speed, motor.right_wheel.speed);
+        const Vector2f wheel(out[0], out[1]);
+        wheel_power = omega.dot(wheel);
+        const float excess = wheel_power - power_ref;
+        if (excess > 0) {
+            // 腿部映射 M = D·C⁻¹，把轮缺口按俯仰角速度、旋转速度两个反馈方向表达
+            // C：两轮对俯仰角速度、旋转速度的增益；D 第一列把缺少的俯仰阻尼交给两腿稳姿态增益，第二列撤回腿的旋转速度项
+            Matrix2f C, D;
+            for (int i = 0; i < 2; i++) {
+                float posture = 0;
+                for (int n = 0; n < 6; n++)
+                    posture += config.lqr_posture_fit[i][n] * terms[n];
+                C(i, 0) = k[i][9];
+                C(i, 1) = k[i][3];
+                D(i, 0) = posture - k[2 + i][9];
+                D(i, 1) = -k[2 + i][3];
+            }
+            const Matrix2f M = D * C.inverse();
+
+            // 轮缺口 d：四路改动 [-d; M·d] 按 R 加权的平方和最小，H = R轮 + Mᵀ·R腿·M，d 沿 H⁻¹·ω 且恰好消去超出功率
+            Matrix2f H = M.transpose() * Vector2f(config.lqr_r[2], config.lqr_r[3]).asDiagonal() * M;
+            H(0, 0) += config.lqr_r[0];
+            H(1, 1) += config.lqr_r[1];
+            const Vector2f direction = H.inverse() * omega;
+            Vector2f limited = wheel - excess / omega.dot(direction) * direction;
+
+            // 投影越过轮额定区间时，从功率线上同比缩小的可行点 anchor 向投影点截取，最多检查两路
+            const Vector2f anchor = wheel * (power_ref / wheel_power);
+            const Vector2f delta = limited - anchor;
+            float share = 1;
+            for (int i = 0; i < 2; i++) {
+                if (limited[i] < lower[i])
+                    share = std::min(share, (lower[i] - anchor[i]) / delta[i]);
+                else if (limited[i] > upper[i])
+                    share = std::min(share, (upper[i] - anchor[i]) / delta[i]);
+            }
+            limited = anchor + share * delta;
+
+            // 两腿：原指令加 M·最终轮缺口，再限到摆动额定区间；腿顶到上限时优先满足力矩与功率硬约束
+            const Vector2f swing = Vector2f(out[2], out[3]) + M * (wheel - limited);
+            out[0] = limited[0];
+            out[1] = limited[1];
+            out[2] = std::clamp(swing[0], lower[2], upper[2]);
+            out[3] = std::clamp(swing[1], lower[3], upper[3]);
         }
     }
 

@@ -74,6 +74,8 @@ inline ChassisLeg chassis({left_front, left_back, right_back, right_front, left_
                               .leg_angle_pid = &leg_angle_pid,
                               .roll_pid = &roll_pid,
                               .lqr_fit = LQR_FIT,
+                              .lqr_posture_fit = LQR_POSTURE_FIT,
+                              .lqr_r = LQR_R,
                           });
 
 // 上下板 CAN1 经滑环连接，协议见 ../leg_protocol.hpp；接收回调在构造时注册

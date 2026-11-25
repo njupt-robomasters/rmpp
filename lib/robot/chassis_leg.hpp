@@ -7,7 +7,7 @@
 #include "motor/m3508.hpp"
 #include "pid/pid.hpp"
 
-// 双轮腿底盘：五连杆 VMC + LQR 平衡，含跳跃与倒地自救
+// 双轮腿底盘：五连杆 VMC + LQR 平衡，含跳跃与倒地自救；LQR 输出按四路额定力矩与双轮净机械功率分配
 // 坐标：底盘机体系 X 前、Y 左、Z 上；双腿数组 [0] 左、[1] 右
 // 姿态由调用方每周期传入底盘机体的 q 与 gyro，可来自本板 IMU 或云台换算的虚拟 IMU
 class ChassisLeg {
@@ -35,10 +35,12 @@ class ChassisLeg {
         const Pid::Config* roll_pid;       // 横滚 PD：rad → 腿长修正 m；右侧低时输出为负，左腿缩短、右腿伸长
 
         // LQR 增益与目标
-        const float (*lqr_fit)[10][6];  // LQR 增益拟合系数 [4 输出][10 状态][6 项]，项序 1、Ll、Lr、Ll²、Ll·Lr、Lr²
-        float theta_ref = 0.07f;        // 目标腿倾角，rad，后摆为正
-        float x_max = 0.1f;             // 位移积分限幅，m
-        float wheel_work_speed = 65.0f; // 轮子额定转速，rad/s；直行目标上限 = 该值 × 轮半径，边走边转按较快一侧轮缘等比缩小
+        const float (*lqr_fit)[10][6];     // LQR 增益拟合系数 [4 输出][10 状态][6 项]，项序 1、Ll、Lr、Ll²、Ll·Lr、Lr²
+        const float (*lqr_posture_fit)[6]; // 两腿稳姿态的俯仰角速度增益拟合系数 [左摆、右摆][6 项]，项序同 lqr_fit；功率分配用
+        const float* lqr_r;                // LQR 出力权重 R 对角 [左轮、右轮、左摆、右摆]，与 lqr_fit 同一组；功率分配用
+        float theta_ref = 0.07f;           // 目标腿倾角，rad，后摆为正
+        float x_max = 0.1f;                // 位移积分限幅，m
+        float wheel_work_speed = 65.0f;    // 轮子额定转速，rad/s；直行目标上限 = 该值 × 轮半径，边走边转按较快一侧轮缘等比缩小
 
         // 倒地与自救
         float fall_theta_front = -63 * deg; // 相对腿角下限，rad，后摆为正；任一腿超出判定倒地
@@ -68,6 +70,7 @@ class ChassisLeg {
     float vx = 0, wr = 0; // 前向速度 m/s 前进为正；航向角速度目标 rad/s 逆时针为正
     float gimbal_yaw = 0;
     float leg_length;
+    float power_ref = 0; // 双轮净机械功率上限 Σ Tw·ω，W；INFINITY 不限
 
   public:
     // 车体运动：姿态为传入 q 换算的标准 Z-Y-X 欧拉角，角速度取机体系 gyro；前向运动与 d_yaw_wheel 由轮腿运动学得出
@@ -167,6 +170,9 @@ class ChassisLeg {
         float hold_time = 0;    // 阶段 2、3 已保持时间，s
     } jump;
 
+    // 功率：calc_lqr() 计算，跳跃期间不更新
+    float wheel_power = 0; // 额定力矩分配后、功率修正前的双轮净机械功率 Σ Tw·ω，W；超过 power_ref 时修正
+
     // 控制器
     float d_yaw_ref = 0;
     Pid leg_length_pid[2], leg_angle_pid[2], roll_pid;
@@ -198,6 +204,9 @@ class ChassisLeg {
     // 跳跃触发，上升沿且空闲时启动
     void set_trigger_jump(bool trigger_jump);
 
+    // 双轮净机械功率上限 Σ Tw·ω，W；通常取超电 power_chassis_ref，INFINITY 不限；关节功率与铜耗不计
+    void set_power_ref(float power_ref);
+
     // 每个控制周期调用：q 为底盘机体到世界，gyro 为底盘机体系角速度 rad/s
     // 计算并设置全部电机力矩，发送由调用方完成
     void update(const Quaternionf& q, const Vector3f& gyro);
@@ -226,7 +235,7 @@ class ChassisLeg {
     // 按目标腿长和横滚补偿计算双腿轴向力，含重力与弹簧补偿
     void balance_legs(float dt, float length);
 
-    // LQR 平衡：按腿长插值增益，计算轮端力矩 Tw 与摆动力矩 Tt
+    // LQR 平衡：按腿长插值增益，按额定力矩与功率分配后写入轮端力矩 Tw 与摆动力矩 Tt
     void calc_lqr();
 
     // 轴向力在两关节上形成的反向力矩幅值，N·m
