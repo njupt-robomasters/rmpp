@@ -41,7 +41,7 @@
 - `angle_ref/angle_measure`、`speed_ref/speed_measure` 即两级闭环的最终目标与反馈：`speed_ref` = 电机轴绝对速度指令 + 换算后的外环修正，速度误差为 `speed_ref − speed_measure`，保持绝对速度指令与世界角度闭环；底盘旋转由 yaw 速度环自然抵消，不再需要底盘转速前馈
 - pitch 目标限位：外环每周期取 `offset = pitch.angle_measure − motor.pitch.angle`，把编码器限位平移为世界 pitch 范围 `[pitch_min + offset, pitch_max + offset]`，钳制速度积分后的目标，`set_angle()` 的越界目标在下一次 `update()` 同样钳制；目标停在边界后不再累积，避免误差经 `Angle` 回绕后反转到另一侧。目标被钳住且 `pitch_speed` 向外时从 `speed_ref` 撤掉该前馈，否则平衡点会冲出限位约 `pitch_speed / kp`；向内指令保留前馈。底盘倾斜时世界 pitch 与关节角的二阶非线性由每周期刷新的 offset 吸收
 - pitch 输出保护兜底超调：编码器 `<= pitch_min` 时禁止负输出、`>= pitch_max` 时禁止正输出，截断后 `track(0)` 回算积分，保留回程方向；只开速度环时仅有此保护
-- 主机测试与 ARM 对象编译入口见 `agents/tasks/11-shooter_state/verify_gimbal_imu.py`；DualYaw 保持 ECD/IMU 模式
+- 主机测试与 ARM 对象编译入口见 `agents/11-shooter_state/verify_gimbal_imu.py`；DualYaw 保持 ECD/IMU 模式
 
 ## 启动与循环
 
@@ -61,7 +61,7 @@
 - 各模块在同名 `.hpp` 声明、`.cpp` 实现
 - 文件名不加 `_loop` 后缀
 - 配置和实例跟随所属模块
-- leg_down 的 LQR 系数独立放在 `app/leg/leg_down/lqr_fit.hpp`，由 `agents/tasks/09-leg_lqr/gen_lqr_fit.py` 生成；`chassis.hpp` 只引用，当前参数与验证范围见任务 09
+- leg_down 的 LQR 系数独立放在 `app/leg/leg_down/lqr_fit.hpp`，由 `agents/09-leg_lqr/gen_lqr_fit.py` 生成；`chassis.hpp` 只引用，当前参数与验证范围见任务 09
 - 组件可独立使用
 - 整合管理器引用外部实例
 
@@ -104,7 +104,7 @@
 - 裁判连接超时由现有 `Referee` 的 1 s 检测决定，超电转 OFF 后底盘继续使用最后功率上限与缓冲能量；上电未收到裁判时为默认 120 W/60 J，超电 OFF
 - 超电实测功率覆盖范围按实车供电支路核对，四轮模型只估计轮电机功率；UI 的 CAP 弧长和整数百分比均取自 `SuperCap::energy_ratio()`，按（当前电容电压 / 满电电压）² 计算，满电默认 23.85 V，离线显示 0
 - CAP、RPM、BULLET、SHOOT 四段仪表圆弧始终为绿色；整车图中的超电状态框按超电状态着色
-- 实施与验证记录见 `agents/tasks/06-super_cap_capacitance/README.md`，硬件联调由用户审计后决定
+- 实施与验证记录见 `agents/06-super_cap_capacitance/README.md`，硬件联调由用户审计后决定
 
 ## jelly_sentry 双传送带驱动
 
@@ -129,16 +129,16 @@
 - 大 yaw、pitch1、pitch2 经电机原生 `set_output()` 接收 Nm，小 yaw 7025 接收 A；折叠云台保留电机限幅后的 PID 跟踪及重力补偿，独立于上游普通云台的简化策略
 - 底盘由 app 更新超电后传入 `power_chassis_ref`
 - 受击方向显示与实测弹速读取裁判公开只读的 `hurt_data`、`hurt_sequence`（收到 0x0206 递增）、`shoot_data`；受击时按装甲 ID 换算到 IMU 参考系锁存 1 s。两台哨兵与 leg_up 在 `referee_loop()` 直接填写 `ui` 的公开字段，再调用 `ui.update(referee_sender)`
-- 整车图 ADD 时全白，中心弧固定绿色，不再显示裁判断连。槽位按关节命名：`yaw1` 在轮腿上为下板、在双 yaw 哨兵上为大 yaw，`yaw2` 为小 yaw，`pitch1`、`pitch2` 为俯仰关节，未使用的槽位保持白色（steer_sentry 无 `pitch2`）。电机状态由电机对象提供，各车 `referee.cpp` 配置过热阈值（默认 80 ℃）并选色；离线粉、主动失能白、过热橙、达妙错误黄、正常绿。轮腿的 6 个底盘电机状态由下板状态帧回传：`yaw1` 显示下板断联粉、未使能白、倒地青、正常绿，`w1`~`w4` 为左前、左后、右后、右前关节，`s1`、`s2` 为左轮，`s3`、`s4` 为右轮。摩擦轮上排对应左侧、下排对应右侧；图上左列为 1 级、右列为 2 级，单级同侧共用状态。轮腿无自瞄连接源，`aim` 保持白色。超电离线粉、OFF 白、CHARGE 青、BOOST 绿
+- 整车图 ADD 时全白，中心弧固定绿色，不再显示裁判断连。槽位按关节命名：`yaw1` 在轮腿上为下板、在双 yaw 哨兵上为大 yaw，`yaw2` 为小 yaw，`pitch1`、`pitch2` 为俯仰关节，未使用的槽位保持白色（steer_sentry 无 `pitch2`）。电机状态由电机对象提供，各车 `referee.cpp` 配置过热阈值（默认 80 ℃）并选色；离线粉、主动失能白、过热橙、达妙错误黄、正常绿。轮腿的 6 个底盘电机状态由下板状态帧回传：`yaw1` 显示下板断联粉、未使能白、倒地青、正常绿，`w1`~`w4` 为左前、左后、右后、右前关节，`s1`、`s2` 为左轮，`s3`、`s4` 为右轮。摩擦轮上排对应左侧、下排对应右侧；图上左列为 1 级、右列为 2 级，单级同侧共用状态。轮腿 UI 的 `aim` 槽暂保持白色。超电离线粉、OFF 白、CHARGE 青、BOOST 绿
 - 超电处于 BOOST 但电压达到或低于配置的放电补偿截止值时显示青色，高于截止值时显示绿色
 - 独立 `examples-motor` 台架示例通过 SWD 查看 `motor_status_color`：断连粉、失能或零目标白、过热橙；其余状态下转速偏差超过 5 rpm 为青，达标为绿。该观察量不参与电机控制或实车 HUD
 
 ## jelly_sentry 导航与 pitch1
 
-- CDC1 用于 Aim 收发，CDC2 接 Nav 的导航下行帧（`A3`，24 字节）。主循环先执行 `nav.update()`，再执行 `chassis_loop()`
+- CDC1 用于 Aim 收发，CDC2 接 Nav 的导航下行帧（`A3`，24 字节）。主循环通过 `minipc_loop()` 执行 `nav.update()`，再执行 `chassis_loop()`
 - 导航以云台头部为前方；过洞标志为 1 时随 IMU 头、平移照常，为 0 时不随头并使用小陀螺。两种模式都把导航与遥控的平移速度逐轴相加后限幅。导航掉线时退出自动旋转，摇杆仍能控制平移；任一 yaw 反馈离线时停车
 - pitch1 当前全程失能，GimbalFold 的总使能接口和每次 update 固定关闭该轴，清 PID 并写零输出，保留反馈与失能帧发送；其余三轴正常控制
-- 协议、坐标公式、过洞标志和离线处理详见 `minipc.md`；验证见 `../tasks/21-minipc_protocol/README.md`
+- 协议、坐标公式、过洞标志和离线处理详见 `minipc.md`；验证见 `agents/21-minipc_protocol/README.md`
 
 ## jelly_sentry CAN 发送调度
 
@@ -155,6 +155,8 @@
 - 频率是按1ms主循环计算的目标值，真实周期、反馈频率与7025断联是否改善仍需上板测量
 
 ## 轮腿上下板通信
+
+- 上板 MiniPC 用 CDC1 收发自瞄帧，每 5 拍上报云台姿态、阵营和裁判实测弹速。按住 photo 或鼠标右键且识别到目标时，云台跟踪视觉世界 yaw/pitch；目标丢失、断联或退出自瞄时恢复摇杆与鼠标控制。自瞄模式下仅有目标且视觉批准时才放行 VT13 弹频。协议见 `minipc.md`
 
 - 上下板 Can(1) 经滑环连接，与下板全部电机、上板管理的超电共用 CAN1；两板通过 `../leg_protocol.hpp` 引用共享文件 `app/leg/leg_protocol.hpp`，包含按发送方命名的 `UP_ID = 0x02`、`DOWN_ID = 0x03` 和报文布局。上板控制帧 8 字节（使能、跳跃、速度、yaw、腿长），500 Hz；下板状态帧 4 字节（底盘倒地、下板使能、实测航向角速度、6 个电机状态），250 Hz
 - 共享协议文件统一定义 `LegUpFrame`、`LegDownFrame`、物理单位、`pack()` 与 `unpack()`；`Raw` 位域与解码后成员同序，编解码在 `pack()`、`unpack()` 内用局部 `Raw` 完成，不保存原始帧；位域按 arm-none-eabi-gcc 布局，主机 MinGW 测试加 `-mno-ms-bitfields`。解包先检查 ID 和长度，失败保持原数据。腿长为连续数值 `leg_length`（m），以 9 位无符号毫米数传输，范围 0..0.511 m；协议中没有腿长档位表。`LegProtocol<TxFrame, RxFrame>` 封装发送帧、接收帧、在线状态与超时：构造时向 Can 注册回调，`update()` 超时清接收数据，`send()` 组帧发送；上板用 `LegUpProtocol`、下板用 `LegDownProtocol`，两板 `chassis_loop()` 直接读写 `leg_protocol` 字段，发送仍按 `app.cpp` 的拍数调用 `leg_protocol.send()`；回归测试检查共享文件引用与编解码

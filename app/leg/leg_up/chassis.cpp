@@ -1,24 +1,27 @@
 #include "chassis.hpp"
 #include "app.hpp"
 #include "gimbal.hpp"
+#include "minipc.hpp"
 #include "referee.hpp"
 
 void chassis_loop() {
     // 下板断联检测
     leg_protocol.update();
 
-    // 航向：小陀螺发手动角速度并禁用航向追踪，否则发遥控器云台 yaw 目标速度作跟随前馈与相对航向
+    // 航向：小陀螺发手动角速度并禁用航向追踪；随头发相对航向，自瞄跟踪时清零摇杆前馈
     const bool is_spin = vt13.wr != 0;
+    const bool is_tracking = vt13.is_aim && aim.is_detect;
+    const float yaw_feedforward = is_tracking ? 0.0f : vt13.yaw_speed;
     leg_protocol.trigger_jump = vt13.key.e || vt13.rc.fn;
     leg_protocol.vx = vt13.vx * std::cos(yaw.angle);
-    leg_protocol.wr = is_spin ? vt13.wr : vt13.yaw_speed;
+    leg_protocol.wr = is_spin ? vt13.wr : yaw_feedforward;
     leg_protocol.yaw = is_spin ? 0.0f : yaw.angle;
 
     // 使能后首次按下 pause 才下发底盘使能，防止误触；之后 pause 切换腿长，失能或下板断联复位
     static bool last_pause = false;
     static bool last_z = false, last_x = false, last_c = false;
     static bool is_leg_length_rising = true;
-    if (vt13.is_enable && leg_protocol.is_connect) { // vt13使能，且下板连接
+    if (vt13.is_enable && leg_protocol.is_connect) { // vt13 使能，且下板连接
         if (vt13.rc.pause && !last_pause) {
             if (!leg_protocol.is_enable) {
                 leg_protocol.is_enable = true;

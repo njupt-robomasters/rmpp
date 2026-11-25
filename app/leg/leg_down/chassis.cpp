@@ -8,8 +8,7 @@ using enum LegDownFrame::MotorState;
 static LegDownFrame::MotorState joint_state(const DM8009& motor);
 static LegDownFrame::MotorState wheel_state(const M3508& motor);
 
-// 上板指令，在 CAN 中断内解码
-
+// 上板指令：在 CAN 中断内解码
 static void control_by_up() {
     chassis.set_enable(leg_protocol.received.is_enable);
     chassis.set_allow_rescue(true);

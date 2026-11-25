@@ -50,4 +50,4 @@ inline Shooter17mm shooter({rub1, rub2, shoot}, {
                                                     .heat_protect = 100,
                                                 });
 
-void shooter_loop(bool is_fire);
+void shooter_loop();

@@ -1,5 +1,7 @@
 #include "shooter.hpp"
 #include "app.hpp"
+#include "bsp/irq_lock.hpp"
+#include "minipc.hpp"
 #include <algorithm>
 
 // 操控参数
@@ -53,7 +55,13 @@ static void control_by_auto(const bool is_fire) {
     shooter.set_bullet_freq(is_fire ? vt13.config.bullet_freq : 0);
 }
 
-void shooter_loop(const bool is_fire) {
+void shooter_loop() {
+    // aim 在 CDC 中断内更新，与 gimbal_loop 读取保持一致
+    const bool is_fire = [] {
+        const IrqLock lock;
+        return aim.is_fire;
+    }();
+
     // VT13 N 挡只允许底盘和云台使能，发射机构失能
     shooter.set_enable(sentry_enable() && vt13.rc.mode != VT13::N);
     if (sentry_active())
@@ -61,7 +69,6 @@ void shooter_loop(const bool is_fire) {
     else
         control_by_vt13(is_fire);
 
-    shooter.set_heat_remain(static_cast<int32_t>(referee.robot_status.shooter_barrel_heat_limit) -
-                            referee.power_heat_data.shooter_17mm_barrel_heat);
+    shooter.set_heat_remain(referee.robot_status.shooter_barrel_heat_limit - referee.power_heat_data.shooter_17mm_barrel_heat);
     shooter.update();
 }

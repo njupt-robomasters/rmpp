@@ -7,7 +7,7 @@
 #include "motor/m3508.hpp"
 #include "robot/chassis_leg.hpp"
 
-// imu
+// IMU：安装于车体，前进方向对齐机体 X 轴
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = 180 * deg, .pitch = 0 * deg, .roll = 0 * deg}),
                 .gyro_offset = Vector3f(-0.00069f, -0.00059f, 0.00114f),
                 .gravity = 9.5909f});

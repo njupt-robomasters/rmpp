@@ -5,9 +5,10 @@
 ## 通道与接口
 
 - mc02 `app/jelly_sentry` 使用 `Aim({.cdc = Cdc(1)})` 自瞄和 `Nav({.cdc = Cdc(2)})` 导航
+- C 板 `app/leg/leg_up` 的 `minipc.cpp` 在 CDC1 复用 `Aim`，仅收发自瞄协议
 - C 板 `app/steer_sentry` 只有一路 CDC，`Nav({.cdc = Cdc(1)})` 与 Aim 配置共用端口；底盘自主控制与 jelly_sentry 相同，坐标转换和 flag 仲裁见下节，flag 0 因未配跟随 PID 只平移不旋转
 - Nav 构造注册 USB 接收回调；对象在回调使用期间持续存活，现有应用均为全局实例
-- `nav.update()` 在主循环的 `chassis_loop()` 前调用，公开只读输出为 `is_connect`、`is_through_hole`、`vx`、`vy`、`yaw`、`x`、`y`
+- 导航断联检查在 `chassis_loop()` 前完成；jelly_sentry 由 `minipc_loop()` 调用 `nav.update()`。公开只读输出为 `is_connect`、`is_through_hole`、`vx`、`vy`、`yaw`、`x`、`y`
 - 目标点与返航由上位机规划；导航上行格式见下节，哨兵应用尚未接入目标坐标来源或调度发送
 
 ## 自瞄收发
@@ -17,9 +18,10 @@
 - 浮点均为小端 IEEE 754 float32，角度用度，距离用 m，初速用 m/s。线上 yaw 俯视逆时针为正、pitch 向下为正，与内部 ZYX 右手系同号，收发都按载荷直接映射。四元数为最终 IMU 头姿态、机体到世界，取自 `attitude.q`
 - 两向 CRC16 均用 MODBUS，覆盖帧头至 CRC 前的字节，低字节先传
 - 帧结构用 `packed` 固定字段偏移，浮点和 CRC 成员按值访问。主机协议测试用固定字节帧检查布局和浮点表示
-- 接收按“协议接收”统一写法（`../docs/conventions.md`）解析：1 字节帧头不符或 CRC 不符各丢 1 字节重新对齐。CRC 通过后保存 `raw_rx`，直接更新 `is_connect`、`is_detect`、`yaw`、`pitch`、`is_fire`、`distance`；字段按载荷原样映射，识别标志为 0 时开火标志仍按载荷发布，由上位机保证无目标时不开火。两处哨兵 app 用短 `IrqLock` 读取同一帧供当轮云台和发射使用
+- 接收按“协议接收”统一写法（`../docs/conventions.md`）解析：1 字节帧头不符或 CRC 不符各丢 1 字节重新对齐。CRC 通过后保存 `raw_rx`，直接更新 `is_connect`、`is_detect`、`yaw`、`pitch`、`is_fire`、`distance`；字段按载荷原样映射，识别标志为 0 时仍发布开火标志，上位机应在无目标时清零。两个哨兵应用使用短 `IrqLock` 获取同一帧供当轮控制使用
 - `aim.update()` 只做断联检测，默认 100 ms 无有效帧后目标清零，`raw_rx` 保留
 - 发送帧 `raw_tx` 为私有成员：`set_attitude()`、`set_referee()` 直接写入，`send()` 补 CRC 后交给 CDC 复制发出，SWD 可查看最近一次发送内容。应用每 5 个主循环周期设置后调用 `aim.send()`，1 kHz 主循环下名义 200 Hz
+- `leg_up` 的 `minipc_loop()` 读取最近一次姿态、裁判机器人 ID 和实测弹速以填充上行，并检查断联；`app.cpp` 每 5 拍调用 `aim.send()`。底盘、云台和发射模块各自直接读取 `aim`；接收中断若发生在多字段读取之间，可能读到相邻帧的字段。VT13 `is_aim` 且 `is_detect` 时云台使用视觉世界角，否则用摇杆与鼠标速度。自瞄模式下有目标且 `is_fire` 为 1 才放行人工弹频；松开人工发射输入即停拨弹
 
 ## 导航收发
 
@@ -78,4 +80,4 @@ Nav 按“协议接收”统一写法解析：`rx_fifo` 容量为一帧，1 字�
 - 导航 flag 和总云台使能均不会启用 pitch1；其他三轴保持现有控制
 - 软件检查与主机测试覆盖失能状态、零电流/力矩目标和失能帧。实机是否已运行新固件及物理输出状态由用户更新固件后核对
 
-验证脚本与本轮结果见 `../tasks/15-minipc_nav/README.md`。
+验证脚本与本轮结果见 `agents/15-minipc_nav/README.md`。

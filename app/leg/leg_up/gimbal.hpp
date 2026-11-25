@@ -10,7 +10,7 @@ inline Imu imu({.orientation = euler_to_quaternion({.yaw = 180 * deg, .pitch = 0
                 .gravity = 9.7423f});
 inline QuaternionEkf attitude(imu, {});
 
-// yaw电机
+// yaw 电机
 inline Pid::Config yaw_speed_pid_config = {
     .kp = 2.4f,
     .ki = 8.0f,
@@ -30,7 +30,7 @@ inline GM6020 yaw({
     .offset = 5.06981f,
 });
 
-// pitch电机
+// pitch 电机
 inline Pid::Config pitch_speed_pid_config = {
     .kp = 5.0f,
     .max_out = GM6020::MAX_CURRENT,

@@ -4,9 +4,6 @@
 #include "gimbal.hpp"
 #include "shooter.hpp"
 
-static constexpr float MOTOR_OVERHEAT = 80; // 电机温度报警阈值，℃
-static constexpr float HURT_TIMEOUT = 1;    // 受击方向显示时长，s
-
 // 受击方向，收到新的 0x0206 时按装甲 ID 换算到世界系并锁存
 static uint32_t last_hurt_sequence = 0;
 static bool has_hurt = false;
@@ -112,7 +109,7 @@ void referee_loop() {
     ui.rub_right_stage1 = ui.rub_right_stage2 = motor_color(rub2.status(MOTOR_OVERHEAT, shooter.bullet_speed.ref != 0));
     ui.shoot = motor_color(shoot.status(MOTOR_OVERHEAT));
 
-    // 超电状态；轮腿未接自瞄，图元保持白色，准星圆不显示
+    // 超电状态
     if (!super_cap.is_connect)
         ui.cap = RobotUi::PINK;
     else if (super_cap.mode == SuperCap::OFF || super_cap.mode == SuperCap::CHARGE)

@@ -5,12 +5,9 @@
 #include "motor/rmdl7025.hpp"
 #include "robot/gimbal_fold.hpp"
 
-// 惯性测量单元与姿态解算：MC02 倒装在 pitch2 云台头上
-// orientation：传感器到机体的安装旋转，Z-Y-X 欧拉角
-// 旧框架实测为绕左右轴翻转 180°（旧 pitch = 180°）；旧安装矩阵为 Rz(-yaw) Rx(pitch) Ry(roll)，同一物理旋转即新 roll = 180°
-// 新框架 attitude.pitch 绕机体 Y 轴（旧框架绕 X）；实测只加 roll = 180° 时抬枪口变化的是 attitude.roll
-// 再绕 Z 转 -90° 重排机体轴，使俯仰轴对齐机体 Y；实测抬枪口时 attitude.pitch 与 pitch2.angle 同向变化
-// gyro_offset、gravity：IMU 校准后填入；temperature：恒温 50 ℃，温度稳定后静止校准零偏
+// IMU：MC02 倒装在 pitch2 云台头上；orientation 为传感器到机体的安装旋转（Z-Y-X 欧拉角）
+// roll=180° 翻转左右轴，yaw=-90° 重排机体轴使俯仰轴对齐机体 Y；实测抬枪口时 attitude.pitch 与 pitch2.angle 同向
+// gyro_offset、gravity 校准后填入；temperature 恒温 50 ℃，温度稳定后静止校准零偏
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = -90 * deg, .pitch = 0 * deg, .roll = 180 * deg}),
                 .gyro_offset = Vector3f(0.0f, 0.0f, 0.0f),
                 .gravity = 9.81f,
@@ -130,4 +127,4 @@ inline GimbalFold gimbal({yaw1, yaw2, pitch1, pitch2}, {
                                                            .pitch2_gravity = {.torque = 0, .phase = 0 * deg},
                                                        });
 
-void gimbal_loop(bool is_detect, Angle target_yaw, Angle target_pitch, float distance);
+void gimbal_loop();

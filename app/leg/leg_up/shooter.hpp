@@ -35,7 +35,7 @@ inline M3508 shoot({
     .is_invert = false,
 });
 
-// 发射机构
+// 发射机构：bullet_per_angle 按拨盘结构标定
 inline Shooter17mm shooter({rub1, rub2, shoot},
                            {
                                .shoot_pid_config = &shoot_pid_config,

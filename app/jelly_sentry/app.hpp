@@ -2,7 +2,6 @@
 
 #include "bsp/kv_store.hpp"
 #include "melody/melody.hpp"
-#include "minipc.hpp"
 #include "rc/vt13.hpp"
 #include "referee.hpp"
 

@@ -1,11 +1,13 @@
 #include "gimbal.hpp"
 #include "app.hpp"
+#include "bsp/irq_lock.hpp"
 #include "chassis.hpp"
 #include "melody/music/g5g5g5.hpp"
+#include "minipc.hpp"
 #include <algorithm>
 #include <cmath>
 
-// 自主扫描：yaw 匀速旋转，pitch 在 IMU [PITCH_MIN, PITCH_MAX] 内往返，rad/s
+// 自主扫描速度：当前关闭（0 速），pitch 范围 [PITCH_MIN, PITCH_MAX]，rad/s
 // static constexpr float YAW_SPEED = 180 * deg_s, PITCH_SPEED = 60 * deg_s;
 static constexpr float YAW_SPEED = 0 * deg_s, PITCH_SPEED = 0 * deg_s;
 static constexpr Angle PITCH_MIN = -22 * deg, PITCH_MAX = 0 * deg;
@@ -63,7 +65,13 @@ static void control_by_auto(const bool is_detect, const Angle target_yaw, const 
     }
 }
 
-void gimbal_loop(const bool is_detect, const Angle target_yaw, const Angle target_pitch, const float distance) {
+void gimbal_loop() {
+    // aim 在 CDC 中断内更新，整体读取保证一致性
+    const auto [is_detect, target_yaw, target_pitch, distance] = [] {
+        const IrqLock lock;
+        return std::tuple{aim.is_detect, aim.yaw, aim.pitch, aim.distance};
+    }();
+
     gimbal.set_enable(sentry_enable());
 
     // yaw 零点校准：VT13 C 挡按住 fn 和 photo，按下时触发一次
