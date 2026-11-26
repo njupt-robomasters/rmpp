@@ -1,4 +1,4 @@
-"""真实编译 Nav、折叠云台、达妙驱动与底盘流程，模拟时钟和通信；可选编译相关 ARM 对象。"""
+"""真实编译 Nav、折叠云台、达妙驱动与底盘/云台流程，模拟时钟和通信；可选编译相关 ARM 对象。"""
 
 import argparse
 import json
@@ -18,7 +18,8 @@ def main():
     parser.add_argument("--arm", action="store_true")
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
-    compiler = OUT / "tools/ziglang/zig.exe"
+    shared_zig = ROOT / "agents/.tools/ziglang/zig.exe"
+    compiler = shared_zig if shared_zig.exists() else OUT / "tools/ziglang/zig.exe"
     env = {**os.environ, "ZIG_GLOBAL_CACHE_DIR": str(OUT / "zig_cache"),
            "ZIG_LOCAL_CACHE_DIR": str(OUT / "zig_local_cache")}
     common = [str(compiler), "c++", "-std=c++23", "-O1", "-Wall", "-Wextra",
@@ -28,6 +29,7 @@ def main():
               "-I" + str(ROOT / "lib/third_party/eigen-3.4.0"),
               "-I" + str(ROOT / "app/jelly_sentry")]
     shutil.copyfile(ROOT / "app/jelly_sentry/chassis.cpp", OUT / "chassis.cpp")
+    shutil.copyfile(ROOT / "app/jelly_sentry/gimbal.cpp", OUT / "gimbal.cpp")
     shutil.copyfile(TASK / "chassis_app.hpp", OUT / "app.hpp")
     for header in ["chassis.hpp", "gimbal.hpp"]:
         (OUT / header).write_text('#include "app.hpp"\n', encoding="utf-8")
@@ -35,6 +37,7 @@ def main():
         "nav_test": [ROOT / "lib/robot/gimbal_fold.cpp",
                      ROOT / "lib/motor/motor.cpp", ROOT / "lib/pid/pid.cpp"],
         "chassis_test": [],
+        "gimbal_test": [],
     }
     for name, units in cases.items():
         exe = OUT / (name + ".exe")
@@ -50,8 +53,10 @@ def main():
         return
 
     summary = {}
-    for preset in ["jelly_sentry", "sentry", "jelly_sentry_debug-gimbal", "jelly_sentry_debug-gimbal_motor"]:
+    for preset in ["jelly_sentry", "steer_sentry"]:
         database = ROOT / "build" / preset / "compile_commands.json"
+        if not database.exists():
+            continue
         rows = json.loads(database.read_text(encoding="utf-8"))
         selected = [row for row in rows if "/app/" in row["file"].replace("\\", "/")
                     or row["file"].endswith("/lib/minipc/nav.cpp")]

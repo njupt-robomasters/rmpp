@@ -57,3 +57,15 @@ Nav 改用 `Config.cdc`、帧长 FIFO 和 `packed RxFrame`，Aim 与 Nav 共用�
 后续 `../20-protocol_unify/` 删除了 Nav 的数值检查、`has_command` 与回调内超时判断，`command` 展开为同名公开成员；`nav_test.cpp` 已同步。
 
 `../21-minipc_protocol/` 已把本目录记录的 17 字节协议替换为单字节帧头的四个帧，`aim_test.cpp`、`nav_test.cpp`、`support.hpp` 随之更新；本文档中的帧长与 flag 描述为当时版本。
+
+### 导航测试阶段关闭自动小陀螺（2026-11-26）
+
+- jelly_sentry 过洞标志为 0 时使用分离模式、旋转输入为 0；为 1 时使用跟随模式。导航与遥控平移继续逐轴相加并限幅，人工模式按遥控旋转输入执行
+- `chassis_test.cpp` 已覆盖静止、移动、超量程和反向抵消时零旋转，以及人工旋转后切回自主、导航掉线和 yaw 离线。`verify.py` 通过 Nav/pitch1 90,968 项、生产底盘流程 145 项检查
+- jelly_sentry 的相关 ARM 应用对象编译通过，格式检查与 diff 空白检查通过；实车行为待更新固件后验证
+
+### 恢复大 yaw 速度旋转与过洞关闭云台扫描（2026-11-27）
+
+- `app/jelly_sentry/chassis.cpp` 将 `nav.vx, nav.vy` 按大 yaw 雷达系经 `rotate(nav.vx, nav.vy, -gimbal.yaw2.measure)` 转到云台头部系后再与 `vt13.vx, vt13.vy` 逐轴相加并限幅，与 `steer_sentry` 及 `docs/minipc_protocol.md` 保持一致
+- `app/jelly_sentry/gimbal.cpp` 在自主未锁定目标且 `nav.is_through_hole` 为真时调用 `gimbal.set_speed(0, 0)` 关闭扫描，消除过洞 `FOLLOW_MODE` 跟随旋转扫描云台的冲突；出洞或导航断联超时后恢复扫描，有效目标锁定与遥控摇杆优先保持原逻辑
+- `verify.py --arm` 通过 Nav/pitch1 90,968 项、生产底盘流程 150 项、生产云台过洞流程（`gimbal_test.cpp`）43 项检查，以及 `jelly_sentry`、`steer_sentry` 相关 ARM 对象零警告编译

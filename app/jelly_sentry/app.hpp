@@ -24,7 +24,7 @@ inline VT13 vt13({
     .dr = 1000 * rpm,
     .yaw_speed_max = 360 * deg_s,
     .pitch_speed_max = 360 * deg_s,
-    .bullet_speed = 20.0f,
+    .bullet_speed = 25.0f,
     .bullet_freq = 20.0f,
 });
 

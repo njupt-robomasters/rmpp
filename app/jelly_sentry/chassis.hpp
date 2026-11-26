@@ -7,9 +7,6 @@
 // 哨兵全向轮底盘：4×M3508 + C620，CAN1，电调 ID 左前 1、左后 2、右后 3、右前 4，控制帧 0x200
 // 力控：底盘速度 PID 输出牵引力，力学逆解为各轮电流；轮子方向待上车确认
 
-// 导航满速平移时的小陀螺角速度，rad/s；与底盘功率控制保留转速一致
-static constexpr float WR_MIN = 60 * rpm;
-
 // 电机参数：使用上游 M3508 默认量程与原装减速箱
 static constexpr bool IS_WHEEL_INVERT = false;
 

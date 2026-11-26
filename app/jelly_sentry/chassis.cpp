@@ -1,9 +1,7 @@
 #include "chassis.hpp"
 #include "app.hpp"
 #include "gimbal.hpp"
-#include "math/math.hpp"
 #include <algorithm>
-#include <cmath>
 
 // VT13：摇杆叠加键盘斜坡，速度为 IMU 头的云台系，断联时为 0
 static void control_by_vt13() {
@@ -11,8 +9,8 @@ static void control_by_vt13() {
     chassis.set_speed(vt13.vx, vt13.vy, vt13.wr);
 }
 
-// 自主：导航与 VT13 平移速度按云台头部的前、左方向分别相加；导航掉线时只取遥控平移，方向反馈掉线时停车
-// 过洞 1 随头对准枪口、平移照常；过洞 0 小陀螺，平移越快转速越低，插值输入限幅，超量程指令保持旋转正方向
+// 自主：导航速度为大 yaw 雷达系，经负小 yaw 角转到云台头部系后与 VT13 平移相加；导航掉线时只取遥控平移，方向反馈掉线时停车
+// 导航测试阶段：过洞 1 随头对准枪口，过洞 0 分离模式、旋转输入为 0；平移照常
 static void control_by_auto() {
     if (!yaw1.is_connect || !yaw2.is_connect) {
         chassis.set_mode(ChassisMatrix::DETACH_MODE);
@@ -25,17 +23,15 @@ static void control_by_auto() {
         return;
     }
 
-    const float vxy_max = vt13.config.vxy_max, wr_max = vt13.config.wr_max;
-    const float vx = std::clamp(nav.vx + vt13.vx, -vxy_max, vxy_max);
-    const float vy = std::clamp(nav.vy + vt13.vy, -vxy_max, vxy_max);
-    if (nav.is_through_hole) {
+    const float vxy_max = vt13.config.vxy_max;
+    const auto [nav_vx, nav_vy] = rotate(nav.vx, nav.vy, -gimbal.yaw2.measure);
+    const float vx = std::clamp(nav_vx + vt13.vx, -vxy_max, vxy_max);
+    const float vy = std::clamp(nav_vy + vt13.vy, -vxy_max, vxy_max);
+    if (nav.is_through_hole)
         chassis.set_mode(ChassisMatrix::FOLLOW_MODE);
-        chassis.set_speed(vx, vy, 0);
-    } else {
-        const float speed = std::clamp(std::hypot(vx, vy), 0.0f, vxy_max);
+    else
         chassis.set_mode(ChassisMatrix::DETACH_MODE);
-        chassis.set_speed(vx, vy, map(speed, 0.0f, vxy_max, wr_max, WR_MIN));
-    }
+    chassis.set_speed(vx, vy, 0);
 }
 
 void chassis_loop() {

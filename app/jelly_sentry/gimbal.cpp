@@ -5,10 +5,8 @@
 #include <algorithm>
 #include <cmath>
 
-// 自主扫描：yaw 匀速旋转，pitch 在 IMU [PITCH_MIN, PITCH_MAX] 内往返，rad/s
-// static constexpr float YAW_SPEED = 180 * deg_s, PITCH_SPEED = 60 * deg_s;
-static constexpr float YAW_SPEED = 0 * deg_s, PITCH_SPEED = 0 * deg_s;
-static constexpr Angle PITCH_MIN = -22 * deg, PITCH_MAX = 0 * deg;
+// 自主扫描：yaw 连续旋转，pitch 目标在编码器软限位间往返，rad/s
+static constexpr float YAW_SPEED = 180 * deg_s, PITCH_SPEED = 60 * deg_s;
 
 // 自主锁定：自瞄有效距离，m；脱锁时间，s；不高于此血量放弃锁定
 static constexpr float LOCK_DISTANCE = 5, LOCK_TIMEOUT = 500 * ms;
@@ -39,8 +37,14 @@ static void control_by_vt13(const bool is_detect, const Angle target_yaw, const 
     }
 }
 
-// 自主：有效距离内识别到目标即锁定并跟随视觉角度，脱锁超时或低血量回到扫描
+// 自主：摇杆或鼠标转动云台时人工优先；松开后有效目标锁定，脱锁超时或低血量时过洞停扫、其余扫描
 static void control_by_auto(const bool is_detect, const Angle target_yaw, const Angle target_pitch, const float distance) {
+    if (vt13.yaw_speed != 0 || vt13.pitch_speed != 0) {
+        is_lock = false;
+        gimbal.set_speed(vt13.yaw_speed, -vt13.pitch_speed);
+        return;
+    }
+
     const bool has_target = is_detect && distance <= LOCK_DISTANCE;
     const bool is_low_hp = referee.robot_status.current_HP <= GO_HOME_HP;
     if (has_target && !is_low_hp) {
@@ -54,10 +58,12 @@ static void control_by_auto(const bool is_detect, const Angle target_yaw, const 
 
     if (is_lock) {
         gimbal.set_angle(lock_yaw, lock_pitch);
+    } else if (nav.is_through_hole) {
+        gimbal.set_speed(0, 0);
     } else {
-        if (gimbal.pitch.imu.measure > PITCH_MAX)
+        if (gimbal.pitch.ecd.ref >= PITCH_MAX)
             scan_up = false;
-        if (gimbal.pitch.imu.measure < PITCH_MIN)
+        if (gimbal.pitch.ecd.ref <= PITCH_MIN)
             scan_up = true;
         gimbal.set_speed(YAW_SPEED, scan_up ? PITCH_SPEED : -PITCH_SPEED);
     }

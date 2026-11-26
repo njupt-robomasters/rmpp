@@ -107,14 +107,17 @@ inline DM4310 pitch2({
     .offset = -61.3f * deg,
 });
 
+// pitch2 编码器软限位与扫描端点，rad；下限为枪口最高点，上限为最低点
+inline constexpr float PITCH_MIN = -0.1f, PITCH_MAX = 0.314f;
+
 // 云台：限位均为各自编码器角度；重力补偿力矩为 0 表示不补偿，折叠关节负载大，建议标定
 inline GimbalFold gimbal({yaw1, yaw2, pitch1, pitch2}, {
                                                            .yaw_speed_pid_config = &yaw1_speed_pid,
                                                            .yaw_position_pid_config = &yaw1_position_pid,
                                                            .pitch_speed_pid_config = &pitch2_speed_pid,
                                                            .pitch_position_pid_config = &pitch2_position_pid,
-                                                           .pitch_min = -22 * deg,
-                                                           .pitch_max = 25 * deg,
+                                                           .pitch_min = PITCH_MIN,
+                                                           .pitch_max = PITCH_MAX,
                                                            .yaw2 = {
                                                                .speed_pid_config = &yaw2_speed_pid,
                                                                .position_pid_config = &yaw2_position_pid,

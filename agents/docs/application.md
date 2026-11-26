@@ -79,10 +79,10 @@
 
 ## 哨兵控制
 
-- steer_sentry 与 jelly_sentry 结构一致：`app.hpp` 提供 `rc_fn()`、`sentry_in_game()`、`sentry_active()`、`sentry_enable()`；chassis、gimbal、shooter 各有 `control_by_vt13()` 与 `control_by_auto()`，`*_loop()` 先设置使能，再按 `sentry_active()`（哨兵身份比赛中，或 VT13 N/S 挡按 fn 锁存测试，pause 清除）二选一，最后完成公共输入与 `update()`；自主时不叠加 VT13 操控量
+- steer_sentry 与 jelly_sentry 结构一致：`app.hpp` 提供 `rc_fn()`、`sentry_in_game()`、`sentry_active()`、`sentry_enable()`；chassis、gimbal、shooter 各有 `control_by_vt13()` 与 `control_by_auto()`，`*_loop()` 先设置使能，再按 `sentry_active()`（哨兵身份比赛中，或 VT13 N/S 挡按 fn 锁存测试，pause 清除）二选一，最后完成公共输入与 `update()`；折叠哨兵自主底盘叠加遥控平移，云台有遥控转动输入时人工优先
 - 使能：在线 VT13 的 C 挡优先失能；否则 VT13 N/S 挡，或裁判自检、倒计时、比赛中保持使能。发射机构另在 N 挡失能
-- 底盘 VT13：分离模式，摇杆叠加键盘斜坡。底盘自主：折叠哨兵直接接收云台头部系速度，舵轮哨兵把雷达系速度转到云台系，两者均按 VT13 满量程限幅。过洞标志 1 跟随模式（steer_sentry 未配跟随 PID，只平移），过洞标志 0 分离模式小陀螺，平移 0→满量程时转速 `wr_max`→60 rpm。任一 yaw 离线时两车均停车；仅导航掉线时，折叠哨兵保留遥控平移，舵轮哨兵停车
-- 云台 VT13：摇杆叠加鼠标，R 键按下沿 `turn_yaw(180°)`，photo 或右键自瞄且识别到目标时跟随视觉角度；裁判自检阶段 yaw 叠加 180°/s 旋转。云台自主：5 m 内识别到目标且血量高于 120 时锁定视觉角度，脱锁 0.5 s 或低血量回到扫描（yaw 180°/s，pitch 在 IMU −22°~0° 往返 60°/s）；退出自主时复位为向下扫描。已删除全景相机（insta360）检查
+- 底盘 VT13：分离模式，摇杆叠加键盘斜坡。底盘自主：两车均把大 yaw 雷达系导航速度经 `-gimbal.yaw2.measure` 转到云台头部系（折叠哨兵再叠加遥控平移），按 VT13 满量程限幅。过洞标志 1 跟随模式（steer_sentry 未配跟随 PID，只平移）；过洞标志 0 分离模式，jelly_sentry 在导航测试阶段旋转输入为 0，steer_sentry 平移 0→满量程时小陀螺转速 `wr_max`→60 rpm。任一 yaw 离线时两车均停车；仅导航掉线时，折叠哨兵保留遥控平移，舵轮哨兵停车
+- 云台 VT13：摇杆叠加鼠标，R 键按下沿 `turn_yaw(180°)`，photo 或右键自瞄且识别到目标时跟随视觉角度；裁判自检阶段 yaw 叠加 180°/s 旋转。云台自主：5 m 内识别到目标且血量高于 120 时锁定视觉角度，脱锁 0.5 s 或低血量回到扫描（yaw 180°/s，pitch 以 60°/s 往返，舵轮哨兵按 IMU −22°~0°，折叠哨兵按编码器软限位 −0.1~0.314 rad，目标到端点后反向；折叠哨兵在 `nav.is_through_hole` 过洞状态下关闭自主扫描，保持零速）；折叠哨兵摇杆或鼠标有 yaw/pitch 速度时清除旧锁定并按遥控速度控制，松开后重新按识别结果锁定或扫描；退出自主时复位为向下扫描。已删除全景相机（insta360）检查
 - 发射 VT13：S 挡开摩擦轮，trigger 或左键给弹频，自瞄时需视觉开火许可，右键双击强制开火；C、Z 键调最高弹频（jelly_sentry 仅步兵身份）。发射自主：摩擦轮常开，视觉开火许可时按最高弹频。热量剩余量由裁判 `shooter_barrel_heat_limit − shooter_17mm_barrel_heat` 设置
 - yaw 校零：VT13 C 挡按住 fn 与 photo 的按下沿，按大 yaw `angle_multi` 更新 offset 并写入 KvStore；steer_sentry 沿用改名前的 KvStore 标记 `"sentry"`，保留已标定零位
 - 操控参数和跨周期状态使用文件内 `static`
@@ -136,8 +136,9 @@
 ## jelly_sentry 导航与 pitch1
 
 - CDC1 用于 Aim 收发，CDC2 接 Nav 的导航下行帧（`A3`，24 字节）。主循环先执行 `nav.update()`，再执行 `chassis_loop()`
-- 导航以云台头部为前方；过洞标志为 1 时随 IMU 头、平移照常，为 0 时不随头并使用小陀螺。两种模式都把导航与遥控的平移速度逐轴相加后限幅。导航掉线时退出自动旋转，摇杆仍能控制平移；任一 yaw 反馈离线时停车
+- 导航速度为大 yaw 雷达系，经 `-gimbal.yaw2.measure` 转到云台头部系后与遥控平移逐轴相加并限幅；导航测试阶段关闭自动小陀螺，过洞标志为 1 时关闭云台自主扫描并随 IMU 头、平移照常，为 0 时分离模式且旋转输入为 0。导航掉线时使用分离模式，摇杆仍能控制平移；任一 yaw 反馈离线时停车
 - pitch1 当前全程失能，GimbalFold 的总使能接口和每次 update 固定关闭该轴，清 PID 并写零输出，保留反馈与失能帧发送；其余三轴正常控制
+- pitch2 软限位按用户实测编码器角度设置：`pitch_min = -0.1 rad` 对应枪口最高点，`pitch_max = 0.314 rad` 对应枪口最低点。`GimbalFold::update()` 用这两个值限幅编码器目标；测量入口为 `gimbal.pitch.ecd.measure.radians`，零点由 `pitch2.config.offset` 决定
 - 协议、坐标公式、过洞标志和离线处理详见 `minipc.md`；验证见 `../tasks/21-minipc_protocol/README.md`
 
 ## jelly_sentry CAN 发送调度
