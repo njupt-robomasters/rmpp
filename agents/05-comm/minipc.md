@@ -38,7 +38,7 @@
 | 18 | 4 | y | 当前坐标 y，m；当前仅保存 |
 | 22 | 2 | CRC16 | MODBUS，低字节在前 |
 
-上行 `A4`、大 yaw 编码器角、目标 x、目标 y、CRC16：偏移依次为 0、1、5、9、13。`set_target(x, y)` 写入目标点，`send(yaw_ecd)` 写入本次实测角并计算 CRC。角度取 `gimbal.yaw1.measure`（雷达系相对底盘系的 `q1`），总云台角 `gimbal.yaw.ecd.measure` 还包含小 yaw。
+上行 `A4`、大 yaw 编码器角、目标 x、目标 y、CRC16：偏移依次为 0、1、5、9、13。两台哨兵都用 `set_yaw_ecd(gimbal.yaw1.measure)` 写入大 yaw 相对底盘的实测角（rad，俯视逆时针为正）；单独转动小 yaw 时该字段保持不变。`set_target(x, y)` 写入目标点，`send()` 补 CRC 并发送。
 
 下行 `nav.yaw` 原样保存期望转角。`0` 表示保持大 yaw 当前朝向，`+π/2` 表示从当前朝向逆时针转 90°。目前两个哨兵应用均未使用该字段驱动大 yaw。
 

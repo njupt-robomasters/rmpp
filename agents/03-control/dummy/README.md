@@ -20,12 +20,12 @@ cmake --build build/dummy --parallel 8
 - 云台：IMU（C 板）在底盘上，云台世界系朝向 = `attitude.yaw + yaw.position`，单级 P 闭位置环输出电流；未使能时目标跟随测量
 - 电机：RMD-L-7025 直连，`lib/motor/rmdl7025`，0x141/0x241；`gimbal_loop` 按 2 ms 限频调用 `send()`，两种报文合计 500 Hz
 - CAN 发送分别在 `chassis_loop`、`gimbal_loop` 内；已去掉摇杆额外 8% 死区和反馈轮速死区
-- 遥控：FSi6X Uart(3)；SWA 下使能；SWC 空闲
+- 遥控：FSi6X Uart(3)；SWA 下使能底盘，SWC 控制超电
   - SWD 下：60 rpm 小陀螺，优先于跟随；以云台为前方平移，左摇杆水平控制云台
   - SWD 非下且 SWB 中/下：底盘跟随云台，以云台为前方，左摇杆水平控制云台
   - SWD 非下且 SWB 上：不跟随，底盘原始前方，左摇杆水平控制底盘旋转，云台保持世界系朝向
   - 云台离线：不跟随，平移以底盘原始前方
-- 超电：`SuperCap` CAN1，经 `chassis` Config 传入；SWC 上 MONITOR、中 CHARGE、下 BOOST，遥控断联 OFF；无裁判系统，功率上限与缓冲能量写死 60 W / 60 J
+- 超电：CAN1；SWC 中挡开启 DCDC，下挡额外开启放电补偿，上挡、无效挡位和遥控断联均关闭 DCDC 与补偿
 - IMU：QuaternionEkf，实例与更新归云台（`gimbal.hpp`、`gimbal_loop`），零偏沿用 PR 值
 
 ## 删减

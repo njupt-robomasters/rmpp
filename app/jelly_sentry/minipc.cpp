@@ -8,5 +8,5 @@ void minipc_loop() {
 
     aim.set_attitude(attitude.q);
     aim.set_referee(referee.robot_status.robot_id < 100, referee.shoot_data.initial_speed);
-    nav.set_yaw_ecd(gimbal.yaw.ecd.measure);
+    nav.set_yaw_ecd(gimbal.yaw1.measure);
 }
