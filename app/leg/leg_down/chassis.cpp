@@ -8,10 +8,19 @@ using enum LegDownFrame::MotorState;
 static LegDownFrame::MotorState joint_state(const DM8009& motor);
 static LegDownFrame::MotorState wheel_state(const M3508& motor);
 
-// 上板指令：在 CAN 中断内解码
+// 自救授权锁存，收到批准位置位，站起完成或失能后清除
+static bool allow_rescue = false;
+
+// 上板指令：每拍读取解包后的控制帧
 static void control_by_up() {
+    // 批准位缓存：上板断联清空控制帧后仍保持，避免已批准的倒地丢授权
+    if (leg_protocol.received.approve_rescue)
+        allow_rescue = true;
+    if (chassis.rescue.state == ChassisLeg::Rescue::State::UPRIGHT)
+        allow_rescue = false;
+
     chassis.set_enable(leg_protocol.received.is_enable);
-    chassis.set_allow_rescue(true);
+    chassis.set_allow_rescue(allow_rescue);
     chassis.set_trigger_jump(leg_protocol.received.trigger_jump);
     chassis.set_speed(leg_protocol.received.vx, leg_protocol.received.wr);
     chassis.set_gimbal_yaw(leg_protocol.received.yaw);
@@ -20,6 +29,7 @@ static void control_by_up() {
 }
 
 static void control_by_fsi6x() {
+    allow_rescue = false; // 接管期间丢弃上板批准，切回后需重新批准
     chassis.set_enable(fsi6x.is_connect && fsi6x.swa == FSi6X::DOWN);
     chassis.set_allow_rescue(fsi6x.swb == FSi6X::DOWN);
     chassis.set_trigger_jump(fsi6x.swd == FSi6X::DOWN);
@@ -51,7 +61,6 @@ void chassis_loop() {
     chassis.update(attitude.q, imu.gyro);
 
     leg_protocol.is_fallen = chassis.rescue.state != ChassisLeg::Rescue::State::UPRIGHT;
-    leg_protocol.is_enable = chassis.is_enable;
     leg_protocol.wr = chassis.body.d_yaw_gyro;
     leg_protocol.motor[0] = joint_state(left_front);
     leg_protocol.motor[1] = joint_state(left_back);

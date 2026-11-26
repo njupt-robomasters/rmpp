@@ -10,11 +10,11 @@ static bool has_hurt = false;
 static Angle hurt_dir;
 static Timer hurt_timer; // 上次受击后重新开始
 
-// 下板：断联粉色、未使能白色、倒地青色、正常绿色
+// 下板：断联粉色、上板未使能白色、倒地青色、正常绿色
 static RobotUi::Color down_color() {
     if (!leg_protocol.is_connect)
         return RobotUi::PINK;
-    if (!leg_protocol.received.is_enable)
+    if (!leg_protocol.is_enable)
         return RobotUi::WHITE;
     if (leg_protocol.received.is_fallen)
         return RobotUi::CYAN;
@@ -25,7 +25,7 @@ static RobotUi::Color down_color() {
 static RobotUi::Color down_motor_color(const LegDownFrame::MotorState state) {
     switch (state) {
     case LegDownFrame::MotorState::NORMAL:
-        return leg_protocol.received.is_enable ? RobotUi::GREEN : RobotUi::WHITE;
+        return leg_protocol.is_enable ? RobotUi::GREEN : RobotUi::WHITE;
     case LegDownFrame::MotorState::OVERHEAT:
         return RobotUi::ORANGE;
     case LegDownFrame::MotorState::ERROR:

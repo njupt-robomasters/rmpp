@@ -44,7 +44,7 @@ struct VT13 {
     struct {
         bool fn = false, pause = false;
     } rc;
-    struct { bool e = false, z = false, x = false, c = false; } key;
+    struct { bool e = false, z = false, x = false, c = false, v = false; } key;
     bool is_enable = false, is_aim = false;
     float vx = 0, wr = 0, yaw_speed = 0;
 } vt13;
@@ -69,9 +69,9 @@ LegUpProtocol leg_protocol(Can(1));
 """
 
 TESTS = r"""
-void report(const bool is_fallen, const bool is_enable = false) {
+void report(const bool is_fallen) {
     CanFrame frame;
-    LegDownFrame{.is_fallen = is_fallen, .is_enable = is_enable}.pack(frame);
+    LegDownFrame{.is_fallen = is_fallen}.pack(frame);
     Can::rx(frame);
 }
 CanFrame cycle() {
@@ -102,7 +102,7 @@ int main() {
     assert(!command().is_enable && leg_protocol.leg_length == 0.14f);
 
     // 下板在线后仍需首次 pause 才给使能
-    report(true);
+    report(false);
     auto frame = cycle();
     assert(frame.id == UP_ID && frame.size == 8);
     assert(!leg_protocol.is_enable && leg_protocol.leg_length == 0.14f);
@@ -182,9 +182,8 @@ int main() {
     leg_protocol.leg_length = 0.33f;
     Timer::now = 0.2f;
     leg_protocol.received.wr = 1;
-    leg_protocol.received.is_enable = true;
     cycle();
-    assert(!leg_protocol.is_connect && leg_protocol.received.wr == 0 && !leg_protocol.received.is_fallen && !leg_protocol.received.is_enable);
+    assert(!leg_protocol.is_connect && leg_protocol.received.wr == 0 && !leg_protocol.received.is_fallen);
     assert(!leg_protocol.is_enable && leg_protocol.leg_length == 0.14f);
 
     // 重新连接后需再按 pause 使能
@@ -196,14 +195,15 @@ int main() {
     assert(command().leg_length == 0.22f);
 
     // 非法帧保持原数据
-    report(true, true);
-    assert(leg_protocol.received.is_fallen && leg_protocol.received.is_enable);
+    report(true);
+    assert(leg_protocol.received.is_fallen);
     chassis_loop(); // 未超时，数据保留
-    assert(leg_protocol.received.is_fallen && leg_protocol.received.is_enable);
+    assert(leg_protocol.received.is_fallen);
 
-    // 上板帧位布局：使能 0、跳跃 1、vx 2..14、wr 15..30、yaw 31..43、腿长 44..52、功率 53..63
+    // 上板帧位布局：使能 0、批准自救 1、跳跃 2、vx 3..15、wr 16..30、yaw 31..43、腿长 44..52、功率 53..63
     const LegUpFrame layout{
         .is_enable = true,
+        .approve_rescue = true,
         .trigger_jump = true,
         .vx = -1.234f,
         .wr = 2.345f,
@@ -212,17 +212,16 @@ int main() {
         .power_ref = 80.0f,
     };
     layout.pack(frame);
-    assert(field(frame, 0, 1) == 1 && field(frame, 1, 1) == 1);
-    assert(field(frame, 2, 13) == ((1u << 13) - 1234));
-    assert(field(frame, 15, 16) == 2345);
+    assert(field(frame, 0, 1) == 1 && field(frame, 1, 1) == 1 && field(frame, 2, 1) == 1);
+    assert(field(frame, 3, 13) == ((1u << 13) - 1234));
+    assert(field(frame, 16, 15) == 2345);
     assert(field(frame, 31, 13) == ((1u << 13) - 3000));
     assert(field(frame, 44, 9) == 257);
     assert(field(frame, 53, 11) == 320);
 
-    // 下板帧位布局：倒地 0、使能 1、wr 2..17、6 个电机 18..29、保留 30..31
+    // 下板帧位布局：倒地 0、wr 1..15、6 个电机 16..27、保留 28..31
     LegDownFrame status;
     status.is_fallen = true;
-    status.is_enable = true;
     status.wr = -1.234f;
     status.motor[0] = LegDownFrame::MotorState::NORMAL;   // 左前
     status.motor[1] = LegDownFrame::MotorState::OVERHEAT; // 左后
@@ -232,27 +231,27 @@ int main() {
     status.motor[5] = LegDownFrame::MotorState::NORMAL;   // 右轮
     status.pack(frame);
     assert(frame.size == 4);
-    assert(field(frame, 0, 1) == 1 && field(frame, 1, 1) == 1);
-    assert(field(frame, 2, 16) == ((1u << 16) - 1234));
-    assert(field(frame, 18, 2) == 0 && field(frame, 20, 2) == 1);
-    assert(field(frame, 22, 2) == 2 && field(frame, 24, 2) == 3);
-    assert(field(frame, 26, 2) == 2 && field(frame, 28, 2) == 0);
-    assert(field(frame, 30, 2) == 0);
+    assert(field(frame, 0, 1) == 1);
+    assert(field(frame, 1, 15) == ((1u << 15) - 1234));
+    assert(field(frame, 16, 2) == 0 && field(frame, 18, 2) == 1);
+    assert(field(frame, 20, 2) == 2 && field(frame, 22, 2) == 3);
+    assert(field(frame, 24, 2) == 2 && field(frame, 26, 2) == 0);
+    assert(field(frame, 28, 2) == 0 && field(frame, 30, 2) == 0);
 
     // 下板状态帧编解码与接收
     LegDownFrame feedback;
     assert(feedback.unpack(frame));
-    assert(std::fabs(feedback.wr + 1.234f) < 0.00001f && feedback.is_fallen && feedback.is_enable);
+    assert(std::fabs(feedback.wr + 1.234f) < 0.00001f && feedback.is_fallen);
     assert(feedback.motor[1] == LegDownFrame::MotorState::OVERHEAT && feedback.motor[3] == LegDownFrame::MotorState::OFFLINE);
     Can::rx(frame);
-    assert(std::fabs(leg_protocol.received.wr + 1.234f) < 0.00001f && leg_protocol.received.is_fallen && leg_protocol.received.is_enable);
+    assert(std::fabs(leg_protocol.received.wr + 1.234f) < 0.00001f && leg_protocol.received.is_fallen);
     assert(leg_protocol.received.motor[2] == LegDownFrame::MotorState::ERROR && leg_protocol.received.motor[5] == LegDownFrame::MotorState::NORMAL);
     frame.id = UP_ID;
     assert(!feedback.unpack(frame));
     frame.id = DOWN_ID;
     frame.size = 3;
     assert(!feedback.unpack(frame));
-    assert(feedback.is_fallen && feedback.is_enable);
+    assert(feedback.is_fallen);
 
     // 腿长编解码
     LegUpFrame received_up;
@@ -273,12 +272,12 @@ int main() {
     assert(received_up.leg_length == 0.511f && received_up.is_enable);
 
     // 速度、角度、腿长限幅
-    for (const float speed : {-40.0f, -32.768f, -4.096f, -3.0f, -0.001f, 0.0f, 0.001f, 3.0f, 4.095f, 32.767f, 40.0f}) {
+    for (const float speed : {-40.0f, -16.384f, -4.096f, -3.0f, -0.001f, 0.0f, 0.001f, 3.0f, 4.095f, 16.383f, 40.0f}) {
         const LegUpFrame input{.vx = speed, .wr = speed, .yaw = -3.1415f, .leg_length = 0.257f};
         input.pack(frame);
         assert(decoded.unpack(frame));
         assert(std::fabs(decoded.vx - std::clamp(speed, -4.096f, 4.095f)) <= 0.0005f);
-        assert(std::fabs(decoded.wr - std::clamp(speed, -32.768f, 32.767f)) <= 0.0005f);
+        assert(std::fabs(decoded.wr - std::clamp(speed, -16.384f, 16.383f)) <= 0.0005f);
         assert(std::fabs(decoded.yaw + 3.1415f) <= 0.0005f && decoded.leg_length == 0.257f);
     }
     for (const float length : {-1.0f, 0.1424f, 0.1426f, 1.0f}) {
@@ -303,6 +302,43 @@ int main() {
     }
     frame = cycle();
     assert(received_up.unpack(frame) && received_up.power_ref == 87.25f);
+
+    // 自救批准：倒地时 pause 或 v 按下沿批准一次，腿长不变；is_fallen 清除后失效
+    assert(leg_protocol.received.is_fallen);
+    const float rescue_length = leg_protocol.leg_length;
+    press_pause();
+    assert(leg_protocol.approve_rescue && leg_protocol.leg_length == rescue_length);
+    assert(command().approve_rescue);
+    cycle(); // 持续倒地保持批准
+    assert(leg_protocol.approve_rescue);
+
+    report(false); // 站起完成撤销批准
+    cycle();
+    assert(!leg_protocol.approve_rescue);
+
+    report(true); // 再次倒地需重新批准，长按 v 不再算新下沿
+    cycle();
+    assert(!leg_protocol.approve_rescue);
+
+    vt13.key.v = true;
+    assert(command().approve_rescue && leg_protocol.leg_length == rescue_length);
+    vt13.key.v = false;
+    cycle();
+    assert(leg_protocol.approve_rescue);
+
+    report(false); // 未倒地时按 v 不批准
+    cycle();
+    vt13.key.v = true;
+    assert(!command().approve_rescue);
+    vt13.key.v = false;
+    cycle();
+
+    report(true); // 失能撤销批准
+    vt13.key.v = true;
+    assert(command().approve_rescue);
+    vt13.key.v = false;
+    vt13.is_enable = false;
+    assert(!command().approve_rescue);
 }
 """
 

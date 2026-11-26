@@ -15,7 +15,7 @@
 
 ## 关键接口
 
-- 上下板：`app/leg/leg_protocol.hpp`。上板控制帧 8 B，500 Hz（使能、跳跃、速度、yaw、腿长、功率目标）；下板状态帧 4 B，250 Hz（倒地、使能、实测航向角速度、6 个电机状态）
+- 上下板：`app/leg/leg_protocol.hpp`。上板控制帧 8 B，500 Hz（使能、批准自救、跳跃、速度、yaw、腿长、功率目标）；下板状态帧 4 B，250 Hz（倒地、实测航向角速度、6 个电机状态）。使能由下板直接透传；自救需上板倒地时按 Pause 或 V 批准一次，站起后重新批准
 - 下板 `ChassisLeg::calc_lqr()` 先按额定力矩分配，再按 `power_ref` 修正；FSi6X 在线时优先接管，上板断联 0.1 s 后失能
 - LQR 与功率映射表在 `lib/robot/chassis_leg_lqr.hpp`，由 `lqr/gen_lqr_fit.py` 生成，不手改
 - 功率口径只约束两轮机械功率 `Σ Tw·ω`，关节保持力矩与铜耗不计；仿真对照见 `power_alloc/README.md`

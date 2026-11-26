@@ -17,13 +17,17 @@ void chassis_loop() {
     leg_protocol.wr = is_spin ? vt13.wr : yaw_feedforward;
     leg_protocol.yaw = is_spin ? 0.0f : yaw.angle;
 
-    // 使能：首次 pause 下沿触发；之后 pause 循环切腿长，失能或断联复位
+    // 使能：首次 pause 下沿触发；之后 pause 循环切腿长，失能或断联复位；倒地时 pause 只批准自救
+    // 自救：倒地时 pause 或 v 按下沿批准一次，is_fallen 清除后失效，下次倒地重新批准
     static bool last_pause = false;
+    static bool last_v = false;
     static bool last_z = false, last_x = false, last_c = false;
     static bool is_leg_length_rising = true;
     if (vt13.is_enable && leg_protocol.is_connect) {
         if (vt13.rc.pause && !last_pause) {
-            if (!leg_protocol.is_enable) {
+            if (leg_protocol.received.is_fallen) {
+                leg_protocol.approve_rescue = true;
+            } else if (!leg_protocol.is_enable) {
                 leg_protocol.is_enable = true;
             } else if (is_leg_length_rising) { // LOW -> MID -> HIGH
                 if (leg_protocol.leg_length < LEG_LENGTH_MID) {
@@ -41,12 +45,18 @@ void chassis_loop() {
                 }
             }
         }
+        if (vt13.key.v && !last_v && leg_protocol.received.is_fallen)
+            leg_protocol.approve_rescue = true;
+        if (!leg_protocol.received.is_fallen)
+            leg_protocol.approve_rescue = false;
     } else {
         leg_protocol.is_enable = false;
+        leg_protocol.approve_rescue = false;
         leg_protocol.leg_length = LEG_LENGTH_LOW;
         is_leg_length_rising = true;
     }
     last_pause = vt13.rc.pause;
+    last_v = vt13.key.v;
 
     // 腿长直选：Z/X/C 按下沿分别选低/中/高档
     if (leg_protocol.is_enable) {
