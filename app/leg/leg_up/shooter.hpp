@@ -4,8 +4,6 @@
 #include "motor/vesc.hpp"
 #include "robot/shooter_17mm.hpp"
 
-static constexpr float RUB_RELEASE_SPEED = 30 * rpm; // 摩擦轮关闭后低于此转速释放
-
 // 摩擦轮
 inline Vesc rub1({
     .can = Can(2),

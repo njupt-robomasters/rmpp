@@ -43,6 +43,7 @@
 
 - `set_output()` 返回 void，按协议原生输出设置：基类调用虚函数 `set_current()`（A），DM 系列和 EL05 覆盖为 `set_torque()`（N·m）；保留显式电流、力矩接口
 - RMDL7025 的 0xA1 输入为电流；GM6020 默认输出仍为电流，电压帧沿用发送层换算；VESC 命令更新与 X630 静音继续经原设置接口执行
+- `Vesc::set_speed(0)` 在反馈转速低于释放阈值时改发零电流，避免电调速度环在零速附近保持抖动；阈值为构造第二参数 `float release_speed = 30 * rpm`，rad/s，按车单独给出（steer_sentry 传 120 rpm）
 - 使用默认输出的机构由 app 配置 PID 输出单位和限幅，电机设置函数保留量程限幅
 - 量程与减速比零值字段按型号常量补齐
 - `set_current()` 先将非有限值置零，再按 `max_current` 限幅并换算转矩

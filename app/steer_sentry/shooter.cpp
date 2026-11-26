@@ -1,14 +1,12 @@
 #include "shooter.hpp"
 #include "app.hpp"
 #include <algorithm>
-#include <cmath>
 
 // 操控参数
-static constexpr float BULLET_FREQ_STEP = 5.0f;       // C、Z 键每次增减的最高弹频，发/秒
-static constexpr float BULLET_FREQ_MIN = 5.0f;        // 最高弹频下限，发/秒
-static constexpr float BULLET_FREQ_MAX = 25.0f;       // 最高弹频上限，发/秒
-static constexpr float DOUBLE_CLICK_TIME = 250 * ms;  // 双击左键判定时间
-static constexpr float RUB_RELEASE_SPEED = 120 * rpm; // 摩擦轮关闭后低于此转速释放
+static constexpr float BULLET_FREQ_STEP = 5.0f;      // C、Z 键每次增减的最高弹频，发/秒
+static constexpr float BULLET_FREQ_MIN = 5.0f;       // 最高弹频下限，发/秒
+static constexpr float BULLET_FREQ_MAX = 25.0f;      // 最高弹频上限，发/秒
+static constexpr float DOUBLE_CLICK_TIME = 250 * ms; // 双击左键判定时间
 
 // 右键双击强制开火
 static bool has_click = false, is_force_shoot = false;
@@ -63,11 +61,4 @@ void shooter_loop(const bool is_fire) {
     shooter.set_heat_remain(static_cast<int32_t>(referee.robot_status.shooter_barrel_heat_limit) -
                             referee.power_heat_data.shooter_17mm_barrel_heat);
     shooter.update();
-
-    // 摩擦轮关闭且低速时发零电流释放，避免 VESC 速度环在零速附近保持抖动
-    if (shooter.bullet_speed.ref == 0) {
-        for (Vesc* rub : {&rub1, &rub2})
-            if (std::fabs(rub->speed) < RUB_RELEASE_SPEED)
-                rub->set_current(0);
-    }
 }
