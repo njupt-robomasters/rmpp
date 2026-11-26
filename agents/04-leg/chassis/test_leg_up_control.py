@@ -57,10 +57,11 @@ struct {
     struct { float buffer_energy = 60; } power_heat_data;
 } referee;
 struct SuperCap {
-    enum Mode { OFF, BOOST } mode = OFF;
+    bool is_enable = false, is_boost_enable = false;
     unsigned updates = 0;
     float power_chassis_ref = 87.3f;
-    void set_mode(Mode value) { mode = value; }
+    void set_enable(bool value) { is_enable = value; }
+    void set_boost_enable(bool value) { is_boost_enable = value; }
     void set_referee_limit(float) {}
     void set_referee_energy(float) {}
     void update() { updates++; }
@@ -101,14 +102,16 @@ int main() {
     vt13.is_enable = true;
     assert(!command().is_enable && leg_protocol.leg_length == 0.14f);
 
-    // 下板在线后仍需首次 pause 才给使能
-    report(false);
+    // 下板在线后透传使能，倒地时首次 pause 只批准自救
+    report(true);
     auto frame = cycle();
     assert(frame.id == UP_ID && frame.size == 8);
-    assert(!leg_protocol.is_enable && leg_protocol.leg_length == 0.14f);
-    assert(super_cap.updates == 2 && super_cap.mode == SuperCap::BOOST);
+    assert(leg_protocol.is_enable && !leg_protocol.allow_rescue && leg_protocol.leg_length == 0.14f);
+    assert(super_cap.updates == 2 && super_cap.is_enable && super_cap.is_boost_enable);
     press_pause();
-    assert(leg_protocol.is_enable && leg_protocol.leg_length == 0.14f);
+    assert(command().allow_rescue && leg_protocol.leg_length == 0.14f);
+    report(false);
+    assert(!command().allow_rescue);
 
     // 之后 pause 在低、中、高之间往返
     press_pause();
@@ -165,17 +168,16 @@ int main() {
     yaw.angle = 0; // Motor::update() 在实际云台循环中清零离线角度
     assert(command().yaw == 0);
 
-    // 失能清使能，重新使能需再按 pause
+    // 使能随挡位变化
     vt13.is_enable = false;
     vt13.rc.fn = true;
     assert(!command().is_enable && leg_protocol.trigger_jump);
-    assert(super_cap.mode == SuperCap::OFF);
+    assert(!super_cap.is_enable && !super_cap.is_boost_enable);
     vt13.is_enable = true;
-    assert(!command().is_enable && leg_protocol.trigger_jump);
-    assert(super_cap.mode == SuperCap::BOOST);
+    assert(command().is_enable && leg_protocol.trigger_jump);
+    assert(super_cap.is_enable && super_cap.is_boost_enable);
     cycle();
     vt13.rc.fn = false;
-    press_pause();
     assert(command().is_enable && !leg_protocol.trigger_jump);
 
     // 下板断联清反馈与使能、复位腿长
@@ -183,14 +185,15 @@ int main() {
     Timer::now = 0.2f;
     leg_protocol.received.wr = 1;
     cycle();
-    assert(!leg_protocol.is_connect && leg_protocol.received.wr == 0 && !leg_protocol.received.is_fallen);
+    assert(!leg_protocol.is_connect && leg_protocol.received.wr == 0 && leg_protocol.received.is_fallen);
     assert(!leg_protocol.is_enable && leg_protocol.leg_length == 0.14f);
 
-    // 重新连接后需再按 pause 使能
-    report(false);
-    assert(!command().is_enable && leg_protocol.leg_length == 0.14f);
+    // 重连后透传使能，倒地时等待新的批准
+    report(true);
+    assert(command().is_enable && !leg_protocol.allow_rescue && leg_protocol.leg_length == 0.14f);
     press_pause();
-    assert(command().is_enable && leg_protocol.leg_length == 0.14f);
+    assert(command().allow_rescue && leg_protocol.leg_length == 0.14f);
+    report(false);
     press_pause();
     assert(command().leg_length == 0.22f);
 
@@ -203,7 +206,7 @@ int main() {
     // 上板帧位布局：使能 0、批准自救 1、跳跃 2、vx 3..15、wr 16..30、yaw 31..43、腿长 44..52、功率 53..63
     const LegUpFrame layout{
         .is_enable = true,
-        .approve_rescue = true,
+        .allow_rescue = true,
         .trigger_jump = true,
         .vx = -1.234f,
         .wr = 2.345f,
@@ -307,38 +310,38 @@ int main() {
     assert(leg_protocol.received.is_fallen);
     const float rescue_length = leg_protocol.leg_length;
     press_pause();
-    assert(leg_protocol.approve_rescue && leg_protocol.leg_length == rescue_length);
-    assert(command().approve_rescue);
+    assert(leg_protocol.allow_rescue && leg_protocol.leg_length == rescue_length);
+    assert(command().allow_rescue);
     cycle(); // 持续倒地保持批准
-    assert(leg_protocol.approve_rescue);
+    assert(leg_protocol.allow_rescue);
 
     report(false); // 站起完成撤销批准
     cycle();
-    assert(!leg_protocol.approve_rescue);
+    assert(!leg_protocol.allow_rescue);
 
     report(true); // 再次倒地需重新批准，长按 v 不再算新下沿
     cycle();
-    assert(!leg_protocol.approve_rescue);
+    assert(!leg_protocol.allow_rescue);
 
     vt13.key.v = true;
-    assert(command().approve_rescue && leg_protocol.leg_length == rescue_length);
+    assert(command().allow_rescue && leg_protocol.leg_length == rescue_length);
     vt13.key.v = false;
     cycle();
-    assert(leg_protocol.approve_rescue);
+    assert(leg_protocol.allow_rescue);
 
     report(false); // 未倒地时按 v 不批准
     cycle();
     vt13.key.v = true;
-    assert(!command().approve_rescue);
+    assert(!command().allow_rescue);
     vt13.key.v = false;
     cycle();
 
     report(true); // 失能撤销批准
     vt13.key.v = true;
-    assert(command().approve_rescue);
+    assert(command().allow_rescue);
     vt13.key.v = false;
     vt13.is_enable = false;
-    assert(!command().approve_rescue);
+    assert(!command().allow_rescue);
 }
 """
 
@@ -356,7 +359,6 @@ def main():
     assert "Can(2)" not in (down / "chassis.hpp").read_text(encoding="utf-8")
     assert "SuperCap" not in (down / "chassis.hpp").read_text(encoding="utf-8")
     assert "super_cap" not in (down / "app.cpp").read_text(encoding="utf-8")
-    assert "Mode mode = OFF;" in (ROOT / "lib/power/super_cap.hpp").read_text(encoding="utf-8")
     source = (up / "chassis.cpp").read_text(encoding="utf-8")
     source = "\n".join(line for line in source.splitlines() if not line.startswith("#include"))
     constants = "\n".join(line for line in (up / "chassis.hpp").read_text(encoding="utf-8").splitlines()

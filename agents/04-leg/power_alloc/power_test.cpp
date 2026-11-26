@@ -83,6 +83,10 @@ static Result run(const Case& c, const float power_ref) {
                        });
 
     chassis.set_enable(true);
+    for (auto* joint : {&left_front, &left_back, &right_back, &right_front})
+        joint->feed(0, 0);
+    left_wheel.feed(0);
+    right_wheel.feed(0);
     chassis.set_allow_rescue(true);
     chassis.update(Quaternionf::Identity(), Vector3f::Zero());
     chassis.set_allow_rescue(false);

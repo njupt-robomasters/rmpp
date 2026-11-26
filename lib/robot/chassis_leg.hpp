@@ -147,20 +147,20 @@ class ChassisLeg {
     // 倒地与自救，外部只读 state
     struct Rescue {
         // 自救阶段
-        enum class State { FALLEN = 0, // 上电、失能或倒地后等待启动许可
-                           UPRIGHT,    // 站立，正常控制
-                           RUNNING };  // 自救动作执行中
+        enum class State { FALLEN = 0,  // 待批准自救；上电、失能、电机异常或检测到倒地时进入
+                           RECOVERING,  // 已获批准，正在执行自救动作
+                           BALANCING }; // 站起完成，交给平衡控制；跳跃期间保持此状态
 
-        // 倒地方向
-        enum class FallDir { NORMAL, // 正向倒地，横滚 < 90°
-                             HEAD,   // 头部着地，横滚 > 90° 且低头
-                             TAIL }; // 尾部着地，横滚 > 90° 且抬头
+        // 自救动作：批准时按车身姿态选择一次
+        enum class Maneuver { STAND_UP,         // 直接站起：|roll| < 90°
+                              FLIP_FROM_HEAD,   // 从头端翻起：|roll| ≥ 90° 且 pitch > 0（低头）
+                              FLIP_FROM_TAIL }; // 从尾端翻起：|roll| ≥ 90° 且 pitch ≤ 0
 
-        State state = State::FALLEN;   // 当前自救阶段；上电或失能时等待批准
-        FallDir dir = FallDir::NORMAL; // 启动时的倒地方向，RUNNING 状态下有效
-        int flip_step[2]{};            // 翻转阶段：0 进入翻转区间、1 继续翻转、2 完成
-        int stand_step[2]{};           // 站起阶段：0 摆腿、1 收腿
-        float target_theta[2]{};       // 目标相对腿角，rad，后摆为正
+        State state = State::FALLEN;
+        Maneuver maneuver = Maneuver::STAND_UP; // 仅自救中有效
+        int flip_step[2]{};                     // 翻转阶段：0 进入翻转区间、1 继续翻转、2 完成
+        int stand_step[2]{};                    // 站起阶段：0 摆腿、1 收腿
+        float target_theta[2]{};                // 目标相对腿角，rad，后摆为正
     } rescue;
 
   private:
@@ -255,6 +255,6 @@ class ChassisLeg {
     // 分配：四路满足 [lower, upper] 且比例不超过 1 时返回最大可行比例，无解返回 -1
     static float maximum_share(const float base[4], const float change[4], const float lower[4], const float upper[4]);
 
-    // VMC 力映射：由轴向力系数与机构极性的摆动力矩 Tt 更新 Ta、Te
-    void vmc_map(Leg& leg, float Tt) const;
+    // VMC：由本腿 Fn、Tt 更新两个关节力矩；mirror 同 update_leg，左 -1、右 +1
+    static void vmc_map(Leg& leg, float mirror);
 };
