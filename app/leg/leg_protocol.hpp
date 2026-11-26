@@ -35,7 +35,7 @@ struct LegUpFrame {
     // 运动
     float vx = 0;  // 前向速度，m/s
     float wr = 0;  // 航向角速度目标，rad/s；小陀螺为手动角速度，跟随为云台 yaw 目标速度前馈
-    float yaw = 0; // 云台相对底盘航向角，rad；小陀螺发 0，下板不追踪
+    float yaw = 0; // 底盘航向误差，rad；云台相对底盘角加车头跟随偏角，小陀螺发 0
 
     float leg_length = 0; // 腿长，m
     float power_ref = 0;  // 底盘功率目标，W；INFINITY 表示不限功率

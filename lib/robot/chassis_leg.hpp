@@ -60,7 +60,7 @@ class ChassisLeg {
     bool allow_rescue = false; // 倒地后允许启动自救；撤销不打断已运行的自救
     bool trigger_jump = false; // 跳跃触发，上升沿且空闲时启动
     float vx = 0, wr = 0;      // 前向速度 m/s 前进为正；航向角速度目标 rad/s 逆时针为正，小陀螺为手动角速度、跟随为云台 yaw 目标速度前馈
-    float gimbal_yaw = 0;      // 云台相对底盘航向，rad；无云台、断联或小陀螺时为 0，不追踪航向
+    float gimbal_yaw = 0;      // 底盘跟随航向误差，rad；逆时针为正
     float leg_length;          // 双腿目标腿长，m
     float power_ref = 0;       // 双轮净机械功率上限 Σ Tw·ω，W；INFINITY 不限
 
@@ -204,7 +204,7 @@ class ChassisLeg {
     // 两个目标按轮子额定转速乘轮半径等比限速，存储值不会超限
     void set_speed(float vx, float wr);
 
-    // 云台相对底盘航向，rad；无云台、断联或小陀螺时传 0，0 即不追踪航向
+    // 目标车头相对当前车头的航向误差，rad；无云台、断联或小陀螺时传 0
     void set_gimbal_yaw(float gimbal_yaw);
 
     // 双腿共用目标腿长，m，限幅到 [leg_min, leg_max]

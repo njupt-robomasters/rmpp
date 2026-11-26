@@ -407,7 +407,7 @@ void ChassisLeg::calc_lqr() {
     const float err[10] = {
         (0 - body.x) * 10,               // 前向位移，前进为正
         vx - body.d_x,                   // 前向速度，前进为正；已在 set_speed() 限速
-        gimbal_yaw,                      // 航向角，跟随模式为云台相对底盘航向
+        gimbal_yaw,                      // 航向误差，跟随模式由上板计入车头偏角
         wr - body.d_yaw_gyro,            // 航向角速度，逆时针为正；已在 set_speed() 限速
         config.theta_ref - leg[0].theta, // 左腿倾角，后摆为正
         0 - leg[0].d_theta,              // 左腿倾角速度

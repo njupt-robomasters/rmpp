@@ -24,7 +24,7 @@
 ### 轮腿 leg_up / leg_down
 
 - 功率分配：`wheel_power` 与超电 `power_chassis` 对照；超目标时俯仰和腿角；低腿长缓加速先试；上板断联时协议清零、底盘失能，见 `04-leg/power_alloc/README.md`
-- 航向前馈：方向、`cos(yaw)` 投影、小陀螺与跟随切换瞬间、限功率时平衡稳定性，见 `04-leg/chassis/README.md`
+- 航向与速度：核对左右侧身时云台世界航向、A→D 和 D→A 倒行、W/S 回正、转身中速度投影、小陀螺切换与限功率时平衡，见 `04-leg/README.md`
 - 自瞄链路：CDC1 枚举、坐标系方向、人工接管与超时恢复、弹频放行，见 `05-comm/minipc_protocol/README.md`
 - 裁判与 UI：`referee_relay` 丢字节计数、0x0301、UI 显示、超电模式，见 `05-comm/referee_relay/README.md` 与 `06-sentry/app_unify/README.md`
 - 首版 LQR 参数对照：只换 K 后的抖动和定位，见 `04-leg/lqr/README.md`

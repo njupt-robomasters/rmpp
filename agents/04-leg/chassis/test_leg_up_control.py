@@ -38,15 +38,15 @@ STUBS = r"""
 #include <cassert>
 #include <cmath>
 #include "leg_protocol.hpp"
+#include "math/angle.hpp"
 
-constexpr float deg_s = 3.14159265358979323846f / 180;
 struct VT13 {
     struct {
         bool fn = false, pause = false;
     } rc;
     struct { bool e = false, z = false, x = false, c = false, v = false; } key;
     bool is_enable = false, is_aim = false;
-    float vx = 0, wr = 0, yaw_speed = 0;
+    float vx = 0, vy = 0, wr = 0, yaw_speed = 0;
 } vt13;
 struct {
     bool is_detect = false;
@@ -164,6 +164,46 @@ int main() {
     assert(decoded.wr == 0 && decoded.yaw == -0.3f);
     vt13.is_aim = false;
     assert(command().wr == 0.25f);
+    for (const float side : {1.0f, -1.0f}) {
+        const float offset = side * 90 * deg;
+        yaw.angle = 0;
+        vt13.vx = 0;
+        vt13.vy = 2 * side;
+        decoded = command();
+        assert(std::fabs(decoded.yaw - offset) <= 0.0005f && decoded.vx == 0);
+        yaw.angle = -offset / 2;
+        vt13.vx = 1;
+        decoded = command();
+        assert(std::fabs(decoded.vx - 3 * std::cos(offset / 2)) <= 0.0005f);
+        assert(std::fabs(decoded.yaw - offset / 2) <= 0.0005f);
+        yaw.angle = -offset;
+        vt13.vx = 0;
+        decoded = command();
+        assert(decoded.yaw == 0 && decoded.vx == 2);
+        vt13.vy = 0;
+        assert(command().yaw == 0);
+        vt13.vy = -2 * side;
+        decoded = command();
+        assert(decoded.yaw == 0 && decoded.vx == -2);
+        vt13.vx = -2;
+        assert(command().yaw == 0);
+        yaw.angle = side * 150 * deg;
+        assert(std::fabs(command().yaw + side * 120 * deg) <= 0.0005f);
+        yaw.angle = -offset;
+        vt13.vy = 0;
+        vt13.wr = 1;
+        assert(command().yaw == 0);
+        vt13.wr = 0;
+        vt13.vx = 0;
+        assert(command().yaw == 0);
+        yaw.is_connect = false;
+        yaw.angle = 0;
+        assert(command().yaw == 0);
+        yaw.is_connect = true;
+        yaw.angle = -offset;
+        vt13.vx = -1;
+        assert(std::fabs(command().yaw + offset) <= 0.0005f);
+    }
     yaw.is_connect = false;
     yaw.angle = 0; // Motor::update() 在实际云台循环中清零离线角度
     assert(command().yaw == 0);
@@ -371,6 +411,7 @@ def main():
     generated.write_text(STUBS + constants + "\n" + source + TESTS, encoding="utf-8")
     executable = OUT / "test.exe"
     subprocess.run(["g++", "-std=c++20", "-mno-ms-bitfields", "-Wall", "-Wextra", "-Werror", "-I", str(OUT), "-I", str(ROOT / "app/leg"),
+                    "-I", str(ROOT / "lib"), "-isystem", str(ROOT / "lib/third_party/eigen-3.4.0"),
                     str(generated), "-o", str(executable)], check=True)
     subprocess.run([str(executable)], check=True)
     print("PASS: shared protocol, CAN1 wiring, control state transitions, bit layout and frame encoding")
