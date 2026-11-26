@@ -15,7 +15,7 @@ struct LegUpFrame {
     struct __attribute__((packed)) Raw {
         // 开关，0/1
         bool is_enable : 1;
-        bool approve_rescue : 1;
+        bool allow_rescue : 1;
         bool trigger_jump : 1;
 
         // 运动
@@ -28,9 +28,9 @@ struct LegUpFrame {
     };
 
     // 开关
-    bool is_enable = false;      // 底盘使能，下板直接透传
-    bool approve_rescue = false; // 批准自救，倒地时下板据此启动
-    bool trigger_jump = false;   // 跳跃触发
+    bool is_enable = false;    // 底盘使能，下板直接透传
+    bool allow_rescue = false; // 批准自救，倒地时下板据此启动
+    bool trigger_jump = false; // 跳跃触发
 
     // 运动
     float vx = 0;  // 前向速度，m/s
@@ -43,7 +43,7 @@ struct LegUpFrame {
     void pack(CanFrame& frame) const {
         const Raw raw{
             .is_enable = is_enable,
-            .approve_rescue = approve_rescue,
+            .allow_rescue = allow_rescue,
             .trigger_jump = trigger_jump,
             .vx = static_cast<int16_t>(std::lround(std::clamp(vx, -4.096f, 4.095f) * 1000)),
             .wr = static_cast<int16_t>(std::lround(std::clamp(wr, -16.384f, 16.383f) * 1000)),
@@ -64,7 +64,7 @@ struct LegUpFrame {
         std::memcpy(&raw, frame.data, sizeof(raw));
 
         is_enable = raw.is_enable;
-        approve_rescue = raw.approve_rescue;
+        allow_rescue = raw.allow_rescue;
         trigger_jump = raw.trigger_jump;
         vx = raw.vx / 1000.0f;
         wr = raw.wr / 1000.0f;
@@ -102,8 +102,8 @@ struct LegDownFrame {
         uint8_t reserved : 4; // 保留，发送时为 0
     };
 
-    bool is_fallen = false; // 底盘倒地，站起完成或失能时清除
-    float wr = 0;           // 实测航向角速度，rad/s
+    bool is_fallen = true; // 底盘倒地；下板失能或断联时保持 true，上板据此要求先批准自救
+    float wr = 0;          // 实测航向角速度，rad/s
 
     MotorState motor[MOTOR_COUNT]{}; // 左前、左后、右后、右前、左轮、右轮
 

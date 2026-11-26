@@ -89,6 +89,11 @@ static Result run(const float rel_theta, const float pitch, const float vx, cons
                            .wheel_work_speed = WHEEL_WORK_SPEED,
                        });
 
+    chassis.set_enable(true);
+    chassis.set_allow_rescue(true);
+    chassis.update(Quaternionf::Identity(), Vector3f::Zero());
+    chassis.set_allow_rescue(false);
+
     // 五连杆反解：三角形 O-B-C 中 OB = a、BC = b、OC = 腿长，phi1 = phi0 + beta、phi4 = phi0 - beta
     const float beta = std::acos((ACTIVE_LINK * ACTIVE_LINK + LEG_LENGTH * LEG_LENGTH - PASSIVE_LINK * PASSIVE_LINK) / (2 * ACTIVE_LINK * LEG_LENGTH));
 
@@ -101,7 +106,6 @@ static Result run(const float rel_theta, const float pitch, const float vx, cons
     left_wheel.feed(0);
     right_wheel.feed(0);
 
-    chassis.set_enable(true);
     chassis.set_speed(vx, wr);
     chassis.set_leg_length(LEG_LENGTH);
     now_cycles += 2000;

@@ -40,7 +40,8 @@ static void put(uint8_t* data, const float value) {
 
 struct Phase {
     double until;
-    SuperCap::Mode mode;
+    bool is_enable;
+    bool is_boost;
     float demand;
 };
 
@@ -56,7 +57,8 @@ static void run(const char* name, const float referee_limit, const float model_s
 
     int k = 0;
     for (int p = 0; p < count; p++) {
-        super_cap.set_mode(phases[p].mode);
+        super_cap.set_enable(phases[p].is_enable);
+        super_cap.set_boost_enable(phases[p].is_boost);
         while (sim_time < phases[p].until) {
             sim_time += dt;
             k++;
@@ -71,7 +73,7 @@ static void run(const char* name, const float referee_limit, const float model_s
             const float chassis = std::min(phases[p].demand, super_cap.power_chassis_ref / model_scale);
 
             // 超电：电池侧稳在 battery_ref，电容补差；放空或充满时由电池承担
-            const bool is_dcdc = phases[p].mode != SuperCap::OFF;
+            const bool is_dcdc = phases[p].is_enable;
             const float voltage = cap_charge / capacitance;
             float cap_power = 0;
             if (is_dcdc) {
@@ -101,22 +103,23 @@ static void run(const char* name, const float referee_limit, const float model_s
                 rx_callback(frame);
             }
 
-            if (k % 1000 == 0)
-                std::printf("  %4.0f  %-6s %7.1f  %7.1f  %6.1f  %7.1f  %5.1f  %5.1f  %5.2f\n", sim_time, phases[p].mode == SuperCap::OFF ? "OFF" : phases[p].mode == SuperCap::CHARGE ? "CHARGE"
-                                                                                                                                                                                      : "BOOST",
+            if (k % 1000 == 0) {
+                const char* mode = !phases[p].is_enable ? "OFF" : phases[p].is_boost ? "BOOST" : "CHARGE";
+                std::printf("  %4.0f  %-6s %7.1f  %7.1f  %6.1f  %7.1f  %5.1f  %5.1f  %5.2f\n", sim_time, mode,
                             super_cap.power_chassis_ref, super_cap.power_chassis, super_cap.power_cap, super_cap.power_battery, super_cap.energy_local, referee_energy, voltage);
+            }
         }
     }
     std::printf("  裁判缓冲能量最低 %.1f J，单步 chassis_ref 最大跳变 %.2f W\n\n", min_referee, max_jump);
 }
 
 int main() {
-    // 模式切换：OFF → CHARGE → BOOST → CHARGE → OFF，需求 200 W
-    const Phase cycle[] = {{3, SuperCap::OFF, 200}, {8, SuperCap::CHARGE, 200}, {13, SuperCap::BOOST, 200}, {18, SuperCap::CHARGE, 200}, {21, SuperCap::OFF, 200}};
+    // 开关切换：关 DCDC → 充电 → 叠加补偿 → 充电 → 关 DCDC，需求 200 W
+    const Phase cycle[] = {{3, false, false, 200}, {8, true, false, 200}, {13, true, true, 200}, {18, true, false, 200}, {21, false, false, 200}};
     run("模型准确", 60, 1, 20, cycle, 5);
     run("模型低估 20%", 60, 0.8f, 20, cycle, 5);
 
-    // CHARGE 低需求充电、电容放空后 BOOST
-    const Phase empty[] = {{4, SuperCap::CHARGE, 20}, {10, SuperCap::BOOST, 300}};
+    // 低需求充电、电容放空后叠加补偿
+    const Phase empty[] = {{4, true, false, 20}, {10, true, true, 300}};
     run("电容将空", 60, 1, 10.5f, empty, 2);
 }

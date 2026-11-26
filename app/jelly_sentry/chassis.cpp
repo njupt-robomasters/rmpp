@@ -43,8 +43,10 @@ void chassis_loop() {
     // 前进正方向为云台方向
     chassis.set_gimbal_yaw(gimbal.yaw.ecd.measure);
 
-    // 超级电容
-    super_cap.set_mode(vt13.is_enable || sentry_in_game() ? SuperCap::BOOST : SuperCap::OFF);
+    // 超级电容：使能或比赛中开 DCDC 并叠加放电补偿
+    const bool is_cap_enable = vt13.is_enable || sentry_in_game();
+    super_cap.set_enable(is_cap_enable);
+    super_cap.set_boost_enable(is_cap_enable);
     super_cap.set_referee_limit(referee.robot_status.chassis_power_limit);
     super_cap.set_referee_energy(referee.power_heat_data.buffer_energy);
     super_cap.update();

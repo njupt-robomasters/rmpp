@@ -82,6 +82,11 @@ static Result run(const Case& c, const float power_ref) {
                            .lqr_r = LQR_R,
                        });
 
+    chassis.set_enable(true);
+    chassis.set_allow_rescue(true);
+    chassis.update(Quaternionf::Identity(), Vector3f::Zero());
+    chassis.set_allow_rescue(false);
+
     // 五连杆反解：phi1 = phi0 + beta、phi4 = phi0 - beta
     const float beta = std::acos((ACTIVE_LINK * ACTIVE_LINK + LEG_LENGTH * LEG_LENGTH - PASSIVE_LINK * PASSIVE_LINK) / (2 * ACTIVE_LINK * LEG_LENGTH));
     const float rel_theta = THETA_REF - c.pitch;
@@ -93,7 +98,6 @@ static Result run(const Case& c, const float power_ref) {
     left_wheel.feed(c.omega[0]);
     right_wheel.feed(c.omega[1]);
 
-    chassis.set_enable(true);
     chassis.set_speed(c.vx, c.wr);
     chassis.set_leg_length(LEG_LENGTH);
     chassis.set_power_ref(power_ref);

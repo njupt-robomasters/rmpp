@@ -5,22 +5,30 @@ static constexpr float MOTOR_OVERHEAT = 80; // 电机温度报警阈值，℃
 
 using enum LegDownFrame::MotorState;
 
-static LegDownFrame::MotorState joint_state(const DM8009& motor);
-static LegDownFrame::MotorState wheel_state(const M3508& motor);
+// 关节状态：反馈超时优先，其次达妙错误码与过热
+static LegDownFrame::MotorState joint_state(const DM8009& motor) {
+    if (!motor.is_connect)
+        return OFFLINE;
+    if (motor.err_code != DM8009::NONE && motor.err_code != DM8009::ENABLED)
+        return ERROR;
+    if (motor.temperature >= MOTOR_OVERHEAT)
+        return OVERHEAT;
+    return NORMAL;
+}
 
-// 自救授权锁存，收到批准位置位，站起完成或失能后清除
-static bool allow_rescue = false;
+// 轮状态：反馈超时与过热
+static LegDownFrame::MotorState wheel_state(const M3508& motor) {
+    if (!motor.is_connect)
+        return OFFLINE;
+    if (motor.temperature >= MOTOR_OVERHEAT)
+        return OVERHEAT;
+    return NORMAL;
+}
 
 // 上板指令：每拍读取解包后的控制帧
 static void control_by_up() {
-    // 批准位缓存：上板断联清空控制帧后仍保持，避免已批准的倒地丢授权
-    if (leg_protocol.received.approve_rescue)
-        allow_rescue = true;
-    if (chassis.rescue.state == ChassisLeg::Rescue::State::UPRIGHT)
-        allow_rescue = false;
-
     chassis.set_enable(leg_protocol.received.is_enable);
-    chassis.set_allow_rescue(allow_rescue);
+    chassis.set_allow_rescue(leg_protocol.received.allow_rescue);
     chassis.set_trigger_jump(leg_protocol.received.trigger_jump);
     chassis.set_speed(leg_protocol.received.vx, leg_protocol.received.wr);
     chassis.set_gimbal_yaw(leg_protocol.received.yaw);
@@ -29,7 +37,6 @@ static void control_by_up() {
 }
 
 static void control_by_fsi6x() {
-    allow_rescue = false; // 接管期间丢弃上板批准，切回后需重新批准
     chassis.set_enable(fsi6x.is_connect && fsi6x.swa == FSi6X::DOWN);
     chassis.set_allow_rescue(fsi6x.swb == FSi6X::DOWN);
     chassis.set_trigger_jump(fsi6x.swd == FSi6X::DOWN);
@@ -68,24 +75,4 @@ void chassis_loop() {
     leg_protocol.motor[3] = joint_state(right_front);
     leg_protocol.motor[4] = wheel_state(left_wheel);
     leg_protocol.motor[5] = wheel_state(right_wheel);
-}
-
-// 关节状态：反馈超时优先，其次达妙错误码与过热
-static LegDownFrame::MotorState joint_state(const DM8009& motor) {
-    if (!motor.is_connect)
-        return OFFLINE;
-    if (motor.err_code != DM8009::NONE && motor.err_code != DM8009::ENABLED)
-        return ERROR;
-    if (motor.temperature >= MOTOR_OVERHEAT)
-        return OVERHEAT;
-    return NORMAL;
-}
-
-// 轮状态：反馈超时与过热
-static LegDownFrame::MotorState wheel_state(const M3508& motor) {
-    if (!motor.is_connect)
-        return OFFLINE;
-    if (motor.temperature >= MOTOR_OVERHEAT)
-        return OVERHEAT;
-    return NORMAL;
 }

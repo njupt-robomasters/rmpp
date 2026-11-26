@@ -65,12 +65,12 @@ void referee_loop() {
     ui.super_cap = super_cap.energy_ratio();
     if (!super_cap.is_connect)
         ui.cap = RobotUi::PINK;
-    else if (super_cap.mode == SuperCap::CHARGE)
-        ui.cap = RobotUi::CYAN;
-    else if (super_cap.mode == SuperCap::BOOST)
-        ui.cap = super_cap.is_cap_voltage_low() ? RobotUi::CYAN : RobotUi::GREEN;
-    else
+    else if (!super_cap.is_enable)
         ui.cap = RobotUi::WHITE;
+    else if (!super_cap.is_boost_enable)
+        ui.cap = RobotUi::CYAN;
+    else
+        ui.cap = super_cap.is_cap_voltage_low() ? RobotUi::CYAN : RobotUi::GREEN;
     ui.chassis_wr = chassis.wr.measure;             // 底盘转速；反馈未知时由发送端显示 0
     ui.bullet_freq = vt13.config.bullet_freq;       // 弹频，滚轮调节
     ui.shoot_output = shoot.current;                // 拨弹电机电流

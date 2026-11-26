@@ -13,6 +13,13 @@
 - 底盘 C 板与外部车安装一致：`orientation = yaw 180°`
 - 独立类 `lib/robot/chassis_leg.*`，姿态每周期由 `update(q, gyro)` 传入；应用 `../../app/leg/leg_down`，C 板
 - 自救步长按 dt 换算为 rad/s
+- 自救回归 `test_rescue.cpp`：固定腿角 85°，批准一拍后撤销，连续 6 个 2 ms 控制拍目标仍向前推进；另覆盖站起完成、横滚 110° 翻转、失能停机与重新使能等待批准。仓库根目录运行：
+
+  ```sh
+  mkdir -p agents/tmp/leg-review
+  g++ -std=c++20 -O1 -mno-ms-bitfields -Iagents/04-leg/power_alloc/stubs -Ilib -Ilib/third_party/eigen-3.4.0 agents/04-leg/chassis/test_rescue.cpp lib/robot/chassis_leg.cpp lib/motor/motor.cpp lib/motor/m3508.cpp lib/pid/pid.cpp -o agents/tmp/leg-review/test_rescue.exe
+  ./agents/tmp/leg-review/test_rescue.exe
+  ```
 - roll PD 微分用 `-gyro.x`
 - 任一关节或轮掉线、关节未使能或报错：全部输出零
 - 修复 M3508 速度、电流按无符号解析

@@ -146,17 +146,17 @@ class ChassisLeg {
 
     // 倒地与自救，外部只读 state
     struct Rescue {
-        // 自救阶段；UPRIGHT 为默认值 0，rescue = {} 可复位
-        enum class State { UPRIGHT = 0, // 站立，正常控制
-                           FALLEN,      // 已倒地，等待启动许可
-                           RUNNING };   // 自救动作执行中
+        // 自救阶段
+        enum class State { FALLEN = 0, // 上电、失能或倒地后等待启动许可
+                           UPRIGHT,    // 站立，正常控制
+                           RUNNING };  // 自救动作执行中
 
         // 倒地方向
         enum class FallDir { NORMAL, // 正向倒地，横滚 < 90°
                              HEAD,   // 头部着地，横滚 > 90° 且低头
                              TAIL }; // 尾部着地，横滚 > 90° 且抬头
 
-        State state = State::UPRIGHT;  // 当前自救阶段；站起完成、失能或跳跃时复位
+        State state = State::FALLEN;   // 当前自救阶段；上电或失能时等待批准
         FallDir dir = FallDir::NORMAL; // 启动时的倒地方向，RUNNING 状态下有效
         int flip_step[2]{};            // 翻转阶段：0 进入翻转区间、1 继续翻转、2 完成
         int stand_step[2]{};           // 站起阶段：0 摆腿、1 收腿
@@ -194,6 +194,12 @@ class ChassisLeg {
     // 使能或失能全部电机
     void set_enable(bool is_enable);
 
+    // 倒地后允许启动自救；撤销不打断已运行的自救
+    void set_allow_rescue(bool allow_rescue);
+
+    // 跳跃触发，上升沿且空闲时启动
+    void set_trigger_jump(bool trigger_jump);
+
     // 前向速度 m/s 前进为正；航向角速度目标 rad/s 俯视逆时针为正，小陀螺为手动角速度，跟随为云台 yaw 目标速度前馈
     // 两个目标按轮子额定转速乘轮半径等比限速，存储值不会超限
     void set_speed(float vx, float wr);
@@ -203,12 +209,6 @@ class ChassisLeg {
 
     // 双腿共用目标腿长，m，限幅到 [leg_min, leg_max]
     void set_leg_length(float leg_length);
-
-    // 倒地后允许启动自救；撤销不打断已运行的自救
-    void set_allow_rescue(bool allow_rescue);
-
-    // 跳跃触发，上升沿且空闲时启动
-    void set_trigger_jump(bool trigger_jump);
 
     // 双轮净机械功率上限 Σ Tw·ω，W；通常取超电 power_chassis_ref，INFINITY 不限；关节功率与铜耗不计
     void set_power_ref(float power_ref);

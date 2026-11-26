@@ -6,7 +6,7 @@
 
 // BirdFly G474 超级电容控制器（njupt-robomasters/G474SuperCap）：CAN 协议、底盘功率管理与电容在线辨识
 // 控制器只在收到命令时应答，100 ms 未收到命令关闭 DCDC；装超电时由调用方按固定周期持续调用 send()
-// 未装超电时不调用 send()，超电保持离线，按 OFF 用裁判缓冲能量
+// 未装超电时不调用 send()，超电保持离线，DCDC 不使能时用裁判缓冲能量
 // DCDC 使能后把电池侧功率稳定在目标值，负载超过目标时电容自动放电
 // 功率管理：裁判上限按裁判缓冲能量折算为电池侧目标下发超电；底盘功率目标为供给功率按所用缓冲能量折算
 // DCDC 使能时用虚拟缓冲能量，按（供给 − 底盘实测）积分；否则用裁判缓冲能量
@@ -17,12 +17,6 @@ class SuperCap {
     static constexpr float UNLIMITED = 65535; // 裁判不限功率时的上限读数
 
   public:
-    enum Mode {
-        OFF,    // 关闭 DCDC，用裁判缓冲能量；应答解算与容量辨识照常
-        CHARGE, // 使能 DCDC，底盘供给为电池侧目标，余量给电容充电
-        BOOST,  // 使能 DCDC，底盘供给叠加电容放电补偿
-    };
-
     struct Config {
         // 通信与应答
         Can can;
@@ -52,7 +46,8 @@ class SuperCap {
     } const config;
 
     // 指令
-    Mode mode = OFF;
+    bool is_enable = false;       // DCDC 使能；不使能时用裁判缓冲能量，应答解算与容量辨识照常
+    bool is_boost_enable = false; // 放电补偿；仅 DCDC 使能时叠加到底盘供给
 
   private:
     float referee_limit = 120; // 裁判电池侧功率上限原始读数，W
@@ -107,8 +102,11 @@ class SuperCap {
   public:
     explicit SuperCap(const Config& config);
 
-    // 设置模式
-    void set_mode(Mode mode);
+    // 设置 DCDC 使能，关闭时用裁判缓冲能量
+    void set_enable(bool is_enable);
+
+    // 设置放电补偿，关闭时底盘供给只有电池侧目标
+    void set_boost_enable(bool is_boost_enable);
 
     // 设置裁判电池侧功率上限，65535 表示不限功率
     void set_referee_limit(float referee_limit);
@@ -130,9 +128,6 @@ class SuperCap {
 
     // 容量辨识一步；在 can_callback 中置 is_connect 前调用，current_cap 为未低通的电容电流
     void update_capacitance(float current_cap, float dt);
-
-    // DCDC 是否使能：在线且 CHARGE 或 BOOST
-    bool is_dcdc_enable() const;
 
     // 缓冲能量折算倍数
     float buffer_gain(float energy) const;

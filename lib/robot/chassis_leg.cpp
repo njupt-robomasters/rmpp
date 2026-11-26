@@ -29,10 +29,6 @@ void ChassisLeg::set_trigger_jump(const bool trigger_jump) {
     this->trigger_jump = trigger_jump;
 }
 
-void ChassisLeg::set_power_ref(const float power_ref) {
-    this->power_ref = power_ref;
-}
-
 void ChassisLeg::set_speed(const float vx, const float wr) {
     // 限速：直行上限为轮子额定转速乘轮半径，边走边转按较快一侧的轮缘速度等比缩小两个目标
     const float rim_limit = config.wheel_work_speed * config.wheel_radius;
@@ -48,6 +44,10 @@ void ChassisLeg::set_gimbal_yaw(const float gimbal_yaw) {
 
 void ChassisLeg::set_leg_length(const float leg_length) {
     this->leg_length = std::clamp(leg_length, config.leg_min, config.leg_max);
+}
+
+void ChassisLeg::set_power_ref(const float power_ref) {
+    this->power_ref = power_ref;
 }
 
 void ChassisLeg::update(const Quaternionf& q, const Vector3f& gyro) {
@@ -211,15 +211,17 @@ void ChassisLeg::control_leg_length(const float dt, const float length) {
 }
 
 void ChassisLeg::update_rescue(const float dt) {
-    // 倒地与自救：失能或跳跃时复位
-    if (!is_enable || jump.state != Jump::State::IDLE) {
+    // 失能回到待批准；跳跃期间跳过倒地检测与自救
+    if (!is_enable) {
         rescue = {};
-    } else {
-        for (const auto& l : leg)
-            if (l.rel_theta < config.fall_theta_front || l.rel_theta > config.fall_theta_back)
+    } else if (jump.state == Jump::State::IDLE) {
+        if (rescue.state == Rescue::State::UPRIGHT) {
+            for (const auto& l : leg)
+                if (l.rel_theta < config.fall_theta_front || l.rel_theta > config.fall_theta_back)
+                    rescue.state = Rescue::State::FALLEN;
+            if (std::fabs(body.roll) > 90 * deg)
                 rescue.state = Rescue::State::FALLEN;
-        if (std::fabs(body.roll) > 90 * deg)
-            rescue.state = Rescue::State::FALLEN;
+        }
 
         // 倒地且空闲时接受启动许可：横滚区分正向与翻倒，翻倒时低头（pitch > 0）为头部着地
         if (rescue.state == Rescue::State::FALLEN && allow_rescue) {
@@ -241,7 +243,7 @@ void ChassisLeg::update_rescue(const float dt) {
                 rescue_stand(dt);
             else if (rescue.dir == Rescue::FallDir::HEAD)
                 rescue_flip(-1, dt);
-            else
+            else if (rescue.dir == Rescue::FallDir::TAIL)
                 rescue_flip(1, dt);
         }
     }
@@ -271,7 +273,7 @@ void ChassisLeg::rescue_stand(const float dt) {
 
     // 双腿均进入收腿阶段且反馈回正，判定站起完成
     if (rescue.stand_step[0] == 1 && rescue.stand_step[1] == 1 && std::fabs(leg[0].rel_theta) < 23 * deg && std::fabs(leg[1].rel_theta) < 23 * deg) {
-        rescue = {};
+        rescue = {.state = Rescue::State::UPRIGHT};
     }
 }
 
