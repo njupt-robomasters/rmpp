@@ -15,9 +15,9 @@ static constexpr float WHEEL_RADIUS = 0.06f;         // 轮半径，m
 // 导航满速平移时的小陀螺角速度，rad/s
 static constexpr float WR_MIN = 60 * rpm;
 
-// 导航目标点，上位机自定义坐标系；比赛去中心，测试去测试点，家为原点，m
-static constexpr float GAME_CENTER_X = 2.2f, GAME_CENTER_Y = 4.7f;
-static constexpr float TEST_CENTER_X = 1.0f, TEST_CENTER_Y = 0;
+// 导航目标点，上位机坐标系，m；切换场地时只保留一行中心坐标
+// static constexpr float CENTER_X = 2.2f, CENTER_Y = 4.7f; // 比赛场地
+static constexpr float CENTER_X = 1.0f, CENTER_Y = 0; // 测试场地
 static constexpr float HOME_X = 0, HOME_Y = 0;
 
 // 血量低于回家值时回家，回到中心值以上再去中心

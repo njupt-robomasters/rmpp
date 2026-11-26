@@ -9,19 +9,17 @@
 // 导航目标点状态，退出自主时复位为去中心
 static bool is_go_home = false;
 
-// 导航目标点：比赛去中心、低血量回家；测试时去测试点
+// 导航目标点：默认去中心，收到有效血量后按阈值往返
 static void set_nav_target() {
-    const bool is_game = sentry_in_game();
-    const float center_x = is_game ? GAME_CENTER_X : TEST_CENTER_X;
-    const float center_y = is_game ? GAME_CENTER_Y : TEST_CENTER_Y;
+    if (referee.robot_status.maximum_HP != 0) {
+        const uint16_t hp = referee.robot_status.current_HP;
+        if (hp <= GO_HOME_HP)
+            is_go_home = true;
+        else if (hp >= GO_CENTER_HP)
+            is_go_home = false;
+    }
 
-    const uint16_t hp = referee.robot_status.current_HP;
-    if (hp <= GO_HOME_HP)
-        is_go_home = true;
-    else if (hp >= GO_CENTER_HP)
-        is_go_home = false;
-
-    nav.set_target(is_go_home ? HOME_X : center_x, is_go_home ? HOME_Y : center_y);
+    nav.set_target(is_go_home ? HOME_X : CENTER_X, is_go_home ? HOME_Y : CENTER_Y);
 }
 
 // VT13：摇杆叠加键盘斜坡，速度为云台系，断联时为 0
