@@ -7,6 +7,7 @@
 | 目录 | 内容 |
 | --- | --- |
 | `chassis/` | 从 SOLDIER_LEG_4 迁移轮腿底盘；IMU 极性核查、电机映射、虚拟 IMU 方案 |
+| [ball_slip/](ball_slip/README.md) | 17 mm 小球引起单腿抽动的保护调研：起步、急刹误判边界与验证方法；未实施 |
 | `lqr/` | Python 复现轮腿 LQR；重心偏移稳态与漂移、LQI 对比；生成 `chassis_leg_lqr.hpp` 的拟合表 |
 | `link_ui/` | 上下板 UI 槽位、下板状态帧与 6 个电机状态、使能与自救授权 |
 | `torque_alloc/` | 额定力矩分配：姿态组优先、运动组共同退让、腿摆余量折算 |
