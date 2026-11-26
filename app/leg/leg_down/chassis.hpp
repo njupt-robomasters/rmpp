@@ -61,7 +61,7 @@ inline M3508 right_wheel({
 });
 
 // 底盘 PID 配置
-inline Pid::Config leg_length_pid_config = {.kp = 1750, .kd = 100, .max_out = 180}; // 腿长 PD：m → 轴向力 N
+inline Pid::Config leg_length_pid_config = {.kp = 1750, .kd = 100, .max_out = 350}; // 腿长 PD：m → 轴向力 N
 inline Pid::Config leg_angle_pid_config = {.kp = 140, .kd = 7, .max_out = 80};      // 相对腿角 PD：rad → 摆动力矩 N·m
 inline Pid::Config roll_pid_config = {.kp = 1.3f, .kd = 0.004f, .max_out = 0.4f};   // 横滚 PD：rad → 腿长修正 m
 

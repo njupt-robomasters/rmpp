@@ -317,18 +317,17 @@ void ChassisLeg::update_jump(const float dt) {
             jump.force = config.jump_takeoff_force;
             if (leg[0].L >= config.leg_max && leg[1].L >= config.leg_max) {
                 jump.state = Jump::State::RETRACT;
-                jump.force = config.jump_retract_force;
             }
         } else if (jump.state == Jump::State::RETRACT) {
             // 收腿，双腿收到位后保持
             jump.force = config.jump_retract_force;
             if (leg[0].L <= config.leg_min && leg[1].L <= config.leg_min) {
                 jump.state = Jump::State::HOLD;
-                jump.force = 0;
                 jump.hold_time = 0;
             }
         } else if (jump.state == Jump::State::HOLD) {
             // 收腿长度保持
+            jump.force = 0;
             jump.hold_time += dt;
             if (jump.hold_time >= config.jump_retract_time) {
                 jump.state = Jump::State::BUFFER;

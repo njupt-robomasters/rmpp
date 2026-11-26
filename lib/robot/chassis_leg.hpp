@@ -50,7 +50,7 @@ class ChassisLeg {
         // 跳跃
         float jump_takeoff_force = 350.0f;  // 单腿起跳力，N，伸腿为正
         float jump_retract_force = -350.0f; // 单腿收腿力，N，伸腿为正
-        float jump_retract_time = 0.2f;     // 收腿保持时间，s
+        float jump_retract_time = 0.25f;     // 收腿保持时间，s
         float jump_buffer_length = 0.22f;   // 落地缓冲目标腿长，m
         float jump_buffer_time = 0.5f;      // 落地缓冲时间，s
     } const config;
