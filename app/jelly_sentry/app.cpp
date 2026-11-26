@@ -43,9 +43,11 @@ static void send() {
     if (send_cnt % 2 == 0)
         yaw2.send();
 
-    // CAN2：摩擦轮 VESC 每拍；拨弹 EL05 每 2 拍
-    rub1.send();
-    rub2.send();
+    // CAN2：双传送带 VESC 每 10 拍（各 100 Hz）；拨弹 EL05 每 2 拍
+    if (send_cnt % 10 == 0) {
+        rub1.send();
+        rub2.send();
+    }
     if (send_cnt % 2 == 0)
         shoot.send();
 

@@ -4,7 +4,7 @@
 #include "motor/vesc.hpp"
 #include "robot/shooter_17mm.hpp"
 
-// 双传送带驱动（工程沿用 rub 名称）：2×P630，CAN2，VESC 扩展帧，电调内部速度环
+// 2×P630，CAN2，VESC 扩展帧，电调内部速度环
 // tx_id/rx_id 为电调节点 ID；set_speed() 接收输出轴 rad/s，Vesc 按 reduction（含极对数）换算 ERPM
 // 沿用节点 ID 0x21/0x22 与驱动参数，待实机核对极对数
 // 三路方向均在各实例的 is_invert 中显式配置，true 为反向
@@ -43,11 +43,11 @@ inline EL05 shoot({
 
 // 发射机构：EL05 反馈为输出轴角度；TODO: bullet_per_angle 按拨盘结构修改
 inline Shooter17mm shooter({rub1, rub2, shoot}, {
-                                                    .shoot_pid_config = &shoot_pid,
-                                                    .bullet_per_angle = 9.0f / rev,
-                                                    .block_time = 0.2f,
-                                                    .reverse_time = 0.1f,
-                                                    .heat_protect = 100,
+                                                    .shoot_pid_config = &shoot_pid, // 拨弹速度环 PID 参数，输出为力矩，Nm
+                                                    .bullet_per_angle = 9.0f / rev, // 拨弹角度对应弹数，发/rad；输出轴每转 9 发
+                                                    .block_time = 0.2f,             // 卡弹判定时间，s；PID 输出持续饱和达到此时间后反转
+                                                    .reverse_time = 0.1f,           // 卡弹反转持续时间，s；到时恢复正常拨弹
+                                                    .heat_protect = 100,            // 剩余热量保护阈值；低于 100 时停止拨弹
                                                 });
 
 void shooter_loop(bool is_fire);
