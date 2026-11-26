@@ -56,6 +56,14 @@ class ChassisLeg {
     } const config;
 
   private:
+    // 控制指令，由 set_* 写入
+    bool allow_rescue = false; // 倒地后允许启动自救；撤销不打断已运行的自救
+    bool trigger_jump = false; // 跳跃触发，上升沿且空闲时启动
+    float vx = 0, wr = 0;      // 前向速度 m/s 前进为正；航向角速度目标 rad/s 逆时针为正，小陀螺为手动角速度、跟随为云台 yaw 目标速度前馈
+    float gimbal_yaw = 0;      // 云台相对底盘航向，rad；无云台、断联或小陀螺时为 0，不追踪航向
+    float leg_length;          // 双腿目标腿长，m
+    float power_ref = 0;       // 双轮净机械功率上限 Σ Tw·ω，W；INFINITY 不限
+
     // 五连杆示意（站立姿态）：关节电机 A、E 同轴装于 O，A 驱动 AB、E 驱动 ED；C 为轮轴
     // 图中 x 向右、y 向下，杆方位角从 +x 向 +y（顺时针）为正；电机零位时 AB 指向 -x（phi1 = π）、ED 指向 +x（phi4 = 0）
     // 虚拟腿为 OC：L = |OC|，phi0 为 OC 方位角，正下方为 π/2
@@ -92,6 +100,7 @@ class ChassisLeg {
         float phi2 = 0, phi3 = 0;   // 从动杆 BC、DC 方位角，rad
         float phi_bod = 0;          // 主动杆夹角 ∠BOD = phi1 - phi4，rad，有符号
         float phi_obc = 0;          // 膝内角 ∠OBC，rad，[0, π]
+        float axial_gain = 0;       // 轴向力到单关节力矩的系数 0.5·L·tan∠OCB，N·m/N，轴向力形成反向关节力矩
 
         // 虚拟腿 OC
         float phi0 = 0, d_phi0 = 0; // 方位角，rad、rad/s，车体正下方为 π/2
@@ -118,10 +127,10 @@ class ChassisLeg {
         float Tw = 0;         // 轮端力矩，N·m，前进为正
     } leg[2];
 
-    bool is_motor_ok = false; // 全部电机在线且关节已使能无报错；否则全部电机输出零
+    bool is_motor_online = false; // 六电机反馈在线、四关节使能且无报错；任一不满足时全部输出零
 
   public:
-    // 车体运动：姿态为传入 q 换算的标准 Z-Y-X 欧拉角，角速度取机体系 gyro；前向运动与 d_yaw_wheel 由轮腿运动学得出
+    // 车体运动与位移积分，外部只读；姿态为传入 q 换算的标准 Z-Y-X 欧拉角，角速度取机体系 gyro，前向运动与 d_yaw_wheel 由轮腿运动学得出
     struct {
         float pitch = 0, d_pitch = 0; // rad、rad/s；低头为正（绕机体 +Y）；与外部工程 imu_pitch 同号
         float roll = 0, d_roll = 0;   // rad、rad/s；右侧低为正（绕机体 +X）；与外部工程 imu_roll 相反
@@ -129,6 +138,7 @@ class ChassisLeg {
         float d_yaw_wheel = 0;        // 轮速航向角速度，rad/s，右侧前向速度较大（逆时针）为正
         float x = 0;                  // 前向位移积分，m，前进为正；有速度指令或动作期间清零
         float d_x = 0;                // 前向速度，m/s，前进为正
+        bool is_position = false;     // 速度降到 0.1 m/s 内后开始位移积分
     } body;
 
     // 底盘使能状态，外部只读
@@ -136,14 +146,17 @@ class ChassisLeg {
 
     // 倒地与自救，外部只读 state
     struct Rescue {
-        enum class State { UPRIGHT = 0,
-                           FALLEN,
-                           RUNNING }; // UPRIGHT 为默认值 0，rescue = {} 可安全复位
-        enum class FallDir { NORMAL,
-                             HEAD,
-                             TAIL }; // 正向倒地、头部着地、尾部着地
+        // 自救阶段；UPRIGHT 为默认值 0，rescue = {} 可复位
+        enum class State { UPRIGHT = 0, // 站立，正常控制
+                           FALLEN,      // 已倒地，等待启动许可
+                           RUNNING };   // 自救动作执行中
 
-        State state = State::UPRIGHT;  // 自救状态；站起完成、失能或跳跃时复位
+        // 倒地方向
+        enum class FallDir { NORMAL, // 正向倒地，横滚 < 90°
+                             HEAD,   // 头部着地，横滚 > 90° 且低头
+                             TAIL }; // 尾部着地，横滚 > 90° 且抬头
+
+        State state = State::UPRIGHT;  // 当前自救阶段；站起完成、失能或跳跃时复位
         FallDir dir = FallDir::NORMAL; // 启动时的倒地方向，RUNNING 状态下有效
         int flip_step[2]{};            // 翻转阶段：0 进入翻转区间、1 继续翻转、2 完成
         int stand_step[2]{};           // 站起阶段：0 摆腿、1 收腿
@@ -151,37 +164,27 @@ class ChassisLeg {
     } rescue;
 
   private:
+    // 跳跃；IDLE 为默认值 0，jump = {} 可复位
     struct Jump {
-        enum class State { IDLE = 0,
-                           TAKEOFF,
-                           RETRACT,
-                           HOLD,
-                           BUFFER }; // IDLE 为默认值 0，jump = {} 可安全复位
+        enum class State { IDLE = 0, // 未激活
+                           TAKEOFF,  // 全力伸腿，伸到 leg_max
+                           RETRACT,  // 全力收腿，收到 leg_min
+                           HOLD,     // 保持收腿腿长
+                           BUFFER }; // 落地缓冲
 
-        State state = State::IDLE; // 当前跳跃阶段；IDLE 表示未激活
+        State state = State::IDLE; // 当前跳跃阶段
         float force = 0;           // 单腿跳跃力，N，伸腿为正
         float hold_time = 0;       // 阶段 HOLD、BUFFER 已保持时间，s
     } jump;
 
-    // 功率：calc_lqr() 计算，跳跃期间不更新
-    float wheel_power = 0; // 额定力矩分配后、功率修正前的双轮净机械功率 Σ Tw·ω，W；超过 power_ref 时修正
-
-    // 控制器
-    float d_yaw_ref = 0;
-
-    // 指令
-    bool allow_rescue = false;
-    bool trigger_jump = false;
-    float vx = 0, wr = 0; // 前向速度 m/s 前进为正；航向角速度目标 rad/s 逆时针为正
-    float gimbal_yaw = 0;
-    float leg_length;
-    float power_ref = 0; // 双轮净机械功率上限 Σ Tw·ω，W；INFINITY 不限
-
-    Pid leg_length_pid[2], leg_angle_pid[2], roll_pid;
+    // 功率：额定力矩分配后估计的双轮净机械功率 Σ Tw·ω，W；超过 power_ref 时修正
+    float power_estimate = 0;
 
     // 跨周期状态
-    bool is_position = false; // 速度降到阈值内后开始位移积分
-    bool last_trigger_jump = false;
+    bool last_trigger_jump = false; // 上拍跳跃触发状态，用于取上升沿；不复位，按住触发只跳一次
+
+    // 控制器
+    Pid leg_length_pid[2], leg_angle_pid[2], roll_pid;
 
     Timer update_timer;
 
@@ -192,6 +195,7 @@ class ChassisLeg {
     void set_enable(bool is_enable);
 
     // 前向速度 m/s 前进为正；航向角速度目标 rad/s 俯视逆时针为正，小陀螺为手动角速度，跟随为云台 yaw 目标速度前馈
+    // 两个目标按轮子额定转速乘轮半径等比限速，存储值不会超限
     void set_speed(float vx, float wr);
 
     // 云台相对底盘航向，rad；无云台、断联或小陀螺时传 0，0 即不追踪航向
@@ -214,11 +218,14 @@ class ChassisLeg {
     void update(const Quaternionf& q, const Vector3f& gyro);
 
   private:
-    // 反馈：电机在线状态、车体姿态、双腿几何与前馈力、轮速与功率估计
-    void update_feedback(const Quaternionf& q, const Vector3f& gyro);
+    // 反馈：电机、车体姿态、双腿几何、车体运动
+    void update_motor();
+    void update_attitude(const Quaternionf& q, const Vector3f& gyro);
+    void update_leg(Leg& leg, float mirror);
+    void update_motion(float dt);
 
-    // 五连杆正运动学：由 phi1、phi4 及角速度更新虚拟腿几何与速度
-    void solve_leg(Leg& leg) const;
+    // 腿长控制：目标腿长加横滚补偿，输出双腿轴向力 Fn
+    void control_leg_length(float dt, float length);
 
     // 倒地检测与自救状态机
     void update_rescue(float dt);
@@ -230,21 +237,24 @@ class ChassisLeg {
     // 跳跃状态机
     void update_jump(float dt);
 
-    // 按失能、倒地、跳跃状态计算双腿虚拟力 Fn、Tt 与轮端力矩 Tw
-    void calc_force(float dt);
+    // 按失能、倒地、跳跃状态计算双腿虚拟力 Fn、Tt 与轮端力矩 Tw，并映射成关节力矩 Ta、Te
+    void update_force(float dt);
 
-    // 按目标腿长和横滚补偿计算双腿轴向力，含重力与弹簧补偿
-    void balance_legs(float dt, float length);
-
-    // LQR 平衡：按腿长插值增益，按额定力矩与功率分配后写入轮端力矩 Tw 与摆动力矩 Tt
+    // LQR 平衡：按目标求四路力矩，额定力矩分配与功率限制后写入轮端力矩 Tw 与摆动力矩 Tt
     void calc_lqr();
 
-    // 轴向力在两关节上形成的反向力矩幅值，N·m
-    float calc_axial_torque(const Leg& leg) const;
+    // 四路额定区间：轮取电机力矩上限，腿摆取关节余量的一半
+    void calc_torque_limit(float lower[4], float upper[4]) const;
+
+    // 分配：姿态组优先，运动组按最大可行比例让位；四路写入 out
+    void alloc_torque(const float base[4], const float motion[4], const float lower[4], const float upper[4], float out[4]) const;
+
+    // 功率：双轮净机械功率超限时按 R 加权最短方向削减轮力矩，缺口由两腿摆动力矩补上
+    void limit_power(const float terms[6], const float k[4][10], const float lower[4], const float upper[4], float out[4]);
 
     // 分配：四路满足 [lower, upper] 且比例不超过 1 时返回最大可行比例，无解返回 -1
     static float maximum_share(const float base[4], const float change[4], const float lower[4], const float upper[4]);
 
-    // VMC 力映射：由 L、Fn 和机构极性的摆动力矩 Tt 更新 T_A、T_E
+    // VMC 力映射：由轴向力系数与机构极性的摆动力矩 Tt 更新 Ta、Te
     void vmc_map(Leg& leg, float Tt) const;
 };

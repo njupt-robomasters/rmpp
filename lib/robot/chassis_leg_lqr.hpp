@@ -3,7 +3,7 @@
 #include "robot/chassis_leg.hpp"
 
 // ChassisLeg LQR 增益拟合系数，适用于 leg_down 应用
-// 由 agents/09-leg_lqr/gen_lqr_fit.py 生成，不手改数值；改机体参数后重跑脚本替换本文件
+// 由 agents/04-leg/lqr/gen_lqr_fit.py 生成，不手改数值；改机体参数后重跑脚本替换本文件
 
 // LQR 增益拟合系数 [输出][状态][项]，由 gen_lqr_fit.py 生成（LQR），不手改
 // 输出：左轮、右轮（前进为正）、左摆、右摆（后摆为正），N·m

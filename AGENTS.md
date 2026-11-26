@@ -26,11 +26,11 @@ RMPP 是用于大疆 RoboMaster 机甲大师赛的 STM32 机器人控制项目�
 ### 工作与协作
 
 - 开始任务先检查 Git 状态和相关 diff，保留用户及其他工具的修改
-- 先读 `agents/README.md`、`agents/TODO.md`，再按任务读取其中索引的 `agents/docs/` 和已有任务记录
-- 修改手写代码前读 `agents/docs/conventions.md`；协作、验证和约定维护遵循 `agents/docs/workflow.md`
+- 先读 `agents/README.md`、`agents/TODO.md`，再按任务读取 `agents/<主题>/` 的 README、文档和已有记录
+- 修改手写代码前读 `agents/02-conventions/conventions.md`；协作、验证和约定维护遵循 `agents/02-conventions/workflow.md`
 - 用户明确要求开始后直接推进已确认需求；授权前只分析和规划
 - 默认在当前工作区工作；用户要求时使用外部 worktree，修改限定在任务范围
-- 任务脚本、测试源码和分析记录放在 `agents/NN-任务名/`；日志、固件等可丢弃产物放在 `agents/tmp/<任务名>/`，不入库，随时可能被清空。复现命令和长期结论保存在任务记录或 `agents/docs/`
+- 任务脚本、测试源码和分析记录放在 `agents/<主题>/`；日志、固件等可丢弃产物放在 `agents/tmp/<任务名>/`，不入库，随时可能被清空。复现命令和长期结论保存在任务记录或主题文档
 - 验证脚本的输出根目录为 `ROOT / "agents/tmp/<任务名>"`（Shell 脚本使用 `agents/tmp/<任务名>`），运行时按需创建；任务目录只保留源码与记录
 - `.ioc` 和 CubeMX 生成代码由用户操作；第三方原始代码保持原样
 - 修改后同步模块文档，完成格式检查、相关文件真实编译和必要测试；完整固件构建按用户要求执行
@@ -38,7 +38,7 @@ RMPP 是用于大疆 RoboMaster 机甲大师赛的 STM32 机器人控制项目�
 
 ### 通用代码约定
 
-以下约定适用于项目手写代码，来自 `agents/docs/conventions.md`；模块细则和特例仍按文档索引读取。
+以下约定适用于项目手写代码，来自 `agents/02-conventions/conventions.md`；模块细则和特例仍按文档索引读取。
 
 #### 设计与接口
 
@@ -98,7 +98,7 @@ RMPP 是用于大疆 RoboMaster 机甲大师赛的 STM32 机器人控制项目�
 
 ### 规则维护与文档入口
 
-- 赛事语境、沟通方式和通用代码约定维护在本文件；`agents/docs/conventions.md` 保留详细说明和具体类特例，修改代码约定时同步核对两处
-- 协作与验证细则见 `agents/docs/workflow.md`，模块知识按需维护在 `agents/docs/`
+- 赛事语境、沟通方式和通用代码约定维护在本文件；`agents/02-conventions/conventions.md` 保留详细说明和具体类特例，修改代码约定时同步核对两处
+- 协作与验证细则见 `agents/02-conventions/workflow.md`，模块知识按需维护在对应主题目录
 - 任务索引与需求理解维护在 `agents/README.md`，跨对话待办维护在 `agents/TODO.md`
-- 可复制到其他项目的两份 `AGENTS.md` 见 `agents/23-agents_guides/README.md`；调整赛事语境或沟通方式时同步更新对应版本
+- 可复制到其他项目的两份 `AGENTS.md` 见 `agents/09-guides/README.md`；调整赛事语境或沟通方式时同步更新对应版本

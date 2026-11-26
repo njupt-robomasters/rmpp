@@ -1,4 +1,4 @@
-"""把 MIDI 转为蜂鸣器曲目 .hpp（Song：旋律组 + 伴奏组），交互选择音轨并试听；规则见 agents/docs/music.md
+"""把 MIDI 转为蜂鸣器曲目 .hpp（Song：旋律组 + 伴奏组），交互选择音轨并试听；规则见 agents/08-music/music.md
 
 用法：python tools/midi_to_song.py [MIDI 路径]
 依赖：mido；试听用 winsound，仅 Windows

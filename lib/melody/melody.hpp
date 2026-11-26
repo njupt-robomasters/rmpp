@@ -18,7 +18,7 @@ struct Note {
 using Voice = std::span<const Note>; // 声部：一条单音序列
 using Part = std::span<const Voice>; // 声部组：同时进行的若干声部，第 0 个为主声部
 
-// 曲目，由 tools/midi_to_song.py 生成，见 agents/docs/music.md
+// 曲目，由 tools/midi_to_song.py 生成，见 agents/08-music/music.md
 struct Song {
     Part melody; // 旋律组，主声部取最高音
     Part chords; // 伴奏组，主声部取最低音；可为空

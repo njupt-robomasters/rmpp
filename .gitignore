@@ -11,3 +11,7 @@ logs/
 .agents/
 agents/tmp/
 agents/.tools/
+
+# Python
+__pycache__/
+*.pyc
