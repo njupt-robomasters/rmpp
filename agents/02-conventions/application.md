@@ -69,12 +69,13 @@
 
 - VT13 在 `update()` 内把遥控器与键鼠合成为操控量，app 优先读取：`is_enable`（N、S 挡）、`vx`/`vy`/`wr`、`yaw_speed`/`pitch_speed`、`bullet_speed`、`bullet_freq`、`is_aim`；原始量在 `rc`、`mouse`、`key`，供 fn、pause、校准组合键等 app 专用操作读取
 - 平移与旋转为摇杆或拨轮乘满量程，叠加 W/S、A/D、Shift/Ctrl 键盘斜坡后限幅；按反向键时同向速度先清零再反向加速，松手按减速度回零；加减速度设 `INFINITY` 时一个周期到满量程或归零。斜坡用本类 dt，`DT_MIN`/`DT_MAX` 限幅
-- 云台为摇杆叠加鼠标，无斜坡，限幅到满量程；pitch 抬头为负，与 Classic 云台一致。按住 trigger 时 pitch 摇杆改为弹频倍率（负值反转），否则鼠标左键按最高弹频；S 挡输出配置弹速；photo 或鼠标右键为自瞄
+- 云台为摇杆叠加鼠标，无斜坡，限幅到满量程；pitch 抬头为负，与 Classic 云台一致。按住 trigger 时 pitch 摇杆改为弹频倍率（负值反转），否则鼠标左键按弹频；S 挡输出配置弹速；photo 或鼠标右键为自瞄
+- 弹频由鼠标滚轮调节：`mouse_z` 正值为向前/向上滚、负值为向后/向下滚（通信协议 2.2.1）；`last_wheel` 记录上周期值，仅当上周期为 0 且本周期的符号为负/正时减/加一步，连续同号或未经 0 直接换号都不重复触发，结果限幅到 [`bullet_freq_min`, `bullet_freq_max`]
 - 断联时原始量、键盘斜坡与操控量全部清零，挡位为 ERR
 - 图传链路的裁判帧与遥控帧混在 VT13 串口：VT13 同一缓冲区按帧头分别校验，0xA5 帧只处理 0x0311（载荷至多 60 B），在串口接收中断内依序调用 `add_0311_callback()` 注册的回调，回调在启动前注册；0x0311 不影响 `is_connect`。机器人发往自定义终端的 0x0310 同样走图传串口，目前未提供发送接口；Referee 不再收发图传链路报文
 - VT13 回调按“协议接收”统一写法（`conventions.md`）在 `rx_fifo` 中分流：`A9 53` 遥控帧按固定长度验 `crc16_referee`、更新 `raw` 和在线计时；`A5` 裁判帧先验 5 字节帧头的 `crc8_referee`，再按载荷长度验整帧 `crc16_referee`。半帧原样保留，错位、超长或校验失败时丢弃 1 字节
-- VT13 的 `Config` 公开且可修改，下次 `update()` 生效，如 steer_sentry 的 C、Z 键增减 `config.bullet_freq`；各 app 在实例处给出满量程、加减速度、弹速与弹频
-- steer_sentry（VT13 接 USART6）与 jelly_sentry（VT13 接 USART1）只用 VT13，已移除 FSi6X；控制方式见下节“哨兵控制”。jelly_sentry 云台 pitch 取 `-vt13.pitch_speed`，保持迁移前摇杆上推目标增大的方向；步兵身份下 C、Z 键修改 `vt13.config.bullet_freq`
+- VT13 的 `Config` 公开且可修改，下次 `update()` 生效；滚轮在 `update()` 内按 `bullet_freq_step` 增减 `config.bullet_freq`；各 app 在实例处给出满量程、加减速度、弹速与弹频默认值
+- steer_sentry（VT13 接 USART6）与 jelly_sentry（VT13 接 USART1）只用 VT13，已移除 FSi6X；控制方式见下节“哨兵控制”。jelly_sentry 云台 pitch 取 `-vt13.pitch_speed`，保持迁移前摇杆上推目标增大的方向；弹频由鼠标滚轮调节，调节后的值同时用于手动和自主射击
 - FSi6X 只保留在 dummy、leg_down 断联回退与 `examples/rc`，在对应 `.cpp` 直接读取
 
 ## 哨兵控制
@@ -83,7 +84,7 @@
 - 使能：在线 VT13 的 C 挡优先失能；否则 VT13 N/S 挡，或裁判自检、倒计时、比赛中保持使能。发射机构另在 N 挡失能
 - 底盘 VT13：分离模式，摇杆叠加键盘斜坡。底盘自主：折叠哨兵直接接收云台头部系速度，舵轮哨兵把雷达系速度转到云台系，两者均按 VT13 满量程限幅。过洞标志 1 跟随模式（steer_sentry 未配跟随 PID，只平移），过洞标志 0 分离模式小陀螺，平移 0→满量程时转速 `wr_max`→60 rpm。任一 yaw 离线时两车均停车；仅导航掉线时，折叠哨兵保留遥控平移，舵轮哨兵停车
 - 云台 VT13：摇杆叠加鼠标，R 键按下沿 `turn_yaw(180°)`，photo 或右键自瞄且识别到目标时跟随视觉角度；裁判自检阶段 yaw 叠加 180°/s 旋转。云台自主：5 m 内识别到目标且血量高于 120 时锁定视觉角度，脱锁 0.5 s 或低血量回到扫描（yaw 180°/s，pitch 在 IMU −22°~0° 往返 60°/s）；退出自主时复位为向下扫描。已删除全景相机（insta360）检查
-- 发射 VT13：S 挡开摩擦轮，trigger 或左键给弹频，自瞄时需视觉开火许可，右键双击强制开火；C、Z 键调最高弹频（jelly_sentry 仅步兵身份）。发射自主：摩擦轮常开，视觉开火许可时按最高弹频。热量剩余量由裁判 `shooter_barrel_heat_limit − shooter_17mm_barrel_heat` 设置
+- 发射 VT13：S 挡开摩擦轮，trigger 或左键给弹频，自瞄时需视觉开火许可，右键双击强制开火；鼠标滚轮调弹频。发射自主：摩擦轮常开，视觉开火许可时按设定弹频。热量剩余量由裁判 `shooter_barrel_heat_limit − shooter_17mm_barrel_heat` 设置
 - yaw 校零：VT13 C 挡按住 fn 与 photo 的按下沿，按大 yaw `angle_multi` 更新 offset 并写入 KvStore；steer_sentry 沿用改名前的 KvStore 标记 `"sentry"`，保留已标定零位
 - 操控参数和跨周期状态使用文件内 `static`
 
@@ -109,7 +110,7 @@
 ## jelly_sentry 双传送带驱动
 
 - 在线 VT13 的 C 挡使整车失能，优先于比赛阶段的自动使能；N 挡只允许底盘和云台使能，摩擦轮与拨弹目标均归零，发射机构失能
-- 用户说明 rub1/rub2 为工业传送带转动机构，工程沿用摩擦轮命名。VT13 在线时只按 VT13 手动控制：S 挡运行两路电机（`vt13.bullet_speed`），拨盘取 `vt13.bullet_freq`（trigger 时 pitch 摇杆乘最高弹频，负值反转；否则鼠标左键按最高弹频），人工自瞄需视觉开火许可，右键双击强制开火除外；自主时双传送带常开、视觉开火许可时按最高弹频
+- 用户说明 rub1/rub2 为工业传送带转动机构，工程沿用摩擦轮命名。VT13 在线时只按 VT13 手动控制：S 挡运行两路电机（`vt13.bullet_speed`），拨盘取 `vt13.bullet_freq`（trigger 时 pitch 摇杆乘弹频，负值反转；否则鼠标左键按弹频），人工自瞄需视觉开火许可，右键双击强制开火除外；自主时双传送带常开、视觉开火许可时按设定弹频
 - 两个 P630 由 app 定义为 `Vesc`，绑定 CAN2，节点 ID 沿用 `0x21/0x22`，共用现有 VESC 扩展帧收发实现
 - `Shooter17mm::update()` 通过 `set_speed()` 设置输出轴目标角速度（rad/s），由 Vesc 换算为 ERPM，使用电调内部速度环
 - 整车每1 ms发送两路VESC指令，使能时速度扩展帧ID为0x321/0x322、4字节大端ERPM，失能时发送零电流帧

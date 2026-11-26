@@ -47,7 +47,7 @@ struct Input {
     uint16_t ch[4] = {1024, 1024, 1024, 1024}, wheel = 1024;
     uint8_t mode = 1;
     bool pause = false, fn = false, photo = false, trigger = false;
-    int16_t mouse_x = 0, mouse_y = 0;
+    int16_t mouse_x = 0, mouse_y = 0, mouse_z = 0;
     bool left = false, right = false;
     uint16_t key = 0;
 };
@@ -68,7 +68,7 @@ static void build(const Input& in, uint8_t frame[21]) {
     put(frame, offset, 0, 3);
     put(frame, offset, static_cast<uint16_t>(in.mouse_x), 16);
     put(frame, offset, static_cast<uint16_t>(in.mouse_y), 16);
-    put(frame, offset, 0, 16);
+    put(frame, offset, static_cast<uint16_t>(in.mouse_z), 16);
     put(frame, offset, in.left, 2);
     put(frame, offset, in.right, 2);
     put(frame, offset, 0, 4);
@@ -186,7 +186,7 @@ int main() {
     in = {};
     in.wheel = 1024 - 330;
     in.ch[3] = 1024 - 330;
-    in.mouse_x = -250;
+    in.mouse_x = -540;
     in.mouse_y = 5000;
     send(in);
     step();
@@ -196,7 +196,7 @@ int main() {
     in = {};
     in.trigger = true;
     in.ch[2] = 1024 - 330;
-    in.mouse_y = 250;
+    in.mouse_y = 270;
     send(in);
     step();
     assert(near(vt13.bullet_freq, -5.0f) && near(vt13.pitch_speed, -1.5f));
@@ -228,6 +228,72 @@ int main() {
     vt13.config.bullet_freq = 15.0f;
     step();
     assert(near(vt13.bullet_freq, 15.0f));
+
+    // 滚轮弹频：由 0 上跳加一步、下跳减一步，同号保持与未经 0 不改变，回 0 不变，限幅到 [5, 15]
+    vt13.config.bullet_freq = 10.0f;
+    in = {};
+    in.mouse_z = 1;
+    send(in);
+    step();
+    assert(near(vt13.config.bullet_freq, 15.0f)); // 0 → +1 加一步
+    step();
+    assert(near(vt13.config.bullet_freq, 15.0f)); // 保持正值不重复触发
+    in = {};
+    in.mouse_z = -1;
+    send(in);
+    step();
+    assert(near(vt13.config.bullet_freq, 15.0f)); // +1 → -1，未经 0 不触发
+    in = {};
+    in.mouse_z = 0;
+    send(in);
+    step();
+    assert(near(vt13.config.bullet_freq, 15.0f)); // 回 0 不改变
+    in = {};
+    in.mouse_z = -1;
+    send(in);
+    step();
+    assert(near(vt13.config.bullet_freq, 10.0f)); // 0 → -1 减一步
+    in = {};
+    in.mouse_z = 0;
+    send(in);
+    step();
+    in = {};
+    in.mouse_z = -1;
+    send(in);
+    step();
+    assert(near(vt13.config.bullet_freq, 5.0f));
+    in = {};
+    in.mouse_z = 0;
+    send(in);
+    step();
+    in = {};
+    in.mouse_z = -1;
+    send(in);
+    step();
+    assert(near(vt13.config.bullet_freq, 5.0f)); // 下限不再减
+
+    // 调节后的弹频直接作为 S 挡发弹频率
+    in = {};
+    in.mode = 2;
+    in.left = true;
+    send(in);
+    step();
+    assert(near(vt13.bullet_freq, 5.0f));
+    in = {};
+    in.mouse_z = 0;
+    send(in);
+    step();
+    in = {};
+    in.mouse_z = 1;
+    send(in);
+    step();
+    assert(near(vt13.config.bullet_freq, 10.0f)); // 0 → +1
+    in = {};
+    in.mode = 2;
+    in.left = true;
+    send(in);
+    step();
+    assert(near(vt13.bullet_freq, 10.0f));
 
     // S 挡开摩擦轮，C 挡失能
     in = {};

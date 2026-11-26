@@ -13,14 +13,14 @@ python -I agents/03-control/vt13/test_vt13.py
 python -I agents/04-leg/chassis/test_leg_up_control.py
 ```
 
-`test_vt13.py` 用 Timer、Uart 替身编译实际 `lib/rc/vt13.cpp` 与 CRC，经串口回调送入完整帧，覆盖帧解析、键盘斜坡（反向清零、松手减速、与摇杆叠加限幅）、拨轮与鼠标限幅、trigger 改弹频、鼠标左键开火、app 修改 `config.bullet_freq`、S/C 挡、自瞄、断联清零与重连
+`test_vt13.py` 用 Timer、Uart 替身编译实际 `lib/rc/vt13.cpp` 与 CRC，经串口回调送入完整帧，覆盖帧解析、键盘斜坡（反向清零、松手减速、与摇杆叠加限幅）、拨轮与鼠标限幅、trigger 改弹频、鼠标左键开火、鼠标滚轮调整弹频（由 0 上跳加、下跳减、同号保持不重复、限幅）、app 修改 `config.bullet_freq`、S/C 挡、自瞄、断联清零与重连
 
 ## 行为变化
 
 - sentry
   - 删除 FSi6X 实例与全部拨杆操作（使能、fn、校准组合、射击、自瞄）
   - 删除鼠标角加速度限制，鼠标与摇杆直接叠加
-  - C、Z 键改为修改 `vt13.config.bullet_freq`（5–25 发/秒），UI 显示该值
+  - 鼠标滚轮调整弹频：`Config` 的 `bullet_freq` 为默认值，滚轮在 `[bullet_freq_min, bullet_freq_max]` 内按 `bullet_freq_step` 增减，默认 5~15 发/秒、步进 5；UI 弹频数值和 BULLET 弧显示该值
   - 射击条件统一按 `vt13.is_aim`（photo 或右键）要求视觉开火许可；原来遥控器射击只看 photo、鼠标射击只看右键
   - pitch 摇杆与鼠标方向按 Classic 云台约定（抬头为负），与原 sentry 方向相反
 - leg_up：新增键鼠操控（WASD 中仅 W/S 生效、Shift/Ctrl 旋转、鼠标云台、左键射击）；键盘加速度 2 m/s²、减速度 4 m/s²、角加减速度 720 °/s² 为暂定值

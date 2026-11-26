@@ -72,7 +72,7 @@ void referee_loop() {
     else
         ui.cap = RobotUi::WHITE;
     ui.chassis_wr = chassis.wr.measure;             // 底盘转速；反馈未知时由发送端显示 0
-    ui.bullet_freq = vt13.config.bullet_freq;       // 最高弹频
+    ui.bullet_freq = vt13.config.bullet_freq;       // 弹频，滚轮调节
     ui.shoot_output = shoot.current;                // 拨弹电机电流
     ui.w1 = motor_color(w1.status(MOTOR_OVERHEAT)); // 底盘
     ui.w2 = motor_color(w2.status(MOTOR_OVERHEAT));

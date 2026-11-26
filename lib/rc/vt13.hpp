@@ -32,9 +32,12 @@ class VT13 {
         // 云台：摇杆满量程与合成角速度上限，rad/s
         float yaw_speed_max = 0, pitch_speed_max = 0;
 
-        // 发射：S 挡弹速，m/s；最高弹频，发/秒
+        // 发射：S 挡弹速，m/s；弹频默认值与滚轮调节范围、步进，发/秒
         float bullet_speed = 0;
-        float bullet_freq = 0;
+        float bullet_freq = 0;      // 弹频，发/秒；滚轮在 [min, max] 内按 step 调节
+        float bullet_freq_min = 5;  // 最低弹频，发/秒
+        float bullet_freq_max = 15; // 最高弹频，发/秒
+        float bullet_freq_step = 5; // 每格滚轮调整量，发/秒
     } config;
 
     enum Mode {
@@ -108,6 +111,7 @@ class VT13 {
     } raw{};
 
     float key_vx = 0, key_vy = 0, key_wr = 0; // 键盘斜坡速度，m/s、rad/s
+    int16_t last_mouse_wheel = 0;             // 上周期滚轮值，用于跳变判断
     std::vector<RxCallback> callbacks_0311;   // 0x0311 载荷回调，接收中断内调用
     Fifo<uint8_t, RX_CAPACITY> rx_fifo;       // 未解析字节，串口接收中断写入
     Timer callback_timer;                     // 用于断联检测

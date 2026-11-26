@@ -9,7 +9,7 @@ static void control_by_vt13(const bool is_fire) {
     shooter.set_bullet_freq(can_fire ? vt13.bullet_freq : 0);
 }
 
-// 自主：摩擦轮常开，视觉开火许可时按最高弹频
+// 自主：摩擦轮常开，视觉开火许可时按设定弹频
 static void control_by_auto(const bool is_fire) {
     shooter.set_bullet_speed(vt13.config.bullet_speed);
     shooter.set_bullet_freq(is_fire ? vt13.config.bullet_freq : 0);

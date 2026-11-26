@@ -12,7 +12,7 @@ inline Melody melody({});
 inline KvStore kv_store("jelly_sentry");
 
 // 遥控器：VT13 图传接 USART1（921600）
-// 平移 100W 下 2.3m/s、不限功率 3.2m/s，旋转 100W 下 107rpm、不限功率 155rpm；步兵身份下 C、Z 键调节最高弹频
+// 平移 100W 下 2.3m/s、不限功率 3.2m/s，旋转 100W 下 107rpm、不限功率 155rpm；鼠标滚轮调节弹频
 inline VT13 vt13({
     .uart = Uart(1),
     .vxy_max = 5.0f,
