@@ -4,26 +4,24 @@
 #include "motor/vesc.hpp"
 #include "robot/shooter_17mm.hpp"
 
-// 摩擦轮，释放转速 120 rpm
+// 摩擦轮，释放转速取 Vesc 默认 60 rpm
 inline Vesc rub1({
-                     .can = Can(2),
-                     .tx_id = 0x21,
-                     .rx_id = 0x21,
-                     .max_current = M3508::MAX_CURRENT,
-                     .max_torque = M3508::MAX_TORQUE,
-                     .reduction = M3508::REDUCTION,
-                 },
-                 120 * rpm);
+    .can = Can(2),
+    .tx_id = 0x21,
+    .rx_id = 0x21,
+    .max_current = M3508::MAX_CURRENT,
+    .max_torque = M3508::MAX_TORQUE,
+    .reduction = M3508::REDUCTION,
+});
 
 inline Vesc rub2({
-                     .can = Can(2),
-                     .tx_id = 0x22,
-                     .rx_id = 0x22,
-                     .max_current = M3508::MAX_CURRENT,
-                     .max_torque = M3508::MAX_TORQUE,
-                     .reduction = M3508::REDUCTION,
-                 },
-                 120 * rpm);
+    .can = Can(2),
+    .tx_id = 0x22,
+    .rx_id = 0x22,
+    .max_current = M3508::MAX_CURRENT,
+    .max_torque = M3508::MAX_TORQUE,
+    .reduction = M3508::REDUCTION,
+});
 
 // 拨弹电机
 inline Pid::Config shoot_pid_config = {

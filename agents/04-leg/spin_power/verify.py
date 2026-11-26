@@ -3,7 +3,7 @@
 from pathlib import Path
 import subprocess
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
 OUT = ROOT / "agents/tmp/spin_power"
 
@@ -19,7 +19,6 @@ def main():
     command = [
         "g++", "-std=c++23", "-O2", "-Wall", "-Wextra",
         "-I" + str(TASK / "stubs"),
-        "-I" + str(ROOT / "app/leg/leg_down"),
         "-I" + str(ROOT / "lib"),
         "-I" + str(ROOT / "lib/third_party/eigen-3.4.0"),
         *map(str, SOURCES),

@@ -8,7 +8,7 @@ import shlex
 import subprocess
 import tarfile
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / "agents/tmp/upstream"
 REPO = OUT / "review.git"
 summary = json.loads((OUT / "summary.json").read_text())

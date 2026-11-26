@@ -1,6 +1,6 @@
 // 轮腿功率分配：同一状态分别以不限功率和给定预算运行真实 ChassisLeg，输出四路力矩供 check_power.py 与仿真算法对照
 // 主机自检：功率未超时原样下发；超限后双轮净机械功率不超过预算、轮与关节不超过额定力矩
-#include "lqr_fit.hpp"
+#include "robot/chassis_leg_lqr.hpp"
 #include "motor/dm8009.hpp"
 #include "motor/m3508.hpp"
 #include "robot/chassis_leg.hpp"

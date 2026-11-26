@@ -1,5 +1,5 @@
 // 轮腿轮端功率限幅回归：按日志帧注入电机反馈，检查实际下发力矩的功率不超过目标、未设置目标时保留平衡力矩
-#include "lqr_fit.hpp"
+#include "robot/chassis_leg_lqr.hpp"
 #include "motor/dm8009.hpp"
 #include "motor/m3508.hpp"
 #include "robot/chassis_leg.hpp"

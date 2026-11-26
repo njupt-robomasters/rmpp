@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import subprocess
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / "agents/tmp/global_refactor/motor_feedback/arm"
 PRESETS = ["dummy", "infantry", "sentry", "leg-leg_down", "leg-leg_up", "examples-motor", "examples-gimbal", "test"]
 

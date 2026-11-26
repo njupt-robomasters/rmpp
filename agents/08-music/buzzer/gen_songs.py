@@ -6,7 +6,7 @@ from pathlib import Path
 
 import mido
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "tools"))
 import midi_to_song as m2s  # noqa: E402
 

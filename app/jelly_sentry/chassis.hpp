@@ -8,8 +8,8 @@
 static constexpr float WR_MIN = 60 * rpm;
 
 // 底盘参数
-static constexpr float CHASSIS_RADIUS = 312.5f * mm;
-static constexpr float WHEEL_RADIUS = 66.0f * mm;
+static constexpr float CHASSIS_RADIUS = 0.3125f;                     // 底盘中心到轮轴，m
+static constexpr float WHEEL_RADIUS = 0.066f;                        // 轮半径，m
 static constexpr float MAX_F = M3508::MAX_TORQUE / WHEEL_RADIUS * 4; // 四轮满电流时的总牵引力，N
 
 // 底盘速度 PID：速度误差 m/s → 牵引力 N

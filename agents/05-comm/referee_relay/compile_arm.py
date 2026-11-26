@@ -5,7 +5,7 @@ import json
 import shlex
 import subprocess
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / "agents/tmp/referee_relay/arm"
 
 # 构建目录 → 待编译文件；模板取同目标（lib 或 app）中已有条目的参数

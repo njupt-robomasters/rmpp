@@ -5,7 +5,7 @@ MODIFY 合并、clear_ui 保留其他报文、CAN 忙续发，以及 RobotUi 初
 from pathlib import Path
 import subprocess
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / "agents/tmp/referee_relay/referee_sender"
 
 STUBS = r"""

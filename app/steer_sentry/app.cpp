@@ -4,14 +4,9 @@
 #include "chassis.hpp"
 #include "gimbal.hpp"
 #include "melody/music/c5d5g5.hpp"
+#include "minipc.hpp"
 #include "shooter.hpp"
-#include <cmath>
 #include <tuple>
-
-// RGB 色彩循环
-static constexpr float RGB_PERIOD = 1; // 循环周期，s
-static float rgb_hue = 0;
-static Timer rgb_timer;
 
 static void setup() {
     // 大 yaw 零位从 KvStore 读取，未标定时为 0；标定方法见 gimbal.cpp 组合键
@@ -25,9 +20,9 @@ static void send() {
     send_cnt++;
 
     // CAN1：C 板 3 个发送邮箱、无软件队列，每拍至多 3 帧
-    // 大 yaw 与 0x1FF（小 yaw、拨弹、舵 1/2）每拍发送；第 3 帧由 0x200（轮）、0x2FF（舵 3/4）、裁判发送轮流，各约 333 Hz
-    yaw1.send();
+    yaw1.send(); // 大yaw 1000 Hz
 
+    // 小yaw、拨弹、舵1/2 1000 Hz
     CanFrame frame_1ff{.id = 0x1FF, .size = 8};
     yaw2.write_can_frame(frame_1ff);
     shoot.write_can_frame(frame_1ff);
@@ -35,42 +30,39 @@ static void send() {
     s2.write_can_frame(frame_1ff);
     Can(1).send(frame_1ff);
 
-    if (send_cnt % 3 == 0) {
+    // 第 3 帧轮流：底盘、舵3/4、裁判发送各约 333 Hz
+    if (send_cnt % 3 == 0) { // 底盘 333 Hz
         CanFrame frame{.id = 0x200, .size = 8};
         for (M3508* w : {&w1, &w2, &w3, &w4})
             w->write_can_frame(frame);
         Can(1).send(frame);
-    } else if (send_cnt % 3 == 1) {
+    } else if (send_cnt % 3 == 1) { // 舵3/4 333 Hz
         CanFrame frame{.id = 0x2FF, .size = 8};
         s3.write_can_frame(frame);
         s4.write_can_frame(frame);
         Can(1).send(frame);
-    } else {
+    } else { // 裁判发送 333 Hz
         referee_sender.send();
     }
 
-    // CAN2：pitch、两路 VESC 摩擦轮
-    pitch.send();
-    rub1.send();
+    // CAN2
+    pitch.send(); // pitch 1000 Hz
+    rub1.send();  // 摩擦轮 1000 Hz
     rub2.send();
 
-    if (send_cnt % 5 == 0) {
-        aim.set_attitude(attitude.q);
-        aim.set_referee(referee.robot_status.robot_id < 100, referee.shoot_data.initial_speed);
+    // CDC：自瞄与导航共用一路，错拍各 200 Hz
+    if (send_cnt % 5 == 0) // 自瞄 200 Hz
         aim.send();
-    }
+    else if (send_cnt % 5 == 2) // 导航 200 Hz
+        nav.send();
 }
 
 static void loop() {
-    rgb_hue = std::fmod(rgb_hue + rgb_timer.restart() / RGB_PERIOD, 1.0f);
-    rgb.set_hsv(rgb_hue, 1, 1);
-
     melody.update();
     vt13.update();
     attitude.update();
-    aim.update();
     referee_loop();
-    nav.update();
+    minipc_loop();
 
     chassis_loop();
     const auto [is_detect, target_yaw, target_pitch, distance, is_fire] = [] {
@@ -88,7 +80,7 @@ extern "C" void app_main() {
     while (true) {
         // 1 kHz 更新
         static Timer app_timer;
-        if (app_timer.elapsed() < 1 * ms)
+        if (app_timer.elapsed() < 0.001f)
             continue;
         app_timer.restart();
 

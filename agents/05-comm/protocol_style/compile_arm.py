@@ -5,7 +5,7 @@ import json
 import shlex
 import subprocess
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / "agents/tmp/protocol_style/arm"
 
 LIBS = ["lib/minipc/aim.cpp", "lib/minipc/nav.cpp", "lib/rc/vt13.cpp", "lib/rc/fsi6x.cpp",

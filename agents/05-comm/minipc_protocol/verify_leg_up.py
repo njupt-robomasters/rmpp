@@ -3,7 +3,7 @@
 from pathlib import Path
 import subprocess
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / "agents/tmp/minipc_protocol/leg_up"
 SOURCES = [
     "agents/05-comm/minipc_protocol/leg_up_aim_test.cpp",

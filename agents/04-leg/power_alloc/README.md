@@ -7,7 +7,7 @@
 ## 用户已确认
 
 - 功率预算经板间协议下发：恢复 `f28c62f` 删除的 `power_ref` 字段（11 位、0.25 W/LSB、2047 不限），上板取 `super_cap.power_chassis_ref`
-- 两腿稳姿态增益离线表追加到 `lqr_fit.hpp`，与 `LQR_FIT` 同一生成脚本、同一 Q/R；`M`、`H⁻¹` 在控制拍内由实时增益求 2×2
+- 两腿稳姿态增益离线表追加到 `lib/robot/chassis_leg_lqr.hpp`，与 `LQR_FIT` 同一生成脚本、同一 Q/R；`M`、`H⁻¹` 在控制拍内由实时增益求 2×2
 
 ## 实现
 

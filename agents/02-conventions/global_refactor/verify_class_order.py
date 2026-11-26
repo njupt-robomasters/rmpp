@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import subprocess
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
 OUT = ROOT / "agents/tmp/global_refactor/class_order/regression"
 

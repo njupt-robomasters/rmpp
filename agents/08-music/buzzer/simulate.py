@@ -9,7 +9,7 @@ import mido
 import numpy as np
 from scipy import signal
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "tools"))
 from midi_to_music import UNIT, convert, load_events  # noqa: E402  与板上播放器相同的单音转换
 

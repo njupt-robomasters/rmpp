@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[1]
+ROOT = HERE.parents[2]
 OUT = ROOT / 'agents/tmp/power_alloc'
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT.parent / 'wheel_leg_lab'))
@@ -29,7 +29,7 @@ def build():
     exe = OUT / 'power_test.exe'
     sources = ['lib/robot/chassis_leg.cpp', 'lib/motor/motor.cpp', 'lib/motor/m3508.cpp', 'lib/pid/pid.cpp']
     command = ['g++', '-std=c++20', '-O1', '-mno-ms-bitfields', f'-I{HERE / "stubs"}', f'-I{ROOT / "lib"}', f'-I{ROOT / "lib/third_party/eigen-3.4.0"}',
-               f'-I{ROOT / "app/leg/leg_down"}', str(HERE / 'power_test.cpp'), *(str(ROOT / s) for s in sources), '-o', str(exe)]
+               str(HERE / 'power_test.cpp'), *(str(ROOT / s) for s in sources), '-o', str(exe)]
     subprocess.run(command, check=True)
     return exe
 

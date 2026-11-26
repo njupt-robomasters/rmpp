@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import subprocess
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / "agents/tmp/upstream"
 OUT.mkdir(parents=True, exist_ok=True)
 cache = (ROOT / "build/jelly_sentry/CMakeCache.txt").read_text(encoding="utf-8")

@@ -1,5 +1,5 @@
 // 轮腿力矩分配回归：超限时姿态组优先、运动组共同退让，四路不超过电机与关节上限；未超限时原样下发
-#include "lqr_fit.hpp"
+#include "robot/chassis_leg_lqr.hpp"
 #include "motor/dm8009.hpp"
 #include "motor/m3508.hpp"
 #include "robot/chassis_leg.hpp"
@@ -84,6 +84,8 @@ static Result run(const float rel_theta, const float pitch, const float vx, cons
                            .leg_angle_pid = &leg_angle_pid,
                            .roll_pid = &roll_pid_config,
                            .lqr_fit = LQR_FIT,
+                           .lqr_posture_fit = LQR_POSTURE_FIT,
+                           .lqr_r = LQR_R,
                            .wheel_work_speed = WHEEL_WORK_SPEED,
                        });
 

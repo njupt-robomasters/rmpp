@@ -8,7 +8,7 @@ import re
 import shutil
 import subprocess
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 TASK = Path(__file__).resolve().parent
 OUT = ROOT / "agents/tmp/nav"
 

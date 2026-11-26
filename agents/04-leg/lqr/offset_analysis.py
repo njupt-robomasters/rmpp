@@ -1,6 +1,6 @@
 """机体重心水平偏移 d 下的稳态：按本工程实际用法（C 拟合增益、位移限幅 x_max）
 
-用法：python offset_analysis.py ../../app/leg/leg_down/lqr_fit.hpp
+用法：python offset_analysis.py ../../lib/robot/chassis_leg_lqr.hpp
 """
 
 import sys

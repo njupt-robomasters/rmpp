@@ -5,7 +5,7 @@ import json
 import shlex
 import subprocess
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / "agents/tmp/minipc_protocol/arm"
 
 # 构建目录 → 待编译文件；参数取同目标（lib 或 app）中已有条目，C 板与 mc02 各编一遍库

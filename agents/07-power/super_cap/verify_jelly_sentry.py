@@ -5,7 +5,7 @@ from pathlib import Path
 import re
 from types import SimpleNamespace
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 source = (ROOT / "app/jelly_sentry/chassis.cpp").read_text(encoding="utf-8")
 block = source.split("const auto progress = referee.game_status.game_progress;", 1)[1].split("super_cap.set_referee_limit", 1)[0]
 block = re.sub(r"//.*", "", block)

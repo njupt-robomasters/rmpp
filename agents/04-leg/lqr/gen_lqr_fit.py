@@ -1,4 +1,4 @@
-"""按 lqr_model.py 中的机体参数与 Q、R 生成 LQR/LQI 增益拟合系数，写入 app/leg/leg_down/lqr_fit.hpp
+"""按 lqr_model.py 中的机体参数与 Q、R 生成 LQR/LQI 增益拟合系数，写入 lib/robot/chassis_leg_lqr.hpp
 
 LQR（Q_INT_S=0）：10 状态，增益矩阵 [4×10]，poly22 拟合为 [4][10][6]
 LQI（Q_INT_S>0）：增广 ∫s 第 11 状态，增益矩阵 [4×11]，拟合为 [4][11][6]，第 11 列为 K_∫s
@@ -15,7 +15,7 @@ import numpy as np
 from scipy.linalg import solve_continuous_are
 from lqr_model import BODY, LEG, Q, Q_INT_S, R, model, lqr, fit_eval
 
-OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[2] / "app/leg/leg_down/lqr_fit.hpp"
+OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[3] / "lib/robot/chassis_leg_lqr.hpp"
 OUTPUTS = ["左轮力矩", "右轮力矩", "左摆动力矩", "右摆动力矩"]
 USE_LQI = Q_INT_S > 0
 N_STATES = 11 if USE_LQI else 10
@@ -69,7 +69,7 @@ def num(v):
 def main():
     P, err = fit()
     posture, posture_err = fit_posture()
-    body = "、".join(f"{k} = {v:g}" for k, v in BODY.items())
+    body = "、".join(f"{k}={v:g}" for k, v in BODY.items())
     mode = f"LQI Q_∫s={Q_INT_S:g}" if USE_LQI else "LQR"
     state_comment = (
         "// 状态：位移、速度、航向角、航向角速度、左腿倾角及角速度、右腿倾角及角速度、俯仰及角速度、∫位移"
@@ -79,15 +79,19 @@ def main():
     lines = [
         "#pragma once",
         "",
-        f"// LQR 增益拟合系数 [输出][状态][项]，由 agents/04-leg/lqr/gen_lqr_fit.py 生成（{mode}），不手改",
+        '#include "robot/chassis_leg.hpp"',
+        "",
+        "// ChassisLeg LQR 增益拟合系数，适用于 leg_down 应用",
+        "// 由 agents/04-leg/lqr/gen_lqr_fit.py 生成，不手改数值；改机体参数后重跑脚本替换本文件",
+        "",
+        f"// LQR 增益拟合系数 [输出][状态][项]，由 gen_lqr_fit.py 生成（{mode}），不手改",
         "// 输出：左轮、右轮（前进为正）、左摆、右摆（后摆为正），N·m",
         state_comment,
         "// 项：1、左腿长、右腿长、左腿长²、左×右腿长、右腿长²，腿长单位 m",
-        f"// 机体：{body}（SI 单位）",
+        f"// 机体：{body}（SI）",
         f"// Q = diag({', '.join(f'{q:g}' for q in np.diag(Q))})" + (f"  Q_∫s = {Q_INT_S:g}" if USE_LQI else ""),
-        f"// R = diag({', '.join(f'{r:g}' for r in np.diag(R))})",
-        f"// 腿长 {LEG[0, 0]:g}–{LEG[-1, 0]:g} m，拟合最大相对误差 {err:.2%}",
-        f"inline constexpr float LQR_FIT[4][{N_STATES}][6] = {{",
+        f"// R = diag({', '.join(f'{r:g}' for r in np.diag(R))})；腿长 {LEG[0, 0]:g}–{LEG[-1, 0]:g} m，拟合最大相对误差 {err:.2%}",
+        f"static constexpr float LQR_FIT[4][{N_STATES}][6] = {{",
     ]
     for i in range(4):
         lines += ["    {", f"        // {OUTPUTS[i]}"]
@@ -96,15 +100,14 @@ def main():
     lines += [
         "};",
         "",
-        "// 两腿稳姿态的俯仰角速度增益拟合系数 [左摆、右摆][项]，N·m/(rad/s)，后摆为正；项序同 LQR_FIT",
-        "// 锁定轮力矩，两腿倾角及角速度、俯仰及角速度六状态子系统按上述 Q、R 子块求 LQR",
-        f"// 拟合最大相对误差 {posture_err:.2%}",
-        "inline constexpr float LQR_POSTURE_FIT[2][6] = {",
+        "// 两腿稳姿态的俯仰角速度增益拟合系数 [左摆、右摆][项]，N·m/(rad/s)；项序同 LQR_FIT",
+        f"// 锁定轮力矩，两腿倾角及角速度、俯仰及角速度六状态子系统按上述 Q、R 子块求 LQR；拟合最大相对误差 {posture_err:.2%}",
+        "static constexpr float LQR_POSTURE_FIT[2][6] = {",
         *(f"    {{{', '.join(num(v) for v in row)}}}," for row in posture),
         "};",
         "",
         "// LQR 出力权重 R 对角：左轮、右轮、左摆、右摆",
-        f"inline constexpr float LQR_R[4] = {{{', '.join(num(r) for r in np.diag(R))}}};",
+        f"static constexpr float LQR_R[4] = {{{', '.join(num(r) for r in np.diag(R))}}};",
         "",
     ]
     OUT.write_text("\n".join(lines), encoding="utf-8", newline="\n")

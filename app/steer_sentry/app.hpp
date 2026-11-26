@@ -1,39 +1,30 @@
 #pragma once
 
 #include "bsp/kv_store.hpp"
-#include "bsp/rgb.hpp"
 #include "melody/melody.hpp"
-#include "minipc/aim.hpp"
-#include "minipc/nav.hpp"
 #include "rc/vt13.hpp"
 #include "referee.hpp"
 
-// 板载 WS2812 与蜂鸣器
-inline Rgb rgb;
 inline Melody melody({});
 
 // 持久化参数，当前只保存大 yaw 零位 yaw_offset；沿用改名前的应用标记，保留已标定零位
 inline KvStore kv_store("sentry");
 
 // 遥控器：VT13 图传接 USART6
-// 平移 100W 下 2.3m/s、不限功率 3.2m/s，旋转 100W 下 107rpm、不限功率 155rpm；最高弹频由 C、Z 键调节
+// 平移 100W 下 2.3m/s、不限功率 3.2m/s，旋转 100W 下 107rpm、不限功率 155rpm
 inline VT13 vt13({
     .uart = Uart(6),
     .vxy_max = 5.0f,
-    .axy = 100.0f,
-    .dxy = 100.0f,
+    .axy = INFINITY,
+    .dxy = INFINITY,
     .wr_max = 120 * rpm,
-    .ar = 1000 * rpm,
-    .dr = 1000 * rpm,
+    .ar = INFINITY,
+    .dr = INFINITY,
     .yaw_speed_max = 360 * deg_s,
     .pitch_speed_max = 360 * deg_s,
     .bullet_speed = 20.0f,
-    .bullet_freq = 20.0f,
+    .bullet_freq = 10.0f,
 });
-
-// 上位机：C 板只有一路 CDC，自瞄与导航共用
-inline Aim aim({.cdc = Cdc(1)});
-inline Nav nav({.cdc = Cdc(1)});
 
 // fn 开关：VT13 在 N、S 挡时 fn 键置位、pause 键清除，失能或断联时清除
 // 底盘、云台、发射共用同一锁存状态，同一周期内重复调用结果不变

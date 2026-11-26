@@ -7,14 +7,14 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 LAB = ROOT.parent / 'wheel_leg_lab'
 sys.path.insert(0, str(LAB))
 from lab import Settings, power_maps  # noqa: E402
 from lqr_model import LEG, Q, R, fit_c, fit_eval, lqr, model  # noqa: E402
 
-FIT = fit_c(ROOT / 'app/leg/leg_down/lqr_fit.hpp')
-text = (ROOT / 'app/leg/leg_down/lqr_fit.hpp').read_text(encoding='utf-8')
+FIT = fit_c(ROOT / 'lib/robot/chassis_leg_lqr.hpp')
+text = (ROOT / 'lib/robot/chassis_leg_lqr.hpp').read_text(encoding='utf-8')
 block = text.split('LQR_POSTURE_FIT[2][6] = {')[1].split('};')[0]
 POSTURE = np.array([[float(v.strip().rstrip('f')) for v in row.strip().strip('{},').split(',')] for row in block.strip().splitlines()])
 

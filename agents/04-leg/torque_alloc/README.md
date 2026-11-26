@@ -10,7 +10,7 @@
 - 双轮净机械功率控制暂不应用：用户实测勾选后不稳定，本次不移植
 - 直行目标上限放 `Config`，本次取 40 rad/s（2.4 m/s），上车后按实车额定转速标定
 - 删除航向、腿角、俯仰三项误差限幅：仿真在分配开启时不再使用 `yaw_cap`、`leg_cap`、`pitch_cap`
-- 不更新 `lqr_fit.hpp`；电压包络需要的 Ke、线间电阻没有实车标定，物理端沿用 `Motor::set_torque()` 按 `max_torque` 截断
+- 不更新 `lib/robot/chassis_leg_lqr.hpp`；电压包络需要的 Ke、线间电阻没有实车标定，物理端沿用 `Motor::set_torque()` 按 `max_torque` 截断
 
 ## 实现
 
