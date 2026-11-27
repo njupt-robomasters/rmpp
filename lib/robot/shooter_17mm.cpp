@@ -21,7 +21,12 @@ void Shooter17mm::set_bullet_freq(const float bullet_freq) {
     this->bullet_freq.ref = bullet_freq;
 }
 
-void Shooter17mm::update(const int32_t heat_remain, const float cooling_rate) {
+void Shooter17mm::set_heat(const int32_t heat_remain, const float cooling_rate) {
+    heat.remain = heat_remain;
+    heat.cooling = cooling_rate;
+}
+
+void Shooter17mm::update() {
     const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
 
     // 离线检测
@@ -37,11 +42,10 @@ void Shooter17mm::update(const int32_t heat_remain, const float cooling_rate) {
 
     // 热量限制：延迟内按目标弹频净耗的热量作为降频目标，低于目标时按热量的偏差线性降频，弹频不低于 0
     const float heat_ref = std::max(bullet_freq.ref, 0.0f);
-    heat.remain = heat_remain;
-    heat.cooling = cooling_rate;
-    heat.target = (HEAT_PER_SHOT * heat_ref - cooling_rate) * config.heat_delay + config.heat_reserve;
-    heat.freq = cooling_rate / HEAT_PER_SHOT + config.heat_gain * (heat_remain - heat.target);
-    bullet_freq.effective = std::min(bullet_freq.ref, std::max(heat.freq, 0.0f));
+
+    heat.target = (HEAT_PER_SHOT * heat_ref - heat.cooling) * config.heat_delay + config.heat_reserve;
+    const float heat_freq = heat.cooling / HEAT_PER_SHOT + config.heat_gain * (heat.remain - heat.target);
+    bullet_freq.effective = std::min(bullet_freq.ref, std::max(heat_freq, 0.0f));
     is_heat_limit = bullet_freq.effective < bullet_freq.ref;
 
     // 摩擦轮速度控制

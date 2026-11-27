@@ -52,7 +52,8 @@ int main() {
         now_us += step_us;
         if (online)
             motor.feedback(speed);
-        shooter.update(heat_remain, cooling_rate);
+        shooter.set_heat(heat_remain, cooling_rate);
+        shooter.update();
         return motor.current_ref;
     };
     shooter.set_enable(true);
@@ -107,13 +108,14 @@ int main() {
     Shooter17mm slow({rub, rub, motor}, {.shoot_pid_config = &pid, .bullet_per_angle = 1, .block_time = 0.0245f});
     slow.set_enable(true);
     slow.set_bullet_freq(2);
+    slow.set_heat(100, 0);
     now_us += 1000000;
     motor.feedback();
-    slow.update(100, 0);
+    slow.update();
     for (int i = 0; i < 5; i++) {
         now_us += 1000;
         motor.feedback();
-        slow.update(100, 0);
+        slow.update();
         assert(motor.current_ref > 0);
     }
 
@@ -122,10 +124,11 @@ int main() {
     Shooter17mm saturate({rub, rub, motor}, {.shoot_pid_config = &saturate_pid, .bullet_per_angle = 1, .block_time = 0.0025f, .reverse_time = 0.0015f});
     saturate.set_enable(true);
     saturate.set_bullet_freq(2);
+    saturate.set_heat(100, 0);
     for (int i = 0; i < 7; i++) {
         now_us += 1000;
         motor.feedback();
-        saturate.update(100, 0);
+        saturate.update();
         assert(std::fabs(motor.current_ref) == 5);
         assert((motor.current_ref > 0) == (i < 4 || i == 6));
     }
@@ -135,12 +138,12 @@ int main() {
     for (int i = 0; i < 4; i++) {
         now_us += 1000;
         motor.feedback();
-        saturate.update(100, 0);
+        saturate.update();
     }
     for (int i = 0; i < 10; i++) {
         now_us += 1000;
         motor.feedback();
-        saturate.update(100, 0);
+        saturate.update();
         assert(motor.current_ref == 2.5f);
     }
 
@@ -152,7 +155,8 @@ int main() {
     const auto heat_tick = [&](const int32_t heat_remain, const float cooling_rate) {
         now_us += 1000;
         motor.feedback();
-        heat.update(heat_remain, cooling_rate);
+        heat.set_heat(heat_remain, cooling_rate);
+        heat.update();
         return motor.current_ref;
     };
     assert(heat_tick(100, 40) == 10);                  // 余量充足：按目标弹频

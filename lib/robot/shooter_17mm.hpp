@@ -52,12 +52,11 @@ class Shooter17mm {
         float measure = 0;   // 拨弹反馈
     } bullet_freq;
 
-    // 热量，update() 输入与计算
+    // 热量，set_heat() 输入，update() 计算
     struct {
         int32_t remain = 0; // 剩余热量，heat；可为负
         float cooling = 0;  // 冷却速率，heat/s
         float target = 0;   // 降频目标热量，heat；降到该值时弹频等于冷却速率对应值
-        float freq = 0;     // 热量允许的弹频，shots/s
     } heat;
 
   public:
@@ -97,6 +96,9 @@ class Shooter17mm {
     // 设置弹频参考值，发/秒；0 停止拨弹，负值反转，保持到下次设置
     void set_bullet_freq(float bullet_freq);
 
-    // 每个控制周期调用；剩余热量 heat 允许过热时的负值，冷却速率 heat/s
-    void update(int32_t heat_remain, float cooling_rate);
+    // 设置热量状态；剩余热量 heat 过热时为负，冷却速率 heat/s
+    void set_heat(int32_t heat_remain, float cooling_rate);
+
+    // 每个控制周期调用
+    void update();
 };

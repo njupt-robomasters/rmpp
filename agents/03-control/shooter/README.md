@@ -11,8 +11,9 @@
 - 参数：`heat_delay = 0.3 s`（整条链路延迟，按“最后一发到裁判热量不再上涨”的时间校准）、`heat_reserve = 10 heat`（一发）、`heat_gain = 0.25 发/秒/heat`（每少 1 点热量降低的弹频）。稳定性要求 `heat_delay < π/(2·10·heat_gain)`，gain = 0.25 时约 0.63 s，留一倍余量
 - 仿真：`python agents/03-control/shooter/heat_sim.py`，c = 10~40、delay = 0.3、gain = 0.25 时最低剩余热量 19~24，3~7 s 收敛到 c/10
 - 负弹频（退弹）不受热量限制
-- 输入改为 `update(heat_remain, cooling_rate)`；jelly_sentry、leg_up、steer_sentry 每周期传 `heat_limit − shooter_17mm_barrel_heat` 与 `robot_status.shooter_barrel_cooling_value`
-- SWD 观察：`bullet_freq.ref/effective/measure`、`heat.remain/cooling/target/freq`、`is_heat_limit`
+- 热量输入不占 `update()` 参数，改由 `set_heat(heat_remain, cooling_rate)` 设置，`update()` 无参；jelly_sentry、leg_up、steer_sentry 每周期先传 `heat_limit − shooter_17mm_barrel_heat` 与 `robot_status.shooter_barrel_cooling_value`，再调 `update()`
+- 删除 `heat.freq`：热量允许的弹频只是中间量，改为 `update()` 内局部 `heat_freq`；`bullet_freq.effective` 是唯一维护的最终目标弹频，限幅和状态机都用它。未限频时 `effective == ref`，要看热量余量就对比 `heat.remain` 与 `heat.target`
+- SWD 观察：`bullet_freq.ref/effective/measure`、`heat.remain/cooling/target`、`is_heat_limit`
 - 验证：主机测试覆盖降频起点 52、线性段、目标热量 28、随 c 变化的目标 37、零弹频、负弹频，通过；`shooter_17mm.cpp` 与三个 app 的 shooter.cpp ARM 对象编译通过。`verify.py` 删除两个已不存在的 ARM 入口，补上 jelly_sentry、steer_sentry 的 shooter.cpp
 
 ## PID 输出饱和判卡弹（2026-11-20）
