@@ -46,7 +46,6 @@ void Shooter17mm::update() {
     heat.target = (HEAT_PER_SHOT * heat_ref - heat.cooling) * config.heat_delay + config.heat_reserve;
     const float heat_freq = heat.cooling / HEAT_PER_SHOT + config.heat_gain * (heat.remain - heat.target);
     bullet_freq.effective = std::min(bullet_freq.ref, std::max(heat_freq, 0.0f));
-    is_heat_limit = bullet_freq.effective < bullet_freq.ref;
 
     // 摩擦轮速度控制
     const float rub_speed_ref = is_enable ? bullet_speed.ref / config.rub_radius : 0.0f;
