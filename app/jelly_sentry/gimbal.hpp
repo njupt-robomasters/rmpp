@@ -7,8 +7,8 @@
 
 // imu
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = -90 * deg, .pitch = 0 * deg, .roll = 180 * deg}),
-                .gyro_offset = Vector3f(0.0f, 0.0f, 0.0f),
-                .gravity = 9.81f});
+                .gyro_offset = Vector3f(0.00412f, 0.00166f, 0.00212f),
+                .gravity = 9.80907f});
 inline QuaternionEkf attitude(imu, {});
 
 // 大 yaw：DM4310，CAN1
