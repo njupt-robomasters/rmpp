@@ -1,11 +1,9 @@
 #include "gimbal.hpp"
 #include "app.hpp"
-#include "chassis.hpp"
 #include "melody/music/g5g5g5.hpp"
 #include "minipc.hpp"
 #include "sentry.hpp"
 #include <algorithm>
-#include <cmath>
 
 static bool last_calib = false, last_r = false;
 
@@ -45,9 +43,5 @@ void gimbal_loop() {
         }
     }
 
-    // 识别到装甲板时小 yaw 优先追踪（窗口模式）
-    gimbal.set_yaw_window(is_detect);
-    // 小陀螺前馈；底盘转速未知时关闭
-    gimbal.set_chassis_wr(std::isfinite(chassis.wr.measure) ? chassis.wr.measure : 0);
-    gimbal.update(attitude.yaw, attitude.pitch);
+    gimbal.update(attitude.q, imu.gyro);
 }

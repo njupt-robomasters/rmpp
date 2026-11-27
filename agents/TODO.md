@@ -33,6 +33,7 @@
 ### 哨兵 jelly_sentry / steer_sentry
 
 - 双 CDC 枚举与隔离、雷达与大 yaw 安装偏角、负小 yaw 坐标方向、导航雷达系速度换算、随头方向、pitch1 失能状态、pitch2 软限位 −0.1~0.314 rad 与自主扫描叠加遥控，见 `05-comm/minipc_protocol/README.md`
+- GimbalFold 三轴 IMU 闭环上车校核：手推头部确认 `(q · gyro).z` 与 `gyro.y` 符号、大小 yaw 编码器合成角与 IMU 航向同向、yaw1/yaw2/pitch 外环与内环增益，见 `06-sentry/gimbal_imu/README.md`
 - steer_sentry 老哨兵操控还原：导航目标点 `(2.2, 4.7)` 与 `(0, 0)` 是否与新版上位机自定位同系；自主时摇杆与拨轮叠加后的方向和限幅；导航断联后摇杆驾驶；人工自瞄接管与释放，见 `06-sentry/steer_port/README.md`
 - 超电：0x051 电压电流符号与量程；CHARGE 稳态 `power_cap` 不为负；BOOST 在 10/12 V 的补偿衰减；断联重连；UI 按电容电压平方显示储能（满电默认 23.85 V），见 `07-power/super_cap/README.md`
 - UI 椭圆/圆弧半轴按协议修正后的显示；无选手端时 UI 请求被丢弃，见 `05-comm/referee_relay/README.md`

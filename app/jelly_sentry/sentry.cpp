@@ -6,7 +6,7 @@
 #include "shooter.hpp"
 
 // 导航目标点，上位机坐标系，m；中心点即增益点，回家点为补血点
-static constexpr float CENTER_X = 2.0f, CENTER_Y = 1.0f; // 测试场地；比赛场地为中心 (2.2, 4.7)
+static constexpr float CENTER_X = -2.0f, CENTER_Y = -1.0f; // 测试场地；比赛场地为中心 (2.2, 4.7)
 static constexpr float HOME_X = 0, HOME_Y = 0;
 
 // 血量：不高于回家值回家，回到中心值以上再去中心点，中间锁存
@@ -71,9 +71,9 @@ void sentry_gimbal(const bool is_detect, const Angle target_yaw, const Angle tar
     }
 
     // 端点按编码器角判断，到限位后反向
-    if (gimbal.pitch.ecd.ref >= PITCH_MAX)
+    if (gimbal.pitch.ecd_ref >= PITCH_MAX)
         scan_up = false;
-    if (gimbal.pitch.ecd.ref <= PITCH_MIN)
+    if (gimbal.pitch.ecd_ref <= PITCH_MIN)
         scan_up = true;
     gimbal.set_speed(SCAN_YAW_SPEED + sentry_self_check_yaw_speed() + vt13.yaw_speed,
                      (scan_up ? SCAN_PITCH_SPEED : -SCAN_PITCH_SPEED) - vt13.pitch_speed);

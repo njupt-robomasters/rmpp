@@ -5,7 +5,7 @@
 
 void chassis_loop() {
     chassis.set_enable(sentry_enable());
-    chassis.set_gimbal_yaw(gimbal.yaw.ecd.measure); // 前进正方向为云台方向
+    chassis.set_gimbal_yaw(gimbal.yaw.ecd_measure); // 前进正方向为云台方向
 
     if (sentry_active()) {
         sentry_chassis();

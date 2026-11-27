@@ -5,27 +5,15 @@
 #include "pid/pid.hpp"
 
 // 折叠哨兵云台：大小 yaw + 折叠关节 pitch1 + 俯仰轴 pitch2
-// - 大 yaw（yaw1）跟随云台总目标，小 yaw（yaw2）补偿大 yaw 尚未转到的部分并限位；两者各自串级 PID，使用电机原生输出
+// 全部闭环在 IMU 世界系：yaw 目标为头部世界 yaw，pitch 目标为头部世界 pitch；编码器提供关节角、限位和底盘前进方向
+// - 小 yaw 为主执行器：头部角度外环 → 头部世界角速度内环（陀螺）→ 电流，吃掉大 yaw 尚未转到的部分
+// - 大 yaw 为辅助轴：自身世界角（头部世界角 − 小 yaw 编码器角）外环 → 自身世界角速度内环 → 力矩，把小 yaw 拉回中位
+// - pitch2：世界角度外环 → 陀螺 pitch 角速度内环，叠加重力补偿力矩
 // - pitch1 折叠关节当前固定失能，保留测量，控制输出为零；目标接口预留给后续启用
-// - pitch2 为传统俯仰轴，IMU 装在其上；pitch1 转动时 IMU 模式经 imu_minus_ecd 自动补偿
-// - pitch2 叠加重力补偿力矩 torque·cos(angle + phase)，pitch1 补偿当前停用
-// 各电机离线只影响自身：输出零并清空自身 PID，恢复后从实测重新闭环
+// yaw 轴需要大小 yaw 同时在线，pitch 轴只要求 pitch2；不可控时目标跟随实测、清空 PID、输出零
 // 国际单位制：角度 rad，角速度 rad/s，力矩 Nm，电流 A
 class GimbalFold {
   public:
-    enum Mode {
-        ECD_MODE,
-        IMU_MODE,
-    };
-
-    // 独立串级轴：位置环误差 rad → 速度 rad/s，速度环输出单位与电机原生输出一致
-    struct Axis {
-        const Pid::Config* speed_pid_config = nullptr;
-        const Pid::Config* position_pid_config = nullptr;
-        float min = 0; // 下限位，编码器角度，rad
-        float max = 0; // 上限位，编码器角度，rad
-    };
-
     // 重力补偿：力矩 = torque·cos(angle + phase)，只在该电机可控时叠加；torque 为零不补偿
     struct Gravity {
         float torque = 0; // 质心位于水平时的重力力矩，Nm，符号与电机正方向一致
@@ -33,27 +21,69 @@ class GimbalFold {
     };
 
     struct Config {
-        const Pid::Config* yaw_speed_pid_config;
-        const Pid::Config* yaw_position_pid_config;
+        // 大 yaw：世界角度 → 世界角速度 → 力矩
+        const Pid::Config* yaw1_angle_pid_config;
+        const Pid::Config* yaw1_speed_pid_config;
+
+        // 小 yaw：头部世界角度 → 头部世界角速度（IMU）→ 电流；限位为相对大 yaw 的角度，rad
+        const Pid::Config* yaw2_angle_pid_config;
+        const Pid::Config* yaw2_speed_pid_config;
+        float yaw2_min = 0;
+        float yaw2_max = 0;
+
+        // 俯仰：世界角度 → 世界角速度（IMU）→ 力矩；限位为 pitch2 编码器角，rad
+        const Pid::Config* pitch_angle_pid_config;
         const Pid::Config* pitch_speed_pid_config;
-        const Pid::Config* pitch_position_pid_config;
         float pitch_min = 0;
         float pitch_max = 0;
 
-        Axis yaw2;              // 小 yaw，限位为相对大 yaw 的角度
-        Axis pitch1;            // 折叠关节
+        // 折叠关节：当前失能，接口保留
+        const Pid::Config* pitch1_position_pid_config;
+        const Pid::Config* pitch1_speed_pid_config;
+        float pitch1_min = 0;
+        float pitch1_max = 0;
+
         Gravity pitch1_gravity; // angle 取 pitch1 编码器角度
         Gravity pitch2_gravity; // angle 取 IMU pitch，云台头装在 pitch1 上，绝对俯仰只能从 IMU 得到
+
+        // 角度外环最大角加速度，rad/s²；无穷大时禁用加速度规划
+        float yaw_max_accel = INFINITY;
+        float pitch_max_accel = INFINITY;
     };
 
-    // 云台总角度，分别记录编码器系与 IMU 系
+    // 云台总 yaw：世界系目标与实测；编码器总角供底盘前进方向
     struct {
-        struct {
-            Angle ref, measure;
-        } ecd, imu;
+        Angle ref, measure;                     // 头部世界 yaw，rad
+        float speed_ref = 0, speed_measure = 0; // 世界角速度，rad/s；ref 含角度外环修正
+        Angle ecd_measure;                      // yaw1 + yaw2 编码器角，rad
+        Angle imu_minus_ecd;                    // 世界角与编码器总角之差，rad
+    } yaw;
 
-        Angle imu_minus_ecd;
-    } yaw, pitch;
+    // 云台 pitch：世界系目标与实测；编码器角供限位，扫描端点取 ecd_ref
+    struct {
+        Angle ref, measure;                     // 头部世界 pitch，rad
+        float speed_ref = 0, speed_measure = 0; // 世界角速度，rad/s
+        Angle ecd_ref, ecd_measure;             // 编码器角，rad；ecd_ref 为世界目标换算并限位后的值
+        Angle imu_minus_ecd;                    // 世界角与编码器角之差，rad
+    } pitch;
+
+    // 大 yaw：ref、world_measure 为自身世界角，measure 为编码器角
+    struct {
+        Angle ref;                              // 自身世界 yaw 目标，rad；小 yaw 中位为 0 时等于头部目标
+        Angle measure;                          // 编码器角，rad
+        Angle world_measure;                    // 世界 yaw = 头部世界角 − 小 yaw 编码器角，rad
+        float speed_ref = 0, speed_measure = 0; // 世界角速度，rad/s
+    } yaw1;
+
+    // 小 yaw 编码器角度
+    struct {
+        Angle measure;
+    } yaw2;
+
+    // 折叠关节编码器角度
+    struct {
+        Angle ref, measure;
+    } pitch1;
 
     // 云台电机
     struct Motors {
@@ -61,54 +91,44 @@ class GimbalFold {
         Motor &pitch1, &pitch2; // 折叠关节、俯仰
     };
 
-    // 大小 yaw 分配与折叠关节角度，均为各自电机的编码器角度
-    struct {
-        Angle ref, measure;
-    } yaw1, yaw2, pitch1;
-
   private:
     const Config config;
     const Motors motor;
 
     // 指令
     bool is_enable = false;
-    bool is_yaw_window = false; // 自瞄窗口：识别到目标时大轴保持世界朝向，小轴优先追踪
-    Mode mode = IMU_MODE;
-    float yaw_speed = 0, pitch_speed = 0; // 云台目标转速，rad/s
-    float chassis_wr = 0;                 // 底盘旋转前馈，rad/s
+    float yaw_speed = 0, pitch_speed = 0; // 云台目标转速，rad/s，世界系
 
-    Pid yaw_speed_pid, yaw_position_pid, pitch_speed_pid, pitch_position_pid;
-    Pid yaw2_speed_pid, yaw2_position_pid;
-    Pid pitch1_speed_pid, pitch1_position_pid;
+    Pid yaw1_angle_pid, yaw1_speed_pid;
+    Pid yaw2_angle_pid, yaw2_speed_pid;
+    Pid pitch_angle_pid, pitch_speed_pid;
+    Pid pitch1_position_pid, pitch1_speed_pid;
 
     bool is_yaw_ready = false, is_pitch_ready = false;
-    bool is_yaw1_ready = false, is_yaw2_ready = false;
-    bool is_yaw_window_ready = false;
-    Angle yaw1_world_ref; // 窗口模式下大轴保持的世界朝向，rad
     Timer update_timer;
 
   public:
     GimbalFold(const Motors& motor, const Config& config);
 
     void set_enable(bool is_enable);
-    void set_mode(Mode mode);
-    void set_speed(float yaw_speed, float pitch_speed);
-    void set_angle(Angle yaw, Angle pitch);
-    void turn_yaw(float delta);
-    void set_chassis_wr(float chassis_wr);
 
-    // 自瞄识别到目标时启用小 yaw 优先窗口：大轴保持世界朝向，小轴追踪目标；超出小轴限位由大轴补足
-    void set_yaw_window(bool is_yaw_window);
+    void set_speed(float yaw_speed, float pitch_speed);
+
+    // 设置头部世界 yaw/pitch 目标并清零速度指令，rad
+    void set_angle(Angle yaw, Angle pitch);
+
+    // 世界 yaw 目标相对转动 delta，rad；pitch 不变
+    void turn_yaw(float delta);
 
     // 保存折叠关节目标角；当前失能策略在 update 中将其恢复为实测角
     void set_pitch1_angle(Angle angle);
 
-    // 每个控制周期调用；输入云台 IMU 姿态，rad
-    void update(Angle imu_yaw, Angle imu_pitch);
+    // 每个控制周期调用；q 为云台到世界的单位四元数，gyro 为安装修正后的云台系角速度，rad/s
+    void update(const Quaternionf& q, const Vector3f& gyro);
 
   private:
-    // 单电机可控判断：失能或离线时清空 PID 并返回 false；恢复后第一个周期仍返回 false
-    bool check_motor(const Motor& motor, bool& is_ready, Pid& speed_pid, Pid& position_pid) const;
+    // 按最大角加速度折算外环等效角度误差，大误差下走平方根制动曲线；无穷大时原样返回
+    static float plan_angle_error(float err, const Pid::Config* pid_config, float max_accel);
 
     // 俯仰与折叠关节重力补偿力矩，Nm
     static float gravity_output(const Gravity& gravity, float angle);

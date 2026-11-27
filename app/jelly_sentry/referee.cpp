@@ -57,11 +57,11 @@ void referee_loop() {
     }
 
     // 哨兵无舵轮，s1~s4 保持白色；UI 只有一个 pitch 状态位，任一 pitch 电机断联都显示为断联
-    ui.yaw_ecd = gimbal.yaw.ecd.measure; // 云台相对底盘角度
-    ui.yaw_angle = gimbal.yaw.imu.measure;
-    ui.pitch_angle = gimbal.pitch.imu.measure;
+    ui.yaw_ecd = gimbal.yaw.ecd_measure; // 云台相对底盘角度
+    ui.yaw_angle = gimbal.yaw.measure;
+    ui.pitch_angle = gimbal.pitch.measure;
     ui.is_hurt = has_hurt && hurt_timer.elapsed() < HURT_TIMEOUT;
-    ui.hurt_dir = hurt_dir - gimbal.yaw.imu.measure; // 相对云台
+    ui.hurt_dir = hurt_dir - gimbal.yaw.measure; // 相对云台
     {
         const IrqLock lock;
         ui.is_aim_detect = aim.is_detect;

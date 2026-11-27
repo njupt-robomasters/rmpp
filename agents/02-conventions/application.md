@@ -126,7 +126,10 @@
 
 ## jelly_sentry 上游接口适配
 
-- `GimbalFold` 位于 `lib/robot/gimbal_fold.*`，目前仅 jelly_sentry 使用；四轴控制在独立的 `update()` 中执行。app 每周期更新 attitude，并通过 `gimbal.update(attitude.yaw, attitude.pitch)` 传入姿态，yaw1 零点由 app 经 KvStore 持久化
+- `GimbalFold` 位于 `lib/robot/gimbal_fold.*`，目前仅 jelly_sentry 使用；四轴控制在独立的 `update()` 中执行。app 每周期更新 attitude，并通过 `gimbal.update(attitude.q, imu.gyro)` 传入云台四元数与机体系角速度，yaw1 零点由 app 经 KvStore 持久化
+- 三轴全部闭环在 IMU 世界系，没有 ECD 模式：小 yaw 是头部角度外环 + 世界角速度内环（陀螺）的主执行器；大 yaw 用自身世界角（头部世界角 − 小 yaw 编码器角）外环 + 世界角速度内环，把被甩出去的小 yaw 拉回中位；pitch2 为世界角度外环 + 陀螺 pitch 速率内环并叠加重力补偿。世界 yaw 角速度取 `(q · gyro).z`，pitch 速率取 `gyro.y`
+- 大 yaw 世界角速度 = 头部世界角速度 − 小 yaw 编码器速度，底盘转动直接进入反馈，不再需要 `set_chassis_wr` 前馈。yaw 轴要求大小 yaw 同时在线（大 yaw 角要减小 yaw 编码器），pitch 轴只要求 pitch2；不可控时目标跟随实测、清空 PID、输出零
+- 已删除窗口模式：大 yaw 始终按环追头部目标，小 yaw 越限时截断朝外输出，大 yaw 的世界角误差随之变大自动补足，收敛后小 yaw 回中
 - 大 yaw、pitch1、pitch2 经电机原生 `set_output()` 接收 Nm，小 yaw 7025 接收 A；折叠云台保留电机限幅后的 PID 跟踪及重力补偿，独立于上游普通云台的简化策略
 - 底盘由 app 更新超电后传入 `power_chassis_ref`
 - 受击方向显示与实测弹速读取裁判公开只读的 `hurt_data`、`hurt_sequence`（收到 0x0206 递增）、`shoot_data`；受击时按装甲 ID 换算到 IMU 参考系锁存 1 s。两台哨兵与 leg_up 在 `referee_loop()` 直接填写 `ui` 的公开字段，再调用 `ui.update(referee_sender)`
