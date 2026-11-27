@@ -7,7 +7,4 @@
 inline Aim aim({.cdc = Cdc(1)});
 inline Nav nav({.cdc = Cdc(2)});
 
-// 最近有效导航帧的过洞状态，minipc_loop() 更新，断联时保留
-inline bool is_nav_through_hole = false;
-
 void minipc_loop();

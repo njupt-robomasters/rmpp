@@ -1,33 +1,27 @@
 #pragma once
 
-#include "math/angle.hpp"
+#include "math/unit.hpp"
 #include <cstdint>
 
-// 比赛导航状态，sentry_update() 更新，供模块与 SWD 查看
-enum class NavState : uint8_t {
-    IDLE,      // 非自主阶段，导航目标清零
-    GO_CENTER, // 前往中心点，允许自瞄锁定与开火
-    AT_CENTER, // 裁判 RFID 确认驻留中心点，允许自瞄锁定与开火
-    GO_HOME,   // 血量低于 100 回家，满血前屏蔽自瞄锁定与开火
-};
-inline NavState nav_state = NavState::IDLE;
+// 导航目标点，上位机坐标系，m；中心增益点红蓝共用，回家点按方别分开
+inline constexpr float CENTER_X = 6.0f, CENTER_Y = -3.8f;
+inline constexpr float HOME_X_BLUE = 0.15f, HOME_Y_BLUE = -0.15f;
+inline constexpr float HOME_X_RED = -10.160f, HOME_Y_RED = 4.663f;
 
-// 战术状态：正赛或 fn 测试时按血量和 RFID 更新导航目标，其余阶段复位
-void sentry_update();
+// 返航血量：低于 100 HP 回家，回满 maximum_HP 后再出击
+inline constexpr uint16_t GO_HOME_HP = 100;
 
-// 底盘：雷达系导航叠加遥控平移；过洞随头，其余 90～60 rpm 小陀螺
+// 扫描：yaw 连续旋转，pitch 目标在编码器软限位间往返，rad/s
+inline constexpr float SCAN_YAW_SPEED = 180 * deg_s, SCAN_PITCH_SPEED = 60 * deg_s;
+
+// 锁定：自瞄有效距离，m；脱锁时间，s
+inline constexpr float LOCK_DISTANCE = 5, LOCK_TIMEOUT = 500 * ms;
+
+// 底盘：按血量更新导航目标，雷达系速度叠加遥控平移；小陀螺取 `vt13.config.wr_max`
 void sentry_chassis();
 
-// 云台：过洞停扫；场下人工输入接管；允许交战时锁定目标，否则扫描
-void sentry_gimbal(bool is_detect, Angle target_yaw, Angle target_pitch, float distance);
+// 云台：测试模式人工输入接管；不在回家途中时锁定目标，否则扫描
+void sentry_gimbal();
 
-// 裁判自检阶段的云台 yaw 匀速旋转，rad/s；非自检阶段为 0
-float sentry_self_check_yaw_speed();
-
-// 发射机构：自主摩擦轮常开，允许交战且视觉许可时拨弹
+// 发射机构：比赛自动开摩擦轮并放行开火，场下测试需手动 S 挡开轮并作为开火批准
 void sentry_shooter();
-
-// 当前战术阶段允许自瞄锁定与开火
-inline bool sentry_can_engage() {
-    return nav_state == NavState::GO_CENTER || nav_state == NavState::AT_CENTER;
-}

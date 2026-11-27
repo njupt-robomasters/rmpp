@@ -4,7 +4,6 @@
 #include "gimbal.hpp"
 #include "melody/music/c5d5g5.hpp"
 #include "minipc.hpp"
-#include "sentry.hpp"
 #include "shooter.hpp"
 
 static void setup() {
@@ -31,8 +30,7 @@ static void send() {
         super_cap.send();
 
     // CAN2
-    if (send_cnt % 4 == 0) // pitch1 250Hz
-        pitch1.send();
+    pitch1.send();         // pitch1 1000 Hz
     pitch2.send();         // pitch2 1000 Hz
     if (send_cnt % 2 == 0) // shoot 500 Hz
         shoot.send();
@@ -42,7 +40,7 @@ static void send() {
     }
 
     // CAN3
-    if (send_cnt % 2 == 0) // 小yaw 500Hz
+    if (send_cnt % 2 == 0) // 小yaw 500 Hz
         yaw2.send();
 
     // CDC
@@ -54,13 +52,11 @@ static void send() {
 
 static void loop() {
     melody.update();
+    vt13.set_in_game(referee.game_status.game_progress == Referee::GAMING); // 比赛中断联保持挡位
     vt13.update();
-    attitude.update();
 
     referee_loop();
     minipc_loop();
-    sentry_update();
-
     chassis_loop();
     gimbal_loop();
     shooter_loop();

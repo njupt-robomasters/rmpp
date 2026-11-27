@@ -15,10 +15,10 @@ inline KvStore kv_store("jelly_sentry");
 // 平移 100W 下 2.3m/s、不限功率 3.2m/s，旋转 100W 下 107rpm、不限功率 155rpm；鼠标滚轮调节弹频
 inline VT13 vt13({
     .uart = Uart(1),
-    .vxy_max = 5.0f,
+    .vxy_max = 3.0f,
     .axy = INFINITY,
     .dxy = INFINITY,
-    .wr_max = 120 * rpm,
+    .wr_max = 30 * rpm,
     .ar = INFINITY,
     .dr = INFINITY,
     .yaw_speed_max = 720 * deg_s,
@@ -27,9 +27,9 @@ inline VT13 vt13({
     .bullet_freq = 10.0f,
 });
 
-// fn 锁存：VT13 在 N、S 挡时 fn 键置位、pause 键清除，失能或断联时清除
-// 底盘、云台、发射共用同一锁存状态，同一周期内重复调用结果不变
-inline bool rc_fn() {
+// 测试锁存：VT13 在 N、S 挡时 fn 键置位、pause 键清除，失能或断联时清除
+// 场下调试哨兵自主行为用，底盘、云台、发射共用，同一周期内重复调用结果不变
+inline bool is_sentry_test() {
     static bool is_fn = false;
     if (vt13.is_enable) {
         if (vt13.rc.fn)
@@ -42,30 +42,8 @@ inline bool rc_fn() {
     return is_fn;
 }
 
-// 比赛中且裁判系统识别为哨兵（红 7、蓝 107）
-inline bool sentry_in_game() {
+// 执行哨兵策略：场下测试模式，或裁判识别为哨兵（红 7、蓝 107）的正赛；比赛断联由 VT13 保持挡位
+inline bool is_sentry_active() {
     const auto id = referee.robot_status.robot_id;
-    return referee.game_status.game_progress == Referee::GAMING && (id == 7 || id == 107);
-}
-
-// 赛场阶段：裁判系统识别为哨兵（红 7、蓝 107），处于自检、倒计时或正赛
-inline bool sentry_official() {
-    const auto id = referee.robot_status.robot_id;
-    const auto progress = referee.game_status.game_progress;
-    return (id == 7 || id == 107) &&
-           (progress == Referee::REFEREE_SELF_CHECK || progress == Referee::COUNTDOWN_5SEC || progress == Referee::GAMING);
-}
-
-// 自主控制：比赛中，或按下 fn 测试；否则由 VT13 控制
-inline bool sentry_active() {
-    return sentry_in_game() || rc_fn();
-}
-
-// 整车使能：在线 VT13 的 C 挡优先失能，断联时挡位为 ERR；自检、倒计时和比赛中遥控器断联也保持使能
-inline bool sentry_enable() {
-    if (vt13.rc.mode == VT13::C)
-        return false;
-
-    const auto progress = referee.game_status.game_progress;
-    return vt13.is_enable || progress == Referee::REFEREE_SELF_CHECK || progress == Referee::COUNTDOWN_5SEC || progress == Referee::GAMING;
+    return is_sentry_test() || (referee.game_status.game_progress == Referee::GAMING && (id == 7 || id == 107));
 }

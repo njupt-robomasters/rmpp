@@ -8,6 +8,10 @@ VT13::VT13(const Config& config)
     config.uart.add_rx_callback([this](const uint8_t* data, const size_t size) { callback(data, size); });
 }
 
+void VT13::set_in_game(const bool is_in_game) {
+    this->is_in_game = is_in_game;
+}
+
 void VT13::add_0311_callback(RxCallback callback) {
     callbacks_0311.push_back(std::move(callback));
 }
@@ -15,13 +19,16 @@ void VT13::add_0311_callback(RxCallback callback) {
 void VT13::update() {
     const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
 
-    // 断联检测：原始量与键盘斜坡复位，操控量随之为 0
+    // 断联检测：输入与键盘斜坡复位，操控量随之为 0；比赛中只保留挡位，维持使能与摩擦轮状态
     if (callback_timer.elapsed() > config.timeout) {
         is_connect = false;
+        const Mode last_mode = rc.mode;
         rc = {};
         mouse = {};
         key = {};
         key_vx = key_vy = key_wr = 0;
+        if (is_in_game)
+            rc.mode = last_mode;
     }
 
     // 挡位与自瞄；断联时挡位为 ERR

@@ -47,10 +47,11 @@ static void send() {
 
 static void loop() {
     melody.update();
+    vt13.set_in_game(referee.game_status.game_progress == Referee::GAMING); // 比赛中断联保持挡位
     vt13.update();
+
     referee_loop();
     minipc_loop();
-
     chassis_loop();
     gimbal_loop();
     shooter_loop();

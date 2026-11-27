@@ -57,7 +57,8 @@ static void control_by_auto(const bool is_detect, const Angle target_yaw, const 
 }
 
 void gimbal_loop(const bool is_detect, const Angle target_yaw, const Angle target_pitch, const float distance) {
-    gimbal.set_enable(sentry_enable());
+    attitude.update();
+    gimbal.set_enable(vt13.is_enable);
 
     // yaw 零点校准：VT13 C 挡按住 fn 和 photo，按下时触发一次
     // 按大 yaw 多圈角更新 offset，使单圈与多圈反馈同时归零，写入 KvStore，蜂鸣器响 G5G5G5
@@ -70,7 +71,7 @@ void gimbal_loop(const bool is_detect, const Angle target_yaw, const Angle targe
     }
     last_calib = calib;
 
-    if (sentry_active()) {
+    if (is_sentry_active()) {
         control_by_auto(is_detect, target_yaw, target_pitch, distance);
     } else {
         is_lock = scan_up = false;

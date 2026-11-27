@@ -65,7 +65,7 @@ void referee_loop() {
     {
         const IrqLock lock;
         ui.is_aim_detect = aim.is_detect;
-        ui.aim = connect_color(sentry_enable(), aim.is_connect); // 自瞄
+        ui.aim = connect_color(vt13.is_enable, aim.is_connect); // 自瞄
     }
     ui.super_cap = super_cap.energy_ratio();
     if (!super_cap.is_connect)

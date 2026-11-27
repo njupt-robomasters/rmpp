@@ -27,8 +27,8 @@ inline VT13 vt13({
 });
 
 // fn 开关：VT13 在 N、S 挡时 fn 键置位、pause 键清除，失能或断联时清除
-// 底盘、云台、发射共用同一锁存状态，同一周期内重复调用结果不变
-inline bool rc_fn() {
+// 场下调试哨兵自主行为用，底盘、云台、发射共用，同一周期内重复调用结果不变
+inline bool is_sentry_test() {
     static bool is_fn = false;
     if (vt13.is_enable) {
         if (vt13.rc.fn)
@@ -41,22 +41,8 @@ inline bool rc_fn() {
     return is_fn;
 }
 
-// 比赛中且裁判系统识别为哨兵（红 7、蓝 107）
-inline bool sentry_in_game() {
+// 执行哨兵策略：场下测试模式，或裁判识别为哨兵（红 7、蓝 107）的正赛；比赛断联由 VT13 保持挡位
+inline bool is_sentry_active() {
     const auto id = referee.robot_status.robot_id;
-    return referee.game_status.game_progress == Referee::GAMING && (id == 7 || id == 107);
-}
-
-// 自主控制：比赛中，或按下 fn 测试；否则由 VT13 控制
-inline bool sentry_active() {
-    return sentry_in_game() || rc_fn();
-}
-
-// 整车使能：在线 VT13 的 C 挡优先失能，断联时挡位为 ERR；自检、倒计时和比赛中遥控器断联也保持使能
-inline bool sentry_enable() {
-    if (vt13.rc.mode == VT13::C)
-        return false;
-
-    const auto progress = referee.game_status.game_progress;
-    return vt13.is_enable || progress == Referee::REFEREE_SELF_CHECK || progress == Referee::COUNTDOWN_5SEC || progress == Referee::GAMING;
+    return is_sentry_test() || (referee.game_status.game_progress == Referee::GAMING && (id == 7 || id == 107));
 }

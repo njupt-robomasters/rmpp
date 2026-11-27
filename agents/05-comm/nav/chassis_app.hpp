@@ -186,6 +186,8 @@ inline struct {
 inline struct {
     Angle yaw, pitch;
     Quaternionf q = Quaternionf::Identity();
+
+    void update() {}
 } attitude;
 
 inline struct {

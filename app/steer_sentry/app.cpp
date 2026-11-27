@@ -59,11 +59,11 @@ static void send() {
 
 static void loop() {
     melody.update();
+    vt13.set_in_game(referee.game_status.game_progress == Referee::GAMING); // 正赛中断联保持挡位
     vt13.update();
-    attitude.update();
+
     referee_loop();
     minipc_loop();
-
     chassis_loop();
     const auto [is_detect, target_yaw, target_pitch, distance, is_fire] = [] {
         const IrqLock lock;

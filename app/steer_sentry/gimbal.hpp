@@ -21,13 +21,13 @@ inline DM4310 yaw1({
 });
 
 // 小yaw电机
-inline Pid::Config yaw2_speed_pid = {
+inline Pid::Config yaw2_speed_pid_config = {
     .kp = (3) / (300 * deg_s),
     .kd = (3) / (30000 * deg_ss),
     .max_out = 3,
     .err_fc = 10,
 };
-inline Pid::Config yaw2_angle_pid = {
+inline Pid::Config yaw2_angle_pid_config = {
     .kp = 30.0f,
     .max_out = 720 * deg_s,
 };
@@ -58,8 +58,8 @@ inline DM4310 pitch({
 
 // 云台
 inline GimbalDualYaw gimbal({yaw1, yaw2, pitch}, {
-                                                     .yaw_speed_pid_config = &yaw2_speed_pid,
-                                                     .yaw_angle_pid_config = &yaw2_angle_pid,
+                                                     .yaw_speed_pid_config = &yaw2_speed_pid_config,
+                                                     .yaw_angle_pid_config = &yaw2_angle_pid_config,
                                                      .pitch_speed_pid_config = &pitch_speed_pid_config,
                                                      .pitch_angle_pid_config = &pitch_angle_pid_config,
                                                      .pitch_min = -22 * deg,

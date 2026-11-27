@@ -47,6 +47,7 @@ class VT13 {
         ERR,
     };
 
+    bool is_in_game = false; // 比赛模式，set_in_game() 设置；断联时保持挡位
     bool is_connect = false;
 
     // 操控量，update() 计算，断联时为 0
@@ -120,9 +121,12 @@ class VT13 {
   public:
     explicit VT13(const Config& config);
 
+    // 比赛模式：断联时保持挡位，收到新的有效帧后按实测更新；false 时断联挡位复位为 ERR
+    void set_in_game(bool is_in_game);
+
     void add_0311_callback(RxCallback callback);
 
-    // 每周期调用：断联检测并计算操控量；断联时数据复位为默认值
+    // 每周期调用：断联检测并计算操控量；断联时输入复位，比赛中保留挡位
     void update();
 
   private:

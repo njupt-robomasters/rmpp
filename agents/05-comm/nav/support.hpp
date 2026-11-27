@@ -23,7 +23,11 @@ static CanFrame last_can;
     std::abort(); } checks++; } while (false)
 
 static void near(const float actual, const float expected) {
-    CHECK(std::isfinite(actual) && std::fabs(actual - expected) < 2e-5f);
+    if (!std::isfinite(actual) || std::fabs(actual - expected) >= 2e-5f) {
+        std::fprintf(stderr, "near failed: actual %.9g, expected %.9g\n", actual, expected);
+        std::abort();
+    }
+    checks++;
 }
 
 float Timer::elapsed() const {

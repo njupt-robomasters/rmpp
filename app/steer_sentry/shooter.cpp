@@ -17,8 +17,8 @@ static void control_by_auto(const bool is_fire) {
 
 void shooter_loop(const bool is_fire) {
     // VT13 N 挡只允许底盘和云台使能，发射机构失能
-    shooter.set_enable(sentry_enable() && vt13.rc.mode != VT13::N);
-    if (sentry_active())
+    shooter.set_enable(vt13.is_enable && vt13.rc.mode != VT13::N);
+    if (is_sentry_active())
         control_by_auto(is_fire);
     else
         control_by_vt13(is_fire);

@@ -110,6 +110,7 @@ int main() {
         .pitch_speed_max = 3.0f,
         .bullet_speed = 25.0f,
         .bullet_freq = 10.0f,
+        .bullet_freq_max = 15.0f, // 滚轮量程按测试用 15 发/秒，生产默认 5~10
     });
     const auto step = [&](const int n = 1) {
         for (int i = 0; i < n; i++) {
@@ -420,7 +421,62 @@ int main() {
     uart_callback(&stream.back(), 1);
     assert(command_count == 2 && command.size() == 5 && std::memcmp(command.data(), payload, 5) == 0);
 
-    std::puts("PASS: frame parse, key ramps, infinite ramps, gimbal speed, shooter, auto aim, disconnect and 0x0311");
+    // 比赛模式：断联只保留挡位，其余输入复位；收到新的有效帧后才更新挡位
+    VT13 comp({
+        .uart = Uart(6),
+        .vxy_max = 2.0f,
+        .axy = 10.0f,
+        .dxy = 5.0f,
+        .wr_max = 4.0f,
+        .ar = 20.0f,
+        .dr = 40.0f,
+        .yaw_speed_max = 6.0f,
+        .pitch_speed_max = 3.0f,
+        .bullet_speed = 25.0f,
+        .bullet_freq = 10.0f,
+    });
+    const auto step_comp = [&](const int n = 1) {
+        for (int i = 0; i < n; i++) {
+            now_us += 1000;
+            comp.update();
+        }
+    };
+
+    // 非比赛：断联挡位复位为 ERR，使能与摩擦轮随之关闭
+    comp.set_in_game(false);
+    in = {};
+    in.mode = 2;
+    send(in);
+    step_comp();
+    assert(comp.is_connect && comp.rc.mode == VT13::S && comp.is_enable);
+    step_comp(50);
+    step_comp(500);
+    assert(!comp.is_connect && comp.rc.mode == VT13::ERR && !comp.is_enable && comp.bullet_speed == 0);
+
+    // 比赛：断联保持 S 挡，使能与弹速沿用；摇杆、键盘、鼠标、按键与操控量全部复位
+    comp.set_in_game(true);
+    in = {};
+    in.mode = 2;
+    in.ch[1] = 1024 + 660;
+    in.key = 1u << 0;
+    in.left = true;
+    in.photo = true;
+    send(in);
+    step_comp(50);
+    assert(comp.is_connect && comp.vx > 0 && comp.is_aim && comp.bullet_freq > 0);
+    step_comp(500);
+    assert(!comp.is_connect && comp.rc.mode == VT13::S && comp.is_enable && comp.bullet_speed == 25.0f);
+    assert(comp.vx == 0 && comp.vy == 0 && comp.wr == 0 && comp.yaw_speed == 0 && comp.pitch_speed == 0);
+    assert(comp.bullet_freq == 0 && !comp.is_aim && !comp.key.w && !comp.mouse.left && !comp.rc.photo);
+
+    // 比赛：断联后收到新的有效帧才按实测更新挡位
+    in = {};
+    in.mode = 0;
+    send(in);
+    step_comp();
+    assert(comp.is_connect && comp.rc.mode == VT13::C && !comp.is_enable && comp.bullet_speed == 0);
+
+    std::puts("PASS: frame parse, key ramps, infinite ramps, gimbal speed, shooter, auto aim, disconnect, competition latch and 0x0311");
 }
 """
 

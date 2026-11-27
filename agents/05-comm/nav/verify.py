@@ -36,7 +36,7 @@ def main():
     shutil.copyfile(ROOT / "app/jelly_sentry/sentry.hpp", OUT / "sentry.hpp")
     shutil.copyfile(ROOT / "app/jelly_sentry/shooter.cpp", OUT / "shooter.cpp")
     production_app = (ROOT / "app/jelly_sentry/app.hpp").read_text(encoding="utf-8")
-    app_functions = production_app[production_app.index("inline bool rc_fn()") :]
+    app_functions = production_app[production_app.index("inline bool is_sentry_test()") :]
     app_stub = (TASK / "chassis_app.hpp").read_text(encoding="utf-8")
     (OUT / "app.hpp").write_text(app_stub + "\n" + app_functions, encoding="utf-8")
     for header in ["chassis.hpp", "gimbal.hpp", "minipc.hpp", "shooter.hpp"]:

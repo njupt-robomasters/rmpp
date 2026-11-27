@@ -7,12 +7,11 @@ static void run() {
     vt13.rc.fn = test_active;
     vt13.rc.pause = !test_active;
     minipc_loop();
-    sentry_update();
     chassis_loop();
 }
 
-static void command(const float vx, const float vy, const uint8_t is_through_hole) {
-    const auto bytes = make_frame(vx, vy, 0.7f, 0, 0, is_through_hole);
+static void command(const float vx, const float vy) {
+    const auto bytes = make_frame(vx, vy, 0.7f, 0, 0, 0);
     feed(2, bytes.data(), bytes.size());
     run();
 }
@@ -22,24 +21,22 @@ int main() {
     CHECK(chassis.enabled && chassis.mode == ChassisMatrix::DETACH_MODE);
     near(chassis.vx, 0);
     near(chassis.vy, 0);
-    near(chassis.wr_input, 90 * rpm);
+    near(chassis.wr_input, vt13.config.wr_max);
 
     // 雷达朝前（yaw1 = 0）、云台朝左（yaw2 = +90°）：导航向前 1 m/s 在头部系为向右 1 m/s，落到车身系为向前 1 m/s
     gimbal.yaw2.measure = 90 * deg;
     gimbal.yaw.ecd_measure = 90 * deg;
-    command(1, 0, 1);
-    CHECK(chassis.mode == ChassisMatrix::FOLLOW_MODE);
-    near(chassis.vx, 0);
+    command(1, 0);
     near(chassis.vy, -1);
     const auto [body_vx, body_vy] = rotate(chassis.vx, chassis.vy, chassis.gimbal_yaw);
     near(body_vx, 1);
     near(body_vy, 0);
-    near(chassis.wr_input, 0);
+    near(chassis.wr_input, vt13.config.wr_max);
     near(chassis.gimbal_yaw, 90 * deg);
 
     // 同一姿态下遥控向前 1 m/s 仍沿头部朝向（车身向左），与导航向前合成后车身为前 1、左 1
     vt13.vx = 1;
-    command(1, 0, 1);
+    command(1, 0);
     const auto [mix_body_vx, mix_body_vy] = rotate(chassis.vx, chassis.vy, chassis.gimbal_yaw);
     near(mix_body_vx, 1);
     near(mix_body_vy, 1);
@@ -50,7 +47,7 @@ int main() {
         const float large_yaw = i * 0.2f;
         gimbal.yaw2.measure = i * 0.06f;
         gimbal.yaw.ecd_measure = large_yaw + float(gimbal.yaw2.measure);
-        command(1.2f, -0.8f, 1);
+        command(1.2f, -0.8f);
         const auto [actual_bx, actual_by] = rotate(chassis.vx, chassis.vy, chassis.gimbal_yaw);
         const auto [expect_bx, expect_by] = rotate(1.2f, -0.8f, large_yaw);
         near(actual_bx, expect_bx);
@@ -58,118 +55,85 @@ int main() {
         near(chassis.gimbal_yaw, gimbal.yaw.ecd_measure);
     }
 
+    // 平移不另行限幅，小陀螺固定 90 rpm
     gimbal.yaw2.measure = 0;
-    // 非过洞：按合速度在 90→60 rpm 插值；超量程平移保留，只限制旋转插值输入
-    command(0, 0, 0);
-    CHECK(chassis.mode == ChassisMatrix::DETACH_MODE);
-    near(chassis.wr_input, 90 * rpm);
-    vt13.vy = -2;
-    command(1.5f, 0, 0);
-    near(chassis.wr_input, 75 * rpm);
-    vt13.vy = 0;
-    command(5, 0, 0);
-    near(chassis.wr_input, 60 * rpm);
-    command(100, 0, 0);
+    command(100, 0);
     near(chassis.vx, 100);
-    near(chassis.wr_input, 60 * rpm);
-    command(0, 0, 1);
-    CHECK(chassis.mode == ChassisMatrix::FOLLOW_MODE);
-    near(chassis.wr_input, 0);
+    near(chassis.vy, 0);
+    near(chassis.wr_input, vt13.config.wr_max);
 
-    // 导航向前、摇杆向右：两个方向都有速度，松杆后只剩导航
+    // 导航向前、摇杆向左：两个方向都有速度，松杆后只剩导航
     vt13.vy = -2;
-    command(2, 0, 1);
+    command(2, 0);
     near(chassis.vx, 2);
     near(chassis.vy, -2);
-    CHECK(chassis.mode == ChassisMatrix::FOLLOW_MODE);
     vt13.vy = 0;
     run();
     near(chassis.vx, 2);
     near(chassis.vy, 0);
 
-    // 同向相加保留超出遥控满量程的平移目标；反向抵消后恢复原地 90 rpm
+    // 同向相加保留超出遥控满量程的平移目标；反向抵消归零
     vt13.vx = 2;
     vt13.vy = -2;
-    command(4, -4, 0);
+    command(4, -4);
     near(chassis.vx, 6);
     near(chassis.vy, -6);
-    near(chassis.wr_input, 60 * rpm);
-    command(-2, 2, 0);
+    command(-2, 2);
     near(chassis.vx, 0);
     near(chassis.vy, 0);
-    near(chassis.wr_input, 90 * rpm);
+    near(chassis.wr_input, vt13.config.wr_max);
     vt13.vx = vt13.vy = 0;
 
-    // 人工模式取遥控速度，切回自主模式恢复导航
+    // 人工模式取遥控速度，切回自主恢复导航
     test_active = false;
     vt13.vx = 1;
     vt13.wr = 30 * rpm;
-    command(3, 2, 0);
+    command(3, 2);
     near(chassis.vx, 1);
     near(chassis.vy, 0);
     near(chassis.wr_input, 30 * rpm);
     test_active = true;
     vt13.vx = 0;
+    vt13.wr = 0;
     run();
     near(chassis.vx, 3);
-    near(chassis.wr_input, (90 - 6 * std::hypot(3.0f, 2.0f)) * rpm);
-    vt13.wr = 0;
+    near(chassis.vy, 2);
+    near(chassis.wr_input, vt13.config.wr_max);
 
-    // 普通导航断联：摇杆平移也归零，底盘原地 90 rpm
+    // 导航断联：只剩遥控平移，小陀螺 90 rpm
     vt13.vy = -1;
     now_us += 101000;
     run();
-    CHECK(!nav.is_connect && chassis.mode == ChassisMatrix::DETACH_MODE);
+    CHECK(!nav.is_connect);
     near(chassis.vx, 0);
-    near(chassis.vy, 0);
-    near(chassis.wr_input, 90 * rpm);
+    near(chassis.vy, -1);
+    near(chassis.wr_input, vt13.config.wr_max);
     vt13.vy = 0;
-    run();
-    near(chassis.vy, 0);
-    vt13.vy = -1;
+
+    // yaw 反馈丢失不影响速度指令
+    command(1, 2);
     yaw1.is_connect = false;
     run();
-    near(chassis.vy, 0);
-    yaw1.is_connect = true;
-    command(1, 2, 1);
-    CHECK(chassis.mode == ChassisMatrix::FOLLOW_MODE);
     near(chassis.vx, 1);
-    near(chassis.vy, 1);
+    near(chassis.vy, 2);
+    near(chassis.wr_input, vt13.config.wr_max);
+    yaw1.is_connect = true;
     yaw2.is_connect = false;
     run();
-    CHECK(chassis.mode == ChassisMatrix::DETACH_MODE);
-    near(chassis.vx, 0);
-    near(chassis.vy, 0);
-    near(chassis.wr_input, 0);
+    near(chassis.vx, 1);
+    near(chassis.vy, 2);
     yaw2.is_connect = true;
-    // 过洞断联：保存过洞状态，平移和旋转均归零；后续普通帧恢复小陀螺
-    now_us += 101000;
-    run();
-    CHECK(!nav.is_connect && is_nav_through_hole);
-    CHECK(chassis.mode == ChassisMatrix::DETACH_MODE);
-    near(chassis.vx, 0);
-    near(chassis.vy, 0);
-    near(chassis.wr_input, 0);
-    command(0, 0, 0);
-    CHECK(!is_nav_through_hole);
-    near(chassis.wr_input, 84 * rpm);
-    vt13.vy = 0;
-    vt13.rc.mode = VT13::C;
-    run();
-    CHECK(!chassis.enabled);
-    vt13.rc.mode = VT13::N;
-    test_active = false;
-    run();
-    near(chassis.vx, 0);
-    near(chassis.wr_input, 0);
-    // 正赛仍叠加遥控平移，按相加后的速度计算小陀螺转速
+    command(0, 0);
+
+    // 正赛仍叠加遥控平移
     referee.game_status.game_progress = Referee::GAMING;
     vt13.vx = 2;
-    command(1, 0, 0);
+    command(1, 0);
     near(chassis.vx, 3);
-    near(chassis.wr_input, 72 * rpm);
+    near(chassis.wr_input, vt13.config.wr_max);
+    vt13.vx = 0;
 
-    // 所有赛程 C 挡优先失能，N 挡保持赛程使能
+    // C 挡优先失能，N 挡使能
     for (const int progress : {Referee::NOT_STARTED, Referee::REFEREE_SELF_CHECK, Referee::COUNTDOWN_5SEC, Referee::GAMING}) {
         referee.game_status.game_progress = progress;
         vt13.rc.mode = VT13::C;
@@ -182,19 +146,11 @@ int main() {
         CHECK(chassis.enabled);
     }
 
-    // 超电按上游条件：遥控使能或正赛时同时使能与放电补偿
-    referee.game_status.game_progress = Referee::REFEREE_SELF_CHECK;
+    // 超电随遥控使能
     vt13.is_enable = false;
     run();
     CHECK(!super_cap.is_enable && !super_cap.is_boost_enable);
     vt13.is_enable = true;
-    run();
-    CHECK(super_cap.is_enable && super_cap.is_boost_enable);
-    referee.is_connect = false;
-    run();
-    CHECK(super_cap.is_enable && super_cap.is_boost_enable);
-    vt13.is_enable = false;
-    referee.game_status.game_progress = Referee::GAMING;
     run();
     CHECK(super_cap.is_enable && super_cap.is_boost_enable);
     CHECK(irq_depth == 0);

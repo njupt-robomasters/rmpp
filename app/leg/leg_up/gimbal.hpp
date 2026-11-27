@@ -14,12 +14,11 @@ inline QuaternionEkf attitude(imu, {});
 inline Pid::Config yaw_speed_pid_config = {
     .kp = 2.4f,
     .ki = 8.0f,
-    .max_i = 1.0f,
+    .max_i = GM6020::MAX_CURRENT,
     .max_out = GM6020::MAX_CURRENT,
 };
 inline Pid::Config yaw_angle_pid_config = {
     .kp = 30.0f,
-    .kd = 0.0f,
     .max_out = 720 * deg_s,
 };
 inline GM6020 yaw({

@@ -54,8 +54,8 @@ static void control_by_auto() {
 }
 
 void chassis_loop() {
-    chassis.set_enable(sentry_enable());
-    if (sentry_active()) {
+    chassis.set_enable(vt13.is_enable);
+    if (is_sentry_active()) {
         set_nav_target();
         control_by_auto();
     } else {

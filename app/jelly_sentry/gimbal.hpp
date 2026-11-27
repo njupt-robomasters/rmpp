@@ -5,32 +5,22 @@
 #include "motor/rmdl7025.hpp"
 #include "robot/gimbal_fold.hpp"
 
-// IMU：MC02 倒装在 pitch2 头部，沿用上游标定值；默认恒温 45 ℃
+// imu 倒装在 pitch2 头部
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = -90 * deg, .pitch = 0 * deg, .roll = 180 * deg}),
                 .gyro_offset = Vector3f(0.00412f, 0.00166f, 0.00212f),
                 .gravity = 9.80907f});
 inline QuaternionEkf attitude(imu, {});
 
 // 大 yaw：DM4310，CAN1
-inline Pid::Config yaw1_speed_pid = {
-    .kp = 6.0f,
+inline Pid::Config yaw1_speed_pid_config = {
+    .kp = 5.0f,
     .ki = 0.3f,
-    .kd = 0,
-    .ff = 0,
     .max_i = 1.0f,
     .max_out = 7.0f,
-    .err_fc = 0,
-    .d_fc = 0,
 };
-inline Pid::Config yaw1_angle_pid = {
+inline Pid::Config yaw1_angle_pid_config = {
     .kp = 7.0f,
-    .ki = 0,
-    .kd = 0,
-    .ff = 0,
-    .max_i = 0,
     .max_out = 720 * deg_s,
-    .err_fc = 0,
-    .d_fc = 0,
 };
 inline DM4310 yaw1({
     .can = Can(1),
@@ -40,25 +30,15 @@ inline DM4310 yaw1({
 });
 
 // 小 yaw：脉塔 RMD-L-7025，CAN3
-inline Pid::Config yaw2_speed_pid = {
+inline Pid::Config yaw2_speed_pid_config = {
     .kp = 5.0f,
     .ki = 0.3f,
-    .kd = 0,
-    .ff = 0,
     .max_i = 1.0f,
     .max_out = 8.5f,
-    .err_fc = 0,
-    .d_fc = 0,
 };
-inline Pid::Config yaw2_angle_pid = {
+inline Pid::Config yaw2_angle_pid_config = {
     .kp = 20.0f,
-    .ki = 0,
-    .kd = 0,
-    .ff = 0,
-    .max_i = 0,
     .max_out = 720 * deg_s,
-    .err_fc = 0,
-    .d_fc = 0,
 };
 inline RMDL7025 yaw2({
     .can = Can(3),
@@ -69,18 +49,12 @@ inline RMDL7025 yaw2({
 });
 
 // pitch1：折叠关节，DM4310，CAN2
-// 折叠云台库 1.2/(150 deg/s)、0.3/(150 deg)、0.5/(1000 deg/s^2) 展开为标准单位
-inline Pid::Config pitch1_speed_pid = {
-    // .kp = 0.4584f,  // Nm/(rad/s)
-    // .ki = 0.1146f,  // Nm/rad
-    // .kd = 0.02865f, // Nm/(rad/s^2)
-    // .max_i = 0.3f,
+inline Pid::Config pitch1_speed_pid_config = {
     .max_out = 7.0f,
-    // .err_fc = 10,
 };
-inline Pid::Config pitch1_angle_pid = {
-    // .kp = 20.0f,
-    // .max_out = 90 * deg_s,
+inline Pid::Config pitch1_angle_pid_config = {
+    .kp = 0.0f,
+    .max_out = 0.0f * deg_s,
 };
 inline DM4310 pitch1({
     .can = Can(2),
@@ -90,8 +64,8 @@ inline DM4310 pitch1({
     .offset = 0 * deg,
 });
 
-// pitch2：俯仰轴，DM4310，CAN2；保留本地编码器速度内环与实测 PID
-inline Pid::Config pitch2_speed_pid = {
+// pitch2：俯仰轴，DM4310，CAN2
+inline Pid::Config pitch2_speed_pid_config = {
     .kp = 0.50558f,
     .ki = 2.0f,
     .kd = 0.02f,
@@ -100,7 +74,7 @@ inline Pid::Config pitch2_speed_pid = {
     .max_out = 5.0f,
     .err_fc = 10,
 };
-inline Pid::Config pitch2_angle_pid = {
+inline Pid::Config pitch2_angle_pid_config = {
     .kp = 20.0f,
     .max_out = 720 * deg_s,
 };
@@ -113,23 +87,23 @@ inline DM4310 pitch2({
 });
 
 // pitch2 编码器软限位与自主扫描端点，rad；下限为枪口最高点，上限为最低点
-inline constexpr float PITCH_MIN = -0.14f, PITCH_MAX = 0.314f;
+inline constexpr Angle PITCH_MIN = -8 * deg, PITCH_MAX = 18 * deg;
 
 // 云台：yaw 使用世界系闭环与识别窗口，pitch2 保留编码器串级；限位使用关节编码器角度
 inline GimbalFold gimbal({yaw1, yaw2, pitch1, pitch2}, {
-                                                           .yaw1_angle_pid_config = &yaw1_angle_pid,
-                                                           .yaw1_speed_pid_config = &yaw1_speed_pid,
-                                                           .yaw2_angle_pid_config = &yaw2_angle_pid,
-                                                           .yaw2_speed_pid_config = &yaw2_speed_pid,
+                                                           .yaw1_angle_pid_config = &yaw1_angle_pid_config,
+                                                           .yaw1_speed_pid_config = &yaw1_speed_pid_config,
+                                                           .yaw2_angle_pid_config = &yaw2_angle_pid_config,
+                                                           .yaw2_speed_pid_config = &yaw2_speed_pid_config,
                                                            .yaw2_min = -50 * deg,
                                                            .yaw2_max = 50 * deg,
                                                            .yaw_gyro_fc = 50.0f, // IMU yaw 速度一阶低通，Hz；0 直通
-                                                           .pitch_angle_pid_config = &pitch2_angle_pid,
-                                                           .pitch_speed_pid_config = &pitch2_speed_pid,
+                                                           .pitch_angle_pid_config = &pitch2_angle_pid_config,
+                                                           .pitch_speed_pid_config = &pitch2_speed_pid_config,
                                                            .pitch_min = PITCH_MIN,
                                                            .pitch_max = PITCH_MAX,
-                                                           .pitch1_position_pid_config = &pitch1_angle_pid,
-                                                           .pitch1_speed_pid_config = &pitch1_speed_pid,
+                                                           .pitch1_position_pid_config = &pitch1_angle_pid_config,
+                                                           .pitch1_speed_pid_config = &pitch1_speed_pid_config,
                                                            .pitch1_min = -90 * deg, // TODO: 折叠极限
                                                            .pitch1_max = 0 * deg,   // TODO: 展开极限
                                                            .pitch1_gravity = {.torque = 0, .phase = 0 * deg},
