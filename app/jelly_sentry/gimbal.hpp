@@ -20,14 +20,14 @@ inline QuaternionEkf attitude(imu, {});
 
 // 大 yaw：DM4310，CAN1，MIT 纯力矩；位置环 rad → rad/s，速度环 rad/s → Nm
 inline Pid::Config yaw1_speed_pid = {
-    .kp = 3.0f,
-    .ki = 0.15f,
+    .kp = 4.0f,
+    .ki = 0.2f,
     .max_i = 1.0f,
     .max_out = 7.0f,
     .err_fc = 10,
 };
 inline Pid::Config yaw1_position_pid = {
-    .kp = 5.0f,
+    .kp = 7.0f,
     .max_out = 720 * deg_s,
 };
 inline DM4310 yaw1({

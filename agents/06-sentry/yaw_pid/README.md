@@ -1,5 +1,11 @@
 # 大小 yaw PID 实测与 debug 波形入口
 
+## 2026-11-27 Ember 参数回写
+
+按用户要求读取板上当前参数，Ember 返回 firmwareConsistency=match。将 yaw1 速度环 kp 从3改为4、ki从0.15改为0.2，位置环kp从5改为7，写入 `app/jelly_sentry/gimbal.hpp`。
+
+## 历史记录
+
 2026-11-25 历史记录保留，云台实现已移至 lib/robot/gimbal_fold.*，产物使用 agents/out/25-yaw_pid/。当前生产配置与协议验证见任务 14、15、21。
 
 ## 大轴二次位移加减速（2026-11-22）
