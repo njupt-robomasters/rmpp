@@ -1,4 +1,5 @@
 #include "gimbal_fold.hpp"
+#include "math/filter.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -54,7 +55,7 @@ void GimbalFold::update(const Quaternionf& q, const Vector3f& gyro) {
     const auto euler = quaternion_to_euler(q);
     yaw.measure = euler.yaw;
     pitch.measure = euler.pitch;
-    yaw.speed_measure = (q * gyro).z(); // 世界 yaw 角速度；含底盘转动
+    const float yaw_gyro = (q * gyro).z(); // 世界 yaw 角速度，rad/s；含底盘转动
     pitch.speed_measure = motor.pitch2.speed;
     if (motor.yaw1.is_connect)
         yaw1.measure = motor.yaw1.angle;
@@ -81,6 +82,9 @@ void GimbalFold::update(const Quaternionf& q, const Vector3f& gyro) {
     const bool can_pitch = is_enable && motor.pitch2.is_connect;
     const bool is_yaw_loop = can_yaw && is_yaw_ready;
     is_yaw_ready = can_yaw;
+
+    // IMU yaw 速度：连续闭环时低通，失能、离线或恢复首周期直接同步实测
+    yaw.speed_measure = is_yaw_loop ? lowpass(yaw.speed_measure, yaw_gyro, config.yaw_gyro_fc, dt) : yaw_gyro;
 
     // 不可控或恢复首帧：目标跟随实测、清空 PID，恢复后从当前姿态开始
     if (!is_yaw_loop) {

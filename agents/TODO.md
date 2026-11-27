@@ -37,7 +37,7 @@
 - steer_sentry 老哨兵操控还原：导航目标点 `(2.2, 4.7)` 与 `(0, 0)` 是否与新版上位机自定位同系；自主时摇杆与拨轮叠加后的方向和限幅；导航断联后摇杆驾驶；人工自瞄接管与释放，见 `06-sentry/steer_port/README.md`
 - 超电：0x051 电压电流符号与量程；CHARGE 稳态 `power_cap` 不为负；BOOST 在 10/12 V 的补偿衰减；断联重连；UI 按电容电压平方显示储能（满电默认 23.85 V），见 `07-power/super_cap/README.md`
 - UI 椭圆/圆弧半轴按协议修正后的显示；无选手端时 UI 请求被丢弃，见 `05-comm/referee_relay/README.md`
-- yaw1/yaw2 世界系反馈与 ±50° 自瞄窗口：手推确认 `(q * gyro).z()` 符号、大轴扣除小轴编码器速度的反馈方向，分别整定大小轴 PID（上游增益当前为零）；核对双 yaw 掉线清输出、过洞断联窗口冻结、pitch2 编码器速度闭环与原参数保持，见 `06-sentry/gimbal_imu/README.md`
+- yaw1/yaw2 世界系反馈与 ±50° 自瞄窗口：当前四组 PID 参数已于 2026-11-28 从 Ember 保存，待用户审计；核对 `(q * gyro).z()` 符号、大轴扣除小轴编码器速度方向、双 yaw 掉线清输出与过洞断联窗口冻结。pitch2 已恢复电机编码器速度内环与原 PID，待核对 −0.14～0.314 rad 目标限位和输出，见 `06-sentry/gimbal_imu/README.md` 与 `06-sentry/yaw_pid/README.md`
 - 上游 IMU 标定值和 45 ℃ 恒温、所有阶段 C 挡优先失能、正常发射采用上游且赛前/回家仍禁拨弹，见 `06-sentry/upstream/README.md`
 
 ### 其他应用

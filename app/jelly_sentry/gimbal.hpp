@@ -13,15 +13,24 @@ inline QuaternionEkf attitude(imu, {});
 
 // 大 yaw：DM4310，CAN1
 inline Pid::Config yaw1_speed_pid = {
-    // .kp = 4.0f,
-    // .ki = 0.3f,
-    // .max_i = 1.0f,
+    .kp = 6.0f,
+    .ki = 0.3f,
+    .kd = 0,
+    .ff = 0,
+    .max_i = 1.0f,
     .max_out = 7.0f,
-    // .err_fc = 10,
+    .err_fc = 0,
+    .d_fc = 0,
 };
 inline Pid::Config yaw1_angle_pid = {
-    // .kp = 7.0f,
+    .kp = 7.0f,
+    .ki = 0,
+    .kd = 0,
+    .ff = 0,
+    .max_i = 0,
     .max_out = 720 * deg_s,
+    .err_fc = 0,
+    .d_fc = 0,
 };
 inline DM4310 yaw1({
     .can = Can(1),
@@ -32,15 +41,24 @@ inline DM4310 yaw1({
 
 // 小 yaw：脉塔 RMD-L-7025，CAN3
 inline Pid::Config yaw2_speed_pid = {
-    // .kp = 2.0f,
-    // .ki = 0.1f,
-    // .max_i = 1.0f,
+    .kp = 5.0f,
+    .ki = 0.3f,
+    .kd = 0,
+    .ff = 0,
+    .max_i = 1.0f,
     .max_out = 8.5f,
-    // .err_fc = 10,
+    .err_fc = 0,
+    .d_fc = 0,
 };
 inline Pid::Config yaw2_angle_pid = {
-    // .kp = 15.0f,
+    .kp = 20.0f,
+    .ki = 0,
+    .kd = 0,
+    .ff = 0,
+    .max_i = 0,
     .max_out = 720 * deg_s,
+    .err_fc = 0,
+    .d_fc = 0,
 };
 inline RMDL7025 yaw2({
     .can = Can(3),
@@ -95,7 +113,7 @@ inline DM4310 pitch2({
 });
 
 // pitch2 编码器软限位与自主扫描端点，rad；下限为枪口最高点，上限为最低点
-inline constexpr float PITCH_MIN = -0.1f, PITCH_MAX = 0.314f;
+inline constexpr float PITCH_MIN = -0.14f, PITCH_MAX = 0.314f;
 
 // 云台：yaw 使用世界系闭环与识别窗口，pitch2 保留编码器串级；限位使用关节编码器角度
 inline GimbalFold gimbal({yaw1, yaw2, pitch1, pitch2}, {
@@ -105,6 +123,7 @@ inline GimbalFold gimbal({yaw1, yaw2, pitch1, pitch2}, {
                                                            .yaw2_speed_pid_config = &yaw2_speed_pid,
                                                            .yaw2_min = -50 * deg,
                                                            .yaw2_max = 50 * deg,
+                                                           .yaw_gyro_fc = 50.0f, // IMU yaw 速度一阶低通，Hz；0 直通
                                                            .pitch_angle_pid_config = &pitch2_angle_pid,
                                                            .pitch_speed_pid_config = &pitch2_speed_pid,
                                                            .pitch_min = PITCH_MIN,

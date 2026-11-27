@@ -31,6 +31,9 @@ class GimbalFold {
         float yaw2_min = 0;
         float yaw2_max = 0;
 
+        // yaw 速度反馈：世界 Z 轴 IMU 角速度的一阶低通截止频率，Hz；0 直通
+        float yaw_gyro_fc = 0;
+
         // 俯仰：世界目标换算到编码器角度 → 电机速度 → 力矩；限位为 pitch2 编码器角，rad
         const Pid::Config* pitch_angle_pid_config;
         const Pid::Config* pitch_speed_pid_config;
@@ -54,7 +57,7 @@ class GimbalFold {
     // 云台总 yaw：世界系目标与实测；编码器总角供底盘前进方向
     struct {
         Angle ref, measure;                     // 头部世界 yaw，rad
-        float speed_ref = 0, speed_measure = 0; // 世界角速度，rad/s；ref 含角度外环修正
+        float speed_ref = 0, speed_measure = 0; // 世界角速度，rad/s；ref 含角度外环修正，measure 为滤波后的 IMU 反馈
         Angle ecd_measure;                      // yaw1 + yaw2 编码器角，rad
         Angle imu_minus_ecd;                    // 世界角与编码器总角之差，rad
     } yaw;

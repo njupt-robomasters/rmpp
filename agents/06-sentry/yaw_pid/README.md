@@ -1,5 +1,69 @@
 # 大小 yaw PID 实测与 debug 波形入口
 
+## 2026-11-28 Ember 参数续存（当前配置）
+
+只读核对当前云台 8 组 PID，Ember 返回 `source=active-sampling`、`firmwareConsistency=match`，时间戳 `1795807642987`，ELF SHA-256 为 `acba2ef9c93a34be9568cc52df031db73ca3a90d0173c612ea1fea3750e8f3c5`。
+
+| 配置 | 本次改动 | 当前值 |
+| --- | --- | --- |
+| yaw1_speed_pid.kp | 10 → 6 | 6 |
+| yaw2_speed_pid.kp | 6 → 5 | 5 |
+| yaw2_angle_pid.kp | 10 → 20 | 20 |
+
+其余参数逐项核对一致：yaw1 位置环 kp=7，两个 yaw 速度环 ki=0.3、max_i=1；pitch1、pitch2 参数保持原值。原始快照为 `agents/tmp/yaw_pid/ember_read_1795807642987.json`。保留现有 50 Hz IMU yaw 速度低通与 pitch2 编码器反馈，未写 RAM 或操作硬件。下文参数表与正弦观察为先前状态的历史记录。
+
+本次配置格式检查与 `gimbal.cpp` 单个 ARM 对象编译通过，零警告；未运行额外测试、未提交或烧录。
+
+## 2026-11-28 5° / 3 Hz 正弦只读观察（yaw）
+
+用户要求观察已运行的正弦并提出建议。本次按 Ember 图表实际对象分析 yaw：Live Watch panel 3，导出 `gimbal.yaw.ref.radians`、`gimbal.yaw.measure.radians`、小轴电流指令等 6 条曲线。未生成激励、未写 RAM、未改参数或生产源码、未重置采样，也未执行测试/烧录。
+
+- 记录时段：香港时间 2026-11-28 02:45:55～02:46:07，约 12 s、1,147 行；原始 CSV 为 `agents/tmp/sine_observe/initial_chart.csv`，`historyTruncated=false`
+- 采样为既有 `active-sampling`，Ember 返回 `firmwareConsistency=match`；ELF SHA-256 为 `68df8ebc886f1ce96f585038aa07638489e63ffde808e45fb07fee2969181019`，参数快照为 `agents/tmp/sine_observe/metadata.json`
+- 本次读到的 PID 与下节保存值相同。后续单值观察到 `is_yaw_window=1`、`is_yaw_window_ready=1`、`yaw_speed=0`
+- 图表实际采样约 96 Hz，中位间隔 8.84 ms、95 分位 29.37 ms；多个变量为运行中顺序读取，幅相拟合使用各行实际时间戳，结果为近似估计
+
+对目标频率作窄带搜索，以 `a sin(2πft) + b cos(2πft) + 偏置 + 线性漂移` 最小二乘拟合基波，避免将阶梯尖点当作正弦幅值。
+
+| 量 | 本次数据结果 |
+| --- | --- |
+| 输入基波频率、幅度 | 3.00019 Hz、4.898° |
+| 头部基波幅度 | 2.460°，幅值比 0.502 |
+| 基波相位滞后 | 76.87°，在 3 Hz 下相当于 71.17 ms；此处为单频等效滞后，不是纯传输延迟辨识 |
+| 角误差 RMS / 峰值 | 3.604° / 5.863° |
+| 小轴电流指令 RMS / 绝对峰值 | 1.622 A / 4.098 A；样本中无 ±8.5 A 指令限幅 |
+| 观测到的目标变化节拍 | 23.92 次/s，中位保持 41.82 ms，约每个正弦周期 8 个目标更新 |
+
+因果与建议：
+
+1. 源码 `set_angle()` 每拍清 `yaw_speed`，小轴目标速度由 `kp=10 s^-1` 的角度 P 产生。若速度内环近似理想，`H(s)=10/(s+10)` 在 3 Hz 的幅比为 0.469、滞后 62.05°（57.46 ms），5° 输入对应 2.34° 输出，与本次约半幅现象一致。主要建议为同时间戳的目标角速度前馈，角度 P 负责剩余误差；内环非理想和采样时序仍会贡献额外滞后
+2. 信号生成端先确认更新节拍。已知轨迹可在板端按控制时钟同时生成目标角与解析导数；5°、3 Hz 正弦要求峰值速度 1.645 rad/s（94.25°/s）、峰值加速度 31.01 rad/s²。外部发角时可插值；视觉目标速度宜来自运动估计，或对新帧按实际帧间隔差分并滤波，跨 ±π 归一化、切目标与丢失时复位
+3. 角速度前馈应独立加到小轴 `speed_ref`，单位 rad/s；`Pid::Config.ff` 是输出端固定偏置，单位 A。现有 `yaw_speed` 还会积分目标，不能直接在 `set_angle()` 后调用 `set_speed()` 造成额外积分。窗口内大轴速度前馈继续为 0，维持大轴世界朝向
+4. 当前保持 8.5 A 限幅与速度环参数；仅改参数时可按角度环 kp=10→15→20 分档观察幅相、电流峰值与抖动。理想内环模型下，5°/3 Hz 输入对应 kp=15 时幅度 3.11°、滞后 51.49°，kp=20 时幅度 3.64°、滞后 43.30°；这是趋势估计，不作为实机预期保证
+
+继续分析时再次只读确认：角度环 kp=10、速度环 kp=6 未变；窗口已退出、目标等于实测且电流指令为 0，未继续采样静止数据。本节动态结论均对应上述 12 s 有效正弦记录。
+
+速度环证据范围：补采 250 点时已是目标跟随实测且电流指令为 0 的状态（`supplemental.csv`），未取得同一正弦段的直接速度曲线。按角度环 P 关系与角度基波导数推算，速度基波幅比约 0.935、额外滞后约 15.77°；该值依赖平面运动及环路配置假设，属于推算，不能作为速度内环独立辨识结果。另一次单值读取的 `gimbal.motor.yaw1.is_connect` 返回 `LIVE_LAYOUT_UNSUPPORTED`，未将该字段作为在线状态证据。
+
+离线复现：`python -X utf8 agents/06-sentry/yaw_pid/analyze_sine.py`，需要 numpy；分析输出为 `agents/tmp/sine_observe/analysis.json`。原始数据属可丢弃产物，长期保留本节结论与分析脚本。
+
+## 2026-11-28 Ember 参数回写
+
+按用户要求通过 Ember 当前共享采样只读取得四组 PID 配置，完整回写 `app/jelly_sentry/gimbal.hpp` 并取消旧参数注释。返回 `source=active-sampling`、`firmwareConsistency=match`，快照时间戳为 `1795802765462`；ELF 为 `build/jelly_sentry/rmpp.elf`，SHA-256 为 `5a5622b5cc680c1decf52cffd1da5b4fdde844797b1277b90c92e943523e9826`。
+
+| 配置 | kp | ki | kd | ff | max_i | max_out | err_fc | d_fc |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| yaw1_speed_pid | 10 | 0.3 | 0 | 0 | 1 N·m | 7 N·m | 0 Hz | 0 Hz |
+| yaw1_angle_pid | 7 | 0 | 0 | 0 | 0 | 12.566370964050293 rad/s | 0 Hz | 0 Hz |
+| yaw2_speed_pid | 6 | 0.3 | 0 | 0 | 1 A | 8.5 A | 0 Hz | 0 Hz |
+| yaw2_angle_pid | 10 | 0 | 0 | 0 | 0 | 12.566370964050293 rad/s | 0 Hz | 0 Hz |
+
+- 角度环输出上限在源码中继续使用等价的 `720 * deg_s`
+- 首次快照中两个速度环的 `max_i=0`；用户随后调整后，于时间戳 `1795802967947` 再次只读确认均为 1，并更新源码与上表；两个角度环仍为 0。续读仍为 `active-sampling`、`firmwareConsistency=match`，原始记录为 `agents/tmp/yaw_pid/ember_max_i_20261128.json`
+- 本次只将现有实调参数保存到源码，未写板上 RAM、未烧录或执行复位等硬件控制，未扩展测试；参数效果待用户审计
+- `gimbal.hpp` 已按项目工具格式化，`gimbal.cpp` 单个 ARM 对象编译通过、零警告，`git diff --check` 通过；原始读值与编译日志位于 `agents/tmp/yaw_pid/ember_read_20261128.json`、`gimbal_pid_compile.log`
+- 下文为历史记录，当前 yaw 配置以本节快照与源码为准
+
 ## 2026-11-27 Ember 参数回写
 
 按用户要求读取板上当前参数，Ember 返回 firmwareConsistency=match。将 yaw1 速度环 kp 从3改为4、ki从0.15改为0.2，位置环kp从5改为7，写入 `app/jelly_sentry/gimbal.hpp`。

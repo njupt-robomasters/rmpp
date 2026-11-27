@@ -128,10 +128,10 @@
 ## jelly_sentry 上游接口适配
 
 - `GimbalFold` 位于 `lib/robot/gimbal_fold.*`，目前仅 jelly_sentry 使用；app 每周期更新 attitude，通过 `gimbal.update(attitude.q, imu.gyro)` 传入四元数与安装修正后的机体系角速度，yaw1 零点由 app 经 KvStore 持久化
-- yaw1/yaw2 反馈按上游：小 yaw 以头部世界 yaw 为外环反馈、`(q * gyro).z()` 为速度内环反馈；大 yaw 以头部世界 yaw 减小 yaw 编码器角为外环反馈，以世界 Z 角速度减小 yaw 编码器速度为内环反馈。删除 ECD 模式与 `set_chassis_wr()` 前馈，保留本地自瞄窗口
+- yaw1/yaw2 反馈按上游：小 yaw 以头部世界 yaw 为外环反馈、`(q * gyro).z()` 经一阶低通后为速度内环反馈；大 yaw 以头部世界 yaw 减小 yaw 编码器角为外环反馈，以滤波后的世界 Z 角速度减小 yaw 编码器速度为内环反馈。`gimbal.hpp` 的 `yaw_gyro_fc` 当前为 50 Hz，0 直通；失能、离线与恢复首周期同步原始测量。删除 ECD 模式与 `set_chassis_wr()` 前馈，保留本地自瞄窗口
 - yaw 轴要求大小 yaw 同时在线；不可控或恢复首帧目标跟随实测、清 PID、输出零。小 yaw 实测达到 ±50° 时截断向外输出，保留回程；窗口内大轴保持世界朝向，越界补足，退出窗口追头部目标使小轴回中。大轴速度分解按大小 yaw 轴近似世界竖直处理，倾斜/横滚工况需验证
-- pitch2 保留本地控制：世界 pitch 目标按 IMU 与编码器差值换算，钳制编码器目标，位置环输出叠加未触限时的 `pitch_speed`，速度内环反馈仍为电机编码器速度；叠加重力补偿并跟踪电机实际限幅结果。保留速度 PID `kp=0.50558, ki=2, kd=0.02, ff=-1.55, max_i=0.4, max_out=5, err_fc=10` 与位置环 `kp=20, max_out=720°/s`
-- 公开观测与配置接口统一上游命名：头部 `yaw.ref/measure/ecd_measure`、`pitch.ref/measure/ecd_ref/ecd_measure`。大小 yaw PID 增益沿上游默认零，等待后续整定；pitch2 参数保持原值。yaw 可选加速度规划默认 `INFINITY` 关闭
+- pitch2 保留本地控制：世界 pitch 目标按 IMU 与编码器差值换算，钳制编码器目标，位置环输出叠加未触限时的 `pitch_speed`，速度内环反馈为 `motor.pitch2.speed`；叠加重力补偿并跟踪电机实际限幅结果。保留速度 PID `kp=0.50558, ki=2, kd=0.02, ff=-1.55, max_i=0.4, max_out=5, err_fc=10` 与位置环 `kp=20, max_out=720°/s`
+- 公开观测与配置接口统一上游命名：头部 `yaw.ref/measure/ecd_measure`、`pitch.ref/measure/ecd_ref/ecd_measure`。大小 yaw 当前四组 PID 参数已从 Ember 保存，数值及证据见 `agents/06-sentry/yaw_pid/README.md`；pitch2 参数保持原值。yaw 可选加速度规划默认 `INFINITY` 关闭
 - IMU 按上游标定：传感器系零偏 XYZ 为 `(0.00412, 0.00166, 0.00212)` rad/s，重力模长 `9.80907 m/s²`，安装 yaw/pitch/roll 为 −90°/0°/180°，使用默认恒温 45 ℃
 - 大 yaw、pitch1、pitch2 的原生输出单位为 N·m，小 yaw 7025 为 A；pitch1 固定失能。底盘由 app 更新超电后传入 `power_chassis_ref`
 - 受击方向与实测弹速读取裁判公开只读的 `hurt_data`、`hurt_sequence`、`shoot_data`；受击按装甲 ID 换算到 IMU 参考系锁存 1 s，再转到头部方向显示
@@ -143,7 +143,7 @@
 - CDC1 用于 Aim 收发，CDC2 接 Nav 的导航下行帧（`A3`，24 字节）。`minipc_loop()` 在 `nav.update()` 清零前保存最近有效过洞标志，点位和控制流程集中于 `sentry.cpp`
 - 导航使用雷达系速度，负小 yaw 转到头部系后始终叠加遥控平移；普通导航为 90～60 rpm 小陀螺，过洞随头并停扫。普通断联原地 90 rpm、零平移，过洞断联停车并保持云台目标；任一 yaw 反馈离线时自主底盘停车
 - pitch1 全程失能，清 PID 并写零输出，保留反馈与失能帧发送
-- pitch2 编码器软限位为 −0.1～0.314 rad，扫描与目标限幅共用此范围；速度内环和 PID 保留本地。yaw1/yaw2 反馈与接口采用上游，保留本地 ±50° 自瞄窗口
+- pitch2 编码器软限位为 −0.14～0.314 rad，扫描与目标限幅共用此范围；速度内环与 PID 保留本地。yaw1/yaw2 反馈与接口采用上游，保留本地 ±50° 自瞄窗口
 - 协议、坐标公式、过洞标志和离线处理详见 `agents/05-comm/minipc.md`；验证见对应任务记录
 
 ## jelly_sentry CAN 发送调度
