@@ -3,11 +3,8 @@
 #include "bsp/irq_lock.hpp"
 #include "chassis.hpp"
 #include "gimbal.hpp"
+#include "minipc.hpp"
 #include "shooter.hpp"
-#include <cmath>
-
-static constexpr float MOTOR_OVERHEAT = 80; // 电机温度报警阈值，℃
-static constexpr float HURT_TIMEOUT = 1;    // 受击方向显示时长，s
 
 // 受击方向，收到新的 0x0206 时按装甲 ID 换算到 IMU 参考系并锁存
 static uint32_t last_hurt_sequence = 0;
@@ -68,16 +65,16 @@ void referee_loop() {
     ui.super_cap = super_cap.energy_ratio();
     if (!super_cap.is_connect)
         ui.cap = RobotUi::PINK;
-    else if (super_cap.mode == SuperCap::CHARGE)
-        ui.cap = RobotUi::CYAN;
-    else if (super_cap.mode == SuperCap::BOOST)
-        ui.cap = super_cap.is_cap_voltage_low() ? RobotUi::CYAN : RobotUi::GREEN;
-    else
+    else if (!super_cap.is_enable)
         ui.cap = RobotUi::WHITE;
-    ui.chassis_wr = std::isfinite(chassis.wr.measure) ? chassis.wr.measure : 0; // 反馈未知时显示 0
-    ui.bullet_freq = vt13.config.bullet_freq;                                   // 最高弹频
-    ui.shoot_output = shoot.current;                                            // 拨弹电机电流
-    ui.w1 = motor_color(w1.status(MOTOR_OVERHEAT));                             // 底盘
+    else if (!super_cap.is_boost_enable)
+        ui.cap = RobotUi::CYAN;
+    else
+        ui.cap = super_cap.is_cap_voltage_low() ? RobotUi::CYAN : RobotUi::GREEN;
+    ui.chassis_wr = chassis.wr.measure;             // 底盘转速；反馈未知时由发送端显示 0
+    ui.bullet_freq = vt13.config.bullet_freq;       // 弹频，滚轮调节
+    ui.shoot_output = shoot.current;                // 拨弹电机电流
+    ui.w1 = motor_color(w1.status(MOTOR_OVERHEAT)); // 底盘
     ui.w2 = motor_color(w2.status(MOTOR_OVERHEAT));
     ui.w3 = motor_color(w3.status(MOTOR_OVERHEAT));
     ui.w4 = motor_color(w4.status(MOTOR_OVERHEAT));

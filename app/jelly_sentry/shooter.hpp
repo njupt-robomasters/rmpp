@@ -1,6 +1,7 @@
 #pragma once
 
 #include "motor/el05.hpp"
+#include "motor/m3508.hpp"
 #include "motor/vesc.hpp"
 #include "robot/shooter_17mm.hpp"
 
@@ -12,8 +13,7 @@ inline Vesc rub1({
     .can = Can(2),
     .tx_id = 0x21,
     .rx_id = 0x21,
-    .max_current = 20.0f,
-    .max_torque = 20.0f,
+    .max_current = M3508::MAX_CURRENT,
     .reduction = 7.0f,
     .is_invert = true,
 });
@@ -21,14 +21,14 @@ inline Vesc rub2({
     .can = Can(2),
     .tx_id = 0x22,
     .rx_id = 0x22,
-    .max_current = 20.0f,
-    .max_torque = 20.0f,
+    .max_current = M3508::MAX_CURRENT,
     .reduction = 7.0f,
+    .is_invert = false,
 });
 
 // 拨弹电机：灵足 EL05，CAN2 私有扩展帧，电机 ID 0x12 / 主机 ID 0x22；速度环 rad/s → Nm
 // 电机侧 protocol_1=0；使能 ID 0x03002212，运行反馈 ID 0x02801222（无故障）
-inline Pid::Config shoot_pid = {
+inline Pid::Config shoot_pid_config = {
     .kp = 5.0f / (60 * rpm),
     .max_out = 6.0f,
 };
@@ -41,13 +41,12 @@ inline EL05 shoot({
     .is_invert = true,
 });
 
-// 发射机构：EL05 反馈为输出轴角度；TODO: bullet_per_angle 按拨盘结构修改
+// 发射机构：EL05 反馈为输出轴角度
 inline Shooter17mm shooter({rub1, rub2, shoot}, {
-                                                    .shoot_pid_config = &shoot_pid, // 拨弹速度环 PID 参数，输出为力矩，Nm
-                                                    .bullet_per_angle = 9.0f / rev, // 拨弹角度对应弹数，发/rad；输出轴每转 9 发
-                                                    .block_time = 0.2f,             // 卡弹判定时间，s；PID 输出持续饱和达到此时间后反转
-                                                    .reverse_time = 0.1f,           // 卡弹反转持续时间，s；到时恢复正常拨弹
-                                                    .heat_protect = 100,            // 剩余热量保护阈值；低于 100 时停止拨弹
+                                                    .shoot_pid_config = &shoot_pid_config,
+                                                    .bullet_per_angle = 9.0f / rev,
+                                                    .block_time = 0.2f,
+                                                    .reverse_time = 0.1f,
                                                 });
 
-void shooter_loop(bool is_fire);
+void shooter_loop();

@@ -30,8 +30,12 @@ void ChassisLeg::set_trigger_jump(const bool trigger_jump) {
 }
 
 void ChassisLeg::set_speed(const float vx, const float wr) {
-    this->vx = vx;
-    this->wr = wr;
+    // 限速：直行上限为轮子额定转速乘轮半径，边走边转按较快一侧的轮缘速度等比缩小两个目标
+    const float rim_limit = config.wheel_work_speed * config.wheel_radius;
+    const float rim_speed = std::fabs(vx) + std::fabs(wr) * config.wheel_distance / 2;
+    const float scale = rim_speed > rim_limit ? rim_limit / rim_speed : 1;
+    this->vx = scale * vx;
+    this->wr = scale * wr;
 }
 
 void ChassisLeg::set_gimbal_yaw(const float gimbal_yaw) {
@@ -42,49 +46,21 @@ void ChassisLeg::set_leg_length(const float leg_length) {
     this->leg_length = std::clamp(leg_length, config.leg_min, config.leg_max);
 }
 
+void ChassisLeg::set_power_ref(const float power_ref) {
+    this->power_ref = power_ref;
+}
+
 void ChassisLeg::update(const Quaternionf& q, const Vector3f& gyro) {
     const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
 
-    update_feedback(q, gyro);
-
-    // 航向角速度目标：小陀螺手动角速度，或云台跟随前馈
-    d_yaw_ref = wr;
-
-    // 两侧均值为前向速度，右减左为航向角速度（逆时针正）
-    const float v_left = leg[0].v_wheel + leg[0].v_swing;
-    const float v_right = leg[1].v_wheel + leg[1].v_swing;
-    body.d_x = (v_left + v_right) / 2;
-    body.d_yaw_wheel = (v_right - v_left) / config.wheel_distance;
-
-    // 位移积分：停机、倒地、跳跃或有速度指令时清零，速度降到 0.1 m/s 内后开始积分
-    if (!is_enable || rescue.is_fallen || jump.is_active || std::fabs(vx) > 0.01f) {
-        body.x = 0;
-        is_position = false;
-    } else {
-        if (std::fabs(body.d_x) < 0.1f)
-            is_position = true;
-        if (is_position)
-            body.x = std::clamp(body.x + body.d_x * dt, -config.x_max, config.x_max);
-    }
-
+    update_motor();
+    update_attitude(q, gyro);
+    update_leg(leg[0], -1);
+    update_leg(leg[1], 1);
+    update_motion(dt);
     update_rescue(dt);
     update_jump(dt);
-    calc_force(dt);
-
-    // 力映射：右腿镜像安装，后摆力矩在机构中为反向
-    map_force(leg[0], leg[0].Tt);
-    map_force(leg[1], -leg[1].Tt);
-
-    // 电机异常时全部输出零：任一电机掉线或关节未处于使能态（含报错）
-    is_motor_ok = motor.left_back.is_connect && motor.left_back.err_code == DM8009::ENABLED &&
-                  motor.left_front.is_connect && motor.left_front.err_code == DM8009::ENABLED &&
-                  motor.right_front.is_connect && motor.right_front.err_code == DM8009::ENABLED &&
-                  motor.right_back.is_connect && motor.right_back.err_code == DM8009::ENABLED &&
-                  motor.left_wheel.is_connect && motor.right_wheel.is_connect;
-    if (!is_motor_ok) {
-        for (auto& l : leg)
-            l.Tw = l.Ta = l.Te = 0;
-    }
+    update_force(dt);
 
     motor.left_back.set_torque(leg[0].Ta);
     motor.left_front.set_torque(leg[0].Te);
@@ -94,8 +70,8 @@ void ChassisLeg::update(const Quaternionf& q, const Vector3f& gyro) {
     motor.right_wheel.set_torque(leg[1].Tw);
 }
 
-void ChassisLeg::update_feedback(const Quaternionf& q, const Vector3f& gyro) {
-    // 电机在线检测
+// 电机反馈：刷新六电机并转成杆方位角与轮速，汇总在线与关节使能状态
+void ChassisLeg::update_motor() {
     motor.left_back.update();
     motor.left_front.update();
     motor.right_front.update();
@@ -103,50 +79,41 @@ void ChassisLeg::update_feedback(const Quaternionf& q, const Vector3f& gyro) {
     motor.left_wheel.update();
     motor.right_wheel.update();
 
-    // 车体姿态：标准 Z-Y-X 欧拉角，pitch 低头为正、roll 右侧低为正；角速度取机体系 gyro
+    // 关节角转杆方位角：电机角逆时针为正、杆方位角顺时针为正，零位对应 phi1 = π、phi4 = 0
+    // 左腿 A=left_back/E=left_front，右腿 A=right_front/E=right_back
+    leg[0].phi1 = pi - motor.left_back.angle;
+    leg[0].phi4 = 0 - motor.left_front.angle;
+    leg[0].d_phi1 = -motor.left_back.speed;
+    leg[0].d_phi4 = -motor.left_front.speed;
+    leg[1].phi1 = pi - motor.right_front.angle;
+    leg[1].phi4 = 0 - motor.right_back.angle;
+    leg[1].d_phi1 = -motor.right_front.speed;
+    leg[1].d_phi4 = -motor.right_back.speed;
+
+    // 轮速：电机安装方向已由 is_invert 修正为前进为正
+    leg[0].v_wheel = motor.left_wheel.speed * config.wheel_radius;
+    leg[1].v_wheel = motor.right_wheel.speed * config.wheel_radius;
+
+    // 六电机反馈在线、四关节使能且无报错；不满足时由 update() 全部输出零
+    is_motor_online = motor.left_back.is_connect && motor.left_back.err_code == DM8009::ENABLED &&
+                      motor.left_front.is_connect && motor.left_front.err_code == DM8009::ENABLED &&
+                      motor.right_front.is_connect && motor.right_front.err_code == DM8009::ENABLED &&
+                      motor.right_back.is_connect && motor.right_back.err_code == DM8009::ENABLED &&
+                      motor.left_wheel.is_connect && motor.right_wheel.is_connect;
+}
+
+// 车体姿态：标准 Z-Y-X 欧拉角，pitch 低头为正、roll 右侧低为正；角速度取机体系 gyro
+void ChassisLeg::update_attitude(const Quaternionf& q, const Vector3f& gyro) {
     const EulerAngles euler = quaternion_to_euler(q);
     body.pitch = euler.pitch;
     body.d_pitch = gyro.y();
     body.roll = euler.roll;
     body.d_roll = gyro.x();
     body.d_yaw_gyro = gyro.z();
-
-    // 关节角转杆方位角：电机角逆时针为正、杆方位角顺时针为正，零位对应 phi1 = π、phi4 = 0
-    leg[0].phi1 = pi - motor.left_back.angle;
-    leg[0].phi4 = 0 - motor.left_front.angle;
-    leg[1].phi1 = pi - motor.right_front.angle;
-    leg[1].phi4 = 0 - motor.right_back.angle;
-    leg[0].d_phi1 = -motor.left_back.speed;
-    leg[0].d_phi4 = -motor.left_front.speed;
-    leg[1].d_phi1 = -motor.right_front.speed;
-    leg[1].d_phi4 = -motor.right_back.speed;
-    solve_leg(leg[0]);
-    solve_leg(leg[1]);
-
-    // 相对腿角：左右腿镜像安装，分别反向、同向换算为车体正下方为零、后摆为正
-    leg[0].rel_theta = Angle(-leg[0].phi0 + pi / 2);
-    leg[1].rel_theta = Angle(leg[1].phi0 - pi / 2);
-    // 腿倾角：叠加车体俯仰，低头时轮轴相对竖直方向后摆
-    leg[0].theta = Angle(leg[0].rel_theta + body.pitch);
-    leg[1].theta = Angle(leg[1].rel_theta + body.pitch);
-    leg[0].d_theta = -leg[0].d_phi0 + body.d_pitch;
-    leg[1].d_theta = leg[1].d_phi0 + body.d_pitch;
-
-    for (auto& l : leg) {
-        // 重力取非负沿腿分量，气弹簧取等效伸腿力幅值
-        l.Fg = std::max(config.mass * 9.8f / 2 * std::cos(l.theta), 0.0f);
-        l.Fs = std::fabs(0.5f * config.spring_force * std::sin(l.phi_obc) * std::sin(pi - 0.5f * l.phi_bod - l.phi_obc));
-
-        // 腿摆动引起的前向速度补偿
-        l.v_swing = l.d_L * std::sin(l.theta) + l.L * l.d_theta * std::cos(l.theta);
-    }
-
-    // 轮速：电机安装方向已由 is_invert 修正为前进为正
-    leg[0].v_wheel = motor.left_wheel.speed * config.wheel_radius;
-    leg[1].v_wheel = motor.right_wheel.speed * config.wheel_radius;
 }
 
-void ChassisLeg::solve_leg(Leg& leg) const {
+// 单腿反馈：五连杆正运动学、腿角与重力/弹簧前馈，mirror 为镜像符号（左腿 -1、右腿 +1）
+void ChassisLeg::update_leg(Leg& leg, const float mirror) {
     const float a = config.active_link, b = config.passive_link;
 
     // 膝点间位移 D - B，m
@@ -181,40 +148,95 @@ void ChassisLeg::solve_leg(Leg& leg) const {
     leg.phi_bod = leg.phi1 - leg.phi4;
     if (leg.phi_bod > rev)
         leg.phi_bod -= rev;
+
+    // 轴向力到单关节力矩的系数：∠OCB 为轮轴 C 处 CO 与 CB 的夹角，轴向力形成反向关节力矩
+    const float cos_ocb = (leg.L * leg.L + b * b - a * a) / (2 * leg.L * b);
+    leg.axial_gain = 0.5f * leg.L * std::sqrt(1 - cos_ocb * cos_ocb) / cos_ocb;
+
+    // 相对腿角：左右腿镜像安装，换算为车体正下方为零、后摆为正
+    leg.rel_theta = Angle(mirror * (leg.phi0 - pi / 2));
+
+    // 腿倾角：叠加车体俯仰，低头时轮轴相对竖直方向后摆
+    leg.theta = Angle(leg.rel_theta + body.pitch);
+    leg.d_theta = mirror * leg.d_phi0 + body.d_pitch;
+
+    // 重力取非负沿腿分量，气弹簧取等效伸腿力幅值
+    leg.Fg = std::max(config.mass * 9.8f / 2 * std::cos(leg.theta), 0.0f);
+    leg.Fs = std::fabs(0.5f * config.spring_force * std::sin(leg.phi_obc) * std::sin(pi - 0.5f * leg.phi_bod - leg.phi_obc));
+
+    // 腿摆动引起的前向速度补偿
+    leg.v_swing = leg.d_L * std::sin(leg.theta) + leg.L * leg.d_theta * std::cos(leg.theta);
+}
+
+// 车体运动：轮速与腿摆动合成前向速度与航向角速度，无速度指令时积分位移
+void ChassisLeg::update_motion(const float dt) {
+    // 两侧均值为前向速度，右减左为航向角速度（逆时针正）
+    const float v_left = leg[0].v_wheel + leg[0].v_swing;
+    const float v_right = leg[1].v_wheel + leg[1].v_swing;
+    body.d_x = (v_left + v_right) / 2;
+    body.d_yaw_wheel = (v_right - v_left) / config.wheel_distance;
+
+    // 位移积分：停机、倒地、跳跃或有速度指令时清零，速度降到 0.1 m/s 内后开始积分
+    if (!is_enable || !is_motor_online || rescue.state != Rescue::State::BALANCING || jump.state != Jump::State::IDLE || std::fabs(vx) > 0.01f) {
+        body.x = 0;
+        body.is_position = false;
+    } else {
+        if (std::fabs(body.d_x) < 0.1f)
+            body.is_position = true;
+        if (body.is_position)
+            body.x = std::clamp(body.x + body.d_x * dt, -config.x_max, config.x_max);
+    }
+}
+
+// 腿长控制：目标腿长加横滚补偿，输出双腿轴向力 Fn
+void ChassisLeg::control_leg_length(const float dt, const float length) {
+    // 横滚补偿：右侧低（roll > 0）时输出为负，左腿缩短、右腿伸长
+    // 外部工程 imu_roll 与 roll 反号，其写法为左 L - out、右 L + out；此处左 +、右 - 是同一物理方向
+    const float roll_out = roll_pid.calculate(dt, 0 - body.roll, 0 - body.d_roll);
+    const float length_ref[2] = {
+        std::clamp(length + roll_out, config.leg_min, config.leg_max),
+        std::clamp(length - roll_out, config.leg_min, config.leg_max),
+    };
+
+    // 腿长 PD 叠加重力补偿、扣除弹簧力；微分取伸缩速度，不含目标变化
+    for (int i = 0; i < 2; i++)
+        leg[i].Fn = leg_length_pid[i].calculate(dt, length_ref[i] - leg[i].L, 0 - leg[i].d_L) + leg[i].Fg - leg[i].Fs;
 }
 
 void ChassisLeg::update_rescue(const float dt) {
-    // 倒地与自救：失能或跳跃时复位
-    if (!is_enable || jump.is_active) {
+    // 失能或电机异常回到待批准；跳跃期间跳过倒地检测与自救
+    if (!is_enable || !is_motor_online) {
         rescue = {};
-    } else {
-        for (const auto& l : leg)
-            if (l.rel_theta < config.fall_theta_front || l.rel_theta > config.fall_theta_back)
-                rescue.is_fallen = true;
-        if (std::fabs(body.roll) > 90 * deg)
-            rescue.is_fallen = true;
+    } else if (jump.state == Jump::State::IDLE) {
+        if (rescue.state == Rescue::State::BALANCING) {
+            for (const auto& l : leg)
+                if (l.rel_theta < config.fall_theta_front || l.rel_theta > config.fall_theta_back)
+                    rescue.state = Rescue::State::FALLEN;
+            if (std::fabs(body.roll) > 90 * deg)
+                rescue.state = Rescue::State::FALLEN;
+        }
 
-        // 倒地且空闲时接受启动许可：横滚区分正向与翻倒，翻倒时低头（pitch > 0）为头部着地
-        if (rescue.is_fallen && allow_rescue && !rescue.is_running) {
-            rescue.is_running = true;
+        // 批准当拍选定动作：横滚绝对值小于 90° 直接站起，否则由俯仰选择翻转端
+        if (rescue.state == Rescue::State::FALLEN && allow_rescue) {
+            rescue.state = Rescue::State::RECOVERING;
             if (std::fabs(body.roll) < 90 * deg)
-                rescue.fall = Fall::UPRIGHT;
+                rescue.maneuver = Rescue::Maneuver::STAND_UP;
             else if (body.pitch > 0)
-                rescue.fall = Fall::HEAD;
+                rescue.maneuver = Rescue::Maneuver::FLIP_FROM_HEAD;
             else
-                rescue.fall = Fall::TAIL;
+                rescue.maneuver = Rescue::Maneuver::FLIP_FROM_TAIL;
 
             // 以当前腿角启动，避免目标阶跃
             rescue.target_theta[0] = leg[0].rel_theta;
             rescue.target_theta[1] = leg[1].rel_theta;
         }
 
-        if (rescue.is_running) {
-            if (rescue.fall == Fall::UPRIGHT)
+        if (rescue.state == Rescue::State::RECOVERING) {
+            if (rescue.maneuver == Rescue::Maneuver::STAND_UP)
                 rescue_stand(dt);
-            else if (rescue.fall == Fall::HEAD)
+            else if (rescue.maneuver == Rescue::Maneuver::FLIP_FROM_HEAD)
                 rescue_flip(-1, dt);
-            else
+            else if (rescue.maneuver == Rescue::Maneuver::FLIP_FROM_TAIL)
                 rescue_flip(1, dt);
         }
     }
@@ -244,7 +266,7 @@ void ChassisLeg::rescue_stand(const float dt) {
 
     // 双腿均进入收腿阶段且反馈回正，判定站起完成
     if (rescue.stand_step[0] == 1 && rescue.stand_step[1] == 1 && std::fabs(leg[0].rel_theta) < 23 * deg && std::fabs(leg[1].rel_theta) < 23 * deg) {
-        rescue = {};
+        rescue = {.state = Rescue::State::BALANCING};
     }
 }
 
@@ -284,141 +306,129 @@ void ChassisLeg::update_jump(const float dt) {
     // 跳跃：上升沿且空闲时启动，动作期间不排队；失能或倒地时复位
     const bool is_jump_rising = trigger_jump && !last_trigger_jump;
     last_trigger_jump = trigger_jump;
-    if (!is_enable || rescue.is_fallen) {
+    if (!is_enable || !is_motor_online || rescue.state != Rescue::State::BALANCING) {
         jump = {};
     } else {
-        if (is_jump_rising)
-            jump.is_active = true;
+        if (is_jump_rising && jump.state == Jump::State::IDLE)
+            jump.state = Jump::State::TAKEOFF;
 
-        if (jump.is_active) {
-            if (jump.step == 0) { // 起跳，双腿伸到位后收腿
-                jump.force = config.jump_takeoff_force;
-                if (leg[0].L >= config.leg_max && leg[1].L >= config.leg_max) {
-                    jump.step = 1;
-                    jump.force = config.jump_retract_force;
-                }
-            } else if (jump.step == 1) { // 收腿，双腿收到位后保持
-                jump.force = config.jump_retract_force;
-                if (leg[0].L <= config.leg_min && leg[1].L <= config.leg_min) {
-                    jump.step = 2;
-                    jump.force = 0;
-                    jump.hold_time = 0;
-                }
-            } else if (jump.step == 2) { // 收腿长度保持
-                jump.hold_time += dt;
-                if (jump.hold_time >= config.jump_retract_time) {
-                    jump.step = 3;
-                    jump.hold_time = 0;
-                }
-            } else if (jump.step == 3) { // 落地缓冲，从进入阶段起计时，不等待触地
-                jump.hold_time += dt;
-                if (jump.hold_time >= config.jump_buffer_time)
-                    jump = {};
+        if (jump.state == Jump::State::TAKEOFF) {
+            // 起跳，双腿伸到位后收腿
+            jump.force = config.jump_takeoff_force;
+            if (leg[0].L >= config.leg_max && leg[1].L >= config.leg_max) {
+                jump.state = Jump::State::RETRACT;
             }
+        } else if (jump.state == Jump::State::RETRACT) {
+            // 收腿，双腿收到位后保持
+            jump.force = config.jump_retract_force;
+            if (leg[0].L <= config.leg_min && leg[1].L <= config.leg_min) {
+                jump.state = Jump::State::HOLD;
+                jump.hold_time = 0;
+            }
+        } else if (jump.state == Jump::State::HOLD) {
+            // 收腿长度保持
+            jump.force = 0;
+            jump.hold_time += dt;
+            if (jump.hold_time >= config.jump_retract_time) {
+                jump.state = Jump::State::BUFFER;
+                jump.hold_time = 0;
+            }
+        } else if (jump.state == Jump::State::BUFFER) {
+            // 落地缓冲，从进入阶段起计时，不等待触地
+            jump.hold_time += dt;
+            if (jump.hold_time >= config.jump_buffer_time)
+                jump = {};
         }
     }
 }
 
-void ChassisLeg::calc_force(const float dt) {
-    // 虚拟力：先清零，再按状态计算
-    for (auto& l : leg)
-        l.Fn = l.Tt = l.Tw = 0;
+void ChassisLeg::update_force(const float dt) {
+    // 默认不出力，各状态只写本拍需要的分量
+    for (auto& side : leg)
+        side.Fn = side.Tt = side.Tw = 0;
 
-    // 相对腿角 PID 只用于自救，其余时间清空，下次自救从零开始
-    if (!is_enable || !rescue.is_fallen || !rescue.is_running) {
+    // 自救之外清空腿角 PID，下次批准时从零开始
+    if (rescue.state != Rescue::State::RECOVERING) {
         for (Pid& pid : leg_angle_pid)
             pid.clear();
     }
 
-    if (!is_enable) {
-        // 失能时保持零输出
-    } else if (rescue.is_fallen) {
-        // 倒地：轮端不输出；自救时摆动力矩跟踪目标相对腿角，仅站起收腿阶段输出轴向力
-        if (rescue.is_running) {
-            for (int i = 0; i < 2; i++) {
-                leg[i].Tt = leg_angle_pid[i].calculate(dt, Angle(rescue.target_theta[i] - leg[i].rel_theta));
-                if (rescue.stand_step[i] == 1)
-                    leg[i].Fn = leg_length_pid[i].calculate(dt, config.leg_min - leg[i].L, 0 - leg[i].d_L) + leg[i].Fg - leg[i].Fs;
-            }
+    if (!is_enable || !is_motor_online || rescue.state == Rescue::State::FALLEN) {
+        // 停机或待批准：底盘失能、电机反馈异常或倒地待自救，保持零输出
+    } else if (rescue.state == Rescue::State::RECOVERING) {
+        // 自救：轮端不出力；双腿跟踪各自的摆角，进入收腿阶段的腿才跟踪最短腿长
+        for (int i = 0; i < 2; i++) {
+            leg[i].Tt = leg_angle_pid[i].calculate(dt, Angle(rescue.target_theta[i] - leg[i].rel_theta));
+            if (rescue.stand_step[i] == 1)
+                leg[i].Fn = leg_length_pid[i].calculate(dt, config.leg_min - leg[i].L, 0 - leg[i].d_L) + leg[i].Fg - leg[i].Fs;
         }
-    } else {
-        // 轴向力
-        if (!jump.is_active) {
-            balance_legs(dt, leg_length);
-        } else if (jump.step == 0) { // 起跳：跳跃力叠加重力补偿
-            for (auto& l : leg)
-                l.Fn = jump.force + l.Fg - l.Fs;
-        } else if (jump.step == 1) { // 收腿：离地不补偿重力
-            for (auto& l : leg)
-                l.Fn = jump.force - l.Fs;
-        } else if (jump.step == 2) { // 收腿保持：腿长 PD，不补偿重力
-            for (int i = 0; i < 2; i++)
-                leg[i].Fn = leg_length_pid[i].calculate(dt, config.leg_min - leg[i].L, 0 - leg[i].d_L) - leg[i].Fs;
-        } else { // 落地缓冲
-            balance_legs(dt, config.jump_buffer_length);
-        }
-
+    } else if (jump.state == Jump::State::IDLE) {
+        // 正常站立：先按指令腿长计算轴向力，再按剩余关节力矩和轮端功率预算分配 LQR 输出
+        control_leg_length(dt, leg_length);
         calc_lqr();
-
-        // 起跳时取消摆动力矩，把关节力矩留给伸腿；收腿及保持阶段离地，关闭轮端
-        if (jump.is_active && jump.step == 0) {
-            leg[0].Tt = leg[1].Tt = 0;
-        } else if (jump.is_active && (jump.step == 1 || jump.step == 2)) {
-            leg[0].Tw = leg[1].Tw = 0;
+    } else {
+        // 跳跃：LQR 跳过额定力矩与功率分配；各阶段设置轴向力并关闭不需要的力矩
+        calc_lqr();
+        if (jump.state == Jump::State::TAKEOFF) {
+            // 起跳：站立时收到跳跃上升沿，全力伸腿，关闭摆动力矩
+            for (auto& side : leg) {
+                side.Fn = jump.force + side.Fg - side.Fs;
+                side.Tt = 0;
+            }
+        } else if (jump.state == Jump::State::RETRACT) {
+            // 收腿：双腿均伸到 leg_max 后全力收腿，不补偿重力，关闭轮端
+            for (auto& side : leg) {
+                side.Fn = jump.force - side.Fs;
+                side.Tw = 0;
+            }
+        } else if (jump.state == Jump::State::HOLD) {
+            // 保持：双腿均收到 leg_min 后用腿长 PD 保持，不补偿重力，关闭轮端
+            for (int i = 0; i < 2; i++) {
+                leg[i].Fn = leg_length_pid[i].calculate(dt, config.leg_min - leg[i].L, 0 - leg[i].d_L) - leg[i].Fs;
+                leg[i].Tw = 0;
+            }
+        } else if (jump.state == Jump::State::BUFFER) {
+            // 缓冲：收腿保持满 jump_retract_time 后跟踪缓冲腿长，保留轮端和摆动力矩
+            control_leg_length(dt, config.jump_buffer_length);
         }
     }
-}
 
-void ChassisLeg::balance_legs(const float dt, const float length) {
-    // 横滚补偿：右侧低（roll > 0）时输出为负，左腿缩短、右腿伸长
-    // 外部工程 imu_roll 与 roll 反号，其写法为左 L - out、右 L + out；此处左 +、右 - 是同一物理方向
-    const float roll_out = roll_pid.calculate(dt, 0 - body.roll, 0 - body.d_roll);
-    const float length_ref[2] = {
-        std::clamp(length + roll_out, config.leg_min, config.leg_max),
-        std::clamp(length - roll_out, config.leg_min, config.leg_max),
-    };
-
-    // 腿长 PD 叠加重力补偿、扣除弹簧力；微分取伸缩速度，不含目标变化
-    for (int i = 0; i < 2; i++)
-        leg[i].Fn = leg_length_pid[i].calculate(dt, length_ref[i] - leg[i].L, 0 - leg[i].d_L) + leg[i].Fg - leg[i].Fs;
+    // 所有状态统一映射关节力矩，镜像方向与 update_leg 相同：左 -1、右 +1
+    vmc_map(leg[0], -1);
+    vmc_map(leg[1], 1);
 }
 
 void ChassisLeg::calc_lqr() {
-    // LQR 增益：按左右腿长求值二次拟合多项式
+    // 增益拟合基函数：1、Ll、Lr、Ll²、Ll·Lr、Lr²，腿长单位 m
     const float Ll = leg[0].L, Lr = leg[1].L;
     const float terms[6] = {1, Ll, Lr, Ll * Ll, Ll * Lr, Lr * Lr};
 
-    // 目标限速：直行目标上限为轮子额定转速乘轮半径，边走边转按较快一侧轮缘速度等比缩小两个目标
-    const float travel_speed = config.wheel_work_speed * config.wheel_radius;
-    const float rim_target = std::fabs(vx) + std::fabs(wr) * config.wheel_distance / 2;
-    const float target_share = rim_target > travel_speed ? travel_speed / rim_target : 1;
-
-    // 状态误差，均为“目标减反馈”；位移误差乘 10 以匹配固件拟合表；小陀螺时上板发 0 即不追踪航向
+    // 状态误差，均为"目标减反馈"；位移误差乘 10 以匹配固件拟合表；小陀螺时上板发 0 即不追踪航向
     const float err[10] = {
-        (0 - body.x) * 10,                          // 前向位移，前进为正
-        target_share * vx - body.d_x,               // 前向速度，前进为正
-        gimbal_yaw,                                 // 航向角，跟随模式为云台相对底盘航向
-        target_share * d_yaw_ref - body.d_yaw_gyro, // 航向角速度，逆时针为正
-        config.theta_ref - leg[0].theta,            // 左腿倾角，后摆为正
-        0 - leg[0].d_theta,                         // 左腿倾角速度
-        config.theta_ref - leg[1].theta,            // 右腿倾角，后摆为正
-        0 - leg[1].d_theta,                         // 右腿倾角速度
-        0 - body.pitch,                             // 俯仰，低头为正
-        0 - body.d_pitch,                           // 俯仰角速度，低头为正
+        (0 - body.x) * 10,               // 前向位移，前进为正
+        vx - body.d_x,                   // 前向速度，前进为正；已在 set_speed() 限速
+        gimbal_yaw,                      // 航向误差，跟随模式由上板计入车头偏角
+        wr - body.d_yaw_gyro,            // 航向角速度，逆时针为正；已在 set_speed() 限速
+        config.theta_ref - leg[0].theta, // 左腿倾角，后摆为正
+        0 - leg[0].d_theta,              // 左腿倾角速度
+        config.theta_ref - leg[1].theta, // 右腿倾角，后摆为正
+        0 - leg[1].d_theta,              // 右腿倾角速度
+        0 - body.pitch,                  // 俯仰，低头为正
+        0 - body.d_pitch,                // 俯仰角速度，低头为正
     };
 
-    // 贡献分组：运动四项为位移、前进速度、航向、旋转速度，姿态六项为两腿角及角速度、俯仰及角速度
+    // 目标：状态误差按当前腿长的增益求和，分成姿态组 base 与运动组 motion
+    // 运动四项为位移、前进速度、航向、旋转速度，姿态六项为两腿角及角速度、俯仰及角速度
     // 输出 [0/1] 左/右轮力矩，前进为正；[2/3] 左/右摆动力矩，后摆为正
-    float base[4]{}, motion[4]{};
+    float k[4][10]{}, base[4]{}, motion[4]{};
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 10; j++) {
-            float k = 0;
             for (int n = 0; n < 6; n++)
-                k += config.lqr_fit[i][j][n] * terms[n];
+                k[i][j] += config.lqr_fit[i][j][n] * terms[n];
             if (j < 4)
-                motion[i] += k * err[j];
+                motion[i] += k[i][j] * err[j];
             else
-                base[i] += k * err[j];
+                base[i] += k[i][j] * err[j];
         }
     }
 
@@ -426,47 +436,99 @@ void ChassisLeg::calc_lqr() {
     for (int i = 0; i < 4; i++)
         out[i] = base[i] + motion[i];
 
-    // 跳跃期间关节余量被伸腿力占用，不做分配，由电机自身限幅
-    if (!jump.is_active) {
-        // 四路额定区间：轮取电机力矩上限；腿摆由两关节平分，当拍轴向力矩先占用各关节余量
-        const float wheel_max = motor.left_wheel.config.max_torque;
-        const float joint_max = motor.left_front.config.max_torque;
-        float lower[4] = {-wheel_max, -wheel_max, 0, 0};
-        float upper[4] = {wheel_max, wheel_max, 0, 0};
-        for (int i = 0; i < 2; i++) {
-            const float swing_max = 2 * std::max(joint_max - std::fabs(calc_axial_torque(leg[i])), 0.0f);
-            lower[2 + i] = -swing_max;
-            upper[2 + i] = swing_max;
-        }
-
-        // 姿态组优先：运动组按四路都能满足的最大共同比例让位；全不可行时运动归零，再整体缩小姿态组
-        const float share = maximum_share(base, motion, lower, upper);
-        if (share >= 0) {
-            for (int i = 0; i < 4; i++)
-                out[i] = base[i] + share * motion[i];
-        } else {
-            const float zero[4]{};
-            const float base_share = std::max(maximum_share(zero, base, lower, upper), 0.0f);
-            for (int i = 0; i < 4; i++)
-                out[i] = base_share * base[i];
-        }
+    // 分配与功率：跳跃期间关节余量被伸腿力占用，不做分配与功率修正，由电机自身限幅
+    if (jump.state == Jump::State::IDLE) {
+        float lower[4], upper[4];
+        calc_torque_limit(lower, upper);
+        alloc_torque(base, motion, lower, upper, out);
+        limit_power(terms, k, lower, upper, out);
     }
 
+    // 写入虚拟力输出：轮端力矩与摆动力矩
     leg[0].Tw = out[0];
     leg[1].Tw = out[1];
     leg[0].Tt = out[2];
     leg[1].Tt = out[3];
 }
 
-float ChassisLeg::calc_axial_torque(const Leg& leg) const {
-    const float a = config.active_link, b = config.passive_link;
+// 四路额定区间：轮取电机力矩上限；腿摆由两关节平分，当拍轴向力矩先占用各关节余量
+void ChassisLeg::calc_torque_limit(float lower[4], float upper[4]) const {
+    const float wheel_max = motor.left_wheel.config.max_torque;
+    const float joint_max = motor.left_front.config.max_torque;
+    lower[0] = lower[1] = -wheel_max;
+    upper[0] = upper[1] = wheel_max;
+    for (int i = 0; i < 2; i++) {
+        const float axial = leg[i].Fn * leg[i].axial_gain;
+        const float swing_max = 2 * std::max(joint_max - std::fabs(axial), 0.0f);
+        lower[2 + i] = -swing_max;
+        upper[2 + i] = swing_max;
+    }
+}
 
-    // ∠OCB 为轮轴 C 处 CO 与 CB 的夹角
-    const float cos_ocb = (leg.L * leg.L + b * b - a * a) / (2 * leg.L * b);
-    const float tan_ocb = std::sqrt(1 - cos_ocb * cos_ocb) / cos_ocb;
+// 分配：姿态组优先，运动组按四路都能满足的最大共同比例让位；运动组无解时归零，再整体缩小姿态组
+void ChassisLeg::alloc_torque(const float base[4], const float motion[4], const float lower[4], const float upper[4], float out[4]) const {
+    const float share = maximum_share(base, motion, lower, upper);
+    if (share >= 0) {
+        for (int i = 0; i < 4; i++)
+            out[i] = base[i] + share * motion[i];
+        return;
+    }
 
-    // 轴向力形成反向关节力矩
-    return 0.5f * leg.Fn * leg.L * tan_ocb;
+    const float zero[4]{};
+    const float base_share = std::max(maximum_share(zero, base, lower, upper), 0.0f);
+    for (int i = 0; i < 4; i++)
+        out[i] = base_share * base[i];
+}
+
+// 功率：双轮净机械功率 Σ Tw·ω 超过 power_ref 时，把轮力矩投影到功率线上，轮缺口经腿部映射补给两腿
+// 约束作用于已相加的轮力矩，保留运动项与扶正项的抵消；制动（负功率）与不限功率（INFINITY）直接通过
+void ChassisLeg::limit_power(const float terms[6], const float k[4][10], const float lower[4], const float upper[4], float out[4]) {
+    const Vector2f omega(motor.left_wheel.speed, motor.right_wheel.speed);
+    const Vector2f wheel(out[0], out[1]);
+    power_estimate = omega.dot(wheel);
+    const float excess = power_estimate - power_ref;
+    if (excess <= 0)
+        return;
+
+    // 腿部映射 M = D·C⁻¹，把轮缺口按俯仰角速度、旋转速度两个反馈方向表达
+    // C：两轮对俯仰角速度、旋转速度的增益；D 第一列把缺少的俯仰阻尼交给两腿稳姿态增益，第二列撤回腿的旋转速度项
+    Matrix2f C, D;
+    for (int i = 0; i < 2; i++) {
+        float posture = 0;
+        for (int n = 0; n < 6; n++)
+            posture += config.lqr_posture_fit[i][n] * terms[n];
+        C(i, 0) = k[i][9];
+        C(i, 1) = k[i][3];
+        D(i, 0) = posture - k[2 + i][9];
+        D(i, 1) = -k[2 + i][3];
+    }
+    const Matrix2f M = D * C.inverse();
+
+    // 轮缺口 d：四路改动 [-d; M·d] 按 R 加权的平方和最小，H = R轮 + Mᵀ·R腿·M，d 沿 H⁻¹·ω 且恰好消去超出功率
+    Matrix2f H = M.transpose() * Vector2f(config.lqr_r[2], config.lqr_r[3]).asDiagonal() * M;
+    H(0, 0) += config.lqr_r[0];
+    H(1, 1) += config.lqr_r[1];
+    const Vector2f direction = H.inverse() * omega;
+    Vector2f limited = wheel - excess / omega.dot(direction) * direction;
+
+    // 投影越过轮额定区间时，从功率线上同比缩小的可行点 anchor 向投影点截取，最多检查两路
+    const Vector2f anchor = wheel * (power_ref / power_estimate);
+    const Vector2f delta = limited - anchor;
+    float share = 1;
+    for (int i = 0; i < 2; i++) {
+        if (limited[i] < lower[i])
+            share = std::min(share, (lower[i] - anchor[i]) / delta[i]);
+        else if (limited[i] > upper[i])
+            share = std::min(share, (upper[i] - anchor[i]) / delta[i]);
+    }
+    limited = anchor + share * delta;
+
+    // 两腿：原指令加 M·最终轮缺口，再限到摆动额定区间；腿顶到上限时优先满足力矩与功率硬约束
+    const Vector2f swing = Vector2f(out[2], out[3]) + M * (wheel - limited);
+    out[0] = limited[0];
+    out[1] = limited[1];
+    out[2] = std::clamp(swing[0], lower[2], upper[2]);
+    out[3] = std::clamp(swing[1], lower[3], upper[3]);
 }
 
 float ChassisLeg::maximum_share(const float base[4], const float change[4], const float lower[4], const float upper[4]) {
@@ -487,10 +549,9 @@ float ChassisLeg::maximum_share(const float base[4], const float change[4], cons
     return minimum <= maximum ? maximum : -1;
 }
 
-void ChassisLeg::map_force(Leg& leg, const float Tt) const {
-    // 轴向力形成反向关节力矩，摆动力矩由两关节同向平分
-    const float T1 = calc_axial_torque(leg);
-    const float T2 = 0.5f * Tt;
+void ChassisLeg::vmc_map(Leg& leg, const float mirror) {
+    const float T1 = leg.Fn * leg.axial_gain;
+    const float T2 = -0.5f * mirror * leg.Tt;
     leg.Ta = T1 + T2;
     leg.Te = -T1 + T2;
 }

@@ -7,5 +7,7 @@
 inline Aim aim({.cdc = Cdc(1)});
 inline Nav nav({.cdc = Cdc(2)});
 
-// 每 5 拍发送一次自瞄上行帧（200 Hz）；需要 attitude 与 referee，故实现放在 minipc.cpp
-void minipc_send();
+// 最近有效导航帧的过洞状态，minipc_loop() 更新，断联时保留
+inline bool is_nav_through_hole = false;
+
+void minipc_loop();

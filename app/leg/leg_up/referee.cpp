@@ -4,20 +4,17 @@
 #include "gimbal.hpp"
 #include "shooter.hpp"
 
-static constexpr float MOTOR_OVERHEAT = 80; // 电机温度报警阈值，℃
-static constexpr float HURT_TIMEOUT = 1;    // 受击方向显示时长，s
-
 // 受击方向，收到新的 0x0206 时按装甲 ID 换算到世界系并锁存
 static uint32_t last_hurt_sequence = 0;
 static bool has_hurt = false;
 static Angle hurt_dir;
 static Timer hurt_timer; // 上次受击后重新开始
 
-// 下板：断联粉色、未使能白色、倒地青色、正常绿色
+// 下板：断联粉色、上板未使能白色、倒地青色、正常绿色
 static RobotUi::Color down_color() {
     if (!leg_protocol.is_connect)
         return RobotUi::PINK;
-    if (!leg_protocol.received.is_enable)
+    if (!leg_protocol.is_enable)
         return RobotUi::WHITE;
     if (leg_protocol.received.is_fallen)
         return RobotUi::CYAN;
@@ -28,7 +25,7 @@ static RobotUi::Color down_color() {
 static RobotUi::Color down_motor_color(const LegDownFrame::MotorState state) {
     switch (state) {
     case LegDownFrame::MotorState::NORMAL:
-        return leg_protocol.received.is_enable ? RobotUi::GREEN : RobotUi::WHITE;
+        return leg_protocol.is_enable ? RobotUi::GREEN : RobotUi::WHITE;
     case LegDownFrame::MotorState::OVERHEAT:
         return RobotUi::ORANGE;
     case LegDownFrame::MotorState::ERROR:
@@ -93,12 +90,12 @@ void referee_loop() {
     // 下板：yaw1 显示通信、使能与倒地，w1~w4 为关节，s1~s4 为轮；断联时电机全部离线
     ui.yaw1 = down_color();
     if (leg_protocol.is_connect) {
-        ui.w1 = down_motor_color(leg_protocol.received.motor[0]);         // 左前
-        ui.w2 = down_motor_color(leg_protocol.received.motor[1]);         // 左后
-        ui.w3 = down_motor_color(leg_protocol.received.motor[2]);         // 右后
-        ui.w4 = down_motor_color(leg_protocol.received.motor[3]);         // 右前
-        ui.s1 = ui.s2 = down_motor_color(leg_protocol.received.motor[4]); // 左轮
-        ui.s3 = ui.s4 = down_motor_color(leg_protocol.received.motor[5]); // 右轮
+        ui.s1 = down_motor_color(leg_protocol.received.motor[0]);         // 左前
+        ui.s2 = down_motor_color(leg_protocol.received.motor[1]);         // 左后
+        ui.s3 = down_motor_color(leg_protocol.received.motor[2]);         // 右后
+        ui.s4 = down_motor_color(leg_protocol.received.motor[3]);         // 右前
+        ui.w1 = ui.w2 = down_motor_color(leg_protocol.received.motor[4]); // 左轮
+        ui.w3 = ui.w4 = down_motor_color(leg_protocol.received.motor[5]); // 右轮
     } else {
         ui.w1 = ui.w2 = ui.w3 = ui.w4 = ui.s1 = ui.s2 = ui.s3 = ui.s4 = RobotUi::PINK;
     }
@@ -112,12 +109,12 @@ void referee_loop() {
     ui.rub_right_stage1 = ui.rub_right_stage2 = motor_color(rub2.status(MOTOR_OVERHEAT, shooter.bullet_speed.ref != 0));
     ui.shoot = motor_color(shoot.status(MOTOR_OVERHEAT));
 
-    // 超电状态；轮腿未接自瞄，图元保持白色，准星圆不显示
+    // 超电状态：未使能 DCDC 或未叠加补偿为白色，叠加补偿时按电容电压区分
     if (!super_cap.is_connect)
         ui.cap = RobotUi::PINK;
-    else if (super_cap.mode == SuperCap::OFF || super_cap.mode == SuperCap::CHARGE)
+    else if (!super_cap.is_enable || !super_cap.is_boost_enable)
         ui.cap = RobotUi::WHITE;
-    else if (super_cap.mode == SuperCap::BOOST)
+    else
         ui.cap = super_cap.is_cap_voltage_low() ? RobotUi::CYAN : RobotUi::GREEN;
 
     ui.update(referee_sender);

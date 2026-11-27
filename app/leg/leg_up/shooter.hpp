@@ -4,8 +4,6 @@
 #include "motor/vesc.hpp"
 #include "robot/shooter_17mm.hpp"
 
-static constexpr float RUB_RELEASE_SPEED = 30 * rpm; // 摩擦轮关闭后低于此转速释放
-
 // 摩擦轮
 inline Vesc rub1({
     .can = Can(2),
@@ -35,12 +33,11 @@ inline M3508 shoot({
     .is_invert = false,
 });
 
-// 发射机构
+// 发射机构：bullet_per_angle 按拨盘结构标定
 inline Shooter17mm shooter({rub1, rub2, shoot},
                            {
                                .shoot_pid_config = &shoot_pid_config,
                                .bullet_per_angle = 10.0f / 56.0f * 22.0f / rev,
-                               .heat_protect = 80, // 剩余热量低于此值停止拨弹，待整定
                            });
 
 void shooter_loop();

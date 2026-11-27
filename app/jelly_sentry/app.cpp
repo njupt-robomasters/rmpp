@@ -1,11 +1,11 @@
 #include "app.hpp"
-#include "bsp/irq_lock.hpp"
 #include "bsp/monitor.hpp"
 #include "chassis.hpp"
 #include "gimbal.hpp"
 #include "melody/music/c5d5g5.hpp"
+#include "minipc.hpp"
 #include "shooter.hpp"
-#include <tuple>
+#include <cmath>
 
 static void setup() {
     // 大 yaw 零位从 KvStore 读取，未标定时为 0；标定方法见 gimbal.cpp 组合键
@@ -18,59 +18,51 @@ static void send() {
     static uint32_t send_cnt = 0;
     send_cnt++;
 
-    // CAN1：裁判发送每拍至多 1 帧
-    referee_sender.send();
-
-    // CAN1：底盘 C620 0x200 500 Hz，与 C620 回传对齐；需在 RoboMaster 调参助手中把回传频率设为 500 Hz
-    if (send_cnt % 2 == 0) {
+    // CAN1
+    referee_sender.send();   // 裁判发送每拍至多 1 帧
+    if (send_cnt % 2 == 0) { // 底盘 500 Hz
         CanFrame frame{.id = 0x200, .size = 8};
-        for (M3508* w : {&w1, &w2, &w3, &w4})
+        for (const M3508* w : {&w1, &w2, &w3, &w4})
             w->write_can_frame(frame);
         Can(1).send(frame);
     }
-
-    // CAN1：大 yaw DM4310；超电 100 Hz，OFF、底盘失能与超电离线时也发送，保持反馈并支持重连
-    yaw1.send();
-    if (send_cnt % 10 == 0)
+    yaw1.send();            // 大yaw 1000 Hz
+    if (send_cnt % 10 == 0) // 超电 100 Hz
         super_cap.send();
 
-    // CAN2：pitch2 每拍，pitch1 每 4 拍（失能帧，保持反馈）
-    pitch2.send();
-    if (send_cnt % 4 == 0)
+    // CAN2
+    if (send_cnt % 4 == 0) // pitch1 250Hz
         pitch1.send();
-
-    // CAN3：小 yaw 7025 每 2 拍（转矩与读角度各一次，合计 500 Hz）
-    if (send_cnt % 2 == 0)
-        yaw2.send();
-
-    // CAN2：双传送带 VESC 每 10 拍（各 100 Hz）；拨弹 EL05 每 2 拍
-    if (send_cnt % 10 == 0) {
+    pitch2.send();         // pitch2 1000 Hz
+    if (send_cnt % 2 == 0) // shoot 500 Hz
+        shoot.send();
+    if (send_cnt % 10 == 0) { // 摩擦轮 100 Hz
         rub1.send();
         rub2.send();
     }
-    if (send_cnt % 2 == 0)
-        shoot.send();
 
-    // 自瞄上行 200 Hz
-    if (send_cnt % 5 == 0)
-        minipc_send();
+    // CAN3
+    if (send_cnt % 2 == 0) // 小yaw 500Hz
+        yaw2.send();
+
+    // CDC
+    if (send_cnt % 4 == 0) // 自瞄 250 Hz
+        aim.send();
+    else if (send_cnt % 4 == 2 && yaw1.is_connect && std::isfinite(gimbal.yaw1.measure)) // 导航 250 Hz
+        nav.send();
 }
 
 static void loop() {
     melody.update();
     vt13.update();
     attitude.update();
-    aim.update();
+
     referee_loop();
-    nav.update();
+    minipc_loop();
 
     chassis_loop();
-    const auto [is_detect, target_yaw, target_pitch, distance, is_fire] = [] {
-        const IrqLock lock;
-        return std::tuple{aim.is_detect, aim.yaw, aim.pitch, aim.distance, aim.is_fire};
-    }();
-    gimbal_loop(is_detect, target_yaw, target_pitch, distance);
-    shooter_loop(is_fire);
+    gimbal_loop();
+    shooter_loop();
 
     send();
 }
@@ -80,7 +72,7 @@ extern "C" void app_main() {
     while (true) {
         // 1 kHz 更新
         static Timer app_timer;
-        if (app_timer.elapsed() < 1 * ms)
+        if (app_timer.elapsed() < 0.001f)
             continue;
         app_timer.restart();
 

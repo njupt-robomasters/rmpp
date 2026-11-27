@@ -31,13 +31,10 @@ void chassis_loop() {
     chassis.set_gimbal_yaw(is_gimbal_front ? yaw.angle : 0.0f);
     chassis.set_speed(vx, vy, wr);
 
-    // 超电模式：SWC 上 OFF、中 CHARGE、下 BOOST，遥控断联时 OFF；底盘失能时仍可充电
-    if (fsi6x.swc == FSi6X::MID)
-        super_cap.set_mode(SuperCap::CHARGE);
-    else if (fsi6x.swc == FSi6X::DOWN)
-        super_cap.set_mode(SuperCap::BOOST);
-    else
-        super_cap.set_mode(SuperCap::OFF);
+    // 超电：遥控在线时 SWC 中挡充电、下挡叠加放电补偿；断联时全部关闭
+    const auto swc = fsi6x.is_connect ? fsi6x.swc : FSi6X::ERR;
+    super_cap.set_enable(swc == FSi6X::MID || swc == FSi6X::DOWN);
+    super_cap.set_boost_enable(swc == FSi6X::DOWN);
 
     // 裁判电池侧功率上限与缓冲能量由 referee_loop 模拟
     super_cap.set_referee_limit(REFEREE_LIMIT);

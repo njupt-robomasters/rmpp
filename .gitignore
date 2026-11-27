@@ -9,5 +9,10 @@ logs/
 .codex/
 .claude/
 .agents/
+agents/tmp/
 agents/out/
 agents/.tools/
+
+# Python
+__pycache__/
+*.pyc

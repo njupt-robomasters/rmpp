@@ -1,8 +1,10 @@
 #include "vesc.hpp"
 #include "math/unit.hpp"
+#include <cmath>
 
-Vesc::Vesc(const Motor::Config& config)
-    : Motor(config, 0, 0, 0) {
+Vesc::Vesc(const Motor::Config& config, const float release_speed)
+    : Motor(config, 0, 0, 0),
+      release_speed(release_speed) {
     config.can.add_rx_callback([this](const CanFrame& frame) { can_callback(frame); });
 }
 
@@ -27,6 +29,12 @@ void Vesc::set_current_brake(const float current) {
 }
 
 void Vesc::set_speed(const float speed) {
+    // 设定 0 且转速已低于释放阈值时发零电流，交给摩擦轮自由停转
+    if (speed == 0 && std::fabs(this->speed) < release_speed) {
+        set_current(0);
+        return;
+    }
+
     const float direction = config.is_invert ? -1.0f : 1.0f;
     set_int32(CAN_PACKET_SET_RPM, encode32(direction * speed / rpm * config.reduction, 1));
 }

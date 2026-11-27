@@ -2,25 +2,10 @@
 #include "bsp/monitor.hpp"
 #include "chassis.hpp"
 #include "gimbal.hpp"
-#include "math/unit.hpp"
 #include "melody/music/c5d5g5.hpp"
+#include "minipc.hpp"
 #include "referee.hpp"
 #include "shooter.hpp"
-
-// 遥控器：键盘加减速度待实车整定
-VT13 vt13({
-    .uart = Uart(6),
-    .vxy_max = 3.0f,
-    .axy = INFINITY,
-    .dxy = INFINITY,
-    .wr_max = 120 * rpm,
-    .ar = 120 * rpm,
-    .dr = 120 * rpm,
-    .yaw_speed_max = 360 * deg_s,
-    .pitch_speed_max = 360 * deg_s,
-    .bullet_speed = 20.0f,
-    .bullet_freq = 10.0f,
-});
 
 static void setup() {
     melody.play(C5D5G5);
@@ -54,12 +39,17 @@ static void send() {
         shoot.write_can_frame(frame200);
         Can(2).send(frame200);
     }
+
+    // CDC
+    if (send_cnt % 4 == 0) // 自瞄 250 Hz
+        aim.send();
 }
 
 static void loop() {
     melody.update();
     vt13.update();
     referee_loop();
+    minipc_loop();
 
     chassis_loop();
     gimbal_loop();

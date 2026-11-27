@@ -1,9 +1,13 @@
 #pragma once
 
+#include "math/unit.hpp"
 #include "motor.hpp"
 
 class Vesc : public Motor {
   private:
+    // 释放阈值，rad/s；速度设定 0 且反馈转速低于此值时发零电流，避免速度环在零速附近保持抖动
+    const float release_speed;
+
     enum Command : uint8_t {
         CAN_PACKET_SET_DUTY = 0,
         CAN_PACKET_SET_CURRENT = 1,
@@ -48,7 +52,8 @@ class Vesc : public Motor {
 
   public:
     // VESC 不对应固定电机型号，没有默认驱动参数，量程和减速比须全部给出；reduction 含极对数
-    explicit Vesc(const Config& config);
+    // release_speed：速度设定 0 后低于此转速发零电流的释放阈值，rad/s
+    explicit Vesc(const Config& config, float release_speed = 60 * rpm);
 
     void set_current(float current) override;
 

@@ -1,7 +1,9 @@
 #include "gimbal.hpp"
 #include "app.hpp"
+#include "bsp/irq_lock.hpp"
 #include "chassis.hpp"
 #include "melody/music/g5g5g5.hpp"
+#include "minipc.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -37,8 +39,14 @@ static void control_by_vt13(const bool is_detect, const Angle target_yaw, const 
     }
 }
 
-// 自主：摇杆或鼠标转动云台时人工优先；松开后有效目标锁定，脱锁超时或低血量时过洞停扫、其余扫描
+// 自主：过洞断联时保持目标姿态；其余摇杆或鼠标优先，松开后锁定目标或扫描
 static void control_by_auto(const bool is_detect, const Angle target_yaw, const Angle target_pitch, const float distance) {
+    if (!nav.is_connect && is_nav_through_hole) {
+        is_lock = false;
+        gimbal.set_speed(0, 0);
+        return;
+    }
+
     if (vt13.yaw_speed != 0 || vt13.pitch_speed != 0) {
         is_lock = false;
         gimbal.set_speed(vt13.yaw_speed, -vt13.pitch_speed);
@@ -58,7 +66,7 @@ static void control_by_auto(const bool is_detect, const Angle target_yaw, const 
 
     if (is_lock) {
         gimbal.set_angle(lock_yaw, lock_pitch);
-    } else if (nav.is_through_hole) {
+    } else if (is_nav_through_hole) {
         gimbal.set_speed(0, 0);
     } else {
         if (gimbal.pitch.ecd.ref >= PITCH_MAX)
@@ -69,11 +77,16 @@ static void control_by_auto(const bool is_detect, const Angle target_yaw, const 
     }
 }
 
-void gimbal_loop(const bool is_detect, const Angle target_yaw, const Angle target_pitch, const float distance) {
+void gimbal_loop() {
+    // aim 在 CDC 中断内更新，整体读取保证一致性
+    const auto [is_detect, target_yaw, target_pitch, distance] = [] {
+        const IrqLock lock;
+        return std::tuple{aim.is_detect, aim.yaw, aim.pitch, aim.distance};
+    }();
+
     gimbal.set_enable(sentry_enable());
 
-    // yaw 零点校准：VT13 C 挡按住 fn 和 photo，按下时触发一次
-    // 按大 yaw 多圈角更新 offset，使单圈与多圈反馈同时归零，写入 KvStore，蜂鸣器响 G5G5G5
+    // yaw 零点校准：C 挡按住 fn 和 photo，按下沿触发；更新 offset 后写入 KvStore
     const bool calib = vt13.rc.mode == VT13::C && vt13.rc.fn && vt13.rc.photo;
     if (calib && !last_calib) {
         if (yaw1.is_connect)
@@ -83,15 +96,17 @@ void gimbal_loop(const bool is_detect, const Angle target_yaw, const Angle targe
     }
     last_calib = calib;
 
-    if (sentry_active()) {
+    const bool is_auto = sentry_in_game() || fn_latched();
+    if (is_auto) {
         control_by_auto(is_detect, target_yaw, target_pitch, distance);
     } else {
         is_lock = scan_up = false;
         control_by_vt13(is_detect, target_yaw, target_pitch);
     }
 
-    // 识别到装甲板时小 yaw 优先追踪（窗口模式）
-    gimbal.set_yaw_window(is_detect);
+    // 识别时小 yaw 优先追踪；自主过洞断联时保持原分配模式
+    if (!is_auto || nav.is_connect || !is_nav_through_hole)
+        gimbal.set_yaw_window(is_detect);
     // 小陀螺前馈；底盘转速未知时关闭
     gimbal.set_chassis_wr(std::isfinite(chassis.wr.measure) ? chassis.wr.measure : 0);
     gimbal.update(attitude.yaw, attitude.pitch);

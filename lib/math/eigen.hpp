@@ -9,6 +9,7 @@
 #pragma GCC pop_options
 
 // 定长 float 类型，直接使用 Eigen 名称，不加前缀
+using Eigen::Matrix2f;
 using Eigen::Matrix3f;
 using Eigen::Quaternionf;
 using Eigen::Vector2f;

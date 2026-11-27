@@ -66,4 +66,11 @@ inline GimbalDualYaw gimbal({yaw1, yaw2, pitch}, {
                                                      .pitch_max = 15 * deg,
                                                  });
 
+// 自主扫描：yaw 匀速旋转，pitch 在 IMU 范围内往返，rad/s
+static constexpr float YAW_SPEED = 180 * deg_s, PITCH_SPEED = 60 * deg_s;
+static constexpr Angle PITCH_MIN = -22 * deg, PITCH_MAX = 0 * deg;
+
+// 自主锁定：自瞄有效距离，m；脱锁时间，s
+static constexpr float LOCK_DISTANCE = 5, LOCK_TIMEOUT = 500 * ms;
+
 void gimbal_loop(bool is_detect, Angle target_yaw, Angle target_pitch, float distance);

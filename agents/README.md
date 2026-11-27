@@ -1,6 +1,14 @@
 # AI 工作区
 
-本目录供 AI 自己使用，存放工作脚本、测试程序、分析记录和中间产物。通用规则见根目录 `AGENTS.md`
+本目录按主题存放 AI 的任务记录、脚本和模块知识。通用规则见根 `AGENTS.md`；本文件是入口和主题索引。
+
+## 开始任务
+
+1. 读根 `AGENTS.md`（赛事语境、沟通方式、代码约定）
+2. 读本文件的主题索引，确定任务属于哪个主题
+3. 读 `TODO.md`，核对未决事项和待上车项
+4. 读该主题的 `README.md` 和其中索引的文档、任务记录
+5. 改代码前读 `agents/02-conventions/conventions.md`；协作与验证读 `agents/02-conventions/workflow.md`
 
 ## 用户需求理解
 
@@ -15,63 +23,46 @@
 
 ```text
 agents/
-├── README.md          本说明
-├── TODO.md            跨对话的规划、已确认决定和待办
-├── docs/              架构与模块文档，索引见下文
-├── out/               统一存放临时输出和中间产物，按任务放入 out/<任务名>/，已被 .gitignore 忽略
-└── tasks/
-    └── NN-名称/       一类任务一个目录，NN 两位递增序号，名称用 snake_case
+├── README.md          本说明：入口和主题索引
+├── TODO.md            跨对话未决事项：待确认决策、待上车核对、硬件问题、后续任务
+├── 01-board/          板卡、BSP、构建、IMU、电机
+├── 02-conventions/    编码约定、协作流程、验证、架构与 app 组织
+├── 03-control/        底盘、靶车、云台与发射、VT13
+├── 04-leg/            轮腿底盘、LQR、上下板、力矩与功率分配
+├── 05-comm/           裁判转发、协议写法、MiniPC 导航与自瞄
+├── 06-sentry/         哨兵应用结构、上游合并、jelly_sentry 并入
+├── 07-power/          超级电容
+├── 08-music/          蜂鸣器
+├── 09-guides/         可复用的 AGENTS.md
+└── tmp/               日志、固件、构建产物和临时交付，不入库，随时可能清空
 ```
 
-- 开始任务前先查任务索引，相似任务复用已有目录
-- 任务目录可放 `README.md` 记录目标、复现命令、结论和遗留问题
-- 日志、固件等临时输出和中间产物统一放在 `agents/out/<任务名>/`，各任务目录禁止创建 `out/`
-- Python、Shell、Node 验证脚本将输出根目录设为 `agents/out/<任务名>`；任务目录只保存脚本、测试源代码和记录文档
-- 保留可复现的脚本和结论，删除失效临时文件
-- `docs/` 是长期项目知识，改代码时同步修正；`tasks/` 是单类任务过程，结论成为长期知识时提炼进 `docs/`
-- `docs/` 随对应代码同一提交更新；仅任务记录或索引的变更单独提交，信息以 `agents:` 开头
+- 每个主题的 `README.md` 是该主题的入口，写当前状态、关键约定、待办和文件索引
+- 原始任务记录作为主题下的子目录保留，含脚本和测试源码；新任务归入现有主题，确实不属于任何主题时再新建 `NN-主题`
+- 脚本输出写到 `agents/tmp/<任务名>/`（Python 用 `ROOT / "agents/tmp/<任务名>"`，Shell 用相对路径），运行时按需创建
+- 历史产物 `agents/out/` 继续列入忽略项，其中包含当前 Ember 使用的 OpenOCD 工具和诊断原始数据；新增产物统一写入 `agents/tmp/`
+- 长期结论写进主题文档并在主题 README 索引；一次性过程留在任务子目录；办结的 TODO 条目从 `TODO.md` 删除
+- 主题文档随对应代码同一提交更新；仅记录或索引的变更单独提交，信息以 `agents:` 开头
 
-## 文档索引
+## 主题索引
 
-- 修改前：`docs/conventions.md`（编码、命名、SWD 类布局）、`docs/workflow.md`（协作、验证、交付）
-- 整体分层与入口：`docs/architecture.md`；应用：`docs/application.md`
-- MiniPC 导航协议、双 CDC 和坐标转换：`docs/minipc.md`
-- `lib/bsp/**`、`boards/**/bsp/**`：`docs/bsp.md`；电机：`docs/motor.md`
-- CMake 与工具链：`docs/build.md`；验证与人工审计：`docs/verification.md`
-- IMU：`docs/imu.md`；算法原理按需读 `docs/imu-principles.md`
-- 单位迁移：`docs/unit-migration.md`；蜂鸣器曲目：`docs/music.md`
-- 硬件资料：`reference/电机/` 对应型号、`reference/C板/`、`reference/达妙mc02/`
-- 裁判协议和比赛规则：`reference/<年份>规则/`，默认最新年份，先搜索关键词再局部读取
+| 主题 | 内容 | 入口 |
+| --- | --- | --- |
+| `01-board` | C 板/mc02 的 BSP、构建、IMU、电机协议；EL05 与 CAN 实验记录 | `01-board/README.md` |
+| `02-conventions` | 编码与类布局、协作与验证、目录与接口、app 组织；全局重构记录 | `02-conventions/README.md` |
+| `03-control` | 四舵轮、靶车、拨弹与 GimbalClassic、VT13 操控量 | `03-control/README.md` |
+| `04-leg` | 轮腿底盘与上下板、LQR、UI 槽位、力矩与功率分配 | `04-leg/README.md` |
+| `05-comm` | 裁判串口转发、协议解析写法、MiniPC 自瞄与导航 | `05-comm/README.md` |
+| `06-sentry` | jelly_sentry/steer_sentry 应用结构、上游合并与移植 | `06-sentry/README.md` |
+| `07-power` | 超级电容辨识与功率控制 | `07-power/README.md` |
+| `08-music` | 蜂鸣器播放与音色实验归档 | `08-music/README.md` |
+| `09-guides` | 可复制到其他项目的 AGENTS.md | `09-guides/README.md` |
 
-只读取当前任务涉及的文档，相似任务复用下列目录。
+## 跨项目文档
 
-## 任务索引
+面向队员和外部协作者的文档在根目录 `docs/`：
 
-- `01-mc02_bsp/`：mc02 BSP 适配、C 板外设类重构、CherryUSB、`lib/attitude`；复现构建、EL05 私有扩展帧适配与协议回归测试、CAN2 降载、7025/PCAN ID 干扰分析、7025/P630 总线调整与待上板验证项
-- `02-buzzer_timbre/`：蜂鸣器复音 PWM-DAC 音色探索与样机归档；正式实现在 `lib/melody`
-- `03-quad_steer/`：底盘重构（四舵移植、矩阵底盘、统一功率控制）、PID 回算、UI 下放、机构库掉线处理；已确认决定与上车核对项
-- `04-leg_chassis/`：轮腿底盘从 SOLDIER_LEG_4 迁移；IMU 极性核查、电机映射与虚拟 IMU 方案
-- `05-dummy_target/`：PR #3 靶车移植到 `app/dummy`；映射、删减与上车核对项；follow PID 微分尖峰只读采样与分析
-- `06-super_cap_capacitance/`：超电在线容量/ESR 辨识（RLS）与虚拟缓冲能量功率控制；主机仿真与上车核对项
+- `docs/chassis-leg.md`：轮腿控制思路，面向刚接触代码的队员
+- `docs/minipc_protocol.md`：发给上位机的自瞄与导航对接文档
 
-- `07-can_tx_latest/`：CAN 发送“同 ID 只留最新”方案（已撤销）；撤销延迟、FIFO 空洞等实测硬件知识与上板测试写法
-- `08-attitude_cpu/`：attitude 示例 -Og 下 Eigen 不内联导致 CPU 超时；编译变体统计与上板周期测量
-- `09-leg_lqr/`：Python 复现 SOLDIER_LEG_4 轮腿 LQR（替代 MATLAB）；重心偏移下位移稳态误差与漂移分析、LQI 对比、首版 Q_s=60 参数实车对照
-- `10-global_refactor/`：全局优化（Timer/PID dt、电机默认参数与符号修复、持有与 update 约定、类布局）；外部 worktree 成员展平、angle 命名与多圈零点、成员六组与函数调用序排序、最小权限及验证记录
-- `11-shooter_state/`：17 mm 拨弹状态机与 dt 累加计时、电机原生输出接口、云台与发射机构迁移及主机测试
-- `12-vt13_control/`：VT13 操控量解析（键盘斜坡、云台、发射、自瞄）、leg_up 与 sentry 迁移、sentry 移除 FSi6X；主机测试与上车核对项
-- `13-referee_relay/`：leg_down 裁判串口经 CAN 转发（RefereeRelay）、Referee 改为只收 CAN、VT13 解析图传链路 0x0311；Referee 收发拆分为 Referee、RefereeSender（含 UI、0x0120、0x0308）与 RobotUi；主机测试、ARM 单文件编译与上车核对项
-- `14-upstream_merge_review/`：rmpp-czk 分支合入上游的预检与执行（原 12）；保存本地基线、EL05 适配、折叠云台移入 jelly_sentry 与局部编译验证
-- `15-minipc_nav/`：rmpp-czk 导航 17 字节协议（原 13）、独立 CDC、底盘随头/小陀螺、坐标转换与 pitch1 全程失能验证
-- `16-jelly_sentry_merge/`：jelly_sentry 与依赖库从 rmpp-czk 并入 master；VT13、Referee 收发拆分适配、行为变化与上车核对项
-- `17-app_unify/`：sentry 改名 steer_sentry，两台哨兵与 leg 统一 app 结构（setup/loop/send、app 层 referee）、VT13/自主控制拆分、删除 insta360 与 FSi6X、leg_up 接入裁判与 UI；修复项与上车核对项
-- `18-leg_link_ui/`：UI 槽位改为 yaw1/yaw2/pitch1/pitch2、中心弧固定绿色；下板状态帧回传使能与 6 个电机状态、FSi6X 优先；使能后首次 pause 才使能、删除自救授权；删除 `use_angle_loop`
-- `19-leg_spin_power/`：历史轮端功率限幅实验、日志分析与归档提交；当前轮腿直接使用 LQR 输出
-- `20-protocol_unify/`：Nav、Aim、VT13、Referee 协议接收统一写法，minipc/rc/referee 命名、注释与 CRC 自由函数整理；ARM 编译脚本与主机测试记录
-- `21-minipc_protocol/`：自瞄与导航协议重构（单字节帧头、CRC 带帧头、自瞄上下行改四元数与目标角、导航加过洞标志/坐标/上行目标点）；对接文档见根目录 `docs/minipc_protocol.md`，主机测试见任务目录
-- `22-leg_torque_alloc/`：轮腿力矩分配（目标按轮子额定转速限速、姿态组优先、运动组共同退让、腿摆按当拍轴向力矩折算关节余量）；主机测试与上车核对项见任务目录
-
-- `23-minipc_aim/`：自瞄 21/18 字节双向协议、200 Hz 上报、默认 200 ms 超时、最终 IMU 头角度换算及回归验证
-- `24-yaw_window/`：按识别状态切换小轴限位窗口与大轴持续追随；保留底盘前馈，删除二次曲线加减速；包含历史窗口记录
-- `25-yaw_pid/`：大小 yaw 有限阶跃实测；独立 debug 阶跃/正弦入口、限位保护和本地波形记录，用户已要求暂停调参
-- `26-probe_connection/`：Horco CMSIS-DAP 切换独立 HID 配置后通信恢复；已读到 v208、SWD 1800 kHz 和 stm32h7x.cpu0，尚未烧录验证
+硬件手册和比赛规则在 `reference/`：`reference/电机/`、`reference/C板/`、`reference/达妙mc02/`、`reference/<年份>规则/`。裁判协议和赛规默认用最新年份，先搜索关键词再局部读取。

@@ -6,11 +6,11 @@
 
 // imu
 inline Imu imu({.orientation = euler_to_quaternion({.yaw = 180 * deg, .pitch = 0 * deg, .roll = 0 * deg}),
-                .gyro_offset = Vector3f(0.00127f, 0.00077f, 0.000271f),
-                .gravity = 9.7423f});
+                .gyro_offset = Vector3f(0.00157f, 0.00155f, 0.00247f),
+                .gravity = 9.65245f});
 inline QuaternionEkf attitude(imu, {});
 
-// yaw电机
+// yaw 电机
 inline Pid::Config yaw_speed_pid_config = {
     .kp = 2.4f,
     .ki = 8.0f,
@@ -30,7 +30,7 @@ inline GM6020 yaw({
     .offset = 5.06981f,
 });
 
-// pitch电机
+// pitch 电机
 inline Pid::Config pitch_speed_pid_config = {
     .kp = 5.0f,
     .max_out = GM6020::MAX_CURRENT,

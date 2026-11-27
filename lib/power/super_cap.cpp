@@ -10,8 +10,12 @@ SuperCap::SuperCap(const Config& config)
     config.can.add_rx_callback([this](const CanFrame& frame) { can_callback(frame); });
 }
 
-void SuperCap::set_mode(const Mode mode) {
-    this->mode = mode;
+void SuperCap::set_enable(const bool is_enable) {
+    this->is_enable = is_enable;
+}
+
+void SuperCap::set_boost_enable(const bool is_boost_enable) {
+    this->is_boost_enable = is_boost_enable;
 }
 
 void SuperCap::set_referee_limit(const float referee_limit) {
@@ -28,7 +32,7 @@ void SuperCap::send() const {
     config.can.send({
         .id = config.tx_id,
         .size = 8,
-        .data = {is_dcdc_enable(), static_cast<uint8_t>(command >> 8), static_cast<uint8_t>(command)},
+        .data = {is_connect && is_enable, static_cast<uint8_t>(command >> 8), static_cast<uint8_t>(command)},
     });
 }
 
@@ -51,7 +55,7 @@ void SuperCap::update() {
         is_connect = false;
 
     // BOOST 补偿：电容电压在截止与满额之间线性
-    if (is_connect && mode == BOOST) {
+    if (is_connect && is_enable && is_boost_enable) {
         const float cap_ratio = std::clamp((voltage_cap - config.boost_voltage_cutoff) / (config.boost_voltage_full - config.boost_voltage_cutoff), 0.0f, 1.0f);
         power_boost_max = config.boost_max_current * voltage_cap * cap_ratio;
     } else {
@@ -72,7 +76,7 @@ void SuperCap::update() {
     // DCDC 使能：供给为电池侧目标加电容补偿；底盘超出供给（电容额外放电或电池超用）时扣除，低于时增加
     // 否则：供给为裁判上限，虚拟缓冲能量跟随裁判值，切入 DCDC 时不跳变
     float supply = referee_limit;
-    if (is_dcdc_enable()) {
+    if (is_connect && is_enable) {
         supply = power_battery_ref + power_boost_max;
         energy_local = std::clamp(energy_local + (supply - power_chassis) * dt, 0.0f, BUFFER_FULL);
     } else {
@@ -153,10 +157,6 @@ void SuperCap::update_capacitance(const float current_cap, const float dt) {
     rls.current = current_cap;
     rls.charge = 0;
     rls.time = 0;
-}
-
-bool SuperCap::is_dcdc_enable() const {
-    return is_connect && (mode == CHARGE || mode == BOOST);
 }
 
 float SuperCap::buffer_gain(const float energy) const {

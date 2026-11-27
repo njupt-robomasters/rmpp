@@ -5,96 +5,93 @@
 #include "power/super_cap.hpp"
 #include "robot/chassis_steer.hpp"
 
-// 电机参数
-static constexpr float REDUCTION = 14.0f;                                                   // 轮电机总减速比暂用 14:1
-static constexpr float WHEEL_MAX_TORQUE = M3508::MAX_TORQUE / M3508::REDUCTION * REDUCTION; // 按减速比换算的轮端满量程力矩
-static constexpr bool IS_WHEEL_INVERT = false;
-static constexpr bool IS_SERVO_INVERT = true;
-
-// 底盘电机回传 125 Hz（8 ms），允许连续丢失约 5 帧
-static constexpr float TIMEOUT = 40 * ms;
+// 电机参数：轮电机总减速比暂用 14:1
+static constexpr float WHEEL_MAX_TORQUE = M3508::MAX_TORQUE / M3508::REDUCTION * 14.0f; // 按减速比换算的轮端满量程力矩
 
 // 底盘参数：前后、左右舵轴间距均为 360 mm
-static constexpr float CHASSIS_RADIUS = 180.0f * 1.41421356f * mm;
-static constexpr float WHEEL_RADIUS = 60.0f * mm;
+static constexpr float CHASSIS_RADIUS = 0.25455844f; // 底盘中心到轮轴，m
+static constexpr float WHEEL_RADIUS = 0.06f;         // 轮半径，m
+
+// 导航满速平移时的小陀螺角速度，rad/s
+static constexpr float WR_MIN = 60 * rpm;
+
+// 导航目标点，上位机坐标系，m；切换场地时只保留一行中心坐标
+// static constexpr float CENTER_X = 2.2f, CENTER_Y = 4.7f; // 比赛场地
+static constexpr float CENTER_X = 1.0f, CENTER_Y = 0; // 测试场地
+static constexpr float HOME_X = 0, HOME_Y = 0;
+
+// 血量低于回家值时回家，回到中心值以上再去中心
+static constexpr uint16_t GO_HOME_HP = 120, GO_CENTER_HP = 400;
 
 // 轮电机 PID：转速误差 rad/s → 电流 A
 inline Pid::Config wheel_pid_config = {
-    .kp = (20) / (360 * rpm),
-    .ki = (20) / (15 * deg),
-    .max_out = 20,
+    .kp = 20.0f / (360.0f * rpm),
+    .ki = 20.0f / (15.0f * deg),
+    .max_out = 20.0f,
 };
 
 // 舵电机 PID：舵向误差 rad → 电流 A，电压帧 3 A ↔ 25 V，对应参考实现 7 V/40°、限幅 25 V
 inline Pid::Config steer_pid = {
-    .kp = (0.84f) / (40 * deg),
-    .max_out = 3,
+    .kp = 3.0f / (140 * deg),
+    .max_out = 3.0f,
 };
 
 // 轮电机（左前、左后、右后、右前）
 inline M3508 w1({
     .can = Can(1),
     .rx_id = 0x201,
-    .timeout = TIMEOUT,
     .max_torque = WHEEL_MAX_TORQUE,
-    .reduction = REDUCTION,
-    .is_invert = IS_WHEEL_INVERT,
+    .reduction = 14.0f,
+    .is_invert = false,
 });
 inline M3508 w2({
     .can = Can(1),
     .rx_id = 0x202,
-    .timeout = TIMEOUT,
     .max_torque = WHEEL_MAX_TORQUE,
-    .reduction = REDUCTION,
-    .is_invert = IS_WHEEL_INVERT,
+    .reduction = 14.0f,
+    .is_invert = false,
 });
 inline M3508 w3({
     .can = Can(1),
     .rx_id = 0x203,
-    .timeout = TIMEOUT,
     .max_torque = WHEEL_MAX_TORQUE,
-    .reduction = REDUCTION,
-    .is_invert = IS_WHEEL_INVERT,
+    .reduction = 14.0f,
+    .is_invert = false,
 });
 inline M3508 w4({
     .can = Can(1),
     .rx_id = 0x204,
-    .timeout = TIMEOUT,
     .max_torque = WHEEL_MAX_TORQUE,
-    .reduction = REDUCTION,
-    .is_invert = IS_WHEEL_INVERT,
+    .reduction = 14.0f,
+    .is_invert = false,
 });
 
 // 舵电机（左前、左后、右后、右前），直驱；offset 为轮子朝前时的 raw 角度；电压帧反电动势前馈取半
 inline GM6020 s1({
                      .can = Can(1),
                      .rx_id = 0x207,
-                     .timeout = TIMEOUT,
-                     .is_invert = IS_SERVO_INVERT,
+                     .is_invert = true,
                      .offset = -133.5f * deg,
                  },
                  0.5f * GM6020::KE);
 inline GM6020 s2({
                      .can = Can(1),
                      .rx_id = 0x208,
-                     .timeout = TIMEOUT,
-                     .is_invert = IS_SERVO_INVERT,
+                     .is_invert = true,
                      .offset = 105.7f * deg,
                  },
                  0.5f * GM6020::KE);
 inline GM6020 s3({
                      .can = Can(1),
                      .rx_id = 0x209,
-                     .timeout = TIMEOUT,
-                     .is_invert = IS_SERVO_INVERT,
-                     .offset = -168.5f * deg, // 含 180° 修正轮子驱动方向
+                     .is_invert = true,
+                     .offset = -168.5f * deg,
                  },
                  0.5f * GM6020::KE);
 inline GM6020 s4({
                      .can = Can(1),
                      .rx_id = 0x20A,
-                     .timeout = TIMEOUT,
-                     .is_invert = IS_SERVO_INVERT,
+                     .is_invert = true,
                      .offset = -18.4f * deg,
                  },
                  0.5f * GM6020::KE);

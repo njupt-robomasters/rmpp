@@ -1,180 +1,64 @@
 # 规划与待办
 
-跨对话保存规划阶段已确认的决定、待确认问题和后续任务。规划时同步更新；任务完成后把长期结论提炼进 `docs/`，再从本文件删除
+只保留未完成事项：待用户确认的决策、待上车核对、未解决的硬件问题和后续任务。每条写现状和记录位置；办结后删除，长期结论写进主题文档或任务记录。
 
-## mc02 BSP 适配与 C 板优化
+## 待用户确认
 
-状态：代码与文档完成，编译通过，待用户审计和上板。结论见 `docs/bsp.md`，过程与待用户操作见 `tasks/01-mc02_bsp/README.md`
+### Referee 串口分层
 
-- mc02 `main.c` USER CODE 2 的 `bsp_init()`/`app_main()` 调用尚未添加（用户操作）
-- OUT_5V 供电的是哪一路 CAN 接口：待看原理图图片或实测后写入 `board/power_hpp` 注释
+- 现状：`Referee` 直接收 CAN（`lib/referee/referee.hpp` 的 `Config::can`），leg_down 用 `RefereeRelay` 把裁判串口字节转成 CAN 0x00/0x01，leg_up 已接入 `Referee`、`RefereeSender` 和 UI
+- 旧方案（09766fa 记录，未实施）：`Referee` 只接 UART，由 app 实现 UART-over-CAN 桥接；影响 Uart 绑定入口、两板分派、三处实例和主机测试
+- 待定：是否还需要改成 UART 抽象；不采用就删除本条
 
-## 第二轮：KvStore、FlashDB 重建、目录整理
+### pitch1 折叠/展开
 
-状态：在 worktree `../rmpp-kvstore` 的 kvstore 分支实施；步骤 1–2 已完成并编译通过，步骤 3 等待用户在 CubeMX 配置 OCTOSPI1
+- 当前 pitch1 固定失能并发送失能帧；后续启用时再定目标角、编码器零点和动作流程，见 `agents/05-comm/minipc.md` 与 `05-comm/minipc_protocol/README.md`
+- 导航上行目标坐标、pitch1 折叠时序接入前先确认与上位机的坐标约定
 
-### 设计要求（已写入 AGENTS.md）
+### 轮腿控制目标
 
-- `lib/`（含 `lib/third_party/`）不依赖 STM32 HAL、CMSIS 或板卡头文件
-- 当前唯一违反项：`lib/third_party/CherryUSB/port/dwc2`（`usb_glue_st.c` 引用 `stm32*_hal.h` 与 CMSIS）
-- 处理：第三方库按是否含硬件分两处
-  - `lib/third_party/`：纯软件（Eigen）
-  - 根目录 `third_party/`：含硬件移植层、只由 `boards/*/bsp` 编译的库（CherryUSB、FlashDB）
-  - 用户已确认根目录 `third_party/`
+允许车体倾斜、优先定位的方案只分析未实施；LQI、`theta_ref = 0` 未确认，见 `04-leg/lqr/README.md`
 
-### FlashDB（从原版重建）
+## 待上车核对
 
-- 现状：C 板拷贝版本号 2.1.99（开发快照）；与 2.2.0 对比，`fdb.c`、`flashdb.h` 及 FAL 全部相同，`fdb_kvdb.c`、`fdb_tsdb.c`、`fdb_utils.c`、`fdb_def.h`、`fdb_low_lvl.h` 不同；`fal_flash_stm32f4.c` 与上游示例完全一致
-- 用户已同意升级到 2.2.0。方案：用上游 2.2.0 原样，只拷 `inc/`、`src/fdb.c fdb_kvdb.c fdb_utils.c`、`port/fal/inc`、`port/fal/src/fal.c fal_flash.c fal_partition.c`、LICENSE；不拷 tsdb、fdb_file、fal_rtt、demos
-- 库本身不依赖 STM32（rtthread、unistd 仅在对应宏下包含），但 `flashdb.h` 包含板卡 `fdb_cfg.h`、FAL 包含 `fal_cfg.h`，只能由 BSP 编译，不进 `rmpp_lib`
-- 不改 FlashDB 源码：上游用 `#include <fdb_cfg.h>`、`#include <fal_cfg.h>` 尖括号包含，设计上就是由使用者通过头文件搜索路径提供配置；各板 CMake 的 `flashdb` 目标把 `third_party/FlashDB/inc`、`port/fal/inc` 和本板配置目录加入 include 路径，与 CherryUSB 的 `usb_config.h` 同法
-- Flash 设备符号（`fal_flash_dev`）由板卡驱动定义，在本板 `fal_cfg.h` 的设备表里引用；`FDB_PRINT` 等可覆盖宏也在板卡配置里定义
-- 只有板卡 `kv_store.cpp` 包含 `flashdb.h`；`lib/bsp/kv_store.hpp` 不包含 FlashDB 头文件
-- 各板 `bsp/` 自带：`fdb_cfg.h`、`fal_cfg.h`、Flash 驱动、`kv_store.cpp`；各板 CMake 创建 `flashdb` OBJECT 目标
-  - C 板：驱动用上游 `port/fal/samples/porting/fal_flash_stm32f4.c`（示例，放板卡），`FDB_WRITE_GRAN 8`，分区不变（768 KiB 偏移、256 KiB）
-  - mc02：OCTOSPI1 + W25Q64 手写 FAL 驱动（JEDEC 0xEF4017，0x03 读，0x06+0x02 页编程按 256 字节拆分，0x20 扇区擦除，轮询 WIP），`FDB_WRITE_GRAN 1`，分区 0 起 1 MiB、扇区 4 KiB；CPU 轮询，不用 DMA
-  - mc02 CubeMX（用户操作）：OCTOSPI1 单线模式，引脚参考达妙例程 PB2/PE11/PD11/PB0/PA3/PA1，时钟 ≤ 50 MHz 起步，不开 DMA 与中断
-- 升级版本会改变存储格式风险小但未验证；C 板已有的 yaw_offset 可能需重新标定，上板时核对
+### 轮腿 leg_up / leg_down
 
-### KvStore（Storage 改名）
+- 功率分配：`wheel_power` 与超电 `power_chassis` 对照；超目标时俯仰和腿角；低腿长缓加速先试；上板断联时协议清零、底盘失能，见 `04-leg/power_alloc/README.md`
+- 航向与速度：核对左右侧身时云台世界航向、A→D 和 D→A 倒行、W/S 回正、转身中速度投影、小陀螺切换与限功率时平衡，见 `04-leg/README.md`
+- 自瞄链路：CDC1 枚举、坐标系方向、人工接管与超时恢复、弹频放行，见 `05-comm/minipc_protocol/README.md`
+- 裁判与 UI：`referee_relay` 丢字节计数、0x0301、UI 显示、超电模式，见 `05-comm/referee_relay/README.md` 与 `06-sentry/app_unify/README.md`
+- 首版 LQR 参数对照：只换 K 后的抖动和定位，见 `04-leg/lqr/README.md`
+- 力矩分配：额定力矩上限、姿态组优先与运动组退让，见 `04-leg/torque_alloc/README.md`
 
-- `lib/bsp/storage.hpp` → `lib/bsp/kv_store.hpp`，类 `KvStore`，`read`/`write` 保留；构造参数仍为应用标记，注释强调更换时格式化
-- 迁移：两板实现、gimbal `load/save_yaw_offset(KvStore&)`、infantry/sentry `misc.hpp`、文档
+### 哨兵 jelly_sentry / steer_sentry
 
-### sentry 大 yaw：MF9025 → DM4310
+- 双 CDC 枚举与隔离、雷达与大 yaw 安装偏角、负小 yaw 坐标方向、随头方向、pitch1 失能状态，见 `05-comm/minipc_protocol/README.md`
+- jelly_sentry 本轮合并后上车核对90～60 rpm小陀螺、普通断联原地旋转、过洞断联底盘与云台保持、导航重连、100 Hz摩擦轮与20 m/s/10 Hz热量降频，见 `06-sentry/upstream/README.md`
+- steer_sentry 老哨兵操控还原：导航目标点 `(2.2, 4.7)` 与 `(0, 0)` 是否与新版上位机自定位同系；自主时摇杆与拨轮叠加后的方向和限幅；导航断联后摇杆驾驶；人工自瞄接管与释放，见 `06-sentry/steer_port/README.md`
+- 超电：0x051 电压电流符号与量程；CHARGE 稳态 `power_cap` 不为负；BOOST 在 10/12 V 的补偿衰减；断联重连；UI 按电容电压平方显示储能（满电默认 23.85 V），见 `07-power/super_cap/README.md`
+- UI 椭圆/圆弧半轴按协议修正后的显示；无选手端时 UI 请求被丢弃，见 `05-comm/referee_relay/README.md`
+- 机构参数按实测样机，温度、云台和发射机构保留本地实现，见 `06-sentry/upstream/README.md`
 
-- `app/sentry/gimbal.hpp` 的 `yaw1` 改为 `DM4310`，输出改为力矩；变更 `send()` 调用保持
-- 用户确认可以随写，后续自行调整：暂用 Can(1)，tx 0x12 / rx 0x13（避开 pitch 的 0x11/0x10）；`yaw1_pid`、安装方向保持原值，加注释标明待实车整定
-- `GimbalDualYaw` 已使用各电机原生输出：yaw1（DM4310）按 N·m、yaw2（GM6020）按 A 接收共用 PID 数值，参数待实车整定
+### 其他应用
 
-### 目录整理
+- 四舵轮底盘上车，见 `03-control/quad_steer/README.md`
+- dummy 靶车映射与 follow PID，见 `03-control/dummy/README.md`
+- 拨弹状态机、GimbalClassic 限位与加速度规划，见 `03-control/shooter/README.md`
+- 热量调节：`Shooter17mm` 的 `heat_delay`、`heat_gain`、`heat_reserve` 按上车实测整定；核对热量贴边不触发过热、剩余热量不跌破 0，见 `03-control/shooter/README.md`
+- VT13 键盘斜坡、云台与发射映射，见 `03-control/vt13/README.md`
+- 轮腿上下板 UI 槽位与 6 个电机状态，见 `04-leg/link_ui/README.md`
 
-- `lib/motor` 展平：`dji/`、`dm/` 下文件移至 `lib/motor/`，git mv，迁移 include
+## 未解决硬件问题
 
-### 顺序
-
-1. 目录整理（motor、melody）与 sentry DM4310
-2. 第三方库搬到根 `third_party/`；FlashDB 2.2.0 原版重建 + C 板 KvStore
-3. mc02 OCTOSPI 配置完成后实现 W25Q64 驱动与 KvStore
-
-## 蜂鸣器复音播放器进 lib
-
-状态：代码与文档完成，三个目标编译通过，待用户审计与上板。结论见 `docs/music.md`
-
-- 待上板：mc02 `examples-melody`；C 板复音算力未实测（infantry/sentry 仍只用普通模式）
-
-## 四舵轮底盘
-
-状态：代码完成并合入 master，编译通过，待用户审计与上车。结论与上车核对项见 `tasks/03-quad_steer/README.md`
-
-## 轮腿底盘迁移
-
-状态：代码完成，`leg` 编译通过，待用户审计与上车。worktree `../rmpp-leg-chassis`，分支 `leg_chassis`；结论与上车核对项见 `tasks/04-leg_chassis/README.md`
-
-- 待做：虚拟 IMU（云台 IMU + 关节角）
-- 2026-11-18 上下板 CAN 通信（暂不含键鼠）、下板跟随与轮端功率控制已在主工作区实现，`leg_up`、`leg_down` 的 app 与 lib 对象编译通过，待用户审计与上车；结论见 `docs/application.md`“轮腿上下板通信”“轮腿功率控制”
-- 2026-11-23 轮腿航向前馈：上板 `vt13.wr` 非 0 时发手动角速度并令 `yaw = 0`（下板不追踪航向），为 0 时发遥控器 `vt13.yaw_speed` 作跟随前馈；下板 LQR 去掉 `wr == 0` 门控，`gimbal_yaw` 恒进航向误差；删除未使用的 `GimbalClassic::set_chassis_wr`。两应用编译通过，待上车核对前馈方向与小陀螺/跟随切换瞬间的影响
-- 2026-11-24 轮腿力矩分配：`calc_lqr()` 按仿真当前策略把十项贡献分运动组和姿态组，超限时运动组共同退让、姿态组优先，腿摆上限按当拍轴向力矩折算关节余量；`Config` 新增 `wheel_work_speed`、删除航向/腿角/俯仰三项误差限幅；双轮功率控制暂不移植。`leg-leg_down` 编译通过，主机测试 22 项通过，待用户审计与上车
-- 上车核对：follow 方向与 kp、`cos(yaw)` 投影方向、`power.estimate` 与 `super_cap.power_chassis` 对比、限功率时平衡是否稳定
-
-## 超级电容 SuperCap
-
-状态：代码完成，`rmpp_lib` 编译通过，待用户审计与上车。协议来源 njupt-robomasters/G474SuperCap master@587146a（私有仓库）
-
-### 协议
-
-- 主控→超电 0x061：`data[0].bit0` 使能 DCDC，`data[1..2]` 电池侧目标功率 int16 大端 0.01 W/LSB
-- 超电→主控 0x051：仅在收到 0x061 时应答；V_BAT、I_OUT、V_CAP、I_CAP，int16 大端 mV/mA
-- 固件 100 ms 未收到命令关 DCDC；DCDC 使能后稳定电池侧功率，负载超过目标即自动放电，无“只充”开关；电容 8 V 止放、8–9 V 斜坡
-- 不回传 I_BAT，可测为底盘口负载功率 V_BAT·I_OUT（含舵电机）
-
-### 已确认
-
-- 类 `SuperCap`，`lib/power/super_cap.{hpp,cpp}`；模式 OFF / CHARGE / BOOST；应答 `voltage`、`current`、`power` 的 chassis/cap
-- 裁判输入 `set_referee_limit()`、`set_referee_energy()`；电池侧目标 `power_battery_ref` = 裁判上限·g(裁判缓冲能量)，所有模式下发
-- 底盘功率目标 `power_chassis_ref` = 供给·g(所用缓冲能量)；g 为 30 J 零、60 J 1.1 倍线性
-- OFF、离线、不限功率：供给为裁判上限，用 `energy_referee`，`energy_local` 跟随
-- CHARGE / BOOST：供给为 battery_ref（+ boost_max），`energy_local += (供给 − power_chassis)·dt`，限幅 [0, 60] J；电容额外放电与电容放空后的电池超用都扣除
-- 已删 MONITOR、`set_estimate()`、估计偏差修正；底盘保留 `power.estimate` 供 SWD 对照
-- dummy：SWC 上 OFF、中 CHARGE、下 BOOST，遥控断联 OFF；referee_loop 模拟裁判，超电 CAN1
-
-### 待上车核对
-
-- 0x051 应答电压电流符号与量程；底盘 `power.estimate` 与 `super_cap.power_chassis` 对比
-- CHARGE 稳态 `power_cap` 不为负；若因 DCDC 损耗偏负再考虑充电余量；BOOST 在 10/12 V 的补偿衰减
-- infantry/sentry 未装超电（不调用 send，按 OFF）
-
-### jelly_sentry 超电待上车
-
-- 已接入默认 CAN1 ID 0x061/0x051，在线 VT13 的 C 挡优先失能，N/S 挡启用超电 BOOST。N 挡双传送带与拨盘停转，S 挡运行双传送带，拨盘取 VT13 弹频（trigger 加 pitch 摇杆或鼠标左键）。人工 OFF 与裁判失联优先关闭超电，实现和验证见 `docs/application.md` 与 `tasks/06-super_cap_capacitance/README.md`
-- 待用户审计：OFF 反馈、CHARGE 充电、BOOST 电压补偿衰减、断联与重连；结合实车供电支路核对超电实测和四轮模型功率。UI 按电容电压平方比显示储能百分比，满电电压默认 23.85 V，待实车核对
-
-## 底盘深度重构、PID 回算、UI 下放
-
-状态：代码完成，受影响目标全部编译通过，待用户审计与上车。结论与上车核对项见 `tasks/03-quad_steer/README.md`
-
-## 全局代码优化
-
-状态：代码与文档完成，15 个预设全部编译通过，待用户审计与上车。基线 `8f01151`，过程与上车核对项见 `tasks/10-global_refactor/README.md`
+- EL05/CAN2：7025 + PCAN 独立总线部分 ID 使反馈间隔从 2 ms 跳到十几 ms；待核对真实请求间隔、分命令应答数、错误帧和 CANID 滤波器开关。EL05 已改 CAN2 私有扩展帧、电机与主机节点保留 0x12/0x22，电机侧 `protocol_1` 需核对（记录为 0），见 `01-board/mc02_bsp/README.md` 与 `agents/01-board/motor.md`
+- 两个 DM4310 接入 EL05 后丢反馈，实机原因未确认；EmberProbe 仍从旧工作区 `uart2can-master` 查找桥接，需把会话工作目录切到 rmpp 后读总线错误状态
+- mc02 OUT_5V 供电的是哪一路 CAN 接口：看原理图或实测后写进 `boards/mc02/bsp/include/board/power.hpp` 注释
+- KvStore 升级 FlashDB 2.2.0 后，C 板已有 yaw_offset 可能需重新标定
+- 蜂鸣器：mc02 `examples-melody` 待上板；C 板复音算力未实测，整车只用普通模式
 
 ## 后续任务
 
 - VQF 姿态算法：原样引入官方 C++ 实现（确认单精度选项），封装 `Vqf` 与 `QuaternionEkf` 并列
-
-## jelly_sentry 并入 master
-
-状态：2026-11-20 从 rmpp-czk（HEAD 65b91de 加其未提交的 Nav 与 pitch1 失能改动）并入，jelly_sentry、sentry 的 app 与 lib 对象编译通过，待用户审计与上车；jelly_sentry_debug 按用户要求未并入。行为变化与上车核对项见 `tasks/16-jelly_sentry_merge/README.md`
-
-## jelly_sentry EL05 / CAN2 调试
-
-- 7025 + PCAN 独立总线出现部分 ID 引起反馈间隔从稳定 2 ms 跳至十几 ms：PCAN 交替发送电流控制和位置查询；用户确认干扰帧仅改变 ID，其他发送配置相同、一次只测一个 ID。待核对总线上真实请求间隔、分命令应答数与错误帧；优先对照 CANID 滤波器开关。V4.3 协议 0x20/index=0x02 为滤波器，示例文字误写 0x01（实际为清零）；尚未发送设置或确认根因
-- EL05 已参考用户指定 old 分支改为 CAN2 私有扩展帧，电机/主机节点保留0x12/0x22；电机侧需核对 protocol_1=0（之前记录为2），详见 tasks/01-mc02_bsp/README.md
-- 2026-11-21 已在当前工作区只读采样确认两路 pitch 同步停有效反馈约 15 s/19 s，CAN2 EL05 和 CAN1 大 yaw 持续更新，CAN2 bus-off 与 HAL 错误码为 0。待用户核对活动线束、接头和供电，记录见 tasks/01-mc02_bsp/README.md
-- 本轮未完整链接、烧录、复位或硬件验证；待用户审计与台架测试
-
-## Referee UART 与 app CAN 转发分层
-
-状态：规划，等待用户确认方案后在外部 worktree 实施
-
-- 用户要求：Referee 只使用 UART，UART-over-CAN 由 app 实现；实现位于外部 worktree
-- 当前 `infantry`、`sentry`、`examples/referee` 均经 CAN1 接入，默认 rx ID 0、tx ID 1；Referee 内部完成 CAN 字节流收发
-- 建议：Uart 增加应用侧实现的绑定入口，保留硬件编号构造；app 共用 UartOverCan 实现接收回调、发送缓冲和每次 update 最多 8 字节的发送推进，Referee 统一使用 Uart
-- Referee 删除 variant、CAN ID 与 CAN 分片进度；保留裁判解析、CRC、超时和交互频率限制；核对 UI 对发送忙状态的依赖
-- 待确认范围：Uart 绑定入口及两板 UART 分派适配、app 共用桥接实现、三处实例与循环迁移、模块文档
-- 拟用 worktree `../rmpp-referee-uart`、分支 `refactor/referee-uart`；实现开始时核对基线及并行改动
-- 验证：格式检查、相关文件对象编译，覆盖 UART/CAN 字节流、分片、忙时重试、缓冲所有权和裁判解析的主机测试
-
-## VT13 操控量解析
-
-状态：代码与文档完成，leg-leg_up、sentry、examples-motor、examples-rc 的 app 与 lib 对象编译通过，主机测试通过，待用户审计与上车。结论见 `docs/application.md`“遥控器映射”，行为变化与上车核对项见 `tasks/12-vt13_control/README.md`
-
-## 外部 worktree 类布局重构
-
-基线 `795e263`，类布局重构已并入 master，外部 worktree 随合并移除。完成成员尾下划线移除、实例配置与设备状态展平、SWD 排序、最小权限和声明与实现排序；保留主线暂存的轮腿 LQR 调整并完成适配。infantry 跳过编译验证。代码与验证结论见 `tasks/10-global_refactor/README.md`，待用户审计与上车。
-
-2026-11-18 新一轮成员六组排序、函数调用序排序与最小权限调整（基线 `ba752f6`，分支 `refactor/class-member-order`）已并入 master，外部工作区 `../rmpp-class-order` 已移除，主工作区未提交的 `GimbalClassic` pitch 目标限位与 `TODO.md` 修改已合并保留。验证结论见 `tasks/10-global_refactor/README.md`。
-
-## 轮腿 LQR 首版参数对照
-
-- 用户确认原系数不抖；恢复最初 Python 模型（8f01151，Q_s=60、无 LQI）并独立为 lqr_fit.hpp，仅换 K，保留当前控制逻辑，待实车对照
-- 允许车体倾斜、优先定位的控制目标只分析，不实施
-
-## MiniPC 双 CDC 与导航控制协议
-
-状态：2026-11-20 实施，2026-11-24 按用户要求重构自瞄与导航协议；主机检查与两个哨兵的 ARM 对象编译通过，待用户审计和上板。结论见 `docs/minipc.md`，对接文档见根目录 `docs/minipc_protocol.md`，复现见 `tasks/21-minipc_protocol/README.md`
-
-- jelly_sentry 使用 CDC1 自瞄、CDC2 导航；导航速度按大 yaw 雷达系经 `-gimbal.yaw2.measure` 转到云台头部系后叠加遥控平移；导航测试阶段关闭自动小陀螺，过洞标志为 1 时关闭云台自主扫描并随 IMU 头、平移照常，为 0 分离模式零旋转输入；pitch1 全程失能并发送失能帧
-- 下一步：完善下位机上的战术点位闭环（按赛况更新 `nav.set_target(x, y)` 经 `0xA4` 下发）
-- 上板核对：两路 CDC 枚举及隔离、雷达与大 yaw 的安装偏角、负小 yaw 坐标转换方向、随头方向、人工接管和超时停止、pitch1 实际失能状态
-- 导航上行发送大 yaw 相对底盘的编码器角及目标坐标；下行 yaw 是相对大 yaw 当前朝向的期望转角，两向均用 rad。jelly_sentry 已每 5 拍发送在线大 yaw 实测角，目标 x/y 默认零；steer_sentry 尚未接入上行发送，两车的下行大 yaw 转角当前仅保存，下行当前坐标 x/y 仍仅保存
-- 2026-11-24 协议：单字节帧头 `A1`–`A4`，CRC 覆盖帧头；自瞄上行改为红方标志、弹速与四元数，下行改为识别/开火标志、yaw、pitch、距离，pitch 向下为正；导航下行加过洞标志与坐标，新增导航上行目标点
-- pitch1 折叠/展开功能暂缓，后续启用时再确定目标角、编码器零点和动作流程
-
-## app 结构统一与哨兵控制拆分
-
-状态：2026-11-20 代码与文档完成，jelly_sentry、steer_sentry、leg-leg_up、leg-leg_down、dummy、examples-motor 的 app 与 lib 对象编译通过，待用户审计与上车。行为变化、修复与上车核对项见 `tasks/17-app_unify/README.md`
-
-## 本地 yaw 与上车核对
-
-- 小 yaw 限位按用户决定保留 ±50°，窗口边缘与机械行程待用户上车审计
-- 本地窗口、PID 和探针历史记录保留在任务 24、25、26；旧 21/18 字节自瞄测试保留在任务 23，适用于检查点 8280d88，当前协议测试入口使用任务 15 和 21
+- 导航上行目标点坐标：steer_sentry 已按老哨兵血量状态机发送中心/家，坐标沿用旧赛场数值；需与上位机确认同系，或改装 `Referee::map_command` 的选手端指令
+- 虚拟 IMU：云台 IMU + 关节角合成底盘姿态，替代下板 IMU
+- 转向指令限幅与高速段功率模型：轮速能力不足时 `wr` 长期饱和，模型按指令力矩计算会低估实际功率，见 `04-leg/spin_power/README.md` 遗留

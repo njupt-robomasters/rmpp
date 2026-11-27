@@ -42,7 +42,14 @@ void VT13::update() {
     yaw_speed = std::clamp((rc.yaw + mouse.yaw) * config.yaw_speed_max, -config.yaw_speed_max, config.yaw_speed_max);
     pitch_speed = std::clamp(-(pitch_stick + mouse.pitch) * config.pitch_speed_max, -config.pitch_speed_max, config.pitch_speed_max);
 
-    // 发射：trigger 时 pitch 摇杆为最高弹频倍率，负值反转；否则鼠标左键按最高弹频
+    // 弹频：滚轮由 0 上跳加一步、下跳减一步（只看正负号），限幅到 [min, max]
+    if (last_mouse_wheel == 0 && mouse.wheel > 0)
+        config.bullet_freq = std::min(config.bullet_freq + config.bullet_freq_step, config.bullet_freq_max);
+    else if (last_mouse_wheel == 0 && mouse.wheel < 0)
+        config.bullet_freq = std::max(config.bullet_freq - config.bullet_freq_step, config.bullet_freq_min);
+    last_mouse_wheel = mouse.wheel;
+
+    // 发射：trigger 时 pitch 摇杆为弹频倍率，负值反转；否则鼠标左键按弹频
     if (rc.trigger)
         bullet_freq = rc.pitch * config.bullet_freq;
     else if (rc.mode == S && mouse.left)
