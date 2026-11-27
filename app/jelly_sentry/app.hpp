@@ -18,7 +18,7 @@ inline VT13 vt13({
     .vxy_max = 3.0f,
     .axy = INFINITY,
     .dxy = INFINITY,
-    .wr_max = 30 * rpm,
+    .wr_max = 90 * rpm,
     .ar = INFINITY,
     .dr = INFINITY,
     .yaw_speed_max = 720 * deg_s,
