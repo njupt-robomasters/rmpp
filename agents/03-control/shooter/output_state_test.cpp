@@ -47,11 +47,12 @@ int main() {
     TestMotor motor;
     const Pid::Config pid = {.kp = 20, .max_out = 20};
     Shooter17mm shooter({rub, rub, motor}, {.shoot_pid_config = &pid, .bullet_per_angle = 1, .block_time = 0.0045f, .reverse_time = 0.0025f});
-    const auto tick = [&](const float speed = 0, const uint64_t step_us = 1000, const bool online = true) {
+    const auto tick = [&](const float speed = 0, const uint64_t step_us = 1000, const bool online = true,
+                          const int32_t heat_remain = 100, const float cooling_rate = 0) {
         now_us += step_us;
         if (online)
             motor.feedback(speed);
-        shooter.update();
+        shooter.update(heat_remain, cooling_rate);
         return motor.current_ref;
     };
     shooter.set_enable(true);
@@ -77,16 +78,12 @@ int main() {
         assert(tick() < 0);
     assert(tick() > 0);
 
-    // 退弹时热量保护立即进入零速度闭环，恢复后重新计时
-    shooter.set_heat_remain(-1);
-    assert(tick(1) < 0);
-    shooter.set_heat_remain(100);
+    // 热量限制到零弹频时进入零速度闭环，恢复后重新计时
+    assert(tick(1, 1000, true, 0) < 0);
     for (int i = 0; i < 5; i++)
         assert(tick() > 0);
     assert(tick() < 0);
-    shooter.set_heat_remain(-1);
-    assert(tick() == 0);
-    shooter.set_heat_remain(100);
+    assert(tick(0, 1000, true, 0) == 0);
 
     // 负弹频按负方向拨弹，卡弹时向正方向退弹
     shooter.set_bullet_freq(-2);
@@ -112,11 +109,11 @@ int main() {
     slow.set_bullet_freq(2);
     now_us += 1000000;
     motor.feedback();
-    slow.update();
+    slow.update(100, 0);
     for (int i = 0; i < 5; i++) {
         now_us += 1000;
         motor.feedback();
-        slow.update();
+        slow.update(100, 0);
         assert(motor.current_ref > 0);
     }
 
@@ -128,7 +125,7 @@ int main() {
     for (int i = 0; i < 7; i++) {
         now_us += 1000;
         motor.feedback();
-        saturate.update();
+        saturate.update(100, 0);
         assert(std::fabs(motor.current_ref) == 5);
         assert((motor.current_ref > 0) == (i < 4 || i == 6));
     }
@@ -138,14 +135,37 @@ int main() {
     for (int i = 0; i < 4; i++) {
         now_us += 1000;
         motor.feedback();
-        saturate.update();
+        saturate.update(100, 0);
     }
     for (int i = 0; i < 10; i++) {
         now_us += 1000;
         motor.feedback();
-        saturate.update();
+        saturate.update(100, 0);
         assert(motor.current_ref == 2.5f);
     }
+
+    // 热量调节：余量充足按目标弹频，接近保留热量时线性降频并收敛到冷却速率对应弹频
+    const Pid::Config heat_pid = {.kp = 1, .max_out = 100};
+    Shooter17mm heat({rub, rub, motor}, {.shoot_pid_config = &heat_pid, .bullet_per_angle = 1, .heat_delay = 0.3f, .heat_reserve = 10, .heat_gain = 0.25f});
+    heat.set_enable(true);
+    heat.set_bullet_freq(10);
+    const auto heat_tick = [&](const int32_t heat_remain, const float cooling_rate) {
+        now_us += 1000;
+        motor.feedback();
+        heat.update(heat_remain, cooling_rate);
+        return motor.current_ref;
+    };
+    assert(heat_tick(100, 40) == 10);                  // 余量充足：按目标弹频
+    assert(std::fabs(heat_tick(52, 40) - 10) < 1e-3f); // 降频起点：目标 28 + (10 − 4) / 0.25 = 52
+    assert(std::fabs(heat_tick(40, 40) - 7) < 1e-3f);  // 起点以下按 0.25 发/秒/heat 降频
+    assert(std::fabs(heat_tick(28, 40) - 4) < 1e-3f);  // 目标热量 28：弹频等于冷却速率对应值 c/10
+    assert(std::fabs(heat_tick(20, 40) - 2) < 1e-3f);  // 低于目标继续降频，热量回升
+    assert(heat_tick(12, 40) == 0);                    // 降到零弹频
+    assert(std::fabs(heat_tick(37, 10) - 1) < 1e-3f);  // 目标随冷却速率变化：(100 − 10) × 0.3 + 10 = 37
+    heat.set_bullet_freq(-2);
+    assert(heat_tick(12, 40) == -2); // 负弹频不受热量限制
+    heat.set_bullet_freq(2);
+    assert(heat_tick(100, 0) == 2); // 目标低于热量允许值
 
     // 基类引用分派：默认电流与 DM 力矩
     Motor& current_motor = motor;

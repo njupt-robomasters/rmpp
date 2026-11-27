@@ -33,7 +33,8 @@ def main():
                "lib/robot/shooter_42mm.cpp"]
     sources += [p.relative_to(ROOT).as_posix() for p in (ROOT / "lib/motor").glob("*.cpp")]
     sources += ["app/leg/leg_up/app.cpp", "app/leg/leg_up/gimbal.cpp", "app/leg/leg_up/shooter.cpp",
-                "app/infantry/gimbal.cpp", "app/steer_sentry/gimbal.cpp", "app/examples/gimbal/app.cpp"]
+                "app/jelly_sentry/gimbal.cpp", "app/jelly_sentry/shooter.cpp",
+                "app/steer_sentry/gimbal.cpp", "app/steer_sentry/shooter.cpp"]
     template = next(r for r in rows if r["file"].endswith("/app/leg/leg_up/gimbal.cpp"))
     for source in sources:
         row = next((r for r in rows if r["file"].endswith("/" + source)), template)

@@ -36,7 +36,7 @@ class VT13 {
         float bullet_speed = 0;
         float bullet_freq = 0;      // 弹频，发/秒；滚轮在 [min, max] 内按 step 调节
         float bullet_freq_min = 5;  // 最低弹频，发/秒
-        float bullet_freq_max = 15; // 最高弹频，发/秒
+        float bullet_freq_max = 10; // 最高弹频，发/秒
         float bullet_freq_step = 5; // 每格滚轮调整量，发/秒
     } config;
 

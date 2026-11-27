@@ -38,7 +38,6 @@ inline Shooter17mm shooter({rub1, rub2, shoot},
                            {
                                .shoot_pid_config = &shoot_pid_config,
                                .bullet_per_angle = 10.0f / 56.0f * 22.0f / rev,
-                               .heat_protect = 80, // 剩余热量低于此值停止拨弹，待整定
                            });
 
 void shooter_loop();

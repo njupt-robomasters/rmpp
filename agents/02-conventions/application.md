@@ -84,7 +84,7 @@
 - 使能：在线 VT13 的 C 挡优先失能；否则 VT13 N/S 挡，或裁判自检、倒计时、比赛中保持使能。发射机构另在 N 挡失能
 - 底盘 VT13：分离模式，摇杆叠加键盘斜坡。底盘自主：折叠哨兵直接接收云台头部系速度，舵轮哨兵把雷达系速度转到云台系，两者均按 VT13 满量程限幅。过洞标志 1 跟随模式（steer_sentry 未配跟随 PID，只平移），过洞标志 0 分离模式小陀螺，平移 0→满量程时转速 `wr_max`→60 rpm。任一 yaw 离线时两车均停车；仅导航掉线时，折叠哨兵保留遥控平移，舵轮哨兵停车
 - 云台 VT13：摇杆叠加鼠标，R 键按下沿 `turn_yaw(180°)`，photo 或右键自瞄且识别到目标时跟随视觉角度；裁判自检阶段 yaw 叠加 180°/s 旋转。云台自主：5 m 内识别到目标且血量高于 120 时锁定视觉角度，脱锁 0.5 s 或低血量回到扫描（yaw 180°/s，pitch 在 IMU −22°~0° 往返 60°/s）；退出自主时复位为向下扫描。已删除全景相机（insta360）检查
-- 发射 VT13：S 挡开摩擦轮，trigger 或左键给弹频，自瞄时需视觉开火许可，右键双击强制开火；鼠标滚轮调弹频。发射自主：摩擦轮常开，视觉开火许可时按设定弹频。热量剩余量由裁判 `shooter_barrel_heat_limit − shooter_17mm_barrel_heat` 设置
+- 发射 VT13：S 挡开摩擦轮，trigger 或左键给弹频，自瞄时需视觉开火许可，右键双击强制开火；鼠标滚轮调弹频。发射自主：摩擦轮常开，视觉开火许可时按设定弹频。每周期把裁判剩余热量 `shooter_barrel_heat_limit − shooter_17mm_barrel_heat` 和冷却速率 `shooter_barrel_cooling_value` 传入 `Shooter17mm::update()`
 - yaw 校零：VT13 C 挡按住 fn 与 photo 的按下沿，按大 yaw `angle_multi` 更新 offset 并写入 KvStore；steer_sentry 沿用改名前的 KvStore 标记 `"sentry"`，保留已标定零位
 - 操控参数和跨周期状态使用文件内 `static`
 
@@ -174,4 +174,4 @@
 - `leg_down` 使用 `ChassisLeg::Config` 的质量、气弹簧推力、轮腿几何和额定轮速默认值；App 只绑定三组 PID 参数和 LQR 三张表，均定义在 `lib/robot/chassis_leg_lqr.hpp`（`LQR_FIT`、`LQR_POSTURE_FIT`、`LQR_R`，由 `agents/04-leg/lqr/gen_lqr_fit.py` 按同一 Q/R 生成）。默认轮速 65 rad/s、轮半径 0.06 m，对应直行目标上限 3.9 m/s
 - `ChassisLeg::calc_lqr()` 先把遥控目标按 `wheel_work_speed × 轮半径` 等比缩小，再按四路额定力矩分配：十项贡献分运动四项（位移、前进速度、航向、旋转速度）与姿态六项（两腿角及角速度、俯仰及角速度），四路都在限幅内时原样下发；超限时姿态组优先，运动组乘同一个最大可行比例，全不可行时运动归零再整体缩小姿态组。腿摆上限由当拍轴向力矩折成两关节剩余余量，跳跃期间不做分配，下发仍由电机自身力矩限幅兜底
 - 额定分配后按双轮净机械功率 `Σ Tw·ω ≤ power_ref` 修正（仿真 wheel_leg_lab `limit_wheel_power()` 的闭式投影）：未超或制动时原样下发；超出时取腿部映射 `M = D·C⁻¹`（C 为两轮对俯仰角速度、旋转速度的增益，D 为两腿稳姿态俯仰角速度增益与原腿增益之差、撤回的腿旋转速度项），`H = R轮 + Mᵀ·R腿·M`，轮力矩沿 `H⁻¹·ω` 投影到功率线；越过轮额定区间时从同比缩小点向投影点截取，两腿加 `M·轮缺口` 后再限到摆动额定区间。功率口径只计两轮机械功率，关节功率与铜耗由超电和缓冲能量承担；跳跃期间不修正。主机对照见 `agents/04-leg/power_alloc/`
-- leg_up 发射机构按裁判热量设置剩余热量，`heat_protect = 80` 待整定；UI 的 yaw 相对角取 `yaw.angle`，世界 yaw/pitch 取 GimbalClassic 的 `angle_measure`，受击方向按“云台世界 yaw − yaw 电机角”换算底盘航向后锁存，底盘转速显示下板回传的 `down.wr`；下板通信、使能与倒地显示在 `yaw1`，6 个底盘电机状态显示在 `w1`~`w4`、`s1`~`s4`
+- leg_up 发射机构按裁判剩余热量和冷却速率降频，`heat_delay`、`heat_gain`、`heat_reserve` 待上车整定；UI 的 yaw 相对角取 `yaw.angle`，世界 yaw/pitch 取 GimbalClassic 的 `angle_measure`，受击方向按“云台世界 yaw − yaw 电机角”换算底盘航向后锁存，底盘转速显示下板回传的 `down.wr`；下板通信、使能与倒地显示在 `yaw1`，6 个底盘电机状态显示在 `w1`~`w4`、`s1`~`s4`

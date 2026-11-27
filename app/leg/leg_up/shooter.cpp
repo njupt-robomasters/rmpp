@@ -15,6 +15,6 @@ void shooter_loop() {
     } else {
         shooter.set_bullet_freq(vt13.bullet_freq);
     }
-    shooter.set_heat_remain(referee.robot_status.shooter_barrel_heat_limit - referee.power_heat_data.shooter_17mm_barrel_heat);
-    shooter.update();
+    shooter.update(referee.robot_status.shooter_barrel_heat_limit - referee.power_heat_data.shooter_17mm_barrel_heat,
+                   referee.robot_status.shooter_barrel_cooling_value);
 }

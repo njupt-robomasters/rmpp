@@ -2,6 +2,19 @@
 
 状态：已并入 master，待用户审计与上车
 
+## 热量调节改为按延迟余量降频（2026-11-27）
+
+- 删除 `Config.heat_protect`；剩余热量不再按固定阈值启停，改为按整条链路延迟留余量、按热量偏差比例降频，兼容 5/10 Hz 等不同弹频
+- 目标热量 `target = (10·ref − c)·heat_delay + heat_reserve`：按当前目标弹频在延迟内净耗的热量留余量，再留一发。10 Hz、c = 40、delay = 0.3 时 target ≈ 28，对应实测的 3 发
+- 规则：`f_eff = min(ref, c/10 + heat_gain·(H − target))`。H 高于降频起点 `target + (ref − c/10)/heat_gain` 时按目标弹频；降到 target 时弹频等于自然冷却对应值 c/10，热量收支平衡；继续下降则弹频低于 c/10，热量自动回升；降到 0 即停止拨弹
+- 比例项的必要性：链路延迟是纯滞后，固定阈值加瞬时停机在 10 Hz 下会冲过限值（仿真最低 −2 heat）；按 H 偏差提前降频才留出滞后余量。旧实现（目标取 reserve、时间常数 0.3 s）在 c = 40 时最低 −1.9、c = 10 时 −7.9
+- 参数：`heat_delay = 0.3 s`（整条链路延迟，按“最后一发到裁判热量不再上涨”的时间校准）、`heat_reserve = 10 heat`（一发）、`heat_gain = 0.25 发/秒/heat`（每少 1 点热量降低的弹频）。稳定性要求 `heat_delay < π/(2·10·heat_gain)`，gain = 0.25 时约 0.63 s，留一倍余量
+- 仿真：`python agents/03-control/shooter/heat_sim.py`，c = 10~40、delay = 0.3、gain = 0.25 时最低剩余热量 19~24，3~7 s 收敛到 c/10
+- 负弹频（退弹）不受热量限制
+- 输入改为 `update(heat_remain, cooling_rate)`；jelly_sentry、leg_up、steer_sentry 每周期传 `heat_limit − shooter_17mm_barrel_heat` 与 `robot_status.shooter_barrel_cooling_value`
+- SWD 观察：`bullet_freq.ref/effective/measure`、`heat.remain/cooling/target/freq`、`is_heat_limit`
+- 验证：主机测试覆盖降频起点 52、线性段、目标热量 28、随 c 变化的目标 37、零弹频、负弹频，通过；`shooter_17mm.cpp` 与三个 app 的 shooter.cpp ARM 对象编译通过。`verify.py` 删除两个已不存在的 ARM 入口，补上 jelly_sentry、steer_sentry 的 shooter.cpp
+
 ## PID 输出饱和判卡弹（2026-11-20）
 
 - 删除 Config.block_torque；FEED 用上一周期拨弹 PID 输出（成员 shoot_output，update() 末尾保存，失能为 0）与 shoot_pid_config->max_out 比较，饱和持续 block_time 后反转。阈值与输出同单位，DJI 为 A、EL05 为 N·m，三台车统一
@@ -28,8 +41,8 @@
 python agents/03-control/shooter/verify.py --cxx g++ --arm-build build/leg-leg_up
 ```
 
-- 主机测试通过：连续卡弹检测、未饱和帧重置计时、退弹时长、正负弹频、热量保护/失能/零弹频/离线停止、恢复重新计时、长停顿的 dt 限幅
-- 零速度闭环修正验证通过：零弹频下正反速度反馈持续产生制动电流且不触发退弹，热量保护进入零速度闭环，失能时正反速度反馈均输出零电流；修正后的 `shooter_17mm.cpp` ARM 对象编译通过
+- 主机测试通过：连续卡弹检测、未饱和帧重置计时、退弹时长、正负弹频、热量限频/失能/零弹频/离线停止、恢复重新计时、长停顿的 dt 限幅
+- 零速度闭环修正验证通过：零弹频下正反速度反馈持续产生制动电流且不触发退弹，热量限频进入零速度闭环，失能时正反速度反馈均输出零电流；修正后的 `shooter_17mm.cpp` ARM 对象编译通过
 - 基类引用输出分派、DM 力矩、VESC 电流报文和 X630 静音测试通过
 - 19 个源码的 ARM 对象编译通过，无警告：8 个电机源码、5 个云台/发射机构源码，以及 leg_up 三个源码、infantry/sentry 云台、gimbal 示例入口
 - 修改源码的 clang-format 检查及 git diff --check 通过

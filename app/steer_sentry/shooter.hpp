@@ -40,7 +40,6 @@ inline M3508 shoot({
 inline Shooter17mm shooter({rub1, rub2, shoot}, {
                                                     .shoot_pid_config = &shoot_pid_config,
                                                     .bullet_per_angle = 9.0f * (41.0f / 50.0f) * (1.0f / rev),
-                                                    .heat_protect = 80,
                                                 });
 
 void shooter_loop(bool is_fire);

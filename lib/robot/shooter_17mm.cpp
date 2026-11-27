@@ -21,12 +21,8 @@ void Shooter17mm::set_bullet_freq(const float bullet_freq) {
     this->bullet_freq.ref = bullet_freq;
 }
 
-void Shooter17mm::set_heat_remain(const int32_t heat_remain) {
-    is_heat_protect = heat_remain < config.heat_protect;
-}
-
-void Shooter17mm::update() {
-    const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
+void Shooter17mm::update(const int32_t heat_remain, const float cooling_rate) {
+    const float dt = std::clamp(update_timer.restart(), DT_MIN, DT_MAX);
 
     // 离线检测
     motor.rub1.update();
@@ -39,20 +35,29 @@ void Shooter17mm::update() {
     bullet_speed.measure = (rub_speed[0] + rub_speed[1]) / 2.0f;
     bullet_freq.measure = motor.shoot.speed * config.bullet_per_angle;
 
+    // 热量限制：延迟内按目标弹频净耗的热量作为降频目标，低于目标时按热量的偏差线性降频，弹频不低于 0
+    const float heat_ref = std::max(bullet_freq.ref, 0.0f);
+    heat.remain = heat_remain;
+    heat.cooling = cooling_rate;
+    heat.target = (HEAT_PER_SHOT * heat_ref - cooling_rate) * config.heat_delay + config.heat_reserve;
+    heat.freq = cooling_rate / HEAT_PER_SHOT + config.heat_gain * (heat_remain - heat.target);
+    bullet_freq.effective = std::min(bullet_freq.ref, std::max(heat.freq, 0.0f));
+    is_heat_limit = bullet_freq.effective < bullet_freq.ref;
+
     // 摩擦轮速度控制
     const float rub_speed_ref = is_enable ? bullet_speed.ref / config.rub_radius : 0.0f;
     motor.rub1.set_speed(rub_speed_ref);
     motor.rub2.set_speed(rub_speed_ref);
 
     // 拨弹启停判断
-    if (!is_enable || is_heat_protect || bullet_freq.ref == 0 || !motor.shoot.is_connect) {
+    if (!is_enable || bullet_freq.effective == 0 || !motor.shoot.is_connect) {
         state = STOP;
     } else if (state == STOP) {
         state = FEED;
     }
 
     // 拨弹与卡弹退弹状态机
-    float shoot_speed = bullet_freq.ref / config.bullet_per_angle;
+    float shoot_speed = bullet_freq.effective / config.bullet_per_angle;
     switch (state) {
     case STOP:
         shoot_speed = 0;

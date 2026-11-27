@@ -9,6 +9,7 @@
 class Shooter17mm {
   private:
     static constexpr float DT_MIN = 0.0001f, DT_MAX = 0.01f; // 控制周期限幅，s
+    static constexpr float HEAT_PER_SHOT = 10;               // 17mm 单发消耗热量，heat/shot
 
     // 设备绑定
     struct Motors {
@@ -24,7 +25,11 @@ class Shooter17mm {
         float rub_radius = 0.03f;            // 摩擦轮半径
         float block_time = 0.25f;            // 卡弹检测时间，s；拨弹 PID 输出持续饱和达到该时间判定卡弹
         float reverse_time = 0.1f;           // 卡弹倒转时间
-        uint16_t heat_protect = 0;           // 剩余热量保护阈值
+
+        // 热量：链路延迟，s；保留热量，heat；降频增益，发/秒/heat
+        float heat_delay = 0.3f;
+        float heat_reserve = 10;
+        float heat_gain = 0.25f;
     };
 
   private:
@@ -42,15 +47,25 @@ class Shooter17mm {
   private:
     // 弹频 (shots/s)
     struct {
-        float ref = 0, measure = 0;
+        float ref = 0;       // 目标弹频
+        float effective = 0; // 热量限制后的弹频
+        float measure = 0;   // 拨弹反馈
     } bullet_freq;
+
+    // 热量，update() 输入与计算
+    struct {
+        int32_t remain = 0; // 剩余热量，heat；可为负
+        float cooling = 0;  // 冷却速率，heat/s
+        float target = 0;   // 降频目标热量，heat；降到该值时弹频等于冷却速率对应值
+        float freq = 0;     // 热量允许的弹频，shots/s
+    } heat;
 
   public:
     // 摩擦轮线速度，m/s
     float rub_speed[2]{};
 
   private:
-    bool is_heat_protect = false; // 热量保护状态
+    bool is_heat_limit = false; // 热量限制中
 
     // 拨弹状态机
     enum {
@@ -82,9 +97,6 @@ class Shooter17mm {
     // 设置弹频参考值，发/秒；0 停止拨弹，负值反转，保持到下次设置
     void set_bullet_freq(float bullet_freq);
 
-    // 设置裁判剩余热量，允许过热时的负值；未设置时不限制
-    void set_heat_remain(int32_t heat_remain);
-
-    // 每个控制周期调用
-    void update();
+    // 每个控制周期调用；剩余热量 heat 允许过热时的负值，冷却速率 heat/s
+    void update(int32_t heat_remain, float cooling_rate);
 };

@@ -43,6 +43,7 @@
 - 四舵轮底盘上车，见 `03-control/quad_steer/README.md`
 - dummy 靶车映射与 follow PID，见 `03-control/dummy/README.md`
 - 拨弹状态机、GimbalClassic 限位与加速度规划，见 `03-control/shooter/README.md`
+- 热量调节：`Shooter17mm` 的 `heat_delay`、`heat_gain`、`heat_reserve` 按上车实测整定；核对热量贴边不触发过热、剩余热量不跌破 0，见 `03-control/shooter/README.md`
 - VT13 键盘斜坡、云台与发射映射，见 `03-control/vt13/README.md`
 - 轮腿上下板 UI 槽位与 6 个电机状态，见 `04-leg/link_ui/README.md`
 
@@ -53,7 +54,6 @@
 - mc02 OUT_5V 供电的是哪一路 CAN 接口：看原理图或实测后写进 `boards/mc02/bsp/include/board/power.hpp` 注释
 - KvStore 升级 FlashDB 2.2.0 后，C 板已有 yaw_offset 可能需重新标定
 - 蜂鸣器：mc02 `examples-melody` 待上板；C 板复音算力未实测，整车只用普通模式
-- leg_up 发射机构 `heat_protect = 80` 待整定
 
 ## 后续任务
 
