@@ -4,8 +4,8 @@
 #include "gimbal.hpp"
 
 // 导航目标点坐标，m：中心增益点与补给区回家点
-static constexpr float CENTER_X = 6.0f, CENTER_Y = -3.2f;
-static constexpr float HOME_X = -0.15f, HOME_Y = -0.15f;
+static constexpr float CENTER_X = 6.0f, CENTER_Y = -3.8f;
+static constexpr float HOME_X = 0.15f, HOME_Y = -0.15f;
 
 // 返航血量阈值：低于此值回家，回满上限血量后重新出击
 static constexpr uint16_t GO_HOME_HP = 100;

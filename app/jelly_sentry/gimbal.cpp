@@ -108,5 +108,5 @@ void gimbal_loop() {
         gimbal.set_yaw_window((!is_auto || sentry_can_engage()) && is_detect);
     // 小陀螺前馈；底盘转速未知时关闭
     gimbal.set_chassis_wr(std::isfinite(chassis.wr.measure) ? chassis.wr.measure : 0);
-    gimbal.update(attitude.yaw, attitude.pitch);
+    gimbal.update(attitude.q, imu.gyro);
 }

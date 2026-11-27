@@ -225,7 +225,7 @@ static void pitch1_test() {
         // 即便直接注入使能和非零目标，下次机构更新也强制失能并清零
         pitch1.set_enable(true);
         pitch1.set_output(5);
-        gimbal.update(0.1f, 0.1f);
+        gimbal.update(euler_to_quaternion({.yaw = 0.1f, .pitch = 0.1f}), Vector3f::Zero());
         CHECK(!pitch1.enabled());
         near(pitch1.torque_ref, 0);
         near(pitch1.current_ref, 0);

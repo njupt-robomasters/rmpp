@@ -56,8 +56,10 @@ inline bool sentry_in_game() {
     return referee.game_status.game_progress == Referee::GAMING && (id == 7 || id == 107);
 }
 
-// 整车使能：赛场自检、倒计时和正赛强制使能（屏蔽操作间默认 C 挡）；场外 C 挡优先失能
+// 整车使能：正赛在线 C 挡优先失能；自检和倒计时按赛场流程使能，场外 C 挡优先失能
 inline bool sentry_enable() {
+    if (sentry_in_game() && vt13.is_connect && vt13.rc.mode == VT13::C)
+        return false;
     if (sentry_official())
         return true;
     if (vt13.rc.mode == VT13::C)

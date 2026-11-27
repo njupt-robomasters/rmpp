@@ -5,9 +5,9 @@
 #include "pid/pid.hpp"
 
 // 折叠哨兵云台：大小 yaw + 折叠关节 pitch1 + 俯仰轴 pitch2
-// - 大 yaw（yaw1）跟随云台总目标，小 yaw（yaw2）补偿大 yaw 尚未转到的部分并限位；两者各自串级 PID，使用电机原生输出
+// - 大 yaw（yaw1）跟随云台总目标，采用编码器速度内环；小 yaw（yaw2）补偿大 yaw 尚未转到的部分并限位，采用经 pitch2 关节角旋转的 IMU 绝对角速度内环
 // - pitch1 折叠关节当前固定失能，保留测量，控制输出为零；目标接口预留给后续启用
-// - pitch2 为传统俯仰轴，IMU 装在其上；pitch1 转动时 IMU 模式经 imu_minus_ecd 自动补偿
+// - pitch2 为传统俯仰轴，IMU 装在其上，采用编码器速度内环；pitch1 转动时 IMU 模式经 imu_minus_ecd 自动补偿
 // - pitch2 叠加重力补偿力矩 torque·cos(angle + phase)，pitch1 补偿当前停用
 // 各电机离线只影响自身：输出零并清空自身 PID，恢复后从实测重新闭环
 // 国际单位制：角度 rad，角速度 rad/s，力矩 Nm，电流 A
@@ -103,8 +103,8 @@ class GimbalFold {
     // 保存折叠关节目标角；当前失能策略在 update 中将其恢复为实测角
     void set_pitch1_angle(Angle angle);
 
-    // 每个控制周期调用；输入云台 IMU 姿态，rad
-    void update(Angle imu_yaw, Angle imu_pitch);
+    // 每个控制周期调用；q 为云台到世界的单位四元数，gyro 为安装修正后的云台系角速度，rad/s
+    void update(const Quaternionf& q, const Vector3f& gyro);
 
   private:
     // 单电机可控判断：失能或离线时清空 PID 并返回 false；恢复后第一个周期仍返回 false

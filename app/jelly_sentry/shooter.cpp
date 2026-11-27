@@ -39,8 +39,8 @@ static void control_by_auto(const bool is_fire) {
 void shooter_loop() {
     const bool is_fire = aim.is_fire;
 
-    // 赛场阶段强制使能；场外 N 挡只允许底盘和云台使能，发射机构失能
-    shooter.set_enable(sentry_official() || (sentry_enable() && vt13.rc.mode != VT13::N));
+    // 发射机构：先服从整车使能；场外 N 挡只允许底盘和云台使能
+    shooter.set_enable(sentry_enable() && (sentry_official() || vt13.rc.mode != VT13::N));
     if (sentry_in_game() || fn_latched()) {
         control_by_auto(is_fire);
     } else if (sentry_official()) {

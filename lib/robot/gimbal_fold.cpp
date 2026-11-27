@@ -56,11 +56,12 @@ void GimbalFold::set_pitch1_angle(const Angle angle) {
     pitch1.ref = angle;
 }
 
-void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
+void GimbalFold::update(const Quaternionf& q, const Vector3f& gyro) {
     const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
 
-    yaw.imu.measure = imu_yaw;
-    pitch.imu.measure = imu_pitch;
+    const auto euler = quaternion_to_euler(q);
+    yaw.imu.measure = euler.yaw;
+    pitch.imu.measure = euler.pitch;
     motor.pitch1.set_enable(false);
     motor.yaw1.update();
     motor.yaw2.update();
@@ -89,6 +90,10 @@ void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
         pitch1.measure = motor.pitch1.angle;
     if (motor.pitch2.is_connect)
         pitch.ecd.measure = motor.pitch2.angle;
+
+    // IMU 角速度经 pitch2 关节旋转到小 yaw 随动系，Z 分量为小 yaw 轴绝对角速度
+    const Quaternionf pitch_joint(Eigen::AngleAxisf(pitch.ecd.measure, Vector3f::UnitY()));
+    const Vector3f gyro_axis = pitch_joint * gyro;
 
     // 合并大小 yaw
     yaw.ecd.measure = yaw1.measure + yaw2.measure;
@@ -172,13 +177,20 @@ void GimbalFold::update(const Angle imu_yaw, const Angle imu_pitch) {
         motor.yaw1.set_output(0);
     }
 
-    // 小 yaw 串级 PID，限位误差；速度前馈另扣除大 yaw 转速，到达限位时取消前馈
+    // 小 yaw 串级 PID：IMU 轴向绝对角速度闭环；未限位时把世界偏航速率修正换算到电机轴并跟踪目标转速，到达限位时随大 yaw 运动
     if (can_yaw2) {
-        float speed_ff = 0;
-        if (!is_yaw2_limit)
-            speed_ff = -chassis_wr + yaw_speed - motor.yaw1.speed;
-        const float speed_ref = yaw2_position_pid.calculate(dt, yaw2.ref - yaw2.measure) + speed_ff;
-        motor.yaw2.set_output(yaw2_speed_pid.calculate(dt, speed_ref - motor.yaw2.speed));
+        float yaw2_correction = yaw2_position_pid.calculate(dt, yaw2.ref - yaw2.measure);
+        if (mode == IMU_MODE && !is_yaw2_limit) {
+            const Vector3f axis_correction = pitch_joint * (q.conjugate() * Vector3f(0.0f, 0.0f, yaw2_correction));
+            yaw2_correction = axis_correction.z();
+        }
+        float speed_ff = yaw_speed;
+        if (is_yaw2_limit)
+            speed_ff = chassis_wr + motor.yaw1.speed;
+        else if (mode == ECD_MODE)
+            speed_ff = chassis_wr + yaw_speed;
+        const float speed_ref = yaw2_correction + speed_ff;
+        motor.yaw2.set_output(yaw2_speed_pid.calculate(dt, speed_ref - gyro_axis.z()));
         yaw2_speed_pid.track(motor.yaw2.current_ref);
     } else {
         motor.yaw2.set_output(0);

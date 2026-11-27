@@ -80,7 +80,7 @@
 
 ## 哨兵控制
 
-- 两车按哨兵比赛身份或 fn 锁存进入自主控制。jelly_sentry 增加 `sentry_official()`（哨兵身份处于自检、倒计时或正赛）：赛场阶段强制整车与发射机构使能、超电在自检/倒计时充电且正赛开启放电补偿，屏蔽操作间默认 `VT13::C` 挡与摇杆输入；自检阶段底盘零速、云台扫描、摩擦轮与拨盘停转，5s 倒计时保持底盘零速与云台扫描并提前启动摩擦轮；场外保持 C 挡优先失能、N 挡禁发射机构
+- 两车按哨兵比赛身份或 fn 锁存进入自主控制。jelly_sentry 正赛收到在线 VT13 的 C 挡时，底盘、云台、发射机构与超电全部失能；N/S 挡或遥控断联时按比赛自主运行，裁判在线时超电开启放电补偿。赛场自检阶段底盘零速、云台扫描、摩擦轮与拨盘停转，5 s 倒计时预开摩擦轮，两个阶段超电只充电，均按赛程使能。场外保持 C 挡整车失能、N 挡发射机构失能
 - 两车导航速度均按大 yaw 雷达系接收，经负小 yaw 角转换到云台系；jelly_sentry 场下 fn 测试叠加 VT13 平移，正赛只取导航速度，steer_sentry 叠加后按每轴 ±5 m/s 限幅；任一 yaw 反馈丢失时自主底盘停车
 - jelly_sentry 在 `minipc_loop()` 维护 `NavState`（`IDLE / GO_CENTER / AT_CENTER / GO_HOME`）：正赛或 fn 测试下发中心点 `(6.0, -3.2)` m，裁判 `0x0209` bit23 判到达中心点（`AT_CENTER`），有效血量 `<100` 切 `GO_HOME` 发 `(-0.15, -0.15)` m 直至回满 `maximum_HP` 再去中心点。普通过洞外导航以合速度 0～5 m/s 对应 90～60 rpm 小陀螺，超量程只限制旋转插值输入。过洞时随头，平移照常。普通导航断联后平移归零、原地 90 rpm，云台继续扫描或自瞄；过洞断联后平移与旋转均归零，云台保持目标姿态，暂停遥控转动、自瞄跟踪和扫描，等待新有效导航帧。应用保存最近有效过洞标志，Nav 本身仍按协议清零
 - steer_sentry 自主叠加遥控平移及旋转，非过洞为 120～60 rpm 小陀螺，导航超时后导航量清零、遥控仍可用。血量 ≤120 回家，≥400 再去中心，默认测试中心 (1,0) m、家 (0,0) m
@@ -101,7 +101,7 @@
 
 - 已装超电，CAN1，沿用 `SuperCap` 默认命令 ID 0x061、反馈 ID 0x051；复用 dummy 的协议和虚拟缓冲算法，整车输入使用真实裁判功率上限与缓冲能量
 - `chassis_loop()` 每周期设置 DCDC 使能、放电补偿和裁判输入并更新超电，再把 `power_chassis_ref` 交给四轮力控底盘；发送在 `app.cpp::send()` 独立按 10 拍分频，目标 100 Hz，OFF、底盘失能和超电离线时持续发送
-- 模式优先级：裁判离线或在线 VT13 C 挡 → OFF；VT13 N/S 挡、或正赛且机器人 ID 为 7/107 → BOOST；自检/倒计时 → CHARGE；其余 OFF。BOOST 工况下用电池侧余量充电，负载升高时允许电容补偿。比赛自主运行可在遥控断联后继续使用超电，仍受裁判连接状态约束
+- 模式优先级：裁判离线或整车失能时 OFF，正赛或场外 VT13 使能时 BOOST，赛场自检和倒计时时 CHARGE，其余 OFF。BOOST 工况下用电池侧余量充电，负载升高时允许电容补偿
 - 裁判连接超时由现有 `Referee` 的 1 s 检测决定，超电转 OFF 后底盘继续使用最后功率上限与缓冲能量；上电未收到裁判时为默认 120 W/60 J，超电 OFF
 - 超电实测功率覆盖范围按实车供电支路核对，四轮模型只估计轮电机功率；UI 的 CAP 弧长和整数百分比均取自 `SuperCap::energy_ratio()`，按（当前电容电压 / 满电电压）² 计算，满电默认 23.85 V，离线显示 0
 - CAP、RPM、BULLET、SHOOT 四段仪表圆弧始终为绿色；整车图中的超电状态框按超电状态着色
@@ -109,7 +109,7 @@
 
 ## jelly_sentry 双传送带驱动
 
-- 在线 VT13 的 C 挡使整车失能，优先于比赛阶段的自动使能；N 挡只允许底盘和云台使能，摩擦轮与拨弹目标均归零，发射机构失能
+- 发射机构服从整车使能。场外 N 挡只使能底盘与云台，摩擦轮和拨弹停转；赛场 N 挡按对应赛程控制发射机构
 - 用户说明 rub1/rub2 为工业传送带转动机构，工程沿用摩擦轮命名。VT13 在线时只按 VT13 手动控制：S 挡运行两路电机（`vt13.bullet_speed`），拨盘取 `vt13.bullet_freq`（trigger 时 pitch 摇杆乘弹频，负值反转；否则鼠标左键按弹频），人工自瞄需视觉开火许可，右键双击强制开火除外；自主时双传送带常开、视觉开火许可时按设定弹频
 - 两个 P630 由 app 定义为 `Vesc`，绑定 CAN2，节点 ID 沿用 `0x21/0x22`，共用现有 VESC 扩展帧收发实现
 - `Shooter17mm::update()` 通过 `set_speed()` 设置输出轴目标角速度（rad/s），由 Vesc 换算为 ERPM，使用电调内部速度环
@@ -126,7 +126,7 @@
 
 ## jelly_sentry 上游接口适配
 
-- `GimbalFold` 位于 `lib/robot/gimbal_fold.*`，目前仅 jelly_sentry 使用；四轴控制在独立的 `update()` 中执行。app 每周期更新 attitude，并通过 `gimbal.update(attitude.yaw, attitude.pitch)` 传入姿态，yaw1 零点由 app 经 KvStore 持久化
+- `GimbalFold` 位于 `lib/robot/gimbal_fold.*`，目前仅 jelly_sentry 使用；四轴控制在独立的 `update()` 中执行。app 每周期更新 attitude，并通过 `gimbal.update(attitude.q, imu.gyro)` 传入姿态四元数与机体系角速度：小 yaw 采用经 pitch2 关节角投影的 IMU 绝对角速度内环，大 yaw 与 pitch2 保持原有电机编码器速度内环；yaw1 零点由 app 经 KvStore 持久化
 - 大 yaw、pitch1、pitch2 经电机原生 `set_output()` 接收 Nm，小 yaw 7025 接收 A；折叠云台保留电机限幅后的 PID 跟踪及重力补偿，独立于上游普通云台的简化策略
 - 底盘由 app 更新超电后传入 `power_chassis_ref`
 - 受击方向显示与实测弹速读取裁判公开只读的 `hurt_data`、`hurt_sequence`（收到 0x0206 递增）、`shoot_data`；受击时按装甲 ID 换算到 IMU 参考系锁存 1 s。两台哨兵与 leg_up 在 `referee_loop()` 直接填写 `ui` 的公开字段，再调用 `ui.update(referee_sender)`

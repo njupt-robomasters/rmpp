@@ -41,7 +41,8 @@ static void control_by_auto() {
 }
 
 void chassis_loop() {
-    chassis.set_enable(sentry_enable());
+    const bool is_enable = sentry_enable();
+    chassis.set_enable(is_enable);
     if (sentry_in_game() || fn_latched()) {
         control_by_auto();
     } else if (sentry_official()) {
@@ -55,9 +56,9 @@ void chassis_loop() {
     // 前进正方向为云台方向
     chassis.set_gimbal_yaw(gimbal.yaw.ecd.measure);
 
-    // 超电：裁判离线或场外 C 挡关闭；赛场正赛或遥控使能放电补偿，自检和倒计时只充电
+    // 超电：裁判在线且整车使能时，正赛或场外遥控使能放电补偿，自检和倒计时只充电
     bool is_cap_enable = false, is_boost_enable = false;
-    if (referee.is_connect && (sentry_official() || vt13.rc.mode != VT13::C)) {
+    if (referee.is_connect && is_enable) {
         const auto progress = referee.game_status.game_progress;
         is_boost_enable = sentry_in_game() || (!sentry_official() && vt13.is_enable);
         is_cap_enable = is_boost_enable || progress == Referee::REFEREE_SELF_CHECK || progress == Referee::COUNTDOWN_5SEC;
