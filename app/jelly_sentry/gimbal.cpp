@@ -10,9 +10,8 @@
 // 自主扫描：yaw 连续旋转，pitch 目标在编码器软限位间往返，rad/s
 static constexpr float YAW_SPEED = 180 * deg_s, PITCH_SPEED = 60 * deg_s;
 
-// 自主锁定：自瞄有效距离，m；脱锁时间，s；不高于此血量放弃锁定
+// 自主锁定：自瞄有效距离，m；脱锁时间，s
 static constexpr float LOCK_DISTANCE = 5, LOCK_TIMEOUT = 500 * ms;
-static constexpr int GO_HOME_HP = 120;
 
 // 自主状态，退出自主时复位为向下扫描
 static bool is_lock = false, scan_up = false;
@@ -39,7 +38,7 @@ static void control_by_vt13(const bool is_detect, const Angle target_yaw, const 
     }
 }
 
-// 自主：过洞断联时保持目标姿态；其余摇杆或鼠标优先，松开后锁定目标或扫描
+// 自主：过洞断联保持姿态；场下调试摇杆或鼠标优先；允许交战时 5 m 内锁定目标，回家及赛前自检/倒计时只扫描不响应自瞄
 static void control_by_auto(const bool is_detect, const Angle target_yaw, const Angle target_pitch, const float distance) {
     if (!nav.is_connect && is_nav_through_hole) {
         is_lock = false;
@@ -47,20 +46,20 @@ static void control_by_auto(const bool is_detect, const Angle target_yaw, const 
         return;
     }
 
-    if (vt13.yaw_speed != 0 || vt13.pitch_speed != 0) {
+    if (!sentry_official() && (vt13.yaw_speed != 0 || vt13.pitch_speed != 0)) {
         is_lock = false;
         gimbal.set_speed(vt13.yaw_speed, -vt13.pitch_speed);
         return;
     }
 
     const bool has_target = is_detect && distance <= LOCK_DISTANCE;
-    const bool is_low_hp = referee.robot_status.current_HP <= GO_HOME_HP;
-    if (has_target && !is_low_hp) {
+    const bool can_engage = sentry_can_engage();
+    if (can_engage && has_target) {
         is_lock = true;
         lock_yaw = target_yaw;
         lock_pitch = target_pitch;
         lock_lost_timer.restart();
-    } else if (is_low_hp || lock_lost_timer.elapsed() > LOCK_TIMEOUT) {
+    } else if (!can_engage || lock_lost_timer.elapsed() > LOCK_TIMEOUT) {
         is_lock = false;
     }
 
@@ -96,7 +95,7 @@ void gimbal_loop() {
     }
     last_calib = calib;
 
-    const bool is_auto = sentry_in_game() || fn_latched();
+    const bool is_auto = sentry_official() || fn_latched();
     if (is_auto) {
         control_by_auto(is_detect, target_yaw, target_pitch, distance);
     } else {
@@ -104,9 +103,9 @@ void gimbal_loop() {
         control_by_vt13(is_detect, target_yaw, target_pitch);
     }
 
-    // 识别时小 yaw 优先追踪；自主过洞断联时保持原分配模式
+    // 允许交战且识别到装甲板时小 yaw 优先追踪；过洞断联时保持原分配模式
     if (!is_auto || nav.is_connect || !is_nav_through_hole)
-        gimbal.set_yaw_window(is_detect);
+        gimbal.set_yaw_window((!is_auto || sentry_can_engage()) && is_detect);
     // 小陀螺前馈；底盘转速未知时关闭
     gimbal.set_chassis_wr(std::isfinite(chassis.wr.measure) ? chassis.wr.measure : 0);
     gimbal.update(attitude.yaw, attitude.pitch);

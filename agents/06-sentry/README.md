@@ -17,7 +17,7 @@
 - `jelly_sentry` 使用 mc02，CDC1 自瞄、CDC2 导航，错拍各250 Hz；`steer_sentry` 使用 C 板，Aim 与 Nav 共用 CDC1，错拍各200 Hz
 - 两车均按雷达系接收导航速度，经负小 yaw 转到头部系后叠加遥控；过洞标志1随头，0小陀螺。jelly_sentry 为90～60 rpm，普通断联平移归零并原地90 rpm，过洞断联停车且暂停云台跟踪和扫描
 - 自主时 steer_sentry 叠加VT13平移与旋转并限幅，导航断联后摇杆照常；jelly_sentry 在线时叠加平移并保留相加结果
-- steer_sentry 按血量在中心点与家之间切换导航上行目标点；任一 yaw 反馈丢失停车
+- 两车按血量在中心点与家之间切换导航上行目标点；jelly_sentry 在 `minipc_loop()` 按 2026 V1.2.0 协议 `0x0209` bit23 判到达中心 `(6.0, -3.2)` m，`<100` HP 回家 `(-0.15, -0.15)` m 直至满血并期间屏蔽自瞄与拨弹，赛场自检/倒计时/正赛屏蔽操作间默认 C 挡并在 5s 倒计时预开摩擦轮；任一 yaw 反馈丢失停车
 - 自主云台：steer_sentry 的 photo/右键人工自瞄优先于锁定状态机
 - 超电、UI、裁判和自瞄细节分别见 `../07-power/`、`../05-comm/`、`../02-conventions/application.md`
 

@@ -11,7 +11,7 @@ static void control_by_vt13() {
     chassis.set_speed(vt13.vx, vt13.vy, vt13.wr);
 }
 
-// 自主：雷达系导航速度转到云台系后叠加遥控平移；过洞随头，其余 90→60 rpm 小陀螺
+// 自主：雷达系导航速度转到云台系（场下 fn 测试叠加遥控平移）；过洞随头，其余 90→60 rpm 小陀螺
 // 导航断联时平移归零，过洞保持停车，其余原地小陀螺；任一 yaw 反馈掉线停车
 static void control_by_auto() {
     if (!yaw1.is_connect || !yaw2.is_connect) {
@@ -27,8 +27,8 @@ static void control_by_auto() {
     }
 
     const auto [nav_vx, nav_vy] = rotate(nav.vx, nav.vy, -gimbal.yaw2.measure);
-    const float vx = nav_vx + vt13.vx;
-    const float vy = nav_vy + vt13.vy;
+    const float vx = sentry_in_game() ? nav_vx : nav_vx + vt13.vx;
+    const float vy = sentry_in_game() ? nav_vy : nav_vy + vt13.vy;
     if (is_nav_through_hole) {
         chassis.set_mode(ChassisMatrix::FOLLOW_MODE);
         chassis.set_speed(vx, vy, 0);
@@ -42,19 +42,24 @@ static void control_by_auto() {
 
 void chassis_loop() {
     chassis.set_enable(sentry_enable());
-    if (sentry_in_game() || fn_latched())
+    if (sentry_in_game() || fn_latched()) {
         control_by_auto();
-    else
+    } else if (sentry_official()) {
+        // 赛场自检与 5s 倒计时：原地零速待命
+        chassis.set_mode(ChassisMatrix::DETACH_MODE);
+        chassis.set_speed(0, 0, 0);
+    } else {
         control_by_vt13();
+    }
 
     // 前进正方向为云台方向
     chassis.set_gimbal_yaw(gimbal.yaw.ecd.measure);
 
-    // 超电：裁判离线或 C 挡关闭；遥控使能或比赛中放电补偿，自检和倒计时只充电
+    // 超电：裁判离线或场外 C 挡关闭；赛场正赛或遥控使能放电补偿，自检和倒计时只充电
     bool is_cap_enable = false, is_boost_enable = false;
-    if (referee.is_connect && vt13.rc.mode != VT13::C) {
+    if (referee.is_connect && (sentry_official() || vt13.rc.mode != VT13::C)) {
         const auto progress = referee.game_status.game_progress;
-        is_boost_enable = vt13.is_enable || sentry_in_game();
+        is_boost_enable = sentry_in_game() || (!sentry_official() && vt13.is_enable);
         is_cap_enable = is_boost_enable || progress == Referee::REFEREE_SELF_CHECK || progress == Referee::COUNTDOWN_5SEC;
     }
     super_cap.set_enable(is_cap_enable);

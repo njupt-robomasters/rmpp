@@ -37,6 +37,7 @@ class Referee {
     PowerHeatData power_heat_data{};
     HurtData hurt_data{};
     ShootData shoot_data{};
+    RfidStatus rfid_status{};
     uint32_t hurt_sequence = 0; // 收到 0x0206 时递增，供 app 判断新的受击事件
 
   private:
@@ -49,7 +50,6 @@ class Referee {
     RobotPos robot_pos{};
     Buff buff{};
     ProjectileAllowance projectile_allowance{};
-    RfidStatus rfid_status{};
     DartClientCmd dart_client_cmd{};
     GroundRobotPosition ground_robot_position{};
     RadarMarkData radar_mark_data{};

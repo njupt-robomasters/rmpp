@@ -42,14 +42,24 @@ inline bool fn_latched() {
     return is_fn;
 }
 
+// 赛场阶段：裁判系统识别为哨兵（红 7、蓝 107），处于自检、倒计时或正赛
+inline bool sentry_official() {
+    const auto id = referee.robot_status.robot_id;
+    const auto progress = referee.game_status.game_progress;
+    return (id == 7 || id == 107) &&
+           (progress == Referee::REFEREE_SELF_CHECK || progress == Referee::COUNTDOWN_5SEC || progress == Referee::GAMING);
+}
+
 // 比赛中且裁判系统识别为哨兵（红 7、蓝 107）
 inline bool sentry_in_game() {
     const auto id = referee.robot_status.robot_id;
     return referee.game_status.game_progress == Referee::GAMING && (id == 7 || id == 107);
 }
 
-// 整车使能：在线 VT13 的 C 挡优先失能，断联时挡位为 ERR；自检、倒计时和比赛中遥控器断联也保持使能
+// 整车使能：赛场自检、倒计时和正赛强制使能（屏蔽操作间默认 C 挡）；场外 C 挡优先失能
 inline bool sentry_enable() {
+    if (sentry_official())
+        return true;
     if (vt13.rc.mode == VT13::C)
         return false;
 
