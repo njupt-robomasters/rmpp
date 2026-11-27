@@ -14,8 +14,10 @@ static bool has_hurt = false;
 static Angle hurt_dir;
 static Timer hurt_timer; // 上次受击后重新开始
 
-// 设备状态：在线绿色，离线粉色
-static RobotUi::Color status_color(const bool is_connect) {
+// 自瞄状态：未使能白色，在线绿色，断联粉色
+static RobotUi::Color connect_color(const bool is_enable, const bool is_connect) {
+    if (!is_enable)
+        return RobotUi::WHITE;
     return is_connect ? RobotUi::GREEN : RobotUi::PINK;
 }
 
@@ -63,7 +65,7 @@ void referee_loop() {
     {
         const IrqLock lock;
         ui.is_aim_detect = aim.is_detect;
-        ui.aim = status_color(aim.is_connect); // 自瞄
+        ui.aim = connect_color(sentry_enable(), aim.is_connect); // 自瞄
     }
     ui.super_cap = super_cap.energy_ratio();
     if (!super_cap.is_connect)

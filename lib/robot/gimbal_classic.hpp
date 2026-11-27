@@ -62,6 +62,9 @@ class GimbalClassic {
     // 设置世界 yaw/pitch 目标并清零速度指令，rad；关闭角度环时目标跟随实测
     void set_angle(Angle yaw, Angle pitch);
 
+    // 世界 yaw 目标相对转动 delta，rad；pitch 不变
+    void turn_yaw(float delta);
+
     // q 为云台到世界的单位四元数；gyro 为安装修正后的云台系角速度，rad/s
     void update(const Quaternionf& q, const Vector3f& gyro);
 

@@ -35,8 +35,10 @@ static void send() {
     pitch2.send();         // pitch2 1000 Hz
     if (send_cnt % 2 == 0) // shoot 500 Hz
         shoot.send();
-    rub1.send(); // 摩擦轮 1000 Hz
-    rub2.send();
+    if (send_cnt % 10 == 0) { // 摩擦轮 100 Hz
+        rub1.send();
+        rub2.send();
+    }
 
     // CAN3
     if (send_cnt % 2 == 0) // 小yaw 500Hz

@@ -5,7 +5,7 @@
 #include "motor/vesc.hpp"
 #include "robot/shooter_17mm.hpp"
 
-// 双传送带驱动（工程沿用 rub 名称）：2×P630，CAN2，VESC 扩展帧，电调内部速度环
+// 2×P630，CAN2，VESC 扩展帧，电调内部速度环
 // tx_id/rx_id 为电调节点 ID；set_speed() 接收输出轴 rad/s，Vesc 按 reduction（含极对数）换算 ERPM
 // 沿用节点 ID 0x21/0x22 与驱动参数，待实机核对极对数
 // 三路方向均在各实例的 is_invert 中显式配置，true 为反向

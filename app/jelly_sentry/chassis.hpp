@@ -4,18 +4,12 @@
 #include "power/super_cap.hpp"
 #include "robot/chassis_matrix.hpp"
 
-// 导航满速平移时的小陀螺角速度，rad/s；与底盘功率控制保留转速一致
-static constexpr float WR_MIN = 60 * rpm;
-
-// 底盘参数
-static constexpr float CHASSIS_RADIUS = 0.3125f;                     // 底盘中心到轮轴，m
-static constexpr float WHEEL_RADIUS = 0.066f;                        // 轮半径，m
-static constexpr float MAX_F = M3508::MAX_TORQUE / WHEEL_RADIUS * 4; // 四轮满电流时的总牵引力，N
+static constexpr float MAX_F = M3508::MAX_TORQUE / 0.066f * 4; // 四轮满电流时的总牵引力，N
 
 // 底盘速度 PID：速度误差 m/s → 牵引力 N
 inline Pid::Config vxyz_pid_config = {
     .kp = MAX_F / 1.0f,
-    .ki = MAX_F / 0.01f,
+    .ki = MAX_F / 0.1f,
     .max_i = MAX_F,
     .max_out = MAX_F,
     .err_fc = 10.0f,
@@ -56,8 +50,8 @@ inline SuperCap super_cap({.can = Can(1)});
 // 力控：底盘速度 PID 输出牵引力，力学逆解为各轮电流
 inline ChassisMatrixTorque chassis({&w1, &w2, &w3, &w4}, {
                                                              .kinematics = ChassisMatrix::OMNI,
-                                                             .chassis_radius = CHASSIS_RADIUS,
-                                                             .wheel_radius = WHEEL_RADIUS,
+                                                             .chassis_radius = 0.3125f,
+                                                             .wheel_radius = 0.066f,
                                                              .wheel_resistance = 0.194f,
                                                              .speed_pid_config = &vxyz_pid_config,
                                                              .follow_pid_config = &follow_pid_config,

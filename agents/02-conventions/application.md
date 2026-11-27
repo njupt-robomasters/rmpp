@@ -80,11 +80,11 @@
 
 ## 哨兵控制
 
-- steer_sentry 与 jelly_sentry 结构一致：`app.hpp` 提供 `rc_fn()`、`sentry_in_game()`、`sentry_active()`、`sentry_enable()`；chassis、gimbal、shooter 各有 `control_by_vt13()` 与 `control_by_auto()`，`*_loop()` 先设置使能，再按 `sentry_active()`（哨兵身份比赛中，或 VT13 N/S 挡按 fn 锁存测试，pause 清除）二选一，最后完成公共输入与 `update()`；自主时不叠加 VT13 操控量
-- 使能：在线 VT13 的 C 挡优先失能；否则 VT13 N/S 挡，或裁判自检、倒计时、比赛中保持使能。发射机构另在 N 挡失能
-- 底盘 VT13：分离模式，摇杆叠加键盘斜坡。底盘自主：折叠哨兵直接接收云台头部系速度，舵轮哨兵把雷达系速度转到云台系，两者均按 VT13 满量程限幅。过洞标志 1 跟随模式（steer_sentry 未配跟随 PID，只平移），过洞标志 0 分离模式小陀螺，平移 0→满量程时转速 `wr_max`→60 rpm。任一 yaw 离线时两车均停车；仅导航掉线时，折叠哨兵保留遥控平移，舵轮哨兵停车
-- 云台 VT13：摇杆叠加鼠标，R 键按下沿 `turn_yaw(180°)`，photo 或右键自瞄且识别到目标时跟随视觉角度；裁判自检阶段 yaw 叠加 180°/s 旋转。云台自主：5 m 内识别到目标且血量高于 120 时锁定视觉角度，脱锁 0.5 s 或低血量回到扫描（yaw 180°/s，pitch 在 IMU −22°~0° 往返 60°/s）；退出自主时复位为向下扫描。已删除全景相机（insta360）检查
-- 发射 VT13：S 挡开摩擦轮，trigger 或左键给弹频，自瞄时需视觉开火许可，右键双击强制开火；鼠标滚轮调弹频。发射自主：摩擦轮常开，视觉开火许可时按设定弹频。每周期把裁判剩余热量 `shooter_barrel_heat_limit − shooter_17mm_barrel_heat` 和冷却速率 `shooter_barrel_cooling_value` 传入 `Shooter17mm::update()`
+- `app.hpp` 提供 `rc_fn()`、`sentry_in_game()`、`sentry_active()`、`sentry_enable()`；`*_loop()` 先设置使能，再按 `sentry_active()`（哨兵身份比赛中，或 VT13 N/S 挡按 fn 锁存测试，pause 清除）二选一，最后完成公共输入与 `update()`。steer_sentry 的自主分支在各模块的 `control_by_auto()`；jelly_sentry 的自主行为集中在 `sentry.hpp`、`sentry.cpp` 的 `sentry_chassis()`、`sentry_gimbal()`、`sentry_shooter()`，遥控分支就地写在 `*_loop()` 的 `else` 中；舵轮哨兵自主时不叠加 VT13 操控量，折叠哨兵自主时叠加遥控平移与旋转
+- 使能：在线 VT13 的 C 挡优先失能；否则 VT13 N/S 挡，或裁判自检、倒计时、比赛中保持使能。发射机构随整车使能，N 挡只关摩擦轮（弹速为 0）
+- 底盘 VT13：分离模式，摇杆叠加键盘斜坡。底盘自主：两车都把大 yaw 雷达系导航速度按负小 yaw 角转到云台头部系，折叠哨兵再与 VT13 平移相加；舵轮哨兵按 VT13 满量程限幅。折叠哨兵按血量锁存切换导航上行目标点：不高于 120 HP 回家，回满 400 HP 再回中心点增益点，`nav.set_target()` 每周期写入；过洞 1 跟随 PID 对准枪口并叠加拨轮、过洞 0 分离并叠加固定 200 rpm 小陀螺（`SPIN_WR`）与拨轮，功率不足时 `MotorPower` 先衰减旋转组、平移优先；舵轮哨兵过洞标志 1 跟随模式（未配跟随 PID，只平移），过洞标志 0 分离模式小陀螺，平移 0→满量程时转速 `wr_max`→60 rpm。任一 yaw 离线时两车均停车；仅导航掉线时，折叠哨兵保留遥控平移，舵轮哨兵停车
+- 云台 VT13：摇杆叠加鼠标，R 键按下沿 `turn_yaw(180°)`，photo 或右键自瞄且识别到目标时跟随视觉角度；裁判自检阶段 yaw 叠加 180°/s 旋转，遥控分支与 `sentry_gimbal()` 扫描共用一个叠加量。云台自主：5 m 内识别到目标时锁定视觉角度，脱锁 0.5 s 回到扫描（yaw 180°/s，pitch 60°/s 往返：折叠哨兵按编码器软限位 −0.1~0.314 rad，舵轮哨兵按 IMU −22°~0°）；折叠哨兵扫描速度叠加遥控 yaw/pitch 速度，锁定期间以视觉角为准，低血量回家期间只扫描、识别到目标也不锁定。已删除全景相机（insta360）检查
+- 发射 VT13：S 挡开摩擦轮，trigger 或左键给弹频，自瞄时需视觉开火许可；鼠标滚轮调弹频。发射自主：摩擦轮常开，视觉开火许可时按设定弹频。每周期把裁判剩余热量 `shooter_barrel_heat_limit − shooter_17mm_barrel_heat` 和冷却速率 `shooter_barrel_cooling_value` 传入 `Shooter17mm::update()`
 - yaw 校零：VT13 C 挡按住 fn 与 photo 的按下沿，按大 yaw `angle_multi` 更新 offset 并写入 KvStore；steer_sentry 沿用改名前的 KvStore 标记 `"sentry"`，保留已标定零位
 - 操控参数和跨周期状态使用文件内 `static`
 
@@ -109,8 +109,8 @@
 
 ## jelly_sentry 双传送带驱动
 
-- 在线 VT13 的 C 挡使整车失能，优先于比赛阶段的自动使能；N 挡只允许底盘和云台使能，摩擦轮与拨弹目标均归零，发射机构失能
-- 用户说明 rub1/rub2 为工业传送带转动机构，工程沿用摩擦轮命名。VT13 在线时只按 VT13 手动控制：S 挡运行两路电机（`vt13.bullet_speed`），拨盘取 `vt13.bullet_freq`（trigger 时 pitch 摇杆乘弹频，负值反转；否则鼠标左键按弹频），人工自瞄需视觉开火许可，右键双击强制开火除外；自主时双传送带常开、视觉开火许可时按设定弹频
+- 在线 VT13 的 C 挡使整车失能，优先于比赛阶段的自动使能；N 挡发射机构保持使能，摩擦轮弹速为 0
+- 用户说明 rub1/rub2 为工业传送带转动机构，工程沿用摩擦轮命名。VT13 在线时只按 VT13 手动控制：S 挡运行两路电机（`vt13.bullet_speed`），拨盘取 `vt13.bullet_freq`（trigger 时 pitch 摇杆乘弹频，负值反转；否则鼠标左键按弹频），人工自瞄需视觉开火许可；自主时双传送带常开、视觉开火许可时按设定弹频
 - 两个 P630 由 app 定义为 `Vesc`，绑定 CAN2，节点 ID 沿用 `0x21/0x22`，共用现有 VESC 扩展帧收发实现
 - `Shooter17mm::update()` 通过 `set_speed()` 设置输出轴目标角速度（rad/s），由 Vesc 换算为 ERPM，使用电调内部速度环
 - 整车每1 ms发送两路VESC指令，使能时速度扩展帧ID为0x321/0x322、4字节大端ERPM，失能时发送零电流帧
@@ -130,14 +130,15 @@
 - 大 yaw、pitch1、pitch2 经电机原生 `set_output()` 接收 Nm，小 yaw 7025 接收 A；折叠云台保留电机限幅后的 PID 跟踪及重力补偿，独立于上游普通云台的简化策略
 - 底盘由 app 更新超电后传入 `power_chassis_ref`
 - 受击方向显示与实测弹速读取裁判公开只读的 `hurt_data`、`hurt_sequence`（收到 0x0206 递增）、`shoot_data`；受击时按装甲 ID 换算到 IMU 参考系锁存 1 s。两台哨兵与 leg_up 在 `referee_loop()` 直接填写 `ui` 的公开字段，再调用 `ui.update(referee_sender)`
-- 整车图 ADD 时全白，中心弧固定绿色，不再显示裁判断连。槽位按关节命名：`yaw1` 在轮腿上为下板、在双 yaw 哨兵上为大 yaw，`yaw2` 为小 yaw，`pitch1`、`pitch2` 为俯仰关节，未使用的槽位保持白色（steer_sentry 无 `pitch2`）。电机状态由电机对象提供，各车 `referee.cpp` 配置过热阈值（默认 80 ℃）并选色；离线粉、主动失能白、过热橙、达妙错误黄、正常绿。轮腿的 6 个底盘电机状态由下板状态帧回传：`yaw1` 显示下板断联粉、未使能白、倒地青、正常绿，`w1`~`w4` 为左前、左后、右后、右前关节，`s1`、`s2` 为左轮，`s3`、`s4` 为右轮。摩擦轮上排对应左侧、下排对应右侧；图上左列为 1 级、右列为 2 级，单级同侧共用状态。轮腿 UI 的 `aim` 槽暂保持白色。超电离线粉、OFF 白、CHARGE 青、BOOST 绿
+- 整车图 ADD 时全白，中心弧固定绿色，不再显示裁判断连。槽位按关节命名：`yaw1` 在轮腿上为下板、在双 yaw 哨兵上为大 yaw，`yaw2` 为小 yaw，`pitch1`、`pitch2` 为俯仰关节，未使用的槽位保持白色（steer_sentry 无 `pitch2`）。电机状态由电机对象提供，各车 `referee.cpp` 配置过热阈值（默认 80 ℃）并选色；离线粉、主动失能白、过热橙、达妙错误黄、正常绿。`aim` 槽显示自瞄连接：整车未使能白、在线绿、断联粉。轮腿的 6 个底盘电机状态由下板状态帧回传：`yaw1` 显示下板断联粉、未使能白、倒地青、正常绿，`w1`~`w4` 为左前、左后、右后、右前关节，`s1`、`s2` 为左轮，`s3`、`s4` 为右轮。摩擦轮上排对应左侧、下排对应右侧；图上左列为 1 级、右列为 2 级，单级同侧共用状态。超电离线粉、OFF 白、CHARGE 青、BOOST 绿
 - 超电处于 BOOST 但电压达到或低于配置的放电补偿截止值时显示青色，高于截止值时显示绿色
 - 独立 `examples-motor` 台架示例通过 SWD 查看 `motor_status_color`：断连粉、失能或零目标白、过热橙；其余状态下转速偏差超过 5 rpm 为青，达标为绿。该观察量不参与电机控制或实车 HUD
 
 ## jelly_sentry 导航与 pitch1
 
 - CDC1 用于 Aim 收发，CDC2 接 Nav 的导航下行帧（`A3`，24 字节）。主循环通过 `minipc_loop()` 执行 `nav.update()`，再执行 `chassis_loop()`
-- 导航以云台头部为前方；过洞标志为 1 时随 IMU 头、平移照常，为 0 时不随头并使用小陀螺。两种模式都把导航与遥控的平移速度逐轴相加后限幅。导航掉线时退出自动旋转，摇杆仍能控制平移；任一 yaw 反馈离线时停车
+- 导航速度为大 yaw 雷达系，按 `-gimbal.yaw2.measure` 转到云台头部系后与遥控平移相加；过洞标志为 1 时随 IMU 头、为 0 时不随头，两种模式都不自动旋转。导航掉线时摇杆仍能控制平移；任一 yaw 反馈离线时停车
+- 云台自主扫描的 pitch 端点与轴软限位共用 `PITCH_MIN`/`PITCH_MAX`（−0.1~0.314 rad，pitch2 编码器角，下限为枪口最高点）；扫描速度叠加遥控 yaw/pitch 速度，锁定期间以视觉角为准
 - pitch1 当前全程失能，GimbalFold 的总使能接口和每次 update 固定关闭该轴，清 PID 并写零输出，保留反馈与失能帧发送；其余三轴正常控制
 - 协议、坐标公式、过洞标志和离线处理详见 `agents/05-comm/minipc.md`；验证见 `agents/05-comm/minipc_protocol/README.md`
 
@@ -150,14 +151,14 @@
 
 - 整车控制计算保持1kHz；pitch1、pitch2和yaw2的发送周期可写变量放在gimbal.hpp各电机实例旁，EL05的shoot_send_period_ms放在shooter.hpp的shoot实例旁
 - 默认周期：pitch1_send_period_ms=4（250Hz）、pitch2_send_period_ms=1（1000Hz）、yaw2_send_period_ms=2（500Hz，A1/94各250Hz）、shoot_send_period_ms=2（500Hz）
-- 当前整车启用底盘、大小yaw、pitch2、EL05、双传送带及超电控制帧发送；pitch1 保留发送且始终发送失能帧。EL05默认2 ms周期调用，合并后需用户更新固件核对在线状态
+- 当前整车启用底盘、大小yaw、pitch2、EL05、双传送带及超电控制帧发送；pitch1 保留发送且始终发送失能帧。双传送带 VESC 速度帧每 10 拍发送一次（各 100 Hz），电调内部速度环不受影响。EL05默认2 ms周期调用，合并后需用户更新固件核对在线状态
 - 各变量为inline volatile uint32_t，运行时通过调试器写入，下一个发送判断使用新值，不清零已有计数。计数器保留在cpp，不作为调频入口；周期0等效每主循环发送，超过100ms可能触发主控反馈离线，7025建议周期至少2ms
 - 失能、使能和清错帧替换当次发送，不额外增加发送频率；CAN2 和 CAN3 分别核算负载，P630 扩展帧和状态上报按实际电调设置统计
 - 频率是按1ms主循环计算的目标值，真实周期、反馈频率与7025断联是否改善仍需上板测量
 
 ## 轮腿上下板通信
 
-- 上板 MiniPC 用 CDC1 收发自瞄帧，每 5 拍上报云台姿态、阵营和裁判实测弹速。按住 photo 或鼠标右键且识别到目标时，云台跟踪视觉世界 yaw/pitch；目标丢失、断联或退出自瞄时恢复摇杆与鼠标控制。自瞄模式下仅有目标且视觉批准时才放行 VT13 弹频。协议见 `minipc.md`
+- 上板 MiniPC 用 CDC1 收发自瞄帧，每 5 拍上报云台姿态、阵营和裁判实测弹速。按住 photo 或鼠标右键且识别到目标时，云台跟踪视觉世界 yaw/pitch；目标丢失、断联或退出自瞄时恢复摇杆与鼠标控制；R 键按下沿 `turn_yaw(180°)`。自瞄模式下仅有目标且视觉批准时才放行 VT13 弹频。协议见 `minipc.md`
 
 - 上下板 Can(1) 经滑环连接，与下板全部电机、上板管理的超电共用 CAN1；两板通过 `../leg_protocol.hpp` 引用共享文件 `app/leg/leg_protocol.hpp`，包含按发送方命名的 `UP_ID = 0x02`、`DOWN_ID = 0x03` 和报文布局。上板控制帧 8 字节（使能、批准自救、跳跃、速度、yaw、腿长、功率目标），500 Hz；下板状态帧 4 字节（底盘倒地、实测航向角速度、6 个电机状态），250 Hz
 - 共享协议文件统一定义 `LegUpFrame`、`LegDownFrame`、物理单位、`pack()` 与 `unpack()`；`Raw` 位域与解码后成员同序，编解码在 `pack()`、`unpack()` 内用局部 `Raw` 完成，不保存原始帧；位域按 arm-none-eabi-gcc 布局，主机 MinGW 测试加 `-mno-ms-bitfields`。解包先检查 ID 和长度，失败保持原数据。腿长为连续数值 `leg_length`（m），以 9 位无符号毫米数传输，范围 0..0.511 m；协议中没有腿长档位表。功率目标 `power_ref` 11 位 0.25 W/LSB，四舍五入，有限值范围 0..511.5 W，2047 表示不限功率（`INFINITY`）。`LegProtocol<TxFrame, RxFrame>` 封装发送帧、接收帧、在线状态与超时：构造时向 Can 注册回调，`update()` 超时清接收数据，`send()` 组帧发送；上板用 `LegUpProtocol`、下板用 `LegDownProtocol`，两板 `chassis_loop()` 直接读写 `leg_protocol` 字段，发送仍按 `app.cpp` 的拍数调用 `leg_protocol.send()`；回归测试检查共享文件引用与编解码

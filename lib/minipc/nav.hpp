@@ -15,7 +15,7 @@ class Nav {
 
     // 导航指令，接收回调解析，断联时为 0
     bool is_through_hole = false; // 过洞为 1，其余为 0
-    float vx = 0, vy = 0;         // 前向、左向速度，m/s；折叠哨兵以云台头部为前，舵轮哨兵以雷达为前
+    float vx = 0, vy = 0;         // 大 yaw 雷达系前向、左向速度，m/s
     float yaw = 0;                // 相对大 yaw 当前朝向的期望转角，rad；俯视逆时针为正
     float x = 0, y = 0;           // 上位机自定位的当前坐标，m
 

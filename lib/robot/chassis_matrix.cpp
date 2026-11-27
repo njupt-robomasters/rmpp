@@ -85,9 +85,9 @@ void ChassisMatrix::update() {
     // 轮电机功率估计供 SWD 与超电实测对照
     power.estimate = MotorPower::estimate(wheel, config.wheel_resistance);
 
-    // 旋转：用户输入优先，否则按模式分离或跟随；不跟随时清空跟随 PID
-    if (is_enable && wr.input == 0 && mode == FOLLOW_MODE) {
-        wr.ref = follow_pid.calculate(dt, gimbal_yaw);
+    // 旋转：跟随模式按云台偏角闭环并叠加用户旋转输入，其余模式只取用户输入；不跟随时清空跟随 PID
+    if (is_enable && mode == FOLLOW_MODE) {
+        wr.ref = follow_pid.calculate(dt, gimbal_yaw) + wr.input;
     } else {
         follow_pid.clear();
         wr.ref = is_enable ? wr.input : 0;

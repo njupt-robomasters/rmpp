@@ -13,7 +13,8 @@
 
 - `steer_sentry` 保留蜂鸣器启动提示音，应用不驱动板载 RGB 灯
 - `jelly_sentry` 使用 mc02：CDC1 自瞄、CDC2 导航；`steer_sentry` 使用 C 板，Aim 与 Nav 共用 CDC1，错拍各 200 Hz
-- 自主控制按导航过洞标志切换：1 随头（FOLLOW），0 小陀螺（DETACH）；两种底盘分别按 H 系/L 系换算
+- 自主控制按导航过洞标志切换：1 随头（FOLLOW），0 分离（DETACH）；导航速度都从 L 系按负小 yaw 角转到 H 系，旋转取遥控拨轮，jelly_sentry 平移叠加遥控、steer_sentry 过洞 0 走小陀螺
+- `jelly_sentry` 的自主行为集中在 `sentry.hpp`、`sentry.cpp`，`*_loop()` 只按 `sentry_active()` 二选一；底盘按血量锁存切换导航目标点并在过洞 0 叠加固定小陀螺，云台扫描并在允许时锁定，发射机构摩擦轮常开；裁判自检阶段 yaw 叠加 180°/s 旋转由 `sentry_self_check_yaw_speed()` 统一给出，遥控分支与自主扫描共用
 - 自主时 VT13 平移与旋转仍叠加：steer_sentry 平移按 `vxy_max`、旋转按 `wr_max` 限幅，导航断联后摇杆照常；jelly_sentry 只叠加平移
 - steer_sentry 按血量在中心点与家之间切换导航上行目标点；任一 yaw 反馈丢失停车
 - 自主云台：steer_sentry 的 photo/右键人工自瞄优先于锁定状态机
