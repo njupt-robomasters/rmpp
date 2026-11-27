@@ -130,3 +130,53 @@
 - 局部编译：jelly_sentry 的 rmpp_app、rmpp_lib、rmpp_bsp 对象目标全部通过，steer_sentry 六个应用源码对象通过，零警告。仅构建对象目标，未链接固件
 - 主机检查只运行现有 Nav/pitch1 和 Aim 协议用例。Nav/pitch1 90,968 项通过，Aim 协议通过，编译零警告；日志和 summary.json 位于 agents/out/14-upstream_merge_review/protocol/
 - 本次两个手写配置/发送源文件的 clang-format 检查通过，Git diff 空白检查与未合并项检查通过。硬件联调由用户审计后进行
+
+## 上游 75e831e 合并预检（2026-11-27）
+
+结论为需要逐段适配。模拟合并得到 14 个冲突路径，其中 13 个为内容冲突，1 个为目录迁移后的新增文件位置冲突。折叠哨兵有 7 个应用文件冲突，同时存在自动合并带入的参数与行为变化。
+
+### 比较基线与方法
+
+- 已执行 `git fetch origin`，上游为 `njupt-robomasters/rmpp` 的 `origin/master`，提交 `75e831e912a3f42e02a2fc8d586e58b423eff841`，提交时间 2026-11-27 08:33:46 +0800
+- 当前 HEAD 为 `5ca6126a8c30efba029a03299ff5a9e17db425c1`，共同祖先为 `781c78e63a29287ed4b1428029150b5eb9cb622d`。本地独有 16 个提交，上游独有 21 个
+- 预检开始时工作区只有 `agents/tasks/01-mc02_bsp/README.md` 的 10 行 pitch 断联记录未提交，已纳入工作区模拟快照
+- 复用 `review.cjs`，在独立裸仓库、索引及对象库中模拟 HEAD 和含未提交记录的工作区快照。两者冲突路径相同，工作区候选树为 `64823b249e933181a427e50520cd8a8f45d680b2`
+- 临时候选目录与编译日志放在 `agents/out/14-upstream_merge_review/`。当前分支和工程索引保持预检开始时状态
+
+### 冲突位置
+
+| 路径 | 冲突内容及合并约束 |
+| --- | --- |
+| `app/jelly_sentry/app.cpp` | 本地摩擦轮各 100 Hz 与上游发送整理冲突。候选树上方已自动加入摩擦轮各 1000 Hz、拨弹 500 Hz，冲突区取本地会再加入一次摩擦轮/拨弹发送。需要重组整段调度，保证每个设备只有一个发送入口；CDC 两侧分别为每 5 拍合发与每 4 拍错拍发送 |
+| `app/jelly_sentry/app.hpp` | 本地弹速 25 m/s、弹频 20 Hz，上游为 20 m/s、10 Hz；上游同时将四个遥控加减速度参数设为 INFINITY |
+| `app/jelly_sentry/chassis.cpp` | 本地雷达系速度经负小 yaw 转到云台系、叠加遥控后每轴限幅、导航离线仅遥控平移、旋转输入为零。上游直接叠加速度，取消此处平移限幅与导航在线分支，恢复 120→60 rpm 小陀螺；导航超时后零平移指令仍进入小陀螺分支 |
+| `app/jelly_sentry/chassis.hpp` | 本地删除 WR_MIN 与上游整理常量冲突。底盘速度 PID 的 ki 在冲突区外自动从 MAX_F/0.1 改成 MAX_F/0.01，增大 10 倍，需要独立审计 |
+| `app/jelly_sentry/gimbal.cpp` | 本地扫描 180°/s、60°/s、编码器端点；上游扫描速度为零并在 cpp 声明 IMU 扫描端点。hpp 自动保留本地全局 PITCH_MIN/MAX，cpp 冲突取上游会同名重定义。遥控接管与过洞停扫的本地逻辑会在其他位置自动合并 |
+| `app/jelly_sentry/minipc.cpp` | 本地 `nav.send(yaw)` 与上游 `nav.set_yaw_ecd(yaw)` 冲突。Nav 已自动升级为无参 send，需统一为设置与发送分开，同时明确保留本地的大 yaw 在线及有限值检查 |
+| `app/jelly_sentry/shooter.hpp` | 本地 block_time=0.2 s、reverse_time=0.1 s、heat_protect=100 与新热量 Config 冲突；shoot_pid 已在冲突区外改名 shoot_pid_config，需要一起迁移引用 |
+| `agents/01-board/mc02_bsp/README.md` | 原任务 01 记录迁移后与上游更新冲突，需保留本地 pitch 断联实测及本次未提交记录 |
+| `agents/02-conventions/application.md` | 两侧应用行为说明冲突，按最终采用的导航、扫描、热量策略整合 |
+| `agents/05-comm/minipc.md` | 本地导航坐标与发送行为和上游接口整理冲突 |
+| `agents/05-comm/nav/README.md` | 本地导航测试、遥控接管与上游目录和任务记录冲突 |
+| `agents/README.md`、`agents/TODO.md` | 上游按主题重组目录，本地额外任务与待办需迁移并更新索引 |
+| `agents/05-comm/nav/gimbal_test.cpp` | 本地新增文件位于上游已迁移的原任务目录，Git 提示迁往新目录；还需核对该测试与新无参 gimbal_loop 的接口 |
+
+### 自动合并带入的主要变化
+
+1. 热量管理变为连续降频。`Shooter17mm::set_heat_remain()` 删除，调用统一为 `update(剩余热量, 冷却速率)`；旧 `heat_protect` 字段删除。默认延迟 0.3 s、保留热量 10、增益 0.25。目标热量为 `(10 × 目标弹频 − 冷却速率) × 延迟 + 保留热量`，允许弹频为 `冷却速率/10 + 增益 × (剩余热量 − 目标热量)`，再限在零与目标弹频之间。应用不再采用余量低于 100 直接停拨的旧策略
+2. 弹频调节移到 VT13 鼠标滚轮，上/下跳各调 5 Hz，默认范围 5～10 Hz；原 C/Z 调弹频逻辑删除。RobotUi 弹频条满量程从 20 改为 15 Hz。jelly_sentry 原有人工强制开火逻辑在上游仍保留，steer_sentry 删除了双击强制开火
+3. 超电接口改为 `set_enable()` 与 `set_boost_enable()`，原 OFF/CHARGE/BOOST 枚举及 set_mode 删除。jelly_sentry 自动合并后的启用条件为遥控使能或哨兵比赛中，自检和倒计时充电分支删除，原裁判掉线和 C 挡优先关闭条件也被删除；比赛中即使 C 挡关闭整车，超电仍会按比赛条件启用
+4. Vesc 增加零速释放阈值，默认 60 rpm；目标为零且实测低于阈值时发送零电流，让电机自由停转。折叠哨兵两路 VESC 的 max_torque 配置被删除，max_current 仍为 20 A，减速比仍为 7
+5. jelly_sentry 的自瞄和导航上行改为错拍各 250 Hz；导航 A3/A4 帧布局沿用已有格式。minipc_loop 每拍设置大 yaw，发送集中到 app；当前上游未包含本地发送前的在线/有限值检查
+6. 舵轮哨兵增加下位机导航目标调度。已收到有效 maximum_HP 后，血量 ≤120 返回 HOME=(0,0)，血量 ≥400 再去 CENTER，当前启用的测试中心为 (1,0) m。两阈值间保持上次选择，退出自主复位为去中心。该调度实现位于 steer_sentry，jelly_sentry 的目标坐标仍未接入来源
+7. 舵轮哨兵自主运动增加遥控平移与旋转叠加，导航掉线后继续支持遥控，小陀螺分支保持运行；轮电机/舵电机超时从应用显式 40 ms 回到 Motor 默认 100 ms。舵向 kp 从 0.84/(40°) 调为 3/(140°)
+8. 轮腿上下板协议在原帧长内重排位域，新增 allow_rescue 与功率目标，wr 从 16 位缩为 15 位，下行移除 is_enable 并移动后续字段。上下板需要成套更新。下板自救改为 FALLEN/RECOVERING/BALANCING 状态，功率预算与轮端分配接入；腿长 PD 输出上限从 180 改为 350 N，跳跃收腿保持从 0.2 改为 0.25 s。上板接入自瞄、横向主轴航向锁存与新的 IMU 标定，云台遥控角速度从 360 改为 720°/s
+9. agents 按主题迁移到 01-board～09-guides，产物目录从 agents/out 改为 agents/tmp，.gitignore 删除 agents/out 忽略项。本地现有大批日志和工具仍在 agents/out，迁移时需要保留旧忽略项并更新本地额外任务索引、脚本和链接
+
+### 编译证据与推荐合并顺序
+
+- 在候选目录对 6 个 jelly_sentry 应用源码及 Nav、Shooter17mm、SuperCap、Vesc 共 10 个源文件执行 ARM GCC 语法编译，分别验证冲突区统一取本地和统一取上游。取本地有 5 个文件失败，涉及 shoot_pid 改名、旧 Config、minipc_send 删除、nav 包含与旧 send 参数。取上游有 1 个文件失败，为 PITCH_MIN/MAX 重定义。结果为 `latest_choice_compile.json` 和各源文件日志
+- 另对候选树的 `agents/05-comm/nav/nav_test.cpp` 做 ARM 语法编译，确认第 136、148 行仍调用 `nav.send(yaw)`，与新版接口冲突，日志为 `latest_nav_test_compile.log`
+- 验证范围为临时候选树的 ARM 语法编译与静态行为审阅，尚未完成最终冲突解法的对象编译、主机行为回归或实车验证
+- 推荐先接入上游 Nav/热量/SuperCap 接口，再逐段保留当前导航坐标转换、平移限幅、导航掉线处理、关闭底盘小陀螺、云台遥控接管、扫描及过洞停扫、小 yaw ±50°、pitch 编码器端点与发送前检查。保留当前已调参数和发送节拍，弹速、弹频、ki、卡弹时间及超电启用条件作为明确的行为改动单独审计
+- 接口验证至少覆盖两台哨兵应用、Nav 与 Shooter17mm 库及其现有测试；轮腿协议成套验证，文档与旧产物忽略项在目录迁移时同步处理

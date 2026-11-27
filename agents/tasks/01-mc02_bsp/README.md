@@ -187,3 +187,13 @@ agents/out/01-mc02_bsp/el05_protocol_test.exe
 - 第三轮计划读取周期使能时间等发送侧证据，完成 257/400 点后报 OPENOCD_TCL_ERROR，scatter memory read failed (-400)，retryable=false；响应未提供这 257 点，未纳入结论。随后确认采样 stopped、调试 none，未自动重试
 - 原始两轮 CSV 和统计归档 agents/out/01-mc02_bsp/pitch_disconnect_20261121_1.csv、_2.csv、_summary.json。本轮未修改固件、运行变量、寄存器、SVD 或共享观察列表，未烧录、复位、halt
 - 后续核实：安全失能后检查活动线束与端子；由用户量测两路 pitch 电源输入电压，并在故障时抓 CAN2 控制帧 0x10/0x11、反馈帧 0x20/0x21，区分供电、支线与发送/反馈协议路径
+
+### 两路 pitch 同步频繁断联复现（2026-11-27）
+
+- 用户确认采样期间机构正常运行，未主动断电或插拔线路；复用 Ember 当前采样连接，只读观察
+- 当前 ELF SHA-256 为 `49e636b4392c5b4966bc7e7948aee7299b6978a105ed7334aa4c02ac4da6a8cb`，Ember 返回 `firmwareConsistency=match`
+- 本地时间 08:15:39.891 起采样 1000 点，目标间隔 50 ms，实际跨度 49.859 s；pitch2 捕捉到 27 段离线记录（首段在采样开始时已离线），707 点离线；pitch1 为 708 点离线，两路仅 1 点在线状态不同
+- 最长离线记录从采样后 7.945 s 到 21.372 s，约 13.427 s；该段 pitch2 反馈时间戳固定为 `2559446414401`，拨弹与 CAN2 接收监控时间戳各有 270 个不同值，pitch2 周期使能时间戳有 134 个不同值。使能计时推进说明发送逻辑持续执行，帧是否实际抵达电机需抓包核实
+- CAN2 bus_off_count 与 hfdcan2.ErrorCode 全程为 0；AutoRetransmission 当前读取为 1。pitch2 离线点的 torque_ref 均为 0；err_code 全程为 1，停反馈期间保留历史状态。温度单次读取为电机 31℃、MOS 27℃
+- 直接触发链仍为两路达妙有效反馈同步中断超过 100 ms，随后闭环输出归零；优先排查两路达妙共用的 CAN 支线、连接器及供电分支。具体物理故障点需电源量测与控制/反馈帧抓包定位；当前 SVD 为空，未读取硬件错误计数和 FIFO 寄存器
+- 原始数据与统计保存于 `agents/out/01-mc02_bsp/pitch_disconnect_20261127_0815_raw.json`、`pitch_disconnect_20261127_0815_summary.json`
