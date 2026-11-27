@@ -1,80 +1,12 @@
 #include "gimbal.hpp"
 #include "app.hpp"
 #include "bsp/irq_lock.hpp"
-#include "chassis.hpp"
 #include "melody/music/g5g5g5.hpp"
 #include "minipc.hpp"
+#include "sentry.hpp"
 #include <algorithm>
-#include <cmath>
-
-// 自主扫描：yaw 连续旋转，pitch 目标在编码器软限位间往返，rad/s
-static constexpr float YAW_SPEED = 180 * deg_s, PITCH_SPEED = 60 * deg_s;
-
-// 自主锁定：自瞄有效距离，m；脱锁时间，s
-static constexpr float LOCK_DISTANCE = 5, LOCK_TIMEOUT = 500 * ms;
-
-// 自主状态，退出自主时复位为向下扫描
-static bool is_lock = false, scan_up = false;
-static Angle lock_yaw, lock_pitch; // 锁定目标，IMU 系
-static Timer lock_lost_timer;      // 识别到有效目标时重新开始
 
 static bool last_calib = false, last_r = false;
-
-// VT13：摇杆叠加鼠标；pitch 取 -pitch_speed，保持摇杆上推目标增大的方向；R 键掉头
-// photo 或鼠标右键自瞄，识别到目标时跟随视觉角度；裁判自检阶段 yaw 叠加匀速旋转
-static void control_by_vt13(const bool is_detect, const Angle target_yaw, const Angle target_pitch) {
-    if (vt13.key.r && !last_r)
-        gimbal.turn_yaw(180 * deg);
-    last_r = vt13.key.r;
-
-    if (vt13.is_aim && is_detect) {
-        gimbal.set_angle(target_yaw, target_pitch);
-    } else {
-        float yaw_speed = vt13.yaw_speed;
-        if (referee.game_status.game_progress == Referee::REFEREE_SELF_CHECK)
-            yaw_speed += YAW_SPEED;
-        const float yaw_speed_max = vt13.config.yaw_speed_max;
-        gimbal.set_speed(std::clamp(yaw_speed, -yaw_speed_max, yaw_speed_max), -vt13.pitch_speed);
-    }
-}
-
-// 自主：过洞断联保持姿态；场下调试摇杆或鼠标优先；允许交战时 5 m 内锁定目标，回家及赛前自检/倒计时只扫描不响应自瞄
-static void control_by_auto(const bool is_detect, const Angle target_yaw, const Angle target_pitch, const float distance) {
-    if (!nav.is_connect && is_nav_through_hole) {
-        is_lock = false;
-        gimbal.set_speed(0, 0);
-        return;
-    }
-
-    if (!sentry_official() && (vt13.yaw_speed != 0 || vt13.pitch_speed != 0)) {
-        is_lock = false;
-        gimbal.set_speed(vt13.yaw_speed, -vt13.pitch_speed);
-        return;
-    }
-
-    const bool has_target = is_detect && distance <= LOCK_DISTANCE;
-    const bool can_engage = sentry_can_engage();
-    if (can_engage && has_target) {
-        is_lock = true;
-        lock_yaw = target_yaw;
-        lock_pitch = target_pitch;
-        lock_lost_timer.restart();
-    } else if (!can_engage || lock_lost_timer.elapsed() > LOCK_TIMEOUT) {
-        is_lock = false;
-    }
-
-    if (is_lock) {
-        gimbal.set_angle(lock_yaw, lock_pitch);
-    } else if (is_nav_through_hole) {
-        gimbal.set_speed(0, 0);
-    } else {
-        if (gimbal.pitch.ecd.ref >= PITCH_MAX)
-            scan_up = false;
-        if (gimbal.pitch.ecd.ref <= PITCH_MIN)
-            scan_up = true;
-        gimbal.set_speed(YAW_SPEED, scan_up ? PITCH_SPEED : -PITCH_SPEED);
-    }
-}
 
 void gimbal_loop() {
     // aim 在 CDC 中断内更新，整体读取保证一致性
@@ -95,18 +27,26 @@ void gimbal_loop() {
     }
     last_calib = calib;
 
-    const bool is_auto = sentry_official() || fn_latched();
+    const bool is_auto = sentry_official() || sentry_active();
     if (is_auto) {
-        control_by_auto(is_detect, target_yaw, target_pitch, distance);
+        sentry_gimbal(is_detect, target_yaw, target_pitch, distance);
     } else {
-        is_lock = scan_up = false;
-        control_by_vt13(is_detect, target_yaw, target_pitch);
+        // VT13：R 键掉头；photo 或右键自瞄且识别到目标时跟随视觉角度
+        if (vt13.key.r && !last_r)
+            gimbal.turn_yaw(180 * deg);
+        last_r = vt13.key.r;
+
+        if (vt13.is_aim && is_detect) {
+            gimbal.set_angle(target_yaw, target_pitch);
+        } else {
+            const float yaw_speed = vt13.yaw_speed + sentry_self_check_yaw_speed();
+            const float yaw_speed_max = vt13.config.yaw_speed_max;
+            gimbal.set_speed(std::clamp(yaw_speed, -yaw_speed_max, yaw_speed_max), -vt13.pitch_speed);
+        }
     }
 
-    // 允许交战且识别到装甲板时小 yaw 优先追踪；过洞断联时保持原分配模式
+    // 允许交战且识别到装甲板时小 yaw 优先；过洞断联保持原分配模式
     if (!is_auto || nav.is_connect || !is_nav_through_hole)
         gimbal.set_yaw_window((!is_auto || sentry_can_engage()) && is_detect);
-    // 小陀螺前馈；底盘转速未知时关闭
-    gimbal.set_chassis_wr(std::isfinite(chassis.wr.measure) ? chassis.wr.measure : 0);
     gimbal.update(attitude.q, imu.gyro);
 }

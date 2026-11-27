@@ -4,8 +4,8 @@
 #include "gimbal.hpp"
 #include "melody/music/c5d5g5.hpp"
 #include "minipc.hpp"
+#include "sentry.hpp"
 #include "shooter.hpp"
-#include <cmath>
 
 static void setup() {
     // 大 yaw 零位从 KvStore 读取，未标定时为 0；标定方法见 gimbal.cpp 组合键
@@ -48,7 +48,7 @@ static void send() {
     // CDC
     if (send_cnt % 4 == 0) // 自瞄 250 Hz
         aim.send();
-    else if (send_cnt % 4 == 2 && yaw1.is_connect && std::isfinite(gimbal.yaw1.measure)) // 导航 250 Hz
+    else if (send_cnt % 4 == 2) // 导航 250 Hz
         nav.send();
 }
 
@@ -59,6 +59,7 @@ static void loop() {
 
     referee_loop();
     minipc_loop();
+    sentry_update();
 
     chassis_loop();
     gimbal_loop();

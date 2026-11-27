@@ -27,6 +27,10 @@ void GimbalClassic::set_angle(const Angle yaw, const Angle pitch) {
     yaw_speed = pitch_speed = 0;
 }
 
+void GimbalClassic::turn_yaw(const float delta) {
+    yaw.angle_ref += delta;
+}
+
 void GimbalClassic::update(const Quaternionf& q, const Vector3f& gyro) {
     const float dt = std::clamp(update_timer.restart(), 0.0001f, 0.01f);
 

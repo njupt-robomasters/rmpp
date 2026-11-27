@@ -16,7 +16,7 @@ class RobotUi {
         // 提示条满量程
         float super_cap_max = 1;          // 超电能量占比，1 为满电
         float chassis_wr_max = 120 * rpm; // 底盘转速，rad/s
-        float bullet_freq_max = 15.0f;    // 弹频，Hz
+        float bullet_freq_max = 10.0f;    // 弹频，Hz
         float shoot_output_max = 20.0f;   // 拨弹电流/力矩，A / Nm
     } const config;
 

@@ -9,7 +9,7 @@
 - C 板 `app/steer_sentry` 的 Aim 与 Nav 共用 CDC1，自瞄与导航上行错拍各200 Hz；jelly_sentry 双 CDC 上行错拍各250 Hz
 - Nav 构造注册 USB 接收回调；对象在回调使用期间持续存活，现有应用均为全局实例
 - 导航断联检查在 `chassis_loop()` 前完成；jelly_sentry 由 `minipc_loop()` 调用 `nav.update()`。公开只读输出为 `is_connect`、`is_through_hole`、`vx`、`vy`、`yaw`、`x`、`y`
-- 两台哨兵均由下位机在中心点与家之间选择目标点写入 `A4`，上位机规划路径：`steer_sentry` 血量 ≤120 回家、≥400 去中心；`jelly_sentry` 在 `minipc_loop()` 维护 `IDLE / GO_CENTER / AT_CENTER / GO_HOME` 状态机，正赛或 `fn` 测试下默认发中心 `(6.0, -3.2)` m，裁判 `0x0209` bit23 置位切 `AT_CENTER`，收到有效血量后 `<100` 发回家点 `(-0.15, -0.15)` m 直至回满 `maximum_HP` 再出击，非自主阶段发 `(0, 0)`
+- 两台哨兵均由下位机在中心点与家之间选择目标点写入 `A4`，上位机规划路径：`steer_sentry` 血量 ≤120 回家、≥400 去中心；`jelly_sentry` 在 `sentry.cpp` 维护 `IDLE / GO_CENTER / AT_CENTER / GO_HOME` 状态机，正赛或 `fn` 测试下默认发中心 `(6.0, -3.8)` m，裁判 `0x0209` bit23 置位切 `AT_CENTER`，收到有效血量后 `<100` 发回家点 `(0.15, -0.15)` m 直至回满 `maximum_HP` 再出击，非自主阶段发 `(0, 0)`
 
 ## 自瞄收发
 
@@ -50,11 +50,11 @@ A3 00 00 00 80 3F 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 8A 78
 
 Nav 按“协议接收”统一写法解析：`rx_fifo` 容量为一帧，1 字节帧头不符或 CRC 不符时丢弃 1 字节重新对齐，CRC 通过后整帧出队、保存私有 `raw_rx` 并直接更新公开指令。浮点有限性和标志取值不检查，按载荷原样发布。
 
-默认100 ms无有效帧后，Nav::update() 将公开指令清零，保留原始帧与接收 FIFO。jelly_sentry 在清零前用短 IrqLock 保存最近有效过洞标志，断联期间继续保持此标志，新有效帧可更新。底盘与云台读取这一应用状态，分别执行普通断联旋转与过洞断联保持。速度分量仍由接收回调直接更新。
+默认100 ms无有效帧后，Nav::update() 将公开指令清零，保留原始帧与接收 FIFO。jelly_sentry 在清零前用短 IrqLock 保存最近有效过洞标志，断联期间继续保持此标志，新有效帧可更新。底盘与云台读取这一应用状态，分别执行普通断联旋转与过洞断联保持。速度分量仍由接收回调直接更新。超时不清原始帧和接收 FIFO，坏帧持续到达也会超时。
 
 ## 哨兵控制链路与坐标
 
-自主控制由哨兵比赛身份或 fn 锁存进入。jelly_sentry 先将雷达系导航速度转到头部系（场下 fn 测试再叠加遥控平移，正赛忽略遥控杆量）；steer_sentry 叠加后按每轴±5 m/s限幅。两车任一 yaw 反馈离线时自主底盘停车，人工模式由VT13控制。
+自主行驶由哨兵正赛身份或 `rc_fn()` 锁存进入，赛场自检与倒计时底盘零速待命。jelly_sentry 导航在线时先将雷达系速度转到头部系，再始终叠加 VT13 平移，正赛同样叠加，不额外限幅；steer_sentry 叠加后按每轴 ±5 m/s 限幅。两车任一 yaw 反馈离线时自主底盘停车，人工模式由 VT13 控制。
 
 三个平面坐标系均为 X 前、Y 左，逆时针为正：
 
@@ -75,9 +75,9 @@ jelly_sentry 普通导航断联后平移归零、原地90 rpm，云台继续扫�
 ## pitch1 固定失能
 
 - `GimbalFold::set_enable()` 对 pitch1 固定调用 `set_enable(false)` 并写零原生输出
-- 每次 `GimbalFold::update()` 再固定 pitch1 失能，更新反馈、清空 pitch1 两级 PID，目标跟踪实测，最终 `set_output(0)`；pitch1 位置环和重力补偿输出计算已撤除
+- `GimbalFold::update()` 更新 pitch1 反馈、清空其两级 PID，目标跟踪实测，最终 `set_output(0)`；总使能入口固定关闭 pitch1，不计算位置环和重力补偿输出
 - 主应用保留默认 4 ms 的 `pitch1.send()`；DmMotor 在失能分支发送 `FF FF FF FF FF FF FF FD`，CAN ID 0x10，输出目标为零
 - 导航 flag 和总云台使能均不会启用 pitch1；其他三轴保持现有控制
 - 软件检查与主机测试覆盖失能状态、零电流/力矩目标和失能帧。实机是否已运行新固件及物理输出状态由用户更新固件后核对
 
-验证脚本与本轮结果见 `agents/05-comm/nav/README.md`。
+协议验证入口见 `agents/05-comm/nav/README.md`；本轮合并结果见 `agents/06-sentry/upstream/README.md`。

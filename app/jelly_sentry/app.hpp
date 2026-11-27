@@ -21,15 +21,15 @@ inline VT13 vt13({
     .wr_max = 120 * rpm,
     .ar = INFINITY,
     .dr = INFINITY,
-    .yaw_speed_max = 360 * deg_s,
-    .pitch_speed_max = 360 * deg_s,
-    .bullet_speed = 20.0f,
+    .yaw_speed_max = 720 * deg_s,
+    .pitch_speed_max = 720 * deg_s,
+    .bullet_speed = 18.0f,
     .bullet_freq = 10.0f,
 });
 
 // fn 锁存：VT13 在 N、S 挡时 fn 键置位、pause 键清除，失能或断联时清除
 // 底盘、云台、发射共用同一锁存状态，同一周期内重复调用结果不变
-inline bool fn_latched() {
+inline bool rc_fn() {
     static bool is_fn = false;
     if (vt13.is_enable) {
         if (vt13.rc.fn)
@@ -42,6 +42,12 @@ inline bool fn_latched() {
     return is_fn;
 }
 
+// 比赛中且裁判系统识别为哨兵（红 7、蓝 107）
+inline bool sentry_in_game() {
+    const auto id = referee.robot_status.robot_id;
+    return referee.game_status.game_progress == Referee::GAMING && (id == 7 || id == 107);
+}
+
 // 赛场阶段：裁判系统识别为哨兵（红 7、蓝 107），处于自检、倒计时或正赛
 inline bool sentry_official() {
     const auto id = referee.robot_status.robot_id;
@@ -50,18 +56,13 @@ inline bool sentry_official() {
            (progress == Referee::REFEREE_SELF_CHECK || progress == Referee::COUNTDOWN_5SEC || progress == Referee::GAMING);
 }
 
-// 比赛中且裁判系统识别为哨兵（红 7、蓝 107）
-inline bool sentry_in_game() {
-    const auto id = referee.robot_status.robot_id;
-    return referee.game_status.game_progress == Referee::GAMING && (id == 7 || id == 107);
+// 自主控制：比赛中，或按下 fn 测试；否则由 VT13 控制
+inline bool sentry_active() {
+    return sentry_in_game() || rc_fn();
 }
 
-// 整车使能：正赛在线 C 挡优先失能；自检和倒计时按赛场流程使能，场外 C 挡优先失能
+// 整车使能：在线 VT13 的 C 挡优先失能，断联时挡位为 ERR；自检、倒计时和比赛中遥控器断联也保持使能
 inline bool sentry_enable() {
-    if (sentry_in_game() && vt13.is_connect && vt13.rc.mode == VT13::C)
-        return false;
-    if (sentry_official())
-        return true;
     if (vt13.rc.mode == VT13::C)
         return false;
 

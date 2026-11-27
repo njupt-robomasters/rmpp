@@ -45,8 +45,6 @@ inline EL05 shoot({
 inline Shooter17mm shooter({rub1, rub2, shoot}, {
                                                     .shoot_pid_config = &shoot_pid_config,
                                                     .bullet_per_angle = 9.0f / rev,
-                                                    .block_time = 0.2f,
-                                                    .reverse_time = 0.1f,
                                                 });
 
 void shooter_loop();

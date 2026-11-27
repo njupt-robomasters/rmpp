@@ -14,8 +14,10 @@ static bool has_hurt = false;
 static Angle hurt_dir;
 static Timer hurt_timer; // 上次受击后重新开始
 
-// 设备状态：在线绿色，离线粉色
-static RobotUi::Color status_color(const bool is_connect) {
+// 自瞄状态：未使能白色，在线绿色，断联粉色
+static RobotUi::Color connect_color(const bool is_enable, const bool is_connect) {
+    if (!is_enable)
+        return RobotUi::WHITE;
     return is_connect ? RobotUi::GREEN : RobotUi::PINK;
 }
 
@@ -55,15 +57,15 @@ void referee_loop() {
     }
 
     // 哨兵无舵轮，s1~s4 保持白色；UI 只有一个 pitch 状态位，任一 pitch 电机断联都显示为断联
-    ui.yaw_ecd = gimbal.yaw.ecd.measure; // 云台相对底盘角度
-    ui.yaw_angle = gimbal.yaw.imu.measure;
-    ui.pitch_angle = gimbal.pitch.imu.measure;
+    ui.yaw_ecd = gimbal.yaw.ecd_measure; // 云台相对底盘角度
+    ui.yaw_angle = gimbal.yaw.measure;
+    ui.pitch_angle = gimbal.pitch.measure;
     ui.is_hurt = has_hurt && hurt_timer.elapsed() < HURT_TIMEOUT;
-    ui.hurt_dir = hurt_dir - gimbal.yaw.imu.measure; // 相对云台
+    ui.hurt_dir = hurt_dir - gimbal.yaw.measure; // 相对云台
     {
         const IrqLock lock;
         ui.is_aim_detect = aim.is_detect;
-        ui.aim = status_color(aim.is_connect); // 自瞄
+        ui.aim = connect_color(sentry_enable(), aim.is_connect); // 自瞄
     }
     ui.super_cap = super_cap.energy_ratio();
     if (!super_cap.is_connect)

@@ -40,7 +40,7 @@ void Imu::update_calibration(const Vector3f& gyro, const Vector3f& accel) {
     // 静止判断：加速度模长偏离重力，或波动超过陀螺仪 0.15 rad/s、加速度 0.5 m/s² 时提前判为失败
     bool disturbed = std::abs(sample[3] - 9.81f) > 0.5f;
     for (int i = 0; i < 4; i++) {
-        const float range = i < 3 ? 0.15f : 0.5f;
+        const float range = i < 3 ? 0.15f : 1.0f;
         disturbed |= calibration_max[i] - calibration_min[i] > range;
     }
     if (disturbed) {

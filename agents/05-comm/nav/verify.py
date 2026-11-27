@@ -16,6 +16,7 @@ OUT = ROOT / "agents/tmp/nav"
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--arm", action="store_true")
+    parser.add_argument("--apps-only", action="store_true", help="只验证应用流程")
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     shared_zig = ROOT / "agents/.tools/ziglang/zig.exe"
@@ -31,8 +32,14 @@ def main():
     shutil.copyfile(ROOT / "app/jelly_sentry/chassis.cpp", OUT / "chassis.cpp")
     shutil.copyfile(ROOT / "app/jelly_sentry/gimbal.cpp", OUT / "gimbal.cpp")
     shutil.copyfile(ROOT / "app/jelly_sentry/minipc.cpp", OUT / "minipc.cpp")
-    shutil.copyfile(TASK / "chassis_app.hpp", OUT / "app.hpp")
-    for header in ["chassis.hpp", "gimbal.hpp", "minipc.hpp"]:
+    shutil.copyfile(ROOT / "app/jelly_sentry/sentry.cpp", OUT / "sentry.cpp")
+    shutil.copyfile(ROOT / "app/jelly_sentry/sentry.hpp", OUT / "sentry.hpp")
+    shutil.copyfile(ROOT / "app/jelly_sentry/shooter.cpp", OUT / "shooter.cpp")
+    production_app = (ROOT / "app/jelly_sentry/app.hpp").read_text(encoding="utf-8")
+    app_functions = production_app[production_app.index("inline bool rc_fn()") :]
+    app_stub = (TASK / "chassis_app.hpp").read_text(encoding="utf-8")
+    (OUT / "app.hpp").write_text(app_stub + "\n" + app_functions, encoding="utf-8")
+    for header in ["chassis.hpp", "gimbal.hpp", "minipc.hpp", "shooter.hpp"]:
         (OUT / header).write_text('#include "app.hpp"\n', encoding="utf-8")
     cases = {
         "nav_test": [ROOT / "lib/robot/gimbal_fold.cpp",
@@ -41,10 +48,12 @@ def main():
         "gimbal_test": [],
     }
     for name, units in cases.items():
+        if args.apps_only and name == "nav_test":
+            continue
         exe = OUT / (name + ".exe")
         command = [*common, str(TASK / (name + ".cpp")), str(ROOT / "lib/minipc/nav.cpp"),
                    *map(str, units), "-o", str(exe)]
-        result = subprocess.run(command, cwd=ROOT, env=env, capture_output=True, text=True)
+        result = subprocess.run(command, cwd=ROOT, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace")
         (OUT / (name + "_compile.log")).write_text(result.stdout + result.stderr, encoding="utf-8")
         if result.returncode:
             print(result.stdout + result.stderr, flush=True)
@@ -65,7 +74,7 @@ def main():
             source = Path(row["file"]).relative_to(ROOT).as_posix()
             output = OUT / (preset + "_" + source.replace("/", "_") + ".obj")
             command = re.sub(r" -o .*? -c .*$", lambda _: f' -o "{output.as_posix()}" -c "{row["file"]}"', row["command"])
-            result = subprocess.run(command, cwd=row["directory"], capture_output=True, text=True)
+            result = subprocess.run(command, cwd=row["directory"], capture_output=True, text=True, encoding="utf-8", errors="replace")
             log = result.stdout + result.stderr
             (OUT / (output.stem + ".log")).write_text(log, encoding="utf-8")
             summary[preset + ":" + source] = {"exit_code": result.returncode, "warnings": log.count("warning:")}

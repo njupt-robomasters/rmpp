@@ -2,6 +2,7 @@
 #include "app.hpp"
 #include "chassis.hpp"
 #include "gimbal.hpp"
+#include "minipc.hpp"
 #include "shooter.hpp"
 
 // 受击方向，收到新的 0x0206 时按装甲 ID 换算到世界系并锁存
@@ -34,6 +35,13 @@ static RobotUi::Color down_motor_color(const LegDownFrame::MotorState state) {
         return RobotUi::PINK;
     }
     return RobotUi::WHITE;
+}
+
+// 自瞄状态：未使能白色，在线绿色，断联粉色
+static RobotUi::Color connect_color(const bool is_enable, const bool is_connect) {
+    if (!is_enable)
+        return RobotUi::WHITE;
+    return is_connect ? RobotUi::GREEN : RobotUi::PINK;
 }
 
 static RobotUi::Color motor_color(const Motor::Status status) {
@@ -108,6 +116,7 @@ void referee_loop() {
     ui.rub_left_stage1 = ui.rub_left_stage2 = motor_color(rub1.status(MOTOR_OVERHEAT, shooter.bullet_speed.ref != 0));
     ui.rub_right_stage1 = ui.rub_right_stage2 = motor_color(rub2.status(MOTOR_OVERHEAT, shooter.bullet_speed.ref != 0));
     ui.shoot = motor_color(shoot.status(MOTOR_OVERHEAT));
+    ui.aim = connect_color(vt13.is_enable, aim.is_connect); // 自瞄
 
     // 超电状态：未使能 DCDC 或未叠加补偿为白色，叠加补偿时按电容电压区分
     if (!super_cap.is_connect)

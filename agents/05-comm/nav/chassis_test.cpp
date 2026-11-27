@@ -1,9 +1,13 @@
 #include "chassis.cpp"
 #include "minipc.cpp"
+#include "sentry.cpp"
 
 static void run() {
     now_us += 1000;
+    vt13.rc.fn = test_active;
+    vt13.rc.pause = !test_active;
     minipc_loop();
+    sentry_update();
     chassis_loop();
 }
 
@@ -22,7 +26,7 @@ int main() {
 
     // 雷达朝前（yaw1 = 0）、云台朝左（yaw2 = +90°）：导航向前 1 m/s 在头部系为向右 1 m/s，落到车身系为向前 1 m/s
     gimbal.yaw2.measure = 90 * deg;
-    gimbal.yaw.ecd.measure = 90 * deg;
+    gimbal.yaw.ecd_measure = 90 * deg;
     command(1, 0, 1);
     CHECK(chassis.mode == ChassisMatrix::FOLLOW_MODE);
     near(chassis.vx, 0);
@@ -45,13 +49,13 @@ int main() {
     for (int i = -10; i <= 10; i++) {
         const float large_yaw = i * 0.2f;
         gimbal.yaw2.measure = i * 0.06f;
-        gimbal.yaw.ecd.measure = large_yaw + float(gimbal.yaw2.measure);
+        gimbal.yaw.ecd_measure = large_yaw + float(gimbal.yaw2.measure);
         command(1.2f, -0.8f, 1);
         const auto [actual_bx, actual_by] = rotate(chassis.vx, chassis.vy, chassis.gimbal_yaw);
         const auto [expect_bx, expect_by] = rotate(1.2f, -0.8f, large_yaw);
         near(actual_bx, expect_bx);
         near(actual_by, expect_by);
-        near(chassis.gimbal_yaw, gimbal.yaw.ecd.measure);
+        near(chassis.gimbal_yaw, gimbal.yaw.ecd_measure);
     }
 
     gimbal.yaw2.measure = 0;
@@ -150,33 +154,49 @@ int main() {
     CHECK(!is_nav_through_hole);
     near(chassis.wr_input, 84 * rpm);
     vt13.vy = 0;
-    test_enable = false;
+    vt13.rc.mode = VT13::C;
     run();
     CHECK(!chassis.enabled);
-    test_enable = true;
+    vt13.rc.mode = VT13::N;
     test_active = false;
     run();
     near(chassis.vx, 0);
     near(chassis.wr_input, 0);
-    // 超电规则：裁判离线、C 挡关闭，自检和倒计时充电，遥控使能或比赛中放电补偿
-    referee.is_connect = true;
-    vt13.is_enable = false;
-    vt13.rc.mode = VT13::S;
-    for (const int progress : {Referee::REFEREE_SELF_CHECK, Referee::COUNTDOWN_5SEC}) {
+    // 正赛仍叠加遥控平移，按相加后的速度计算小陀螺转速
+    referee.game_status.game_progress = Referee::GAMING;
+    vt13.vx = 2;
+    command(1, 0, 0);
+    near(chassis.vx, 3);
+    near(chassis.wr_input, 72 * rpm);
+
+    // 所有赛程 C 挡优先失能，N 挡保持赛程使能
+    for (const int progress : {Referee::NOT_STARTED, Referee::REFEREE_SELF_CHECK, Referee::COUNTDOWN_5SEC, Referee::GAMING}) {
         referee.game_status.game_progress = progress;
+        vt13.rc.mode = VT13::C;
+        vt13.is_enable = false;
         run();
-        CHECK(super_cap.is_enable && !super_cap.is_boost_enable);
+        CHECK(!chassis.enabled);
+        vt13.rc.mode = VT13::N;
+        vt13.is_enable = true;
+        run();
+        CHECK(chassis.enabled);
     }
+
+    // 超电按上游条件：遥控使能或正赛时同时使能与放电补偿
+    referee.game_status.game_progress = Referee::REFEREE_SELF_CHECK;
+    vt13.is_enable = false;
+    run();
+    CHECK(!super_cap.is_enable && !super_cap.is_boost_enable);
     vt13.is_enable = true;
     run();
     CHECK(super_cap.is_enable && super_cap.is_boost_enable);
-    vt13.rc.mode = VT13::C;
-    run();
-    CHECK(!super_cap.is_enable && !super_cap.is_boost_enable);
-    vt13.rc.mode = VT13::S;
     referee.is_connect = false;
     run();
-    CHECK(!super_cap.is_enable && !super_cap.is_boost_enable);
+    CHECK(super_cap.is_enable && super_cap.is_boost_enable);
+    vt13.is_enable = false;
+    referee.game_status.game_progress = Referee::GAMING;
+    run();
+    CHECK(super_cap.is_enable && super_cap.is_boost_enable);
     CHECK(irq_depth == 0);
     std::printf("Production chassis flow: %d checks passed\n", checks);
 }

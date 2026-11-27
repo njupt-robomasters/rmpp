@@ -33,11 +33,12 @@
 ### 哨兵 jelly_sentry / steer_sentry
 
 - 双 CDC 枚举与隔离、雷达与大 yaw 安装偏角、负小 yaw 坐标方向、随头方向、pitch1 失能状态，见 `05-comm/minipc_protocol/README.md`
-- jelly_sentry 本轮合并后上车核对90～60 rpm小陀螺、普通断联原地旋转、过洞断联底盘与云台保持、导航重连、100 Hz摩擦轮与20 m/s/10 Hz热量降频，见 `06-sentry/upstream/README.md`
+- jelly_sentry 本轮合并后上车核对90～60 rpm小陀螺、普通断联原地旋转、过洞断联底盘与云台保持、导航重连、100 Hz摩擦轮与18 m/s/10 Hz热量降频，见 `06-sentry/upstream/README.md`
 - steer_sentry 老哨兵操控还原：导航目标点 `(2.2, 4.7)` 与 `(0, 0)` 是否与新版上位机自定位同系；自主时摇杆与拨轮叠加后的方向和限幅；导航断联后摇杆驾驶；人工自瞄接管与释放，见 `06-sentry/steer_port/README.md`
 - 超电：0x051 电压电流符号与量程；CHARGE 稳态 `power_cap` 不为负；BOOST 在 10/12 V 的补偿衰减；断联重连；UI 按电容电压平方显示储能（满电默认 23.85 V），见 `07-power/super_cap/README.md`
 - UI 椭圆/圆弧半轴按协议修正后的显示；无选手端时 UI 请求被丢弃，见 `05-comm/referee_relay/README.md`
-- 机构参数按实测样机，温度、云台和发射机构保留本地实现，见 `06-sentry/upstream/README.md`
+- yaw1/yaw2 世界系反馈与 ±50° 自瞄窗口：手推确认 `(q * gyro).z()` 符号、大轴扣除小轴编码器速度的反馈方向，分别整定大小轴 PID（上游增益当前为零）；核对双 yaw 掉线清输出、过洞断联窗口冻结、pitch2 编码器速度闭环与原参数保持，见 `06-sentry/gimbal_imu/README.md`
+- 上游 IMU 标定值和 45 ℃ 恒温、所有阶段 C 挡优先失能、正常发射采用上游且赛前/回家仍禁拨弹，见 `06-sentry/upstream/README.md`
 
 ### 其他应用
 
@@ -59,6 +60,6 @@
 ## 后续任务
 
 - VQF 姿态算法：原样引入官方 C++ 实现（确认单精度选项），封装 `Vqf` 与 `QuaternionEkf` 并列
-- 导航上行目标点坐标：jelly_sentry 已接入中心 `(6.0, -3.2)` m 与回家 `(-0.15, -0.15)` m 及 `0x0209` bit23 到点检测；steer_sentry 沿用旧赛场数值，需与上位机确认同系
+- 导航上行目标点坐标：jelly_sentry 已接入中心 `(6.0, -3.8)` m 与回家 `(0.15, -0.15)` m 及 `0x0209` bit23 到点检测；steer_sentry 沿用旧赛场数值，需与上位机确认同系
 - 虚拟 IMU：云台 IMU + 关节角合成底盘姿态，替代下板 IMU
 - 转向指令限幅与高速段功率模型：轮速能力不足时 `wr` 长期饱和，模型按指令力矩计算会低估实际功率，见 `04-leg/spin_power/README.md` 遗留

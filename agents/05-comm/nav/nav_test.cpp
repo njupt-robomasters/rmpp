@@ -193,14 +193,20 @@ static void pitch1_test() {
     TestMotor yaw1, yaw2, pitch2;
     TestPitch1 pitch1;
     GimbalFold gimbal({yaw1, yaw2, pitch1, pitch2}, {
-                                                        .yaw_speed_pid_config = &speed,
-                                                        .yaw_position_pid_config = &position,
+                                                        .yaw1_angle_pid_config = &position,
+                                                        .yaw1_speed_pid_config = &speed,
+                                                        .yaw2_angle_pid_config = &position,
+                                                        .yaw2_speed_pid_config = &speed,
+                                                        .yaw2_min = -0.7f,
+                                                        .yaw2_max = 0.7f,
+                                                        .pitch_angle_pid_config = &position,
                                                         .pitch_speed_pid_config = &speed,
-                                                        .pitch_position_pid_config = &position,
                                                         .pitch_min = -0.3f,
                                                         .pitch_max = 0.5f,
-                                                        .yaw2 = {&speed, &position, -0.7f, 0.7f},
-                                                        .pitch1 = {&speed, &position, -1.6f, 0},
+                                                        .pitch1_position_pid_config = &position,
+                                                        .pitch1_speed_pid_config = &speed,
+                                                        .pitch1_min = -1.6f,
+                                                        .pitch1_max = 0,
                                                         .pitch1_gravity = {.torque = 2, .phase = 0.5f},
                                                         .pitch2_gravity = {.torque = 1, .phase = -0.2f},
                                                     });
@@ -219,7 +225,6 @@ static void pitch1_test() {
             for (const auto& callback : can_callbacks)
                 callback(feedback);
         }
-        gimbal.set_mode(i % 2 ? GimbalFold::ECD_MODE : GimbalFold::IMU_MODE);
         gimbal.set_angle(0.5f, 0.2f);
         gimbal.set_pitch1_angle(-1.5f);
         // 即便直接注入使能和非零目标，下次机构更新也强制失能并清零

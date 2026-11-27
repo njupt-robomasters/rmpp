@@ -5,7 +5,6 @@
 #include "support.hpp"
 
 inline constexpr float PITCH_MIN = -0.1f, PITCH_MAX = 0.314f;
-inline constexpr float WR_MIN = 60 * rpm, WR_MAX = 90 * rpm;
 
 struct ChassisMatrix {
     enum Mode { DETACH_MODE,
@@ -77,26 +76,32 @@ struct Referee {
 
     struct {
         float chassis_power_limit = 120;
-        int current_HP = 400, robot_id = 7;
+        int current_HP = 400, maximum_HP = 400, robot_id = 7;
+        float shooter_barrel_heat_limit = 200, shooter_barrel_cooling_value = 20;
     } robot_status;
 
     struct {
-        float buffer_energy = 60;
+        float buffer_energy = 60, shooter_17mm_barrel_heat = 0;
     } power_heat_data;
 
     struct {
         float initial_speed = 20;
     } shoot_data;
+
+    struct {
+        uint32_t rfid_status = 0;
+    } rfid_status;
 };
 
 struct VT13 {
     enum Mode { C,
                 N,
-                S };
+                S,
+                ERR };
 
     struct {
         Mode mode = N;
-        bool fn = false, photo = false;
+        bool fn = false, photo = false, pause = false;
     } rc;
 
     struct {
@@ -104,11 +109,13 @@ struct VT13 {
     } key;
 
     struct {
-        float vxy_max = 5, wr_max = 120 * rpm, yaw_speed_max = 360 * deg_s;
+        float vxy_max = 5, wr_max = 120 * rpm, yaw_speed_max = 720 * deg_s;
+        float bullet_speed = 18, bullet_freq = 10;
     } config;
 
-    bool is_enable = true, is_aim = false;
+    bool is_enable = true, is_connect = true, is_aim = false;
     float vx = 0, vy = 0, wr = 0, yaw_speed = 0, pitch_speed = 0;
+    float bullet_speed = 0, bullet_freq = 0;
 };
 
 inline ChassisMatrix chassis;
@@ -136,10 +143,12 @@ inline struct {
     Angle angle_yaw, angle_pitch, updated_yaw, updated_pitch;
 
     struct {
-        struct {
-            Angle ref, measure;
-        } ecd;
-    } yaw, pitch;
+        Angle ref, measure, ecd_measure;
+    } yaw;
+
+    struct {
+        Angle ref, measure, ecd_ref, ecd_measure;
+    } pitch;
 
     struct {
         Angle measure;
@@ -170,14 +179,8 @@ inline struct {
         yaw_window = value;
     }
 
-    void set_chassis_wr(const float value) {
-        chassis_wr = value;
-    }
+    void update(const Quaternionf&, const Vector3f&) {}
 
-    void update(const Angle y, const Angle p) {
-        updated_yaw = y;
-        updated_pitch = p;
-    }
 } gimbal;
 
 inline struct {
@@ -186,7 +189,11 @@ inline struct {
 } attitude;
 
 inline struct {
-    bool is_detect = false;
+    Vector3f gyro = Vector3f::Zero();
+} imu;
+
+inline struct {
+    bool is_detect = false, is_fire = false;
     Angle yaw, pitch;
     float distance = 10;
 
@@ -208,20 +215,30 @@ inline struct {
 
 inline Nav nav({.cdc = Cdc(2)});
 inline bool is_nav_through_hole = false;
-inline bool test_enable = true, test_active = true;
+inline bool test_active = true;
 
-inline bool sentry_enable() {
-    return test_enable;
-}
+inline struct {
+    bool enabled = false;
+    float bullet_speed = 0, bullet_freq = 0;
 
-inline bool fn_latched() {
-    return test_active;
-}
+    void set_enable(const bool value) {
+        enabled = value;
+    }
 
-inline bool sentry_in_game() {
-    return false;
-}
+    void set_bullet_speed(const float value) {
+        bullet_speed = value;
+    }
+
+    void set_bullet_freq(const float value) {
+        bullet_freq = value;
+    }
+
+    void set_heat(float, float) {}
+
+    void update() {}
+} shooter;
 
 void chassis_loop();
 void minipc_loop();
 void gimbal_loop();
+void shooter_loop();

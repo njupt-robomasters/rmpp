@@ -64,8 +64,6 @@ class Shooter17mm {
     float rub_speed[2]{};
 
   private:
-    bool is_heat_limit = false; // 热量限制中
-
     // 拨弹状态机
     enum {
         STOP,
