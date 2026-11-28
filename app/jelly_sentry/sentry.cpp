@@ -1,10 +1,10 @@
 #include "sentry.hpp"
-#include <random>
 #include "app.hpp"
 #include "chassis.hpp"
 #include "gimbal.hpp"
 #include "minipc.hpp"
 #include "shooter.hpp"
+#include <random>
 
 // 回家途中，sentry_chassis() 维护
 static bool is_go_home = false;
@@ -20,10 +20,9 @@ void sentry_chassis() {
             is_go_home = false;
     }
 
-    // 回家点按方别选择，中心点共用；裁判 ID 1~11 红方、101~111 蓝方，未收到 ID 时按红方
-    const bool is_red = referee.robot_status.robot_id < 100;
+    // 导航目标：回家途中去回家点，否则去中心增益点
     if (is_go_home)
-        nav.set_target(is_red ? HOME_X_RED : HOME_X_BLUE, is_red ? HOME_Y_RED : HOME_Y_BLUE);
+        nav.set_target(HOME_X, HOME_Y);
     else
         nav.set_target(CENTER_X, CENTER_Y);
 
