@@ -3,10 +3,20 @@
 #include "math/unit.hpp"
 #include <cstdint>
 
-// 导航目标点，上位机坐标系，m；中心增益点红蓝共用，回家点按方别分开
-inline constexpr float CENTER_X = 6.0f, CENTER_Y = -3.8f;
-inline constexpr float HOME_X_BLUE = 0.15f, HOME_Y_BLUE = -0.15f;
+// 匹配模式
+inline constexpr float CENTER_X = -4.954f, CENTER_Y = 2.097f;
+inline constexpr float HOME_X_BLUE = 0.197f, HOME_Y_BLUE = -0.301f;
 inline constexpr float HOME_X_RED = -10.160f, HOME_Y_RED = 4.663f;
+
+// 建图模式
+// inline constexpr float CENTER_X = -4.954f, CENTER_Y = 2.097f;
+// inline constexpr float HOME_X_BLUE = 0.0f, HOME_Y_BLUE = 0.0f;
+// inline constexpr float HOME_X_RED = 0.0f, HOME_Y_RED = 0.0f;
+
+// 调试模式
+// inline constexpr float CENTER_X = 1.0f, CENTER_Y = 0.0f;
+// inline constexpr float HOME_X_BLUE = 0.0f, HOME_Y_BLUE = 0.0f;
+// inline constexpr float HOME_X_RED = 0.0f, HOME_Y_RED = 0.0f;
 
 // 返航血量：低于 100 HP 回家，回满 maximum_HP 后再出击
 inline constexpr uint16_t GO_HOME_HP = 100;

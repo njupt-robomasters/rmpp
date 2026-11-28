@@ -29,7 +29,7 @@ inline Vesc rub2({
 // 拨弹电机：灵足 EL05，CAN2 私有扩展帧，电机 ID 0x12 / 主机 ID 0x22；速度环 rad/s → Nm
 // 电机侧 protocol_1=0；使能 ID 0x03002212，运行反馈 ID 0x02801222（无故障）
 inline Pid::Config shoot_pid_config = {
-    .kp = 5.0f / (60 * rpm),
+    .kp = 3,  // 实测高于此值震动较大，已验证能触发卡蛋检测
     .max_out = 6.0f,
 };
 inline EL05 shoot({

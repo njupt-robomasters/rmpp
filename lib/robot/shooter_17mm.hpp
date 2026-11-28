@@ -24,7 +24,7 @@ class Shooter17mm {
         float bullet_per_angle = 1.0f / rev; // 每弧度发射弹数，默认每转一发
         float rub_radius = 0.03f;            // 摩擦轮半径
         float block_time = 0.25f;            // 卡弹检测时间，s；拨弹 PID 输出持续饱和达到该时间判定卡弹
-        float reverse_time = 0.1f;           // 卡弹倒转时间
+        float reverse_time = 0.25f;           // 卡弹倒转时间
 
         // 热量：链路延迟，s；保留热量，heat；降频增益，发/秒/heat
         float heat_delay = 0.3f;
