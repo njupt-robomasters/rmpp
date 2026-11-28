@@ -1,6 +1,7 @@
 #include "chassis.hpp"
 #include "app.hpp"
 #include "gimbal.hpp"
+#include "minipc.hpp"
 #include "sentry.hpp"
 
 void chassis_loop() {
@@ -8,10 +9,12 @@ void chassis_loop() {
     chassis.set_mode(ChassisMatrix::DETACH_MODE);
     chassis.set_gimbal_yaw(gimbal.yaw.ecd_measure);
 
-    if (is_sentry_active())
+    if (is_sentry_active()) {
         sentry_chassis();
-    else
+    } else {
         chassis.set_speed(vt13.vx, vt13.vy, vt13.wr);
+        nav.set_target(0, 0);
+    }
 
     // 超级电容
     super_cap.set_enable(vt13.is_enable);
