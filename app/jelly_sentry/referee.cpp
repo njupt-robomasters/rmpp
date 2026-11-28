@@ -92,3 +92,7 @@ void referee_loop() {
     ui.shoot = motor_color(shoot.status(MOTOR_OVERHEAT));
     ui.update(referee_sender);
 }
+
+float time_since_hit() {
+    return has_hurt ? hurt_timer.elapsed() : INFINITY;
+}

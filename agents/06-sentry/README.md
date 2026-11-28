@@ -17,7 +17,7 @@
 
 - `steer_sentry` 保留蜂鸣器启动提示音，应用不驱动板载 RGB 灯
 - `jelly_sentry` 使用 mc02，CDC1 自瞄、CDC2 导航，错拍各250 Hz；`steer_sentry` 使用 C 板，Aim 与 Nav 共用 CDC1，错拍各200 Hz
-- 两车均按雷达系接收导航速度，经负小 yaw 转到头部系后叠加遥控；jelly_sentry 固定 90 rpm 小陀螺、过洞标志暂不处理，steer_sentry 按过洞标志 1 随头、0 小陀螺
+- 两车均按雷达系接收导航速度，经负小 yaw 转到头部系后叠加遥控；jelly_sentry 自主小陀螺默认 45 rpm，最近 5 s 内被弹丸击中提高到 90 rpm 并按最后一次受击刷新、过洞标志暂不处理，steer_sentry 按过洞标志 1 随头、0 小陀螺
 - 自主时 steer_sentry 叠加VT13平移与旋转并限幅，导航断联后摇杆照常；jelly_sentry 在线时叠加平移并保留相加结果
 - 两车按血量在中心点与家之间切换导航上行目标点；jelly_sentry 在 `sentry.cpp` 用 `is_go_home` 以中心 `(6.0, -3.8)` m 为目标，不依赖裁判 RFID，`<100` HP 回家 `(0.15, -0.15)` m 直至满血并期间屏蔽自瞄与拨弹
 - jelly_sentry 整车使能取 `vt13.is_enable`（N、S 挡），C 挡和断联时不使能；正赛中断联由 VT13 保持挡位，链路抖动不改变使能

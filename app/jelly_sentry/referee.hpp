@@ -13,3 +13,6 @@ inline RobotUi ui({});
 
 // 接收解析、本机 ID 与 UI 填写；referee_sender.send() 由 app.cpp 的 send() 安排
 void referee_loop();
+
+// 距最近一次弹丸受击的时长，s；从未受击时为 INFINITY
+float time_since_hit();

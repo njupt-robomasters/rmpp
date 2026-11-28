@@ -28,7 +28,9 @@ void sentry_chassis() {
 
     // 平移：雷达系按负小 yaw 角转到云台头部系，叠加以头部系为参考的遥控平移，不额外限幅
     const auto [nav_vx, nav_vy] = rotate(nav.vx, nav.vy, -gimbal.yaw2.measure);
-    chassis.set_speed(nav_vx, nav_vy, vt13.config.wr_max);
+
+    // 转速：受击后短时间内提高，按最后一次弹丸受击刷新
+    chassis.set_speed(nav_vx, nav_vy, time_since_hit() < SPIN_HIT_TIME ? SPIN_SPEED_HIT : SPIN_SPEED);
 }
 
 // pitch 扫描速度倍率：标准库 LCG 取 0.5～1，只放慢不超过额定值；换值让 pitch 与 yaw 的周期不成固定比例，避免每圈同一朝向的死区
